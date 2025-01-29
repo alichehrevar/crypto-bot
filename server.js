@@ -6,6 +6,7 @@ const connectDB = require('./config/db');
 
 const binanceWS = require('./app/services/binanceWS');
 const botService = require('./app/services/BotService');
+const WebSocketServer = require('./app/services/WebSocketServer');
 
 const candleRoutes = require('./routes/candles');
 const botRoutes = require('./routes/bots');
@@ -68,6 +69,9 @@ const PORT = process.env.PORT || 8000;
 const server = app.listen(PORT, () => {
     console.log(`Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
 });
+
+const wss = new WebSocketServer(server);
+module.exports.wss = wss;
 
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (err) => {

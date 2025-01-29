@@ -31,6 +31,15 @@ const botSchema = new mongoose.Schema({
     active: {
         type: Boolean,
         default: false
+    },
+    mode: {
+        type: String,
+        enum: ['live', 'paper'],
+        default: 'paper'
+    },
+    paperBalance: {
+        type: Number,
+        default: 10000
     }
 }, { timestamps: true });
 
