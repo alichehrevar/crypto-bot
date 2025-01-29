@@ -3,10 +3,14 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const connectDB = require('./config/db');
+
 const binanceWS = require('./app/services/binanceWS');
 const botService = require('./app/services/BotService');
+
 const candleRoutes = require('./routes/candles');
 const botRoutes = require('./routes/bots');
+const backtestRoutes = require('./routes/backtest');
+const visualizationRoutes = require('./routes/visualization');
 
 // Initialize Express application
 const app = express();
@@ -37,6 +41,8 @@ app.get('/health', (req, res) => {
 // API Routes
 app.use('/api/candles', candleRoutes);
 app.use('/api/bots', botRoutes);
+app.use('/api/backtest', backtestRoutes);
+app.use('/api/visualize', visualizationRoutes);
 
 // Error Handling Middleware
 app.use((err, req, res, next) => {

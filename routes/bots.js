@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Bot = require('../app/models/Bot');
+const { validateBotParams } = require('../app/http/middleware/validation');
 const botService = require('../app/services/BotService');
 
 router.post('/', async (req, res) => {
@@ -13,7 +14,7 @@ router.post('/', async (req, res) => {
     }
 });
 
-router.get('/', async (req, res) => {
+router.get('/', validateBotParams, async (req, res) => {
     try {
         const bots = await Bot.find();
         res.json(bots);

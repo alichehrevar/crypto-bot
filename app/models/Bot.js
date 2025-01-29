@@ -22,9 +22,11 @@ const botSchema = new mongoose.Schema({
     },
     strategyParams: mongoose.Schema.Types.Mixed,
     riskParams: {
-        stopLoss: Number,
-        takeProfit: Number,
-        positionSize: Number
+        maxDrawdown: Number,
+        dailyLossLimit: Number,
+        positionSizeType: { type: String, enum: ['percentage', 'fixed'] },
+        positionSizeValue: Number,
+        maxOpenTrades: Number
     },
     active: {
         type: Boolean,

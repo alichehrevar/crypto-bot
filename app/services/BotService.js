@@ -1,4 +1,5 @@
 const Bot = require('../models/Bot');
+const Trade = require('../models/Trade');
 const { MACrossover, RSI } = require('../strategies');
 
 class BotService {
@@ -36,21 +37,43 @@ class BotService {
         }
     }
 
-    processCandle(symbol, timeframe, candles) {
+    async checkRisk(bot) {
+        const openTrades = await Trade.countDocuments({ bot: bot._id, exitPrice: null });
+
+        return {
+            canTrade: openTrades < bot.riskParams.maxOpenTrades,
+            reason: openTrades >= bot.riskParams.maxOpenTrades ?
+                'Max open trades reached' : null
+        };
+    }
+
+    async processCandle(symbol, timeframe, candles) {
         const key = `${symbol}-${timeframe}`;
         const bots = this.activeBots.get(key) || [];
 
-        bots.forEach(({ bot, strategy }) => {
+        for (const { bot, strategy } of bots) {
+            const { canTrade, reason } = await this.checkRisk(bot);
+            if (!canTrade) {
+                console.log(`Blocked trade for ${bot.name}: ${reason}`);
+                continue;
+            }
+
             const signal = strategy.calculateSignal(candles);
             if (signal !== 'HOLD') {
-                this.executeOrder(bot, signal);
+                await this.executeOrder(bot, signal, candles[candles.length - 1].close);
             }
-        });
+        }
     }
 
-    executeOrder(bot, signal) {
-        console.log(`[${bot.name}] Executing ${signal} order`);
-        // Implement actual order execution here
+    async executeOrder(bot, signal) {
+        const trade = new Trade({
+            bot: bot._id,
+            symbol: bot.symbol,
+            type: signal,
+            entryPrice: price,
+            timestamp: new Date()
+        });
+        await trade.save();
     }
 }
 
