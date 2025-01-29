@@ -1,0 +1,11 @@
+# mac files
+.idea
+
+# vscode file
+.vscode
+
+# envirements
+.env
+
+#node files
+node_modules
