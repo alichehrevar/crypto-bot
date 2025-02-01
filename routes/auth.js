@@ -1,4 +1,5 @@
 const express = require('express');
+const { body, validationResult } = require('express-validator');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
 const User = require('../app/models/User');
@@ -13,7 +14,15 @@ router.post('/register', async (req, res) => {
     }
 });
 
-router.post('/login', async (req, res) => {
+router.post('/login', [
+    body('email').isEmail().normalizeEmail(),
+    body('password').isLength({ min: 6 })
+], async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+    }
+
     const { email, password } = req.body;
     const user = await User.findOne({ email });
 

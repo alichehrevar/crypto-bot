@@ -1,5 +1,4 @@
 const axios = require('axios');
-const { validationResult } = require('express-validator');
 const Candle = require('../../models/Candle');
 
 const candleController = {

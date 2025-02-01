@@ -2,12 +2,14 @@ require('dotenv').config();
 const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
+const path = require('path');
 const connectDB = require('./config/db');
 
 const binanceWS = require('./app/services/binanceWS');
 const botService = require('./app/services/BotService');
 const WebSocketServer = require('./app/services/WebSocketServer');
 
+const authRoutes = require('./routes/auth');
 const candleRoutes = require('./routes/candles');
 const botRoutes = require('./routes/bots');
 const backtestRoutes = require('./routes/backtest');
@@ -19,8 +21,8 @@ const app = express();
 // Middleware
 app.use(bodyParser.json());
 app.use(cors({
-    origin: process.env.CORS_ORIGIN || '*',
-    methods: ['GET', 'POST', 'PUT', 'DELETE']
+    origin: '*',
+    methods: ['GET', 'POST']
 }));
 
 // Database Connection
@@ -40,6 +42,7 @@ app.get('/health', (req, res) => {
 });
 
 // API Routes
+app.use('/api/auth', authRoutes);
 app.use('/api/candles', candleRoutes);
 app.use('/api/bots', botRoutes);
 app.use('/api/backtest', backtestRoutes);

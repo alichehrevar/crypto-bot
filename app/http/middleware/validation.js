@@ -1,4 +1,5 @@
 const { body } = require('express-validator');
+const { validationResult } = require('express-validator');
 
 const strategyValidators = {
     MA_Crossover: [

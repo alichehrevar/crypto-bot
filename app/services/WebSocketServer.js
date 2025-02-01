@@ -18,7 +18,7 @@ class WebSocketServer {
             const decoded = jwt.verify(token, process.env.JWT_SECRET);
             ws.userId = decoded.id;
         } catch (error) {
-            ws.close(4001, 'Unauthorized');
+            ws.close(401, 'Unauthorized');
         }
     }
 
