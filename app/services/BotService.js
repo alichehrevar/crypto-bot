@@ -1,6 +1,6 @@
 const Bot = require('../models/Bot');
 const Trade = require('../models/Trade');
-const { MACrossover, RSI } = require('../strategies');
+const { MACrossover, RSI, MACD } = require('../strategies');
 
 class BotService {
     constructor() {
@@ -38,7 +38,8 @@ class BotService {
                 return new MACrossover(bot.strategyParams);
             case 'RSI':
                 return new RSI(bot.strategyParams);
-            // Add cases for other strategies like MACD if you have them
+            case 'MACD':
+                return new MACD(bot.strategyParams);
             default:
                 throw new Error(`Unknown strategy: ${bot.strategy}`);
         }
@@ -106,7 +107,7 @@ class BotService {
             }
         }
 
-        // If you want to handle maxDrawdown, you'd compare the paperBalance or track a high-water mark.
+        // If we want to handle maxDrawdown, we'd compare the paperBalance or track a high-water mark.
 
         return { canTrade: true, reason: null };
     }

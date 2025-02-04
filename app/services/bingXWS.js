@@ -1,6 +1,6 @@
 const WebSocket = require('ws');
 const Candle = require('../models/Candle');
-const tradingViewWS = require('./TradingViewWS'); // or your own broadcast service
+const tradingViewWS = require('./TradingViewWS');
 
 class BingXWS {
     constructor() {
