@@ -1,57 +1,38 @@
 const WebSocket = require('ws');
-const jwt = require('jsonwebtoken');
 
-class WebSocketServer {
-    constructor(server) {
-        this.wss = new WebSocket.Server({ server });
-        this.subscriptions = new Map();
+class WSServer {
+    constructor() {
+        this.wss = null;
+    }
 
-        this.wss.on('connection', (ws, req) => {
-            ws.on('message', message => this.handleMessage(ws, message));
-            this.authenticate(ws, req);
+    init() {
+        // Create the WSS instance without binding it to the HTTP server directly.
+        this.wss = new WebSocket.Server({ noServer: true });
+        console.log('WebSocket server initialized');
+    }
+
+    handleUpgrade(request, socket, head) {
+        if (!this.wss) {
+            console.error('WebSocket server not initialized');
+            socket.destroy();
+            return;
+        }
+        this.wss.handleUpgrade(request, socket, head, (ws) => {
+            this.wss.emit('connection', ws, request);
         });
     }
 
-    authenticate(ws, req) {
-        try {
-            const token = req.url.split('token=')[1];
-            const decoded = jwt.verify(token, process.env.JWT_SECRET);
-            ws.userId = decoded.id;
-        } catch (error) {
-            ws.close(401, 'Unauthorized');
+    broadcastCandle(candle) {
+        if (!this.wss) {
+            console.error('WebSocket server not initialized');
+            return;
         }
-    }
-
-    handleMessage(ws, message) {
-        try {
-            const { type, channel, payload } = JSON.parse(message);
-            switch(type) {
-                case 'subscribe':
-                    this.subscribe(ws, channel, payload);
-                    break;
-                case 'unsubscribe':
-                    this.unsubscribe(ws, channel);
-                    break;
+        this.wss.clients.forEach(client => {
+            if (client.readyState === WebSocket.OPEN) {
+                client.send(JSON.stringify(candle));
             }
-        } catch (error) {
-            console.error('WS message error:', error);
-        }
-    }
-
-    subscribe(ws, channel, payload) {
-        if (!this.subscriptions.has(channel)) {
-            this.subscriptions.set(channel, new Set());
-        }
-        this.subscriptions.get(channel).add(ws);
-    }
-
-    broadcast(channel, data) {
-        if (this.subscriptions.has(channel)) {
-            this.subscriptions.get(channel).forEach(ws => {
-                ws.send(JSON.stringify({ channel, data }));
-            });
-        }
+        });
     }
 }
 
-module.exports = WebSocketServer;
+module.exports = new WSServer();

@@ -5,10 +5,8 @@ import { Bot, Candle } from '@/types';
 
 export default async function DashboardPage() {
     const api = getApiClient();
-    const [bots, candles] = await Promise.all([
-        api.get<Bot[]>('/bots'),
-        api.get<Candle[]>('/candles/BTC/USDT/1h')
-    ]);
+    const bots = await api.get<Bot[]>('/bots');
+    const candles = await api.get<Candle[]>('/candles/BTC/USDT/1m');
 
     return (
         <div className="container mx-auto p-4">
@@ -21,8 +19,8 @@ export default async function DashboardPage() {
             </div>
 
             <div className="p-4 rounded-lg shadow">
-                <h2 className="text-xl mb-4">BTC/USDT 1H Chart</h2>
-                <CandleChart data={candles.data} />
+                <h2 className="text-xl mb-4">BTC/USDT Real-time Chart</h2>
+                <CandleChart initialData={candles.data} />
             </div>
         </div>
     );

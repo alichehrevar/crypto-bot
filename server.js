@@ -1,9 +1,10 @@
 require('dotenv').config();
+const WebSocket = require('ws');
 const express = require('express');
-const bodyParser = require('body-parser');
 const cors = require('cors');
 const path = require('path');
 const connectDB = require('./config/db');
+const wss = new WebSocket.Server({ noServer: true });
 
 const binanceWS = require('./app/services/binanceWS');
 const botService = require('./app/services/BotService');
@@ -19,7 +20,7 @@ const visualizationRoutes = require('./routes/visualization');
 const app = express();
 
 // Middleware
-app.use(bodyParser.json());
+app.use(express.json());
 app.use(cors({
     origin: '*',
     methods: ['GET', 'POST']
@@ -49,7 +50,7 @@ app.use('/api/backtest', backtestRoutes);
 app.use('/api/visualize', visualizationRoutes);
 
 // Error Handling Middleware
-app.use((err, req, res) => {
+app.use((err, req, res, next) => {
     console.error(err.stack);
     res.status(500).json({
         success: false,
@@ -67,14 +68,47 @@ app.use((req, res) => {
     });
 });
 
+wss.on('connection', (ws) => {
+    console.log('New client connected');
+
+    ws.on('close', () => {
+        console.log('Client disconnected');
+    });
+});
+
 // Server Configuration
 const PORT = process.env.PORT || 8000;
 const server = app.listen(PORT, () => {
     console.log(`Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
 });
 
-const wss = new WebSocketServer(server);
-module.exports.wss = wss;
+WebSocketServer.init();
+
+server.on('upgrade', (request, socket, head) => {
+    if (request.url === '/api/ws') {
+        WebSocketServer.handleUpgrade(request, socket, head);
+    } else {
+        // For any other upgrade requests, destroy the socket
+        socket.destroy();
+    }
+});
+
+// server.on('upgrade', (request, socket, head) => {
+//     wss.handleUpgrade(request, socket, head, (ws) => {
+//         wss.emit('connection', ws, request);
+//     });
+// });
+
+module.exports = {
+    server,
+    broadcastCandle: (candle) => {
+        wss.clients.forEach(client => {
+            if (client.readyState === WebSocket.OPEN) {
+                client.send(JSON.stringify(candle));
+            }
+        });
+    }
+};
 
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (err) => {
