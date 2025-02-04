@@ -5,6 +5,10 @@ const tradingViewWS = require('./TradingViewWS'); // or your own broadcast servi
 class BingXWS {
     constructor() {
         this.ws = null;
+        this.reconnectInterval = 5000;
+        this.reconnectAttempts = 0;
+        this.maxReconnectAttempts = 10;
+        this.subscriptions = new Map(); // Track active subscriptions
     }
 
     /**
@@ -12,31 +16,39 @@ class BingXWS {
      * Make sure to use the correct endpoint per BingX docs (Spot vs. Perpetual).
      */
     connect() {
-        // Example Spot endpoint from docs.
-        // Verify you have the right one for your product (Spot or Perpetual).
-        // Some BingX docs reference: wss://open-api.bingx.com/market
-        // If you get "Unexpected server response: 200", it likely means
-        // the URL or query params are incorrect for WebSocket usage.
-        const endpoint = 'wss://open-api.bingx.com/market';
+        if (this.ws) return; // Prevent multiple connections
+
+        const apiKey = 'YOUR_API_KEY';
+        const secretKey = 'YOUR_SECRET_KEY';
+        const timestamp = Date.now();
+
+        // Generate a signature
+        const crypto = require('crypto');
+        const signature = crypto
+            .createHmac('sha256', secretKey)
+            .update(`timestamp=${timestamp}`)
+            .digest('hex');
+
+        // Construct the WebSocket URL with query parameters
+        const endpoint = `wss://open-api.bingx.com/ws?apiKey=${apiKey}&timestamp=${timestamp}&signature=${signature}`;
 
         this.ws = new WebSocket(endpoint);
 
+        // Handle ping/pong
+        this.ws.on('pong', () => console.debug('[BingXWS] Received pong'));
+        setInterval(() => {
+            if (this.ws?.readyState === WebSocket.OPEN) {
+                this.ws.ping();
+            }
+        }, 30000);
+
         this.ws.on('open', () => {
             console.log('[BingXWS] Connected to BingX WebSocket');
-
-            // Example subscription. The actual format depends on BingX docs.
-            // If their doc says you must send something like:
-            // { dataType: 'kline', symbol: 'BTC-USDT', interval: '1' }
-            // then do so here.
-
             const subscribeMsg = {
-                // The following is a *hypothetical* example:
-                "dataType": "kline",       // or "kline_1m", "trade", etc.
-                "symbol": "BTC-USDT",      // might be "BTC-USDT" or "BTCUSDT"
-                "interval": "1",           // "1" for 1-minute? or "1m"?
-                // Some docs say you might need "reqType": 1 or something else.
+                method: "SUBSCRIBE",
+                params: ["btcusdt@kline_1m"],
+                id: 1
             };
-            // Send subscription
             this.ws.send(JSON.stringify(subscribeMsg));
         });
 
@@ -53,11 +65,23 @@ class BingXWS {
             console.error('[BingXWS] WebSocket error:', err);
         });
 
-        this.ws.on('close', () => {
-            console.warn('[BingXWS] Connection closed. Attempting to reconnect...');
-            // If you want auto-reconnect:
-            setTimeout(() => this.connect(), 5000);
+        this.ws.on('close', (code, reason) => {
+            console.warn(`[BingXWS] Connection closed with code ${code}: ${reason}`);
+            this.handleReconnect();
         });
+    }
+
+    handleReconnect() {
+        if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+            console.error('[BingXWS] Max reconnect attempts reached');
+            return;
+        }
+
+        setTimeout(() => {
+            this.reconnectAttempts++;
+            console.log(`[BingXWS] Reconnect attempt ${this.reconnectAttempts}`);
+            this.connect();
+        }, this.reconnectInterval * Math.pow(2, this.reconnectAttempts));
     }
 
     /**
@@ -65,76 +89,28 @@ class BingXWS {
      * The structure here depends heavily on actual BingX responses.
      */
     async processMessage(msg) {
-        // Check if it's a Kline/candle event.  This example is *fictional*—adjust per docs.
-        // You might see "topic": "kline_1m", or "dataType": "kline",
-        // or a "k" field like Binance. Adapt accordingly.
-        if (!msg || !msg.dataType) {
-            // Possibly not a Kline update
-            return;
-        }
+        try {
+            if (!msg?.dataType === 'kline' || !msg.data) return;
 
-        if (msg.dataType === 'kline') {
-            // Hypothetical structure
-            // { dataType: 'kline', data: {
-            //    symbol: "BTC-USDT",
-            //    interval: "1",
-            //    open: 12345.6,
-            //    high: 12360.0,
-            //    low: 12340.0,
-            //    close: 12350.7,
-            //    volume: 100.2,
-            //    startTime: 1680000000000,
-            //    closeTime: 1680000059999,
-            //    isClosed: false
-            // } }
-            const klineData = msg.data;
-            if (!klineData) return;
+            const { symbol: rawSymbol, interval, open, high, low, close, volume } = msg.data;
 
-            const symbolRaw = klineData.symbol; // e.g. "BTC-USDT"
-            const interval = klineData.interval; // e.g. "1"
+            // Validate numeric values
+            const isValid = [open, high, low, close, volume].every(Number.isFinite);
+            if (!isValid) {
+                console.warn('Invalid candle data:', msg);
+                return;
+            }
 
-            // Convert to "BTC/USDT" if you want consistent format
-            const symbol = symbolRaw.replace('-', '/');
+            const symbol = rawSymbol.replace('-', '/');
+            const timeframe = this.mapInterval(interval);
 
-            const open = parseFloat(klineData.open);
-            const high = parseFloat(klineData.high);
-            const low = parseFloat(klineData.low);
-            const close = parseFloat(klineData.close);
-            const volume = parseFloat(klineData.volume);
-
-            // Decide if you use startTime or closeTime for 'timestamp'
-            // Possibly you do new Date(klineData.startTime)
-            // or new Date(klineData.closeTime)
-            const timestamp = new Date(klineData.closeTime);
-
-            // Upsert the candle in your DB
-            await this.upsertCandle({
-                symbol,
-                timeframe: this.mapInterval(interval), // might convert "1" -> "1m"
-                timestamp,
-                open,
-                high,
-                low,
-                close,
-                volume
-            });
-
-            // If you only want to broadcast once the candle is fully closed:
-            // if (klineData.isClosed) {
-            //     tradingViewWS.broadcastCandleUpdate({ ... });
-            // }
-
-            // Or broadcast partial:
-            tradingViewWS.broadcastCandleUpdate({
-                symbol,
-                timeframe: this.mapInterval(interval),
-                timestamp,
-                open,
-                high,
-                low,
-                close,
-                volume
-            });
+            // Validate timeframe mapping
+            if (!timeframe) {
+                console.warn('Unmapped interval:', interval);
+                return;
+            }
+        } catch (error) {
+            console.error('Message processing failed:', error);
         }
     }
 
@@ -142,29 +118,79 @@ class BingXWS {
      * A helper to convert BingX intervals to your app's standard e.g. "1" -> "1m"
      */
     mapInterval(interval) {
-        // If BingX uses "1" for 1-minute, "5" for 5-minute, etc.
-        // adapt them here:
-        if (interval === '1') return '1m';
-        if (interval === '5') return '5m';
-        if (interval === '15') return '15m';
-        // etc...
-        return interval;
+        const mapping = {
+            '1': '1m', '5': '5m', '15': '15m', '30': '30m',
+            '60': '1h', '240': '4h', 'D': '1d', 'W': '1w'
+        };
+
+        if (!mapping[interval]) {
+            console.warn('Unknown interval:', interval);
+            return null;
+        }
+
+        return mapping[interval];
+    }
+
+    unmapInterval(timeframe) {
+        const inverseMapping = {
+            '1m': '1', '5m': '5', '15m': '15', '30m': '30',
+            '1h': '60', '4h': '240', '1d': 'D', '1w': 'W'
+        };
+
+        return inverseMapping[timeframe] || timeframe;
     }
 
     /**
      * Upsert the candle into MongoDB for symbol/timeframe/timestamp
      */
-    async upsertCandle({ symbol, timeframe, timestamp, open, high, low, close, volume }) {
+    async upsertCandle(candleData) {
         try {
-            await Candle.findOneAndUpdate(
-                { symbol, timeframe, timestamp },
+            await Candle.updateOne(
                 {
-                    $set: { open, high, low, close, volume }
+                    symbol: candleData.symbol,
+                    timeframe: candleData.timeframe,
+                    timestamp: {
+                        $gte: new Date(candleData.timestamp - 60000), // 1 min window
+                        $lt: candleData.timestamp
+                    }
                 },
-                { upsert: true, new: true }
+                {
+                    $set: {
+                        open: candleData.open,
+                        high: { $max: ['$high', candleData.high] },
+                        low: { $min: ['$low', candleData.low] },
+                        close: candleData.close,
+                        volume: { $sum: ['$volume', candleData.volume] }
+                    }
+                },
+                { upsert: true }
             );
         } catch (err) {
-            console.error('[BingXWS] upsertCandle error:', err);
+            console.error('Candle upsert failed:', err);
+        }
+    }
+
+    // Add subscription tracking
+    subscribe(symbol, interval) {
+        const key = `${symbol}-${interval}`;
+        if (!this.subscriptions.has(key)) {
+            this.subscriptions.set(key, { symbol, interval });
+
+            const subscribeMsg = {
+                dataType: "kline",
+                symbol: symbol.replace('/', '-'),
+                interval: this.unmapInterval(interval)
+            };
+
+            this.sendWhenReady(subscribeMsg);
+        }
+    }
+
+    sendWhenReady(message) {
+        if (this.ws?.readyState === WebSocket.OPEN) {
+            this.ws.send(JSON.stringify(message));
+        } else {
+            setTimeout(() => this.sendWhenReady(message), 100);
         }
     }
 }
