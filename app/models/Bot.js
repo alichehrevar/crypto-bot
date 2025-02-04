@@ -20,7 +20,10 @@ const botSchema = new mongoose.Schema({
         enum: ['MA_Crossover', 'RSI', 'MACD'],
         required: true
     },
-    strategyParams: mongoose.Schema.Types.Mixed,
+    strategyParams: {
+        shortPeriod: { type: Number, min: 1 },
+        longPeriod: { type: Number, min: 1 }
+    },
     riskParams: {
         maxDrawdown: Number,
         dailyLossLimit: Number,
@@ -40,7 +43,7 @@ const botSchema = new mongoose.Schema({
     paperBalance: {
         type: Number,
         default: 10000
-    }
+    },
 }, { timestamps: true });
 
 module.exports = mongoose.model('Bot', botSchema);
