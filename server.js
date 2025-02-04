@@ -7,7 +7,8 @@ const http = require('http');
 const connectDB = require('./config/db');
 const binanceWS = require('./app/services/binanceWS');
 const botService = require('./app/services/BotService');
-const tradingViewWS = require('./app/services/TradingViewWS'); // <-- ADD THIS
+const tradingViewWS = require('./app/services/TradingViewWS');
+const bingXWS = require('./app/services/bingXWS');
 
 const authRoutes = require('./routes/auth');
 const candleRoutes = require('./routes/candles');
@@ -29,6 +30,7 @@ app.use(cors({
 connectDB().then(() => {
     // Start WebSocket connection after DB is connected
     binanceWS.connect();
+    bingXWS.connect();
     botService.initialize();
 });
 
@@ -49,7 +51,7 @@ app.use('/api/backtest', backtestRoutes);
 app.use('/api/visualize', visualizationRoutes);
 
 // Error Handling Middleware
-app.use((err, req, res, next) => {
+app.use((err, req, res) => {
     console.error(err.stack);
     res.status(500).json({
         success: false,
