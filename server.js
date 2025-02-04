@@ -1,14 +1,13 @@
 require('dotenv').config();
-const WebSocket = require('ws');
 const express = require('express');
 const cors = require('cors');
-const path = require('path');
-const connectDB = require('./config/db');
-const wss = new WebSocket.Server({ noServer: true });
+const mongoose = require('mongoose'); // Required for DB status checks
+const http = require('http');
 
+const connectDB = require('./config/db');
 const binanceWS = require('./app/services/binanceWS');
 const botService = require('./app/services/BotService');
-const WebSocketServer = require('./app/services/WebSocketServer');
+const tradingViewWS = require('./app/services/TradingViewWS'); // <-- ADD THIS
 
 const authRoutes = require('./routes/auth');
 const candleRoutes = require('./routes/candles');
@@ -28,7 +27,7 @@ app.use(cors({
 
 // Database Connection
 connectDB().then(() => {
-    // Start WebSocket connection after DB connection
+    // Start WebSocket connection after DB is connected
     binanceWS.connect();
     botService.initialize();
 });
@@ -68,47 +67,16 @@ app.use((req, res) => {
     });
 });
 
-wss.on('connection', (ws) => {
-    console.log('New client connected');
+// Create HTTP server from Express app
+const server = http.createServer(app);
 
-    ws.on('close', () => {
-        console.log('Client disconnected');
-    });
-});
+// Start the TradingViewWS server on top of the same HTTP server
+tradingViewWS.startServer(server);
 
-// Server Configuration
 const PORT = process.env.PORT || 8000;
-const server = app.listen(PORT, () => {
+server.listen(PORT, () => {
     console.log(`Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
 });
-
-WebSocketServer.init();
-
-server.on('upgrade', (request, socket, head) => {
-    if (request.url === '/api/ws') {
-        WebSocketServer.handleUpgrade(request, socket, head);
-    } else {
-        // For any other upgrade requests, destroy the socket
-        socket.destroy();
-    }
-});
-
-// server.on('upgrade', (request, socket, head) => {
-//     wss.handleUpgrade(request, socket, head, (ws) => {
-//         wss.emit('connection', ws, request);
-//     });
-// });
-
-module.exports = {
-    server,
-    broadcastCandle: (candle) => {
-        wss.clients.forEach(client => {
-            if (client.readyState === WebSocket.OPEN) {
-                client.send(JSON.stringify(candle));
-            }
-        });
-    }
-};
 
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (err) => {
