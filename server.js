@@ -52,14 +52,31 @@ app.use('/api/backtest', backtestRoutes);
 app.use('/api/visualize', visualizationRoutes);
 
 // Error Handling Middleware
-app.use((err, req, res) => {
+app.use((err, req, res, next) => {
     console.error(err.stack);
-    res.status(500).json({
-        success: false,
-        error: process.env.NODE_ENV === 'production'
-            ? 'Internal Server Error'
-            : err.message
-    });
+
+    if (res && typeof res.status === 'function') {
+        res.status(500).json({
+            success: false,
+            error: process.env.NODE_ENV === 'production'
+                ? 'Internal Server Error'
+                : err.message
+        });
+    } else {
+        // Ensure the response object has send method before using it
+        if (res && typeof res.send === 'function') {
+            res.send('An unexpected error occurred');
+        } else {
+            // Handle edge case when res is not available or broken
+            console.error('Response object is broken or missing.');
+            res.end('An unexpected error occurred');
+        }
+    }
+});
+
+// Test Endpoint for Debugging
+app.get('/test', (req, res) => {
+    res.status(200).json({ message: 'Everything is working fine' });
 });
 
 // 404 Handler

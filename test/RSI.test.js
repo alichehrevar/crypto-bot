@@ -7,6 +7,7 @@
  */
 
 const RSI = require('../app/strategies/RSI');
+const { generateTestData } = require("./testUtils");
 
 describe('RSI Strategy', () => {
     it('should throw an error if params are not provided', () => {
@@ -26,15 +27,10 @@ describe('RSI Strategy', () => {
     });
 
     it('should calculate RSI correctly and return HOLD if not crossing boundaries', () => {
+
         // Minimal candle data for a 14 period RSI => need at least 15 for calculation
         // but let's provide a bit more for a clearer scenario
-        const candles = [
-            { close: 100 }, { close: 102 }, { close: 101 }, { close: 103 },
-            { close: 105 }, { close: 106 }, { close: 104 }, { close: 107 },
-            { close: 108 }, { close: 110 }, { close: 109 }, { close: 111 },
-            { close: 110 }, { close: 112 }, { close: 111 }, { close: 115 },
-            { close: 114 }, { close: 113 }, { close: 116 }, { close: 117 }
-        ];
+        const candles = generateTestData(28);
 
         const rsiStrategy = new RSI({
             period: 14,

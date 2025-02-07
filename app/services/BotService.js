@@ -1,7 +1,7 @@
 const Bot = require('../models/Bot');
 const Trade = require('../models/Trade');
 const { MACrossover, RSI, MACD } = require('../strategies');
-const StrategyManager = require('../strategies/StrategyManager'); // Import StrategyManager
+const StrategyManager = require('../strategies/StrategyManager');
 
 class BotService {
     constructor() {

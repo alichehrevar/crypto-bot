@@ -43,7 +43,6 @@ class MACD extends BaseStrategy {
         // Step 3: MACD line = shortEMA - longEMA (element-wise)
         // But note: because 'shortEMA' and 'longEMA' arrays each "start" at index = (period - 1),
         // we align them so MACD is only valid after both EMAs exist.
-        // We'll produce an array of the same length as closes. Before the EMAs are valid, they might be null/undefined.
         const macdLine = closes.map((_, i) => {
             // If shortEMA[i] or longEMA[i] is not set, MACD is not valid
             if (shortEMA[i] == null || longEMA[i] == null) return null;
@@ -87,18 +86,14 @@ class MACD extends BaseStrategy {
                 emaInitialized = true;
                 emaArr[i] = null; // not "valid" yet
             } else if (!emaInitialized && i < period) {
-                // we could do initial SMA for first 'period' points if we want more accuracy
-                // for simplicity, let's do the standard approach:
                 prevEma = (val * k) + (prevEma * (1 - k));
                 if (i === period - 1) {
-                    // after we have 'period' points, we accept it as the first valid EMA
                     emaArr[i] = prevEma;
                     emaInitialized = true;
                 } else {
                     emaArr[i] = null;
                 }
             } else {
-                // normal EMA update
                 prevEma = (val * k) + (prevEma * (1 - k));
                 emaArr[i] = prevEma;
             }

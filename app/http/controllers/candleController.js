@@ -5,9 +5,12 @@ const candleController = {
     fetchHistoricalData: async (req, res) => {
         try {
             const { symbol, interval, limit = 100 } = req.body;
+
+            // Ensure the symbol is in the correct format (e.g., "BTC/USDT" to "BTCUSDT")
             const binanceSymbol = symbol.replace('/', '');
 
-            const response = await axios.get(`https://api.binance.com/api/v3/klines`, {
+            // Fetch historical data from Binance API
+            const response = await axios.get('https://api.binance.com/api/v3/klines', {
                 params: {
                     symbol: binanceSymbol,
                     interval,
@@ -15,6 +18,7 @@ const candleController = {
                 }
             });
 
+            // Map the response data to the format used in our database
             const candles = response.data.map(kline => ({
                 symbol,
                 open: parseFloat(kline[1]),
@@ -23,11 +27,13 @@ const candleController = {
                 close: parseFloat(kline[4]),
                 volume: parseFloat(kline[5]),
                 timeframe: interval,
-                timestamp: new Date(kline[0])
+                timestamp: new Date(kline[0]) // Convert timestamp to Date object
             }));
 
-            // Remove existing data and insert new
+            // Delete any existing data for the given symbol and timeframe before inserting new data
             await Candle.deleteMany({ symbol, timeframe: interval });
+
+            // Insert the new candle data into the database
             await Candle.insertMany(candles);
 
             res.json({
@@ -51,10 +57,11 @@ const candleController = {
         try {
             const { symbol, timeframe } = req.params;
 
+            // Fetch data from the database for the given symbol and timeframe
             const candles = await Candle.find({
                 symbol: symbol.toUpperCase(),
                 timeframe: timeframe.toLowerCase()
-            }).sort({ timestamp: -1 }).limit(100);
+            }).sort({ timestamp: -1 }).limit(100); // Limit to the latest 100 candles
 
             res.json({
                 success: true,
@@ -69,8 +76,6 @@ const candleController = {
             });
         }
     }
-
-    // Add real-time WebSocket connection later
 };
 
 module.exports = candleController;
