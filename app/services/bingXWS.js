@@ -126,12 +126,12 @@ class BingXWS {
         }, 25000);
 
         // Add ping/pong handlers
-        this.ws.on('ping', (data) => {
+        this.ws.on('ping', () => {
             console.debug('[BingXWS] Received ping');
             this.ws.pong();
         });
 
-        this.ws.on('pong', (data) => {
+        this.ws.on('pong', () => {
             console.debug('[BingXWS] Received pong');
         });
     }
