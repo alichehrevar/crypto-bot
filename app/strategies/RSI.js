@@ -24,7 +24,13 @@ class RSI extends BaseStrategy {
     }
 
     calculateRSI(candles) {
-        // TODO: need to be deleted
+        /*
+            Why this.period + 1?
+            The first phase of RSI calculation uses the first this.period candles to calculate the initial average gain and average loss
+            (which is the Simple Moving Average, or SMA, over that period).
+            Then, in the subsequent phase, additional candles are used to smooth those averages over time.
+            Therefore, you need this.period + 1 candles to properly calculate RSI, as the initial period is used for the SMA calculation.
+        */
         if (!candles || candles.length < this.period + 1) {
             throw new Error(`Need at least ${this.period + 1} candles for RSI calculation`);
         }
