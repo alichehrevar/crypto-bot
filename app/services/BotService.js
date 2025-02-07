@@ -94,7 +94,7 @@ class BotService {
         const lastCandle = candles[candles.length - 1];
         const closePrice = lastCandle.close;
 
-        for (const { bot, strategy } of botEntries) {
+        for (const { bot } of botEntries) {
             const { canTrade, reason } = await this.checkRisk(bot);
             if (!canTrade) {
                 console.log(`Blocked trade for bot "${bot.name}": ${reason}`);
