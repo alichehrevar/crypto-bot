@@ -1,10 +1,12 @@
 const Bot = require('../models/Bot');
 const Trade = require('../models/Trade');
 const { MACrossover, RSI, MACD } = require('../strategies');
+const StrategyManager = require('../strategies/StrategyManager'); // Import StrategyManager
 
 class BotService {
     constructor() {
         this.activeBots = new Map();
+        this.strategyManager = new StrategyManager(); // Initialize StrategyManager
     }
 
     /**
@@ -27,6 +29,8 @@ class BotService {
         }
 
         this.activeBots.get(key).push({ bot, strategy });
+        // Register the strategy in the StrategyManager
+        this.strategyManager.registerStrategy(bot.name, strategy); // Use bot.name as strategy identifier
     }
 
     /**
@@ -46,36 +50,7 @@ class BotService {
     }
 
     /**
-     * (Optional) Compute position size based on riskParams.
-     * For example, if positionSizeType is 'percentage' of the current paperBalance,
-     * or if it's a fixed size (e.g., 0.1 BTC).
-     */
-    calculatePositionSize(bot, price) {
-        const { riskParams } = bot;
-        if (!riskParams || !riskParams.positionSizeType) {
-            // No specific sizing, default to 1 unit
-            return 1;
-        }
-
-        if (riskParams.positionSizeType === 'percentage') {
-            const pct = riskParams.positionSizeValue / 100.0;
-            // If in paper mode, use bot.paperBalance. In live mode, you'd fetch actual exchange balance
-            const balance = bot.mode === 'paper' ? bot.paperBalance : 10000; // Example
-            // e.g. if balance=10000 USDT, price=100 USDT/BTC, we buy quantity=balance * pct / price
-            return ((balance * pct) / price) || 0;
-        } else if (riskParams.positionSizeType === 'fixed') {
-            // riskParams.positionSizeValue might be a fixed quantity of the base coin
-            return riskParams.positionSizeValue;
-        }
-
-        // Default fallback
-        return 1;
-    }
-
-    /**
      * Check risk parameters to decide if a bot can open a new position.
-     * - Ensures maxOpenTrades is not exceeded.
-     * - (Optionally) checks daily loss limit or maxDrawdown if needed.
      */
     async checkRisk(bot) {
         const openTradesCount = await Trade.countDocuments({ bot: bot._id, exitPrice: null });
@@ -86,12 +61,11 @@ class BotService {
             }
         }
 
-        // If you want to handle dailyLossLimit:
+        // Check daily loss limit
         if (bot.riskParams && bot.riskParams.dailyLossLimit) {
             const startOfDay = new Date();
             startOfDay.setHours(0, 0, 0, 0); // midnight
 
-            // Aggregate the sum of profits for today's trades
             const [aggregation] = await Trade.aggregate([
                 { $match: {
                         bot: bot._id,
@@ -107,21 +81,16 @@ class BotService {
             }
         }
 
-        // If we want to handle maxDrawdown, we'd compare the paperBalance or track a high-water mark.
-
         return { canTrade: true, reason: null };
     }
 
     /**
      * Called whenever new candles arrive for a given symbol/timeframe.
-     * We iterate over all bots that match this symbol/timeframe,
-     * check risk, calculate signal, and possibly execute an order.
      */
     async processCandle(symbol, timeframe, candles) {
         const key = `${symbol}-${timeframe}`;
         const botEntries = this.activeBots.get(key) || [];
 
-        // We assume candles are sorted oldest -> newest
         const lastCandle = candles[candles.length - 1];
         const closePrice = lastCandle.close;
 
@@ -132,7 +101,10 @@ class BotService {
                 continue;
             }
 
-            const signal = strategy.calculateSignal(candles);
+            // Use StrategyManager to process signals
+            const signals = this.strategyManager.processSignals(candles);
+            const signal = signals[bot.name]; // Get signal for the specific bot
+
             if (signal !== 'HOLD') {
                 await this.executeOrder(bot, signal, closePrice);
             }
@@ -140,26 +112,18 @@ class BotService {
     }
 
     /**
-     * Executes a trade based on the signal:
-     *  - For a BUY, if no open trade, opens a new trade.
-     *  - For a SELL, if there's an open trade, closes it.
-     *  (Adapt if you want short selling or partial closes, etc.)
+     * Executes a trade based on the signal.
      */
     async executeOrder(bot, signal, price) {
-        // 1) Check if there's an open trade
         const openTrade = await Trade.findOne({ bot: bot._id, exitPrice: null });
 
         if (signal === 'BUY') {
             if (openTrade) {
-                // Already have an open trade. Decide if you skip or "average up".
                 console.log(`Bot "${bot.name}" tried to BUY but already has an open trade.`);
                 return;
             }
 
-            // Calculate quantity from riskParams if desired
             const quantity = this.calculatePositionSize(bot, price);
-
-            // Create a new open trade
             const newTrade = new Trade({
                 bot: bot._id,
                 symbol: bot.symbol,
@@ -172,30 +136,23 @@ class BotService {
             console.log(`Bot "${bot.name}" opened a BUY at ${price}, qty=${quantity}`);
 
         } else if (signal === 'SELL') {
-            // If you always go from flat -> buy -> sell -> flat, then a SELL closes the open trade.
             if (!openTrade) {
-                // No open trade. Decide if you want to open a short trade or do nothing.
                 console.log(`Bot "${bot.name}" received SELL signal but no open trade exists.`);
                 return;
             }
 
-            // Close the existing trade
             openTrade.exitPrice = price;
-            openTrade.timestamp = new Date();  // or "closedAt"
+            openTrade.timestamp = new Date();
 
-            // Calculate profit for a long: (exitPrice - entryPrice) * quantity
-            // For a short, the formula might differ.
             if (openTrade.type === 'BUY') {
                 openTrade.profit = (price - openTrade.entryPrice) * openTrade.quantity;
             } else {
-                // If you ever allow short trades, handle differently
                 openTrade.profit = (openTrade.entryPrice - price) * openTrade.quantity;
             }
 
             await openTrade.save();
             console.log(`Bot "${bot.name}" closed trade. Profit: ${openTrade.profit}`);
 
-            // If in paper mode, update the bot.paperBalance
             if (bot.mode === 'paper' && typeof bot.paperBalance === 'number') {
                 bot.paperBalance += openTrade.profit;
                 await bot.save();
