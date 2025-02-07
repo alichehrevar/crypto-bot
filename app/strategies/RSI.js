@@ -24,6 +24,7 @@ class RSI extends BaseStrategy {
     }
 
     calculateRSI(candles) {
+        // TODO: need to be deleted
         if (!candles || candles.length < this.period + 1) {
             throw new Error(`Need at least ${this.period + 1} candles for RSI calculation`);
         }

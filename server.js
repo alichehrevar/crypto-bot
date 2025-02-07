@@ -9,6 +9,7 @@ const binanceWS = require('./app/services/binanceWS');
 const tradingViewWS = require('./app/services/TradingViewWS');
 const bingXWS = require('./app/services/bingXWS');
 const botService = require('./app/services/BotService');
+const wsServer = require('./app/services/WebSocketServer');
 
 const authRoutes = require('./routes/auth');
 const candleRoutes = require('./routes/candles');
@@ -71,6 +72,15 @@ app.use((req, res) => {
 
 // Create HTTP server from Express app
 const server = http.createServer(app);
+
+// Initialize the WebSocket server
+wsServer.init();  // Initialize WebSocket server
+
+// Start the WebSocket server on top of the same HTTP server
+server.on('upgrade', (request, socket, head) => {
+    // Handle the WebSocket upgrade request
+    wsServer.handleUpgrade(request, socket, head);
+});
 
 // Start the TradingViewWS server on top of the same HTTP server
 tradingViewWS.startServer(server);

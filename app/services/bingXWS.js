@@ -1,6 +1,7 @@
 const WebSocket = require('ws');
+const crypto = require('crypto');
+const zlib = require('zlib');
 const Candle = require('../models/Candle');
-const tradingViewWS = require('./TradingViewWS');
 
 class BingXWS {
     constructor() {
@@ -8,53 +9,74 @@ class BingXWS {
         this.reconnectInterval = 5000;
         this.reconnectAttempts = 0;
         this.maxReconnectAttempts = 10;
-        this.subscriptions = new Map(); // Track active subscriptions
+        this.subscriptions = new Map();
+        this.pingInterval = null;
+        this.apiKey = process.env.BINGX_API_KEY;
+        this.apiSecret = process.env.BINGX_API_SECRET;
     }
 
-    /**
-     * Connect to BingX WebSocket.
-     * Make sure to use the correct endpoint per BingX docs (Spot vs. Perpetual).
-     */
-    connect() {
-        if (this.ws) return; // Prevent multiple connections
-
-        const apiKey = 'YOUR_API_KEY';
-        const secretKey = 'YOUR_SECRET_KEY';
-        const timestamp = Date.now();
-
-        // Generate a signature
-        const crypto = require('crypto');
-        const signature = crypto
-            .createHmac('sha256', secretKey)
-            .update(`timestamp=${timestamp}`)
+    generateSignature(timestamp) {
+        const signString = `timestamp=${timestamp}`;
+        return crypto
+            .createHmac('sha256', this.apiSecret)
+            .update(signString)
             .digest('hex');
+    }
 
-        // Construct the WebSocket URL with query parameters
-        const endpoint = `wss://open-api.bingx.com/ws?apiKey=${apiKey}&timestamp=${timestamp}&signature=${signature}`;
+    connect() {
+        if (this.ws) return;
 
-        this.ws = new WebSocket(endpoint);
+        const timestamp = Date.now().toString();
+        const signature = this.generateSignature(timestamp);
 
-        // Handle ping/pong
-        this.ws.on('pong', () => console.debug('[BingXWS] Received pong'));
-        setInterval(() => {
-            if (this.ws?.readyState === WebSocket.OPEN) {
-                this.ws.ping();
-            }
-        }, 30000);
+        // BingX Perpetual Swap WebSocket endpoint with authentication
+        const endpoint = `wss://open-api-swap.bingx.com/swap-market`;
+
+        this.ws = new WebSocket(endpoint, {
+            perMessageDeflate: false // Disable compression if not needed
+        });
+
+        // Add explicit binaryType setting
+        this.ws.binaryType = 'arraybuffer';
+
+        // Set up ping interval
+        this.setupPingInterval();
 
         this.ws.on('open', () => {
             console.log('[BingXWS] Connected to BingX WebSocket');
-            const subscribeMsg = {
-                method: "SUBSCRIBE",
-                params: ["btcusdt@kline_1m"],
-                id: 1
-            };
-            this.ws.send(JSON.stringify(subscribeMsg));
+            this.reconnectAttempts = 0;
+
+            // Authenticate the connection
+            this.authenticate(timestamp, signature);
+
+            // Resubscribe to all active subscriptions
+            this.subscriptions.forEach((sub) => {
+                this.sendSubscription(sub.symbol, sub.interval);
+            });
         });
 
-        this.ws.on('message', async (data) => {
+        this.ws.on('message', async (data, isBinary) => {
             try {
-                const message = JSON.parse(data);
+                let message;
+                // Handle binary messages (common in exchange APIs)
+                if (isBinary) {
+                    message = this.parseBinaryMessage(data);
+                } else {
+                    message = JSON.parse(data.toString());
+                }
+
+                // Handle ping messages
+                if (message.ping) {
+                    this.handlePing(message.ping);
+                    return;
+                }
+
+                // Handle authentication response
+                if (message.event === 'login') {
+                    this.handleAuthResponse(message);
+                    return;
+                }
+
                 await this.processMessage(message);
             } catch (error) {
                 console.error('[BingXWS] Message processing error:', error);
@@ -63,12 +85,72 @@ class BingXWS {
 
         this.ws.on('error', (err) => {
             console.error('[BingXWS] WebSocket error:', err);
+            this.cleanup();
         });
 
         this.ws.on('close', (code, reason) => {
             console.warn(`[BingXWS] Connection closed with code ${code}: ${reason}`);
+            this.cleanup();
             this.handleReconnect();
         });
+    }
+
+    authenticate(timestamp, signature) {
+        const authMessage = {
+            "event": "login",
+            "params": {
+                "apiKey": this.apiKey,
+                "timestamp": timestamp,
+                "signature": signature
+            }
+        };
+        this.sendWhenReady(authMessage);
+    }
+
+    handleAuthResponse(message) {
+        if (message.code === 0) {
+            console.log('[BingXWS] Authentication successful');
+        } else {
+            console.error('[BingXWS] Authentication failed:', message);
+            this.cleanup();
+            throw new Error('BingX WebSocket authentication failed');
+        }
+    }
+
+    setupPingInterval() {
+        this.pingInterval = setInterval(() => {
+            if (this.ws?.readyState === WebSocket.OPEN) {
+                // Send proper WebSocket ping frame
+                this.ws.ping();
+            }
+        }, 25000);
+
+        // Add ping/pong handlers
+        this.ws.on('ping', (data) => {
+            console.debug('[BingXWS] Received ping');
+            this.ws.pong();
+        });
+
+        this.ws.on('pong', (data) => {
+            console.debug('[BingXWS] Received pong');
+        });
+    }
+
+    handlePing(pingTimestamp) {
+        if (this.ws?.readyState === WebSocket.OPEN) {
+            this.ws.send(JSON.stringify({ pong: pingTimestamp }));
+        }
+    }
+
+    cleanup() {
+        if (this.pingInterval) {
+            clearInterval(this.pingInterval);
+            this.pingInterval = null;
+        }
+        if (this.ws) {
+            this.ws.removeAllListeners();
+            this.ws = null;
+        }
     }
 
     handleReconnect() {
@@ -77,122 +159,186 @@ class BingXWS {
             return;
         }
 
+        const delay = this.reconnectInterval * Math.pow(2, this.reconnectAttempts);
+        console.log(`[BingXWS] Attempting to reconnect in ${delay}ms`);
+
         setTimeout(() => {
             this.reconnectAttempts++;
             console.log(`[BingXWS] Reconnect attempt ${this.reconnectAttempts}`);
             this.connect();
-        }, this.reconnectInterval * Math.pow(2, this.reconnectAttempts));
+        }, delay);
     }
 
-    /**
-     * Process incoming messages from BingX.
-     * The structure here depends heavily on actual BingX responses.
-     */
     async processMessage(msg) {
+        if (!msg || typeof msg !== 'object') return;
+
         try {
-            if (!msg?.dataType === 'kline' || !msg.data) return;
-
-            const { symbol: rawSymbol, interval, open, high, low, close, volume } = msg.data;
-
-            // Validate numeric values
-            const isValid = [open, high, low, close, volume].every(Number.isFinite);
-            if (!isValid) {
-                console.warn('Invalid candle data:', msg);
-                return;
-            }
-
-            const symbol = rawSymbol.replace('-', '/');
-            const timeframe = this.mapInterval(interval);
-
-            // Validate timeframe mapping
-            if (!timeframe) {
-                console.warn('Unmapped interval:', interval);
-                return;
+            // Handle different message types
+            if (msg.topic && msg.topic.includes('kline')) {
+                await this.processKlineMessage(msg);
+            } else if (msg.topic && msg.topic.includes('ticker')) {
+                await this.processTickerMessage(msg);
             }
         } catch (error) {
-            console.error('Message processing failed:', error);
+            console.error('[BingXWS] Message processing failed:', error);
         }
     }
 
-    /**
-     * A helper to convert BingX intervals to your app's standard e.g. "1" -> "1m"
-     */
+    async processKlineMessage(msg) {
+        const klineData = msg.data;
+        if (!klineData) return;
+
+        const [symbol, interval] = msg.topic.split('@');
+
+        const candleData = {
+            symbol: symbol.toUpperCase(),
+            timeframe: this.mapInterval(interval.replace('kline_', '')),
+            timestamp: klineData.t,
+            open: parseFloat(klineData.o),
+            high: parseFloat(klineData.h),
+            low: parseFloat(klineData.l),
+            close: parseFloat(klineData.c),
+            volume: parseFloat(klineData.v),
+            trades: parseInt(klineData.n, 10),
+            isClosed: klineData.x
+        };
+
+        // Validate numeric values
+        const isValid = ['open', 'high', 'low', 'close', 'volume']
+            .every(key => Number.isFinite(candleData[key]));
+
+        if (isValid) {
+            await this.upsertCandle(candleData);
+        } else {
+            console.warn('[BingXWS] Invalid candle data:', candleData);
+        }
+    }
+
+    async processTickerMessage(msg) {
+        // Implement ticker processing if needed
+        console.log('[BingXWS] Ticker update:', msg);
+    }
+
     mapInterval(interval) {
         const mapping = {
-            '1': '1m', '5': '5m', '15': '15m', '30': '30m',
-            '60': '1h', '240': '4h', 'D': '1d', 'W': '1w'
+            '1m': '1m',
+            '3m': '3m',
+            '5m': '5m',
+            '15m': '15m',
+            '30m': '30m',
+            '1h': '1h',
+            '2h': '2h',
+            '4h': '4h',
+            '6h': '6h',
+            '8h': '8h',
+            '12h': '12h',
+            '1d': '1d',
+            '3d': '3d',
+            '1w': '1w',
+            '1M': '1M'
         };
 
-        if (!mapping[interval]) {
-            console.warn('Unknown interval:', interval);
-            return null;
-        }
-
-        return mapping[interval];
+        return mapping[interval] || interval;
     }
 
-    unmapInterval(timeframe) {
-        const inverseMapping = {
-            '1m': '1', '5m': '5', '15m': '15', '30m': '30',
-            '1h': '60', '4h': '240', '1d': 'D', '1w': 'W'
-        };
-
-        return inverseMapping[timeframe] || timeframe;
-    }
-
-    /**
-     * Upsert the candle into MongoDB for symbol/timeframe/timestamp
-     */
     async upsertCandle(candleData) {
         try {
-            await Candle.updateOne(
+            await Candle.findOneAndUpdate(
                 {
                     symbol: candleData.symbol,
                     timeframe: candleData.timeframe,
-                    timestamp: {
-                        $gte: new Date(candleData.timestamp - 60000), // 1 min window
-                        $lt: candleData.timestamp
-                    }
+                    timestamp: candleData.timestamp
                 },
                 {
                     $set: {
                         open: candleData.open,
-                        high: { $max: ['$high', candleData.high] },
-                        low: { $min: ['$low', candleData.low] },
+                        high: candleData.high,
+                        low: candleData.low,
                         close: candleData.close,
-                        volume: { $sum: ['$volume', candleData.volume] }
+                        volume: candleData.volume,
+                        trades: candleData.trades,
+                        isClosed: candleData.isClosed
                     }
                 },
-                { upsert: true }
+                { upsert: true, new: true }
             );
         } catch (err) {
-            console.error('Candle upsert failed:', err);
+            console.error('[BingXWS] Candle upsert failed:', err);
+            throw err;
         }
     }
 
-    // Add subscription tracking
     subscribe(symbol, interval) {
         const key = `${symbol}-${interval}`;
         if (!this.subscriptions.has(key)) {
             this.subscriptions.set(key, { symbol, interval });
-
-            const subscribeMsg = {
-                dataType: "kline",
-                symbol: symbol.replace('/', '-'),
-                interval: this.unmapInterval(interval)
-            };
-
-            this.sendWhenReady(subscribeMsg);
+            this.sendSubscription(symbol, interval);
         }
+    }
+
+    unsubscribe(symbol, interval) {
+        const key = `${symbol}-${interval}`;
+        if (this.subscriptions.has(key)) {
+            const unsubscribeMsg = {
+                "id": Date.now(),
+                "reqType": "unsub",
+                "dataType": `${symbol.toLowerCase()}@kline_${interval}`
+            };
+            this.sendWhenReady(unsubscribeMsg);
+            this.subscriptions.delete(key);
+        }
+    }
+
+    sendSubscription(symbol, interval) {
+        const subscribeMsg = {
+            "id": Date.now(),
+            "reqType": "sub",
+            "dataType": `${symbol.toLowerCase()}@kline_${interval}`
+        };
+        this.sendWhenReady(subscribeMsg);
     }
 
     sendWhenReady(message) {
         if (this.ws?.readyState === WebSocket.OPEN) {
-            this.ws.send(JSON.stringify(message));
+            try {
+                this.ws.send(JSON.stringify(message));
+            } catch (error) {
+                console.error('[BingXWS] Send error:', error);
+                this.handleReconnect();
+            }
         } else {
             setTimeout(() => this.sendWhenReady(message), 100);
         }
     }
+
+    // Public methods for managing the connection
+    disconnect() {
+        if (this.ws) {
+            this.cleanup();
+            this.ws.close();
+        }
+    }
+
+    isConnected() {
+        return this.ws?.readyState === WebSocket.OPEN;
+    }
+
+    getSubscriptions() {
+        return Array.from(this.subscriptions.values());
+    }
+
+    // Add binary message parser
+    parseBinaryMessage(data) {
+        try {
+            // Handle BingX's potential gzip compression
+            const decompressed = zlib.gunzipSync(data);
+            return JSON.parse(decompressed.toString());
+        } catch (error) {
+            console.error('Binary message parsing failed:', error);
+            return null;
+        }
+    }
 }
 
+// Export a singleton instance
 module.exports = new BingXWS();
