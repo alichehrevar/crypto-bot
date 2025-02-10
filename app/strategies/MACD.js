@@ -9,8 +9,8 @@ class MACD extends BaseStrategy {
         }
 
         this.shortPeriod = params.shortPeriod || 12;   // Typically 12
-        this.longPeriod = params.longPeriod || 26;     // Typically 26
-        this.signalPeriod = params.signalPeriod || 9;  // Typically 9
+        this.longPeriod = params.longPeriod || 26;       // Typically 26
+        this.signalPeriod = params.signalPeriod || 9;    // Typically 9
 
         // Basic validations
         if (this.shortPeriod <= 0 || this.longPeriod <= 0 || this.signalPeriod <= 0) {
@@ -22,115 +22,95 @@ class MACD extends BaseStrategy {
     }
 
     /**
-     * Calculates the MACD line, Signal line, and Histogram for the given candle set.
-     * Returns arrays for each line, with the same length as the input candle array.
+     * Calculates the MACD line and Signal line for the given candle set.
+     * Returns an object with { macdLine, signalLine }.
      *
-     * @param {Array} candles - array of candle objects with at least "close" property
-     * @returns {Object} { macdLine, signalLine, histogram }
+     * @param {Array} candles - array of candle objects with at least a "close" property
+     * @returns {Object}
      */
     calculateMACDSeries(candles) {
+        // Require enough candles: longPeriod + signalPeriod
         if (!Array.isArray(candles) || candles.length < this.longPeriod + this.signalPeriod) {
-            throw new Error(`Not enough candles to calculate MACD (need at least ${this.longPeriod + this.signalPeriod})`);
+            throw new Error(`Need at least ${this.longPeriod + this.signalPeriod} candles`);
         }
 
-        // Step 1: Extract the closing prices
         const closes = candles.map(c => c.close);
 
-        // Step 2: Calculate the short and long EMAs
+        // Calculate EMAs using close prices
         const shortEMA = this.calculateEMA(closes, this.shortPeriod);
-        const longEMA  = this.calculateEMA(closes, this.longPeriod);
+        const longEMA = this.calculateEMA(closes, this.longPeriod);
 
-        // Step 3: MACD line = shortEMA - longEMA (element-wise)
-        // But note: because 'shortEMA' and 'longEMA' arrays each "start" at index = (period - 1),
-        // we align them so MACD is only valid after both EMAs exist.
+        // Calculate MACD line (only where both EMAs exist)
         const macdLine = closes.map((_, i) => {
-            // If shortEMA[i] or longEMA[i] is not set, MACD is not valid
-            if (shortEMA[i] == null || longEMA[i] == null) return null;
+            if (i < this.longPeriod - 1) return null; // wait until longEMA is valid
             return shortEMA[i] - longEMA[i];
         });
 
-        // Step 4: Calculate the Signal line = EMA of MACD line (using 'signalPeriod')
-        const signalLine = this.calculateEMA(macdLine, this.signalPeriod);
+        // Calculate signal line from valid MACD values
+        const validMACD = macdLine.filter(v => v !== null);
+        const signalEMA = this.calculateEMA(validMACD, this.signalPeriod);
 
-        // Step 5: Histogram = MACD - Signal
-        const histogram = macdLine.map((val, i) => {
-            if (val == null || signalLine[i] == null) return null;
-            return val - signalLine[i];
-        });
+        // Align signal line with original MACD array by padding with nulls
+        const offset = macdLine.length - validMACD.length;
+        const signalLine = macdLine.map((_, i) => (i >= offset ? signalEMA[i - offset] : null));
 
-        return { macdLine, signalLine, histogram };
+        return { macdLine, signalLine };
     }
 
     /**
-     * Helper to calculate an EMA series for the given array of prices.
-     * Returns an array of same length, with nulls for the initial (period - 1) indices.
+     * Calculates an EMA series for the given array of values.
+     * Returns an array of the same length, with nulls for the first (period - 1) indices.
      *
-     * @param {Array} values - e.g. array of closes or MACD line
+     * @param {Array} values - array of numbers
      * @param {Number} period
-     * @returns {Array} - array of EMAs
+     * @returns {Array}
      */
     calculateEMA(values, period) {
         const k = 2 / (period + 1);
-
         const emaArr = Array(values.length).fill(null);
-        let prevEma = 0;
-        let emaInitialized = false;
-        for (let i = 0; i < values.length; i++) {
+        if (values.length < period) return emaArr;
+
+        // Use the simple average of the first 'period' values as the initial EMA
+        const initialSlice = values.slice(0, period);
+        const sum = initialSlice.reduce((acc, v) => acc + v, 0);
+        let prevEma = sum / period;
+        emaArr[period - 1] = prevEma;
+
+        for (let i = period; i < values.length; i++) {
             const val = values[i];
-            if (val == null) {
-                // skip if the input itself is null
-                continue;
-            }
-            if (i === 0) {
-                prevEma = val; // initial
-                emaInitialized = true;
-                emaArr[i] = null; // not "valid" yet
-            } else if (!emaInitialized && i < period) {
-                prevEma = (val * k) + (prevEma * (1 - k));
-                if (i === period - 1) {
-                    emaArr[i] = prevEma;
-                    emaInitialized = true;
-                } else {
-                    emaArr[i] = null;
-                }
-            } else {
-                prevEma = (val * k) + (prevEma * (1 - k));
-                emaArr[i] = prevEma;
-            }
+            prevEma = (val - prevEma) * k + prevEma;
+            emaArr[i] = prevEma;
         }
         return emaArr;
     }
 
     /**
-     * Generates a final buy/sell/hold signal from the most recent MACD vs. Signal line crossover.
+     * Generates a final buy/sell/hold signal from the MACD vs. Signal line crossover.
      *
-     * @param {Array} candles
+     * @param {Array} candles - array of candle objects with at least a "close" property
      * @returns {String} 'BUY', 'SELL', or 'HOLD'
      */
     calculateSignal(candles) {
         try {
             const { macdLine, signalLine } = this.calculateMACDSeries(candles);
-            const n = macdLine.length;
 
-            // We need at least 2 valid points to detect a crossover
-            if (n < 2 || macdLine[n - 1] == null || signalLine[n - 1] == null) {
-                console.warn('Insufficient data for reliable MACD signal');
+            // Find the last valid values
+            const validMACD = macdLine.filter(v => v !== null);
+            const validSignal = signalLine.filter(v => v !== null);
+
+            // Need at least 2 valid points for crossover detection
+            if (validMACD.length < 2 || validSignal.length < 2) {
                 return 'HOLD';
             }
 
-            const macdCurrent = macdLine[n - 1];
-            const signalCurrent = signalLine[n - 1];
-            const macdPrevious = macdLine[n - 2];
-            const signalPrevious = signalLine[n - 2];
+            const prevMACD = validMACD[validMACD.length - 2];
+            const currMACD = validMACD[validMACD.length - 1];
+            const prevSignal = validSignal[validSignal.length - 2];
+            const currSignal = validSignal[validSignal.length - 1];
 
-            // Check bullish crossover: MACD crosses above signal
-            if (macdCurrent > signalCurrent && macdPrevious <= signalPrevious) {
+            // Detect bullish crossover
+            if (prevMACD < prevSignal && currMACD > currSignal) {
                 return 'BUY';
-            }
-
-            // Check bearish crossover: MACD crosses below signal
-            if (macdCurrent < signalCurrent && macdPrevious >= signalPrevious) {
-                return 'SELL';
             }
 
             return 'HOLD';
@@ -138,22 +118,6 @@ class MACD extends BaseStrategy {
             console.error(`MACD calculation error: ${error.message}`);
             return 'HOLD';
         }
-    }
-
-    /**
-     * Optional helper to get current MACD values (for logging or visualization).
-     *
-     * @param {Array} candles
-     * @returns {Object} { macd, signal, histogram }
-     */
-    getMetrics(candles) {
-        const { macdLine, signalLine, histogram } = this.calculateMACDSeries(candles);
-        const lastIndex = macdLine.length - 1;
-        return {
-            macd: macdLine[lastIndex],
-            signal: signalLine[lastIndex],
-            histogram: histogram[lastIndex]
-        };
     }
 }
 
