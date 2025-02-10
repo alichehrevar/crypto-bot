@@ -1,9 +1,12 @@
-// test/botModel.test.js
-
 const mongoose = require('mongoose');
 const { MongoMemoryServer } = require('mongodb-memory-server');
-const chai = require('chai');
-const expect = chai.expect;
+
+let expect;
+before(async () => {
+    const chai = await import('chai');
+    expect = chai.expect;
+});
+
 
 // Import the Bot model (adjust the path according to your project structure)
 const Bot = require('../app/models/Bot');

@@ -1,39 +1,45 @@
 /**
  * @file MACrossover.test.js
- * Example Jest tests for the Moving Average Crossover strategy.
+ * Example Mocha tests for the Moving Average Crossover strategy.
  */
 
 const MACrossover = require('../app/strategies/MovingAverageCrossover');
 
+let expect;
+before(async () => {
+    const chai = await import('chai');
+    expect = chai.expect;
+});
+
+
 describe('MACrossover Strategy', () => {
-    // store the original console.warn
+    // Store the original console.warn
     const originalWarn = console.warn;
 
-    beforeAll(() => {
-        // override console.warn with a no-op function
-        console.warn = jest.fn();
+    before(function () {
+        // Override console.warn with a no-op function
+        console.warn = function () {};
     });
 
-    afterAll(() => {
-        // restore original console.warn after all tests
+    after(function () {
+        // Restore original console.warn after all tests
         console.warn = originalWarn;
     });
 
     it('should throw an error if constructor params are missing', () => {
-        expect(() => new MACrossover()).toThrow('MACrossover strategy requires configuration object');
+        expect(() => new MACrossover()).to.throw('MACrossover strategy requires configuration object');
     });
 
     it('should throw an error if periods are invalid', () => {
         expect(() => new MACrossover({ shortPeriod: 'abc', longPeriod: 30 }))
-            .toThrow('shortPeriod and longPeriod must be numbers');
+            .to.throw('shortPeriod and longPeriod must be numbers');
         expect(() => new MACrossover({ shortPeriod: 0, longPeriod: 0 }))
-            .toThrow('shortPeriod and longPeriod must be > 0');
+            .to.throw('shortPeriod and longPeriod must be > 0');
     });
 
     it('should warn if shortPeriod >= longPeriod', () => {
-        // We can't "expect a console.warn" easily unless we mock console.warn,
-        // but let's at least check it doesn't throw.
-        expect(() => new MACrossover({ shortPeriod: 30, longPeriod: 30 })).not.toThrow();
+        // We simply check that no error is thrown
+        expect(() => new MACrossover({ shortPeriod: 30, longPeriod: 30 })).to.not.throw();
     });
 
     it('should return HOLD if insufficient data to calculate signal', () => {
@@ -42,46 +48,40 @@ describe('MACrossover Strategy', () => {
             { close: 100 },
             { close: 101 },
             { close: 102 },
-            // only 3 candles => less than (longPeriod + 1) = 11
+            // Only 3 candles, which is insufficient (expected: at least longPeriod+1 candles)
         ];
 
         const signal = maStrategy.calculateSignal(candles);
-        expect(signal).toBe('HOLD');
+        expect(signal).to.equal('HOLD');
     });
 
     it('should calculate a BUY when shortMA crosses above longMA', () => {
-        // shortMA = 5, longMA = 10
-        // We need at least 11 candles to detect cross on the last candle
-        // We'll create a scenario where shortMA is below longMA in the previous candle,
-        // and above in the current candle.
+        // We need at least 11 candles to detect a cross on the last candle.
+        // This scenario is created so that the shortMA was below the longMA and then crosses above.
         const candles = [
-            // "Older" candles (first 5 or 6) might keep the short MA somewhat lower
             { close: 100 }, { close: 100 }, { close: 101 }, { close: 99 },
             { close: 100 }, { close: 101 }, { close: 102 }, { close: 103 },
-            { close: 104 }, { close: 105 }, // up to 10th
-            { close: 108 }  // 11th candle => big jump at the end
+            { close: 104 }, { close: 105 }, // Up to the 10th candle
+            { close: 108 }  // 11th candle with a big jump
         ];
 
         const maStrategy = new MACrossover({ shortPeriod: 5, longPeriod: 10 });
         const signal = maStrategy.calculateSignal(candles);
-
-        // There's a good chance the shortMA on the last 5 candles is > longMA on last 10
-        // and previously it was not. We expect a 'BUY' if there's a cross up.
-        // In real usage, you'd verify the actual average calculations.
-        expect(['BUY', 'HOLD']).toContain(signal);
-        // If it's not strictly crossing at that candle, you might get HOLD.
+        // Depending on the actual average calculations, the signal might be 'BUY' or remain 'HOLD'.
+        expect(['BUY', 'HOLD']).to.include(signal);
     });
 
     it('should calculate a SELL when shortMA crosses below longMA', () => {
+        // Create a scenario where the short moving average drops below the long moving average.
         const candles = [
             { close: 105 }, { close: 106 }, { close: 107 }, { close: 109 },
             { close: 110 }, { close: 111 }, { close: 109 }, { close: 108 },
-            { close: 107 }, { close: 105 }, // 10th
-            { close: 104 }  // 11th => short MA might drop below the long MA
+            { close: 107 }, { close: 105 }, // 10th candle
+            { close: 104 }  // 11th candle where a drop is evident
         ];
 
         const maStrategy = new MACrossover({ shortPeriod: 5, longPeriod: 10 });
         const signal = maStrategy.calculateSignal(candles);
-        expect(['SELL', 'HOLD']).toContain(signal);
+        expect(['SELL', 'HOLD']).to.include(signal);
     });
 });
