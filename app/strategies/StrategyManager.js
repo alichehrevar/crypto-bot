@@ -1,36 +1,68 @@
 class StrategyManager {
     constructor() {
-        // Stores all available strategies.
-        this.strategies = {};
+        // Use a Map to store strategies by name.
+        this.strategies = new Map();
     }
 
-    // Register a strategy, associating it with a bot (or symbol/timeframe)
+    /**
+     * Registers a strategy instance under a unique strategy name.
+     *
+     * @param {string} strategyName - The unique name for this strategy.
+     * @param {object} strategyInstance - The strategy instance (which must have a calculateSignal() method).
+     */
     registerStrategy(strategyName, strategyInstance) {
-        this.strategies[strategyName] = strategyInstance;
+        this.strategies.set(strategyName, strategyInstance);
     }
 
-    // Process signals for all strategies
+    /**
+     * Unregisters a strategy by its name.
+     *
+     * @param {string} strategyName - The name of the strategy to remove.
+     */
+    unregisterStrategy(strategyName) {
+        this.strategies.delete(strategyName);
+    }
+
+    /**
+     * Processes signals for all registered strategies using the provided candle data.
+     * If a strategy throws an error during signal calculation, its signal will be defaulted to "HOLD".
+     *
+     * @param {Array} candles - An array of candle data.
+     * @returns {Object} An object with strategy names as keys and the calculated signals as values.
+     */
     processSignals(candles) {
         const signals = {};
-
-        // For each strategy, calculate the signal
-        for (let strategyName in this.strategies) {
-            const strategy = this.strategies[strategyName];
-            const signal = strategy.calculateSignal(candles); // This will run the calculateSignal() method for each strategy
-            signals[strategyName] = signal;
+        for (const [strategyName, strategy] of this.strategies.entries()) {
+            try {
+                signals[strategyName] = strategy.calculateSignal(candles);
+            } catch (error) {
+                console.error(`Error processing strategy "${strategyName}": ${error.message}`);
+                signals[strategyName] = 'HOLD';
+            }
         }
-
         return signals;
     }
 
-    // Process signals for a specific strategy
+    /**
+     * Processes the signal for a specific registered strategy.
+     *
+     * @param {string} strategyName - The name of the strategy to process.
+     * @param {Array} candles - An array of candle data.
+     * @returns {String} The signal produced by the strategy.
+     * @throws {Error} If the specified strategy is not registered.
+     */
     processSignalForStrategy(strategyName, candles) {
-        const strategy = this.strategies[strategyName];
+        const strategy = this.strategies.get(strategyName);
         if (!strategy) {
             throw new Error(`Strategy ${strategyName} not registered`);
         }
 
-        return strategy.calculateSignal(candles);
+        try {
+            return strategy.calculateSignal(candles);
+        } catch (error) {
+            console.error(`Error processing strategy "${strategyName}": ${error.message}`);
+            return 'HOLD';
+        }
     }
 }
 
