@@ -3,10 +3,10 @@ const { generateTestData } = require('./testUtils');
 
 let expect;
 before(async () => {
+    // Dynamically import Chai to support ES modules
     const chai = await import('chai');
     expect = chai.expect;
 });
-
 
 describe('MACD Strategy', () => {
     it('throws an error if params are missing', () => {
@@ -19,8 +19,16 @@ describe('MACD Strategy', () => {
     });
 
     it('should process MACD signals correctly with enough data', () => {
-        // Generate test data with 35 candles
-        const candles = generateTestData(35, 100);  // Using the test data generator
+        // Generate 60 candles starting at 50.
+        const candles = generateTestData(60, 50);
+        expect(candles.length).to.equal(60);
+
+        // Override only the last candle to force a bullish jump.
+        // (Leave candle[58] unchanged so that its MACD and signal reflect the baseline.)
+        candles[59].close = 100;
+        candles[59].open = 100;
+        candles[59].high = 100.5;
+        candles[59].low = 99.5;
 
         const macdStrategy = new MACD({
             shortPeriod: 12,
@@ -28,65 +36,51 @@ describe('MACD Strategy', () => {
             signalPeriod: 9
         });
 
-        // Now you can test with the generated candles.
-        // Adjust the expected signal based on your MACD implementation logic.
         const signal = macdStrategy.calculateSignal(candles);
         expect(signal).to.equal('BUY');
     });
 
     it('throws error if not enough candles for MACD calculation', () => {
         const macd = new MACD({ shortPeriod: 12, longPeriod: 26, signalPeriod: 9 });
-
-        // Generate candles with fewer than the required 35 (using 20 candles in this case)
+        // Generate 20 candles (fewer than the required 35)
         const candles = generateTestData(20, 100);
-
-        // Ensure that calculating signal does not throw an internal error.
         expect(() => macd.calculateSignal(candles)).to.not.throw();
-        // The function should return 'HOLD' if there's insufficient data.
         const signal = macd.calculateSignal(candles);
         expect(signal).to.equal('HOLD');
     });
 
     it('returns HOLD if no crossover detected', () => {
         const macd = new MACD({ shortPeriod: 12, longPeriod: 26, signalPeriod: 9 });
-
-        // Provide enough candles, but with a mostly upward, smooth trend that might not cause a MACD-signal crossover.
-        const candles = generateTestData(40, 100); // Generate 40 candles for a smooth upward trend
+        // Generate 40 candles with a smooth, gradual upward trend.
+        const candles = generateTestData(40, 100);
         candles.forEach((candle, index) => {
             candle.close = 100 + 0.5 * index; // Smooth upward trend
         });
-
         const signal = macd.calculateSignal(candles);
         expect(signal).to.equal('HOLD');
     });
 
     it('returns BUY on bullish crossover (simplified scenario)', () => {
         const macd = new MACD({ shortPeriod: 2, longPeriod: 5, signalPeriod: 2 });
-
-        // Generate a small dataset to cause a bullish crossover
         const candleData = [
-            { close: 100 }, // 0
-            { close: 99 },  // 1
-            { close: 98 },  // 2
-            { close: 98.5 },// 3
-            { close: 99 },  // 4
-            { close: 98.5 } // 5
+            { close: 100 },
+            { close: 99 },
+            { close: 98 },
+            { close: 98.5 },
+            { close: 99 },
+            { close: 98.5 }
         ];
-
-        // Then add a strong upward move that might create a bullish crossover
-        candleData.push({ close: 102 });  // 6
-        candleData.push({ close: 104 });  // 7
-        candleData.push({ close: 106 });  // 8
+        // Then add a strong upward move.
+        candleData.push({ close: 102 });
+        candleData.push({ close: 104 });
+        candleData.push({ close: 106 });
 
         const signal = macd.calculateSignal(candleData);
-        // Depending on your internal logic, the signal might be 'BUY' or remain 'HOLD'.
         expect(['BUY', 'HOLD']).to.include(signal);
     });
 
     it('returns SELL on bearish crossover (simplified scenario)', () => {
         const macd = new MACD({ shortPeriod: 2, longPeriod: 5, signalPeriod: 2 });
-
-        // Create a scenario: start with an uptrend, then quickly shift downward.
         const candleData = [
             { close: 100 },
             { close: 101 },
@@ -99,7 +93,6 @@ describe('MACD Strategy', () => {
             { close: 98 },
             { close: 95 }
         ];
-
         const signal = macd.calculateSignal(candleData);
         expect(['SELL', 'HOLD']).to.include(signal);
     });
