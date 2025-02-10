@@ -25,9 +25,9 @@ router.post('/', validateBotParams, async (req, res) => {
  * GET /bots
  * Retrieve all bots.
  */
-router.get('/', validateBotParams, async (req, res) => {
+router.get('/', async (req, res) => {
     try {
-        const bots = await Bot.find();
+        const bots = await Bot.find({});
         res.json(bots);
     } catch (error) {
         res.status(500).json({ error: error.message });
