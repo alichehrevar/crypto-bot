@@ -1,10 +1,81 @@
 const mongoose = require('mongoose');
+const { Schema } = mongoose;
 
-const botSchema = new mongoose.Schema({
-    name: {
-        type: String,
-        required: true
-    },
+// Define the riskStrategySchema
+const riskStrategySchema = new Schema({
+    risk1: { type: Number, required: true },
+    risk2: { type: Number, default: 0 },
+    risk3: { type: Number, default: 0 }
+}, { _id: false });
+
+/**
+ * Sub-schema for strategy parameters.
+ * (For example, used with the MA_Crossover strategy.)
+ */
+const strategyParamsSchema = new Schema({
+    shortPeriod: { type: Number, min: 1 },
+    longPeriod: { type: Number, min: 1 }
+}, { _id: false });
+
+/**
+ * Sub-schema for risk parameters.
+ * (These parameters cover risk management limits such as max drawdown or daily loss limits.)
+ */
+const riskParamsSchema = new Schema({
+    maxDrawdown: { type: Number },
+    dailyLossLimit: { type: Number },
+    positionSizeType: { type: String, enum: ['percentage', 'fixed'] },
+    positionSizeValue: { type: Number },
+    maxOpenTrades: { type: Number }
+}, { _id: false });
+
+/**
+ * Sub-schema for market information.
+ * (This includes the current state of the market and allocated funds.)
+ */
+const marketInfoSchema = new Schema({
+    state: { type: String, default: 'inactive' },
+    baseFund: { type: Number, default: 0 },
+    tradeFund: { type: Number, default: 0 }
+}, { _id: false });
+
+/**
+ * Sub-schema for trade information.
+ * (This groups all trading-related settings together.)
+ */
+const tradeInfoSchema = new Schema({
+    // Take Profit / Stop Loss settings
+    takeProfit: { type: Number },
+    stopLoss: { type: Number },
+    // Leverage and direction
+    leverage: { type: Number },
+    side: { type: String, enum: ['buy', 'sell'] },
+    positionSide: { type: String, enum: ['long', 'short'] },
+    // Additional trade metrics
+    winProbability: { type: Number },
+    payoffRatio: { type: Number },
+    // Outcome and risk management
+    lastTradeOutcome: { type: String }, // e.g., "win" or "loss"
+    positionSizingMethod: { type: String, enum: ['compound', 'single'] },
+    tradingStrategy: { type: String, enum: ['default', 'optimized', 'dynamic'] },
+    optimizationMethod: { type: String, enum: ['grid', 'bayesian', 'ann'] },
+    // Minimum requirements
+    minimumTrade: { type: Number },
+    minimumWinRatio: { type: Number },
+    minimumAccuracy: { type: Number },
+    // Additional configuration
+    configId: { type: String },
+    signalProcessingMethod: { type: String, enum: ['weighted', 'consensus'] }
+}, { _id: false });
+
+/**
+ * Main Bot Schema.
+ * This schema combines basic bot settings with nested configurations for market, trade,
+ * strategy, and risk parameters.
+ */
+const botSchema = new Schema({
+    // Basic Information
+    name: { type: String, required: true },
     symbol: {
         type: String,
         required: true,
@@ -12,7 +83,7 @@ const botSchema = new mongoose.Schema({
     },
     timeframe: {
         type: String,
-        enum: ['1m','5m','15m','30m','1h','4h','1d','1w'],
+        enum: ['1m', '5m', '15m', '30m', '1h', '4h', '1d', '1w'],
         required: true
     },
     strategy: {
@@ -20,30 +91,27 @@ const botSchema = new mongoose.Schema({
         enum: ['MA_Crossover', 'RSI', 'MACD'],
         required: true
     },
-    strategyParams: {
-        shortPeriod: { type: Number, min: 1 },
-        longPeriod: { type: Number, min: 1 }
-    },
-    riskParams: {
-        maxDrawdown: Number,
-        dailyLossLimit: Number,
-        positionSizeType: { type: String, enum: ['percentage', 'fixed'] },
-        positionSizeValue: Number,
-        maxOpenTrades: Number
-    },
-    active: {
-        type: Boolean,
-        default: false
-    },
-    mode: {
-        type: String,
-        enum: ['live', 'paper'],
-        default: 'paper'
-    },
-    paperBalance: {
-        type: Number,
-        default: 10000
-    },
+    strategyParams: strategyParamsSchema,
+
+    // Risk management (existing risk parameters)
+    riskParams: riskParamsSchema,
+
+    // Market Information
+    marketInfo: marketInfoSchema,
+
+    // Trade Information (includes TP/SL, leverage, sizing, etc.)
+    tradeInfo: tradeInfoSchema,
+
+    // Additional fields from the bot map
+    userId: { type: Schema.Types.ObjectId, ref: 'User' }, // Link to a user (if applicable)
+    botType: { type: String, enum: ['hedge', 'single'] },
+    fundMode: { type: String, enum: ['isolated', 'cross'] },
+    userLevel: { type: Number, default: 1 },
+
+    // Operational flags and settings
+    active: { type: Boolean, default: false },
+    mode: { type: String, enum: ['live', 'paper'], default: 'paper' },
+    paperBalance: { type: Number, default: 10000 }
 }, { timestamps: true });
 
 module.exports = mongoose.model('Bot', botSchema);
