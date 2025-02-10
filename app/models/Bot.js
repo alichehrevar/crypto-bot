@@ -1,13 +1,6 @@
 const mongoose = require('mongoose');
 const { Schema } = mongoose;
 
-// Define the riskStrategySchema
-const riskStrategySchema = new Schema({
-    risk1: { type: Number, required: true },
-    risk2: { type: Number, default: 0 },
-    risk3: { type: Number, default: 0 }
-}, { _id: false });
-
 /**
  * Sub-schema for strategy parameters.
  * (For example, used with the MA_Crossover strategy.)
