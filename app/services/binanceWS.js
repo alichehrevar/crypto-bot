@@ -1,8 +1,10 @@
+// BinanceWS.js
 const WebSocket = require('ws');
+const axios = require('axios');
 const Candle = require('../models/Candle');
-// If you renamed your broadcast service to tradingViewWS, import that instead:
-// const tradingViewWS = require('./TradingViewWS');
 const wsServer = require('./WebSocketServer');
+// Uncomment the next line if you wish to use TradingViewWS instead for broadcasting updates.
+// const tradingViewWS = require('./TradingViewWS');
 
 class BinanceWS {
     constructor() {
@@ -10,6 +12,7 @@ class BinanceWS {
     }
 
     connect() {
+        // Connect to Binance's miniTicker stream.
         this.ws = new WebSocket('wss://stream.binance.com:9443/ws/!miniTicker@arr');
 
         this.ws.on('open', () => {
@@ -32,27 +35,37 @@ class BinanceWS {
 
     async processTickers(tickers) {
         try {
-            // Process all tickers in parallel
             await Promise.all(tickers.map(async (ticker) => {
                 try {
-                    // Example: if ticker.s = "BTCUSDT", we convert to "BTC/USDT"
-                    const symbol = ticker.s.replace('USDT', '/USDT');
-                    const timestamp = new Date(ticker.E);
+                    // Validate that the necessary fields are present.
+                    if (!ticker.s || !ticker.o || !ticker.h || !ticker.l || !ticker.c || !ticker.v || !ticker.E) {
+                        console.warn(`Ticker data missing required fields: ${JSON.stringify(ticker)}`);
+                        return;
+                    }
 
-                    // For demonstration, we treat everything as a 1m candle.
-                    // This is a rough approach since miniTicker is not a full OHLC feed.
+                    // Convert Binance symbol (e.g. "BTCUSDT") to "BTC/USDT".
+                    // Here, we assume the pair is always against USDT.
+                    const symbol = ticker.s.endsWith('USDT')
+                        ? ticker.s.slice(0, -4) + '/USDT'
+                        : ticker.s;  // Fallback if different format
+
+                    const timestamp = new Date(ticker.E);  // Binance event time
+
+                    // For demonstration purposes, we treat every ticker as a 1m candle.
+                    // (miniTicker doesn't provide full OHLC data; you'll likely need a more robust solution for production.)
                     const timeframe = '1m';
 
-                    // Upsert the "current" 1m candle
-                    // We'll assume each event belongs to the minute that ends at `timestamp`
+                    // Upsert the current candle: find a candle for the same symbol, timeframe, and the current minute.
                     const candle = await Candle.findOneAndUpdate(
                         {
                             symbol,
                             timeframe,
                             timestamp: {
-                                $gte: new Date(timestamp.getTime() - 60000), // within the last minute
-                                $lt: timestamp
-                            }
+                                // Assuming candle timestamps represent the open time of the candle,
+                                // we consider candles in the last minute.
+                                $gte: new Date(timestamp.getTime() - 60000),
+                                $lt: timestamp,
+                            },
                         },
                         {
                             $setOnInsert: {
@@ -60,24 +73,23 @@ class BinanceWS {
                                 volume: parseFloat(ticker.v),
                                 symbol,
                                 timeframe,
-                                timestamp
+                                timestamp,
                             },
                             $set: {
                                 high: Math.max(parseFloat(ticker.h), parseFloat(ticker.o)),
                                 low: Math.min(parseFloat(ticker.l), parseFloat(ticker.o)),
-                                close: parseFloat(ticker.c)
-                            }
+                                close: parseFloat(ticker.c),
+                            },
                         },
                         {
                             upsert: true,
                             new: true,
-                            sort: { timestamp: -1 }
+                            sort: { timestamp: -1 },
                         }
                     );
 
-                    // Broadcast updated candle to clients
-                    // If you have a TradingViewWS, call tradingViewWS.broadcastCandleUpdate({...}).
-                    // For now, we assume wsServer has a similar interface:
+                    // Broadcast the updated candle to clients.
+                    // You can choose to broadcast via your generic WS server:
                     wsServer.broadcastCandle({
                         symbol: candle.symbol,
                         timeframe: candle.timeframe,
@@ -86,8 +98,20 @@ class BinanceWS {
                         high: candle.high,
                         low: candle.low,
                         close: candle.close,
-                        volume: candle.volume
+                        volume: candle.volume,
                     });
+
+                    // Or, if you prefer, use your TradingViewWS service:
+                    // tradingViewWS.broadcastCandleUpdate({
+                    //     symbol: candle.symbol,
+                    //     timeframe: candle.timeframe,
+                    //     timestamp: candle.timestamp,
+                    //     open: candle.open,
+                    //     high: candle.high,
+                    //     low: candle.low,
+                    //     close: candle.close,
+                    //     volume: candle.volume,
+                    // });
 
                 } catch (error) {
                     console.error(`Error processing ticker ${ticker.s}:`, error);
