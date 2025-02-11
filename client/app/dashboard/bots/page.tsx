@@ -1,4 +1,3 @@
-// app/bots/page.tsx
 import { BotCard } from "@/components/BotCard"; // adjust the import path as needed
 
 // Define the Bot type. Adjust properties as needed.

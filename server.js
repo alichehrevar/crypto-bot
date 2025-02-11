@@ -29,7 +29,7 @@ app.use(cors({
 
 // Database Connection
 connectDB().then(() => {
-    // Start WebSocket connection after DB is connected
+    // Start WebSocket connections after DB is connected
     binanceWS.connect();
     bingXWS.connect();
     botService.initialize();
@@ -54,7 +54,6 @@ app.use('/api/visualize', visualizationRoutes);
 // Error Handling Middleware
 app.use((err, req, res, next) => {
     console.error(err.stack);
-
     if (res && typeof res.status === 'function') {
         res.status(500).json({
             success: false,
@@ -63,11 +62,9 @@ app.use((err, req, res, next) => {
                 : err.message
         });
     } else {
-        // Ensure the response object has send method before using it
         if (res && typeof res.send === 'function') {
             res.send('An unexpected error occurred');
         } else {
-            // Handle edge case when res is not available or broken
             console.error('Response object is broken or missing.');
             res.end('An unexpected error occurred');
         }
@@ -90,24 +87,37 @@ app.use((req, res) => {
 // Create HTTP server from Express app
 const server = http.createServer(app);
 
-// Initialize the WebSocket server
-wsServer.init();  // Initialize WebSocket server
+// Initialize the general WebSocket server.
+wsServer.init();
 
-// Start the WebSocket server on top of the same HTTP server
+// Handle WebSocket upgrade requests in one place.
 server.on('upgrade', (request, socket, head) => {
-    // Handle the WebSocket upgrade request
-    wsServer.handleUpgrade(request, socket, head);
+    if (request.url) {
+        if (request.url.startsWith('/api/ws')) {
+            // Use your general WebSocket service.
+            wsServer.handleUpgrade(request, socket, head);
+        } else if (request.url.startsWith('/api/tradingview/ws')) {
+            // Use TradingViewWS's handleUpgrade.
+            tradingViewWS.handleUpgrade(request, socket, head);
+        } else {
+            // For unrecognized upgrade paths, destroy the socket.
+            socket.destroy();
+        }
+    } else {
+        socket.destroy();
+    }
 });
 
-// Start the TradingViewWS server on top of the same HTTP server
-tradingViewWS.startServer(server);
+// Start the TradingViewWS server if needed, but do not attach an additional upgrade handler.
+// tradingViewWS.startServer(server); // Remove or comment out this line if present.
 
+// Start the HTTP server.
 const PORT = process.env.PORT || 8000;
 server.listen(PORT, () => {
     console.log(`Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
 });
 
-// Handle unhandled promise rejections
+// Handle unhandled promise rejections.
 process.on('unhandledRejection', (err) => {
     console.error(`Unhandled Rejection: ${err.message}`);
     server.close(() => process.exit(1));

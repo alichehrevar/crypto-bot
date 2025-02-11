@@ -17,8 +17,15 @@ interface CandleChartProps {
     initialData: Candle[] | { data: Candle[] };
 }
 
+// Define the props expected by our custom renderer.
+interface RenderCandlesProps {
+    xAxisMap: Record<string, any>;
+    yAxisMap: Record<string, any>;
+    offset?: { left: number };
+}
+
 export function CandleChart({ initialData }: CandleChartProps) {
-    // Extract the array of candles
+    // Extract the array of candles.
     const initialCandles: Candle[] = Array.isArray(initialData)
         ? initialData
         : initialData.data || [];
@@ -26,7 +33,7 @@ export function CandleChart({ initialData }: CandleChartProps) {
     const [candles, setCandles] = useState<Candle[]>(initialCandles);
 
     // Preprocess candles: convert timestamps and prices to numbers.
-    const processedCandles = candles.map(candle => ({
+    const processedCandles = candles.map((candle) => ({
         ...candle,
         timestamp: new Date(candle.timestamp).getTime(),
         open: Number(candle.open),
@@ -36,45 +43,75 @@ export function CandleChart({ initialData }: CandleChartProps) {
         volume: Number(candle.volume),
     }));
 
-    // Filter out candles with invalid values and sort by timestamp ascending.
+    // Filter out invalid candles and sort them by timestamp ascending.
     const validCandles = processedCandles
-        .filter(candle =>
-            !isNaN(candle.open) &&
-            !isNaN(candle.high) &&
-            !isNaN(candle.low) &&
-            !isNaN(candle.close)
+        .filter(
+            (candle) =>
+                !isNaN(candle.open) &&
+                !isNaN(candle.high) &&
+                !isNaN(candle.low) &&
+                !isNaN(candle.close)
         )
         .sort((a, b) => a.timestamp - b.timestamp);
 
-    // Log first candle for debugging.
     if (validCandles.length > 0) {
         console.log('First valid candle:', validCandles[0]);
     }
 
-    // Compute Y-axis domain explicitly.
+    // Compute Y-axis domain.
     const prices = validCandles.reduce((acc: number[], candle) => {
         return [...acc, candle.open, candle.close, candle.high, candle.low];
     }, []);
     const minPrice = prices.length ? Math.min(...prices) : 0;
     const maxPrice = prices.length ? Math.max(...prices) : 100;
-
     console.log('Computed Y-axis domain:', minPrice, maxPrice);
 
     useEffect(() => {
-        const websocket = new WebSocket('ws://localhost:8000/api/ws');
+        const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8000/api/ws';
+        const websocket = new WebSocket(wsUrl);
+
+        websocket.onopen = () => {
+            console.log('WebSocket connection opened:', wsUrl);
+        };
 
         websocket.onmessage = (event) => {
-            const newCandle: Candle = JSON.parse(event.data);
-            setCandles(prev => {
-                const lastCandle = prev[prev.length - 1];
-                const sameMinute =
-                    lastCandle &&
-                    new Date(lastCandle.timestamp).getMinutes() ===
-                    new Date(newCandle.timestamp).getMinutes();
-                return sameMinute
-                    ? [...prev.slice(0, -1), newCandle]  // Update last candle
-                    : [...prev, newCandle];             // Append new candle
-            });
+            try {
+                const data = JSON.parse(event.data);
+                if (data.action && data.action === 'candle_update') {
+                    const newCandle: Candle = {
+                        timestamp: data.timestamp,
+                        open: data.open,
+                        high: data.high,
+                        low: data.low,
+                        close: data.close,
+                        volume: data.volume,
+                        symbol: data.symbol || 'BTC/USDT',
+                        timeframe: data.timeframe || '1m',
+                    };
+                    setCandles((prev) => {
+                        const lastCandle = prev[prev.length - 1];
+                        const sameMinute =
+                            lastCandle &&
+                            new Date(lastCandle.timestamp).getMinutes() ===
+                            new Date(newCandle.timestamp).getMinutes();
+                        return sameMinute
+                            ? [...prev.slice(0, -1), newCandle]
+                            : [...prev, newCandle];
+                    });
+                } else {
+                    console.warn('Unexpected WebSocket message format:', data);
+                }
+            } catch (error) {
+                console.error('Error parsing WebSocket message:', error);
+            }
+        };
+
+        websocket.onerror = (error) => {
+            console.error('WebSocket error:', error);
+        };
+
+        websocket.onclose = () => {
+            console.log('WebSocket connection closed.');
         };
 
         return () => {
@@ -82,7 +119,8 @@ export function CandleChart({ initialData }: CandleChartProps) {
         };
     }, []);
 
-    const renderCandlesCustomized = (props: { xAxisMap: Record<string, any>; yAxisMap: Record<string, any>; offset: { left: number } | undefined }) => {
+    // Define our custom candle rendering function.
+    const renderCandlesCustomized: React.FC<RenderCandlesProps> = (props) => {
         const { xAxisMap, yAxisMap, offset } = props;
         const xAxis = Object.values(xAxisMap)[0];
         const yAxis = Object.values(yAxisMap)[0];
@@ -94,7 +132,7 @@ export function CandleChart({ initialData }: CandleChartProps) {
         return (
             <g>
                 {validCandles.map((candle, index) => {
-                    const time = candle.timestamp; // Already a number
+                    const time = candle.timestamp;
                     const x = xScale(time) + leftOffset;
                     if (isNaN(x)) return null;
 
@@ -104,7 +142,6 @@ export function CandleChart({ initialData }: CandleChartProps) {
                     const lowY = yScale(candle.low);
                     const candleColor = candle.close > candle.open ? '#00b894' : '#d63031';
 
-                    // Log computed coordinates for the first candle
                     if (index === 0) {
                         console.log('Candle coordinates:', { x, openY, closeY, highY, lowY });
                     }
@@ -133,6 +170,11 @@ export function CandleChart({ initialData }: CandleChartProps) {
         );
     };
 
+    // Wrap our custom renderer in a simple component.
+    const RenderCandlesWrapper: React.FC<RenderCandlesProps> = (props) => {
+        return renderCandlesCustomized(props);
+    };
+
     return (
         <div className="h-96">
             <ResponsiveContainer width="100%" height="100%">
@@ -154,7 +196,8 @@ export function CandleChart({ initialData }: CandleChartProps) {
                             format(new Date(label), 'yyyy-MM-dd HH:mm:ss')
                         }
                     />
-                    <Customized component={renderCandlesCustomized} />
+                    {/* Cast our wrapper to ComponentType<any> to satisfy the expected type */}
+                    <Customized component={RenderCandlesWrapper as any} />
                 </ComposedChart>
             </ResponsiveContainer>
         </div>
