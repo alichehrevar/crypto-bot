@@ -1,8 +1,8 @@
-// BinanceWS.js
 const WebSocket = require('ws');
 const axios = require('axios');
 const Candle = require('../models/Candle');
 const wsServer = require('./WebSocketServer');
+const { updateBotDataFromCandle } = require('./botService');
 // Uncomment the next line if you wish to use TradingViewWS instead for broadcasting updates.
 // const tradingViewWS = require('./TradingViewWS');
 
@@ -44,25 +44,21 @@ class BinanceWS {
                     }
 
                     // Convert Binance symbol (e.g. "BTCUSDT") to "BTC/USDT".
-                    // Here, we assume the pair is always against USDT.
                     const symbol = ticker.s.endsWith('USDT')
                         ? ticker.s.slice(0, -4) + '/USDT'
                         : ticker.s;  // Fallback if different format
 
                     const timestamp = new Date(ticker.E);  // Binance event time
-
                     // For demonstration purposes, we treat every ticker as a 1m candle.
-                    // (miniTicker doesn't provide full OHLC data; you'll likely need a more robust solution for production.)
                     const timeframe = '1m';
 
-                    // Upsert the current candle: find a candle for the same symbol, timeframe, and the current minute.
+                    // Upsert the current candle for the current minute.
                     const candle = await Candle.findOneAndUpdate(
                         {
                             symbol,
                             timeframe,
                             timestamp: {
-                                // Assuming candle timestamps represent the open time of the candle,
-                                // we consider candles in the last minute.
+                                // We consider candles that have an open time in the last minute.
                                 $gte: new Date(timestamp.getTime() - 60000),
                                 $lt: timestamp,
                             },
@@ -88,8 +84,7 @@ class BinanceWS {
                         }
                     );
 
-                    // Broadcast the updated candle to clients.
-                    // You can choose to broadcast via your generic WS server:
+                    // Broadcast the updated candle to clients via the general WebSocket server.
                     wsServer.broadcastCandle({
                         symbol: candle.symbol,
                         timeframe: candle.timeframe,
@@ -101,17 +96,29 @@ class BinanceWS {
                         volume: candle.volume,
                     });
 
-                    // Or, if you prefer, use your TradingViewWS service:
+                    // Optionally, you can broadcast via TradingViewWS:
                     // tradingViewWS.broadcastCandleUpdate({
-                    //     symbol: candle.symbol,
-                    //     timeframe: candle.timeframe,
-                    //     timestamp: candle.timestamp,
-                    //     open: candle.open,
-                    //     high: candle.high,
-                    //     low: candle.low,
-                    //     close: candle.close,
-                    //     volume: candle.volume,
+                    //   symbol: candle.symbol,
+                    //   timeframe: candle.timeframe,
+                    //   timestamp: candle.timestamp,
+                    //   open: candle.open,
+                    //   high: candle.high,
+                    //   low: candle.low,
+                    //   close: candle.close,
+                    //   volume: candle.volume,
                     // });
+
+                    // Update the corresponding bot's market information with the new candle.
+                    await updateBotDataFromCandle({
+                        symbol: candle.symbol,
+                        timeframe: candle.timeframe,
+                        timestamp: candle.timestamp,
+                        open: candle.open,
+                        high: candle.high,
+                        low: candle.low,
+                        close: candle.close,
+                        volume: candle.volume,
+                    });
 
                 } catch (error) {
                     console.error(`Error processing ticker ${ticker.s}:`, error);

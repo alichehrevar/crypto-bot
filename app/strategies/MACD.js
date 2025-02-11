@@ -1,7 +1,7 @@
 const BaseStrategy = require('./BaseStrategy');
 
 class MACD extends BaseStrategy {
-    constructor(params) {
+    constructor(params = { shortPeriod: 12, longPeriod: 26, signalPeriod: 9 }) {
         super(params);
 
         if (!params || typeof params !== 'object') {

@@ -159,6 +159,35 @@ class BotService {
             }
         }
     }
+
+    async updateBotDataFromCandle(candle) {
+        try {
+            // Find bots that are watching this symbol.
+            // You might also check the timeframe or strategy, depending on your logic.
+            const bots = await Bot.find({ symbol: candle.symbol.toUpperCase() });
+            if (!bots || bots.length === 0) {
+                console.log(`No bots found for symbol ${candle.symbol}`);
+                return;
+            }
+
+            for (const bot of bots) {
+                // Update the bot's market info with the latest candle.
+                // For instance, update the "lastCandle" field.
+                bot.lastCandle = {
+                    timestamp: candle.timestamp,
+                    open: candle.open,
+                    high: candle.high,
+                    low: candle.low,
+                    close: candle.close,
+                    volume: candle.volume,
+                };
+                await bot.save();
+                console.log(`Updated bot ${bot.name} with new candle data.`);
+            }
+        } catch (error) {
+            console.error(`Error updating bot data from candle: ${error.message}`);
+        }
+    }
 }
 
 module.exports = new BotService();

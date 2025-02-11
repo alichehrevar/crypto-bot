@@ -1,7 +1,7 @@
 const BaseStrategy = require('./BaseStrategy');
 
 class RSI extends BaseStrategy {
-    constructor(params) {
+    constructor(params = { period: 14, overbought: 70, oversold: 30 }) {
         super(params);
 
         if (!params || typeof params !== 'object') {

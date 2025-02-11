@@ -16,6 +16,7 @@ const candleRoutes = require('./routes/candles');
 const botRoutes = require('./routes/bots');
 const backtestRoutes = require('./routes/backtest');
 const visualizationRoutes = require('./routes/visualization');
+const currencyRoutes = require('./routes/currencies');
 
 // Initialize Express application
 const app = express();
@@ -50,6 +51,7 @@ app.use('/api/candles', candleRoutes);
 app.use('/api/bots', botRoutes);
 app.use('/api/backtest', backtestRoutes);
 app.use('/api/visualize', visualizationRoutes);
+app.use('/api/currencies', currencyRoutes);
 
 // Error Handling Middleware
 app.use((err, req, res, next) => {

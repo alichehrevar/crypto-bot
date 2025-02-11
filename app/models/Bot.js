@@ -24,12 +24,21 @@ const riskParamsSchema = new Schema({
 
 /**
  * Sub-schema for market information.
- * (This includes the current state of the market and allocated funds.)
+ * (This includes the current state of the market, allocated funds, and the latest candle data.)
  */
 const marketInfoSchema = new Schema({
     state: { type: String, default: 'inactive' },
     baseFund: { type: Number, default: 0 },
-    tradeFund: { type: Number, default: 0 }
+    tradeFund: { type: Number, default: 0 },
+    // New field to store the latest candle data.
+    lastCandle: {
+        timestamp: { type: Date },
+        open: { type: Number },
+        high: { type: Number },
+        low: { type: Number },
+        close: { type: Number },
+        volume: { type: Number }
+    }
 }, { _id: false });
 
 /**
@@ -89,7 +98,7 @@ const botSchema = new Schema({
     // Risk management (existing risk parameters)
     riskParams: riskParamsSchema,
 
-    // Market Information
+    // Market Information (includes the latest candle data)
     marketInfo: marketInfoSchema,
 
     // Trade Information (includes TP/SL, leverage, sizing, etc.)
@@ -106,5 +115,9 @@ const botSchema = new Schema({
     mode: { type: String, enum: ['live', 'paper'], default: 'paper' },
     paperBalance: { type: Number, default: 10000 }
 }, { timestamps: true });
+
+// Create a compound index to prevent duplicate entries for the same symbol, timeframe, and timestamp (if applicable).
+// (For bots, you may have a unique key on _id or other fields; adjust as needed.)
+botSchema.index({ symbol: 1, timeframe: 1 }, { unique: false });
 
 module.exports = mongoose.model('Bot', botSchema);
