@@ -6,7 +6,7 @@ class WSServer {
     }
 
     init() {
-        // Create the WSS instance without binding it to the HTTP server directly.
+        // Create the WebSocket server instance without binding it directly to an HTTP server.
         this.wss = new WebSocket.Server({ noServer: true });
         console.log('WebSocket server initialized');
     }
@@ -27,9 +27,31 @@ class WSServer {
             console.error('WebSocket server not initialized');
             return;
         }
+        // Wrap the candle data in an object with a type identifier.
+        const message = {
+            type: 'candle_update',
+            data: candle
+        };
         this.wss.clients.forEach(client => {
             if (client.readyState === WebSocket.OPEN) {
-                client.send(JSON.stringify(candle));
+                client.send(JSON.stringify(message));
+            }
+        });
+    }
+
+    broadcastBotUpdate(bot) {
+        if (!this.wss) {
+            console.error('WebSocket server not initialized');
+            return;
+        }
+        // Wrap the bot data in an object with a type identifier.
+        const message = {
+            type: 'bot_update',
+            data: bot
+        };
+        this.wss.clients.forEach(client => {
+            if (client.readyState === WebSocket.OPEN) {
+                client.send(JSON.stringify(message));
             }
         });
     }

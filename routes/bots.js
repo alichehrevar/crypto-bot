@@ -11,12 +11,12 @@ const botService = require('../app/services/BotService');
  */
 router.get('/select', async (req, res) => {
     try {
-        let { symbol, timeframe } = req.query;
+        let { symbol, timeframe, strategy } = req.query;
         if (!symbol || !timeframe) {
             return res.status(400).json({ error: 'Symbol and timeframe are required' });
         }
 
-        // Normalize symbol: if it doesn't contain a slash, insert one for known quote currencies.
+        // Normalize symbol (trim whitespace, convert to uppercase, and insert slash if needed)
         symbol = symbol.toString().trim();
         timeframe = timeframe.toString().trim();
         if (!symbol.includes('/')) {
@@ -32,12 +32,16 @@ router.get('/select', async (req, res) => {
             }
         }
 
-        // Normalize final values.
-        const normSymbol = symbol.toUpperCase(); // e.g., "BTC/USDT"
-        const normTimeframe = timeframe.toLowerCase(); // e.g., "1h"
+        const normSymbol = symbol.toUpperCase();
+        const normTimeframe = timeframe.toLowerCase();
 
-        // Supported strategies.
-        const strategies = ['MA_Crossover', 'RSI', 'MACD'];
+        // Determine which strategies to process.
+        let strategies = [];
+        if (strategy) {
+            strategies = [strategy];
+        } else {
+            strategies = ['MA_Crossover', 'RSI', 'MACD'];
+        }
 
         // Define default configuration objects for each strategy.
         const defaultConfigs = {
@@ -46,47 +50,32 @@ router.get('/select', async (req, res) => {
             MA_Crossover: { shortPeriod: 5, longPeriod: 20 }
         };
 
-        // For each supported strategy, either create or update a bot.
+        // Use upsert for each strategy to guarantee uniqueness.
         for (const strat of strategies) {
-            // Try to find an existing bot for the given symbol, timeframe, and strategy.
-            let bot = await Bot.findOne({
-                symbol: normSymbol,
-                timeframe: normTimeframe,
-                strategy: strat
-            });
-
-            if (!bot) {
-                // Create a new bot if none exists.
-                const newBot = new Bot({
-                    name: `${normSymbol} ${normTimeframe} ${strat} Bot`,
+            await Bot.findOneAndUpdate(
+                {
                     symbol: normSymbol,
                     timeframe: normTimeframe,
-                    strategy: strat,
-                    strategyParams: defaultConfigs[strat],
-                    riskParams: { maxOpenTrades: 1 },
-                    marketInfo: { state: 'active' },
-                    tradeInfo: {},
-                    active: true,
-                    mode: 'paper',
-                    paperBalance: 10000
-                });
-                await newBot.save();
-                console.log(`Created new bot for ${normSymbol} ${normTimeframe} ${strat}`);
-            } else if (strat === 'RSI') {
-                // For RSI bots, ensure they always have valid strategyParams.
-                if (!bot.strategyParams || typeof bot.strategyParams !== 'object' || Object.keys(bot.strategyParams).length === 0) {
-                    bot.strategyParams = defaultConfigs.RSI;
-                    await bot.save();
-                    console.log(`Updated existing RSI bot for ${normSymbol} ${normTimeframe} with default parameters`);
-                } else {
-                    console.log(`Found existing RSI bot for ${normSymbol} ${normTimeframe}`);
-                }
-            } else {
-                console.log(`Found existing bot for ${normSymbol} ${normTimeframe} ${strat}`);
-            }
+                    strategy: strat
+                },
+                {
+                    $set: {
+                        name: `${normSymbol} ${normTimeframe} ${strat} Bot`,
+                        strategyParams: defaultConfigs[strat],
+                        riskParams: { maxOpenTrades: 1 },
+                        marketInfo: { state: 'active' },
+                        tradeInfo: {},
+                        active: true,
+                        mode: 'paper',
+                        paperBalance: 10000
+                    }
+                },
+                { upsert: true, new: true }
+            );
+            console.log(`Ensured bot for ${normSymbol} ${normTimeframe} ${strat}`);
         }
 
-        // After processing all strategies, fetch and return all bots for the given symbol and timeframe.
+        // Fetch and return all bots for the given symbol and timeframe.
         const bots = await Bot.find({
             symbol: normSymbol,
             timeframe: normTimeframe

@@ -118,7 +118,6 @@ const botSchema = new Schema({
 }, { timestamps: true });
 
 // Create a compound index to prevent duplicate entries for the same symbol, timeframe, and timestamp (if applicable).
-// (For bots, you may have a unique key on _id or other fields; adjust as needed.)
-botSchema.index({ symbol: 1, timeframe: 1 }, { unique: false });
+botSchema.index({ symbol: 1, timeframe: 1, strategy: 1 }, { unique: true });
 
 module.exports = mongoose.model('Bot', botSchema);

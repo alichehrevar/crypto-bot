@@ -9,7 +9,7 @@ interface BotCardProps {
         marketInfo: {
             state: string;
             lastCandle?: {
-                timestamp: string;
+                timestamp: string | Date;
                 open: number;
                 high: number;
                 low: number;
@@ -22,6 +22,12 @@ interface BotCardProps {
 }
 
 export function BotCard({ bot }: BotCardProps) {
+    // Normalize the last candle timestamp to always be a string.
+    const ts = bot.marketInfo.lastCandle?.timestamp;
+    const formattedTimestamp: string = ts
+        ? (ts instanceof Date ? ts.toISOString() : ts.toString())
+        : '';
+
     return (
         <div className="p-4 rounded-lg shadow hover:shadow-md transition-shadow">
             <div className="flex justify-between items-start mb-2">
@@ -48,6 +54,12 @@ export function BotCard({ bot }: BotCardProps) {
                     <span className="text-gray-500">Signal:</span>
                     <span className="font-mono">{bot.marketInfo.lastSignal || 'HOLD'}</span>
                 </div>
+                {formattedTimestamp && (
+                    <div className="flex justify-between">
+                        <span className="text-gray-500">Last Candle:</span>
+                        <span className="font-mono">{formattedTimestamp}</span>
+                    </div>
+                )}
             </div>
         </div>
     );

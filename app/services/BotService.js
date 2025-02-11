@@ -25,7 +25,7 @@ class BotService {
      */
     addBot(bot) {
         const strategy = this.createStrategy(bot);
-        const key = `${bot.symbol}-${bot.timeframe}`;
+        const key = `${bot.symbol.toUpperCase()}-${bot.timeframe.toLowerCase()}`;
 
         if (!this.activeBots.has(key)) {
             this.activeBots.set(key, []);
@@ -93,7 +93,9 @@ class BotService {
      * Uses the StrategyManager to process signals and executes orders if needed.
      */
     async processCandle(symbol, timeframe, candles) {
-        const key = `${symbol}-${timeframe}`;
+        const normSymbol = symbol.toUpperCase();
+        const normTimeframe = timeframe.toLowerCase();
+        const key = `${normSymbol}-${normTimeframe}`;
         const botEntries = this.activeBots.get(key) || [];
 
         const lastCandle = candles[candles.length - 1];
@@ -139,6 +141,7 @@ class BotService {
             });
             await newTrade.save();
             console.log(`Bot "${bot.name}" opened a BUY at ${price}, qty=${quantity}`);
+
         } else if (signal === 'SELL') {
             if (!openTrade) {
                 console.log(`Bot "${bot.name}" received SELL signal but no open trade exists.`);
@@ -168,66 +171,77 @@ class BotService {
      * Updates a bot's market data using a newly received candle.
      * For each bot watching this symbol and matching the timeframe, it fetches the latest candles,
      * computes the trading signal, and updates the bot's market info with the last candle and the computed signal.
+     *
+     * @param {Object} candle - The new candle object (should include symbol, timeframe, timestamp, open, high, low, close, volume).
      */
     async updateBotDataFromCandle(candle) {
         try {
-            // Find bots for this symbol (normalize symbol as uppercase).
-            const bots = await Bot.find({ symbol: candle.symbol.toUpperCase() });
+            // Normalize the symbol and timeframe.
+            const normSymbol = candle.symbol.toUpperCase();
+            const normTimeframe = candle.timeframe.toLowerCase();
+
+            // Query only bots matching the normalized symbol and timeframe.
+            const bots = await Bot.find({ symbol: normSymbol, timeframe: normTimeframe });
             if (!bots || bots.length === 0) {
-                console.log(`No bots found for symbol ${candle.symbol}`);
+                console.log(`No bots found for symbol ${normSymbol} and timeframe ${normTimeframe}`);
                 return;
             }
 
-            // For each bot that matches the timeframe, update market info.
             for (const bot of bots) {
-                if (bot.timeframe.toLowerCase() === candle.timeframe.toLowerCase()) {
-                    // Update the last candle.
-                    bot.marketInfo.lastCandle = {
-                        timestamp: candle.timestamp,
-                        open: candle.open,
-                        high: candle.high,
-                        low: candle.low,
-                        close: candle.close,
-                        volume: candle.volume,
-                    };
+                // Update the bot's last candle.
+                bot.marketInfo.lastCandle = {
+                    timestamp: candle.timestamp,
+                    open: candle.open,
+                    high: candle.high,
+                    low: candle.low,
+                    close: candle.close,
+                    volume: candle.volume,
+                };
 
-                    // Fetch recent candles (sorted oldest first) for signal calculation.
-                    const Candle = require('../models/Candle');
-                    const recentCandles = await Candle.find({
-                        symbol: bot.symbol,
-                        timeframe: bot.timeframe.toLowerCase()
-                    }).sort({ timestamp: 1 }).limit(100);
+                // Fetch recent candles (sorted oldest first) for signal calculation.
+                const Candle = require('../models/Candle');
+                const recentCandles = await Candle.find({
+                    symbol: normSymbol,
+                    timeframe: normTimeframe
+                }).sort({ timestamp: 1 }).limit(100);
 
-                    let computedSignal = 'HOLD';
-                    try {
-                        switch (bot.strategy) {
-                            case 'RSI': {
-                                const rsiInstance = new RSI(bot.strategyParams);
-                                computedSignal = rsiInstance.calculateSignal(recentCandles);
-                                break;
-                            }
-                            case 'MACD': {
-                                const macdInstance = new MACD(bot.strategyParams);
-                                computedSignal = macdInstance.calculateSignal(recentCandles);
-                                break;
-                            }
-                            case 'MA_Crossover': {
-                                const maCrossoverInstance = new MACrossover(bot.strategyParams);
-                                computedSignal = maCrossoverInstance.calculateSignal(recentCandles);
-                                break;
-                            }
-                            default:
-                                console.error(`Unknown strategy: ${bot.strategy}`);
+                let computedSignal = 'HOLD';
+                try {
+                    switch (bot.strategy) {
+                        case 'RSI': {
+                            const rsiInstance = new RSI(bot.strategyParams);
+                            computedSignal = rsiInstance.calculateSignal(recentCandles);
+                            break;
                         }
-                    } catch (error) {
-                        console.error(`Error computing signal for bot ${bot.name}: ${error.message}`);
+                        case 'MACD': {
+                            const macdInstance = new MACD(bot.strategyParams);
+                            computedSignal = macdInstance.calculateSignal(recentCandles);
+                            break;
+                        }
+                        case 'MA_Crossover': {
+                            const maCrossoverInstance = new MACrossover(bot.strategyParams);
+                            computedSignal = maCrossoverInstance.calculateSignal(recentCandles);
+                            break;
+                        }
+                        default:
+                            console.error(`Unknown strategy: ${bot.strategy}`);
                     }
-
-                    // Update the bot's market info with the computed signal.
-                    bot.marketInfo.lastSignal = computedSignal;
-                    await bot.save();
-                    console.log(`Updated bot ${bot.name} with new candle data and signal: ${computedSignal}`);
+                } catch (error) {
+                    console.error(`Error computing signal for bot ${bot.name}: ${error.message}`);
                 }
+
+                // Update the bot's market info with the computed signal.
+                bot.marketInfo.lastSignal = computedSignal;
+                await bot.save();
+                console.log(`Updated bot ${bot.name} with new candle data and signal: ${computedSignal}`);
+
+                // Normalize bot object by converting _id to id.
+                const updatedBot = bot.toObject();
+                updatedBot.id = updatedBot._id.toString();
+
+                // Broadcast the updated bot to connected clients.
+                const wsServer = require('./WebSocketServer');
+                wsServer.broadcastBotUpdate(updatedBot);
             }
         } catch (error) {
             console.error(`Error updating bot data from candle: ${error.message}`);

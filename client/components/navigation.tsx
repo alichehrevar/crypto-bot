@@ -9,9 +9,6 @@ export default function Navigation() {
                         TradingX
                     </Link>
                     <div className="space-x-6">
-                        <Link href="/bots" className="hover:text-blue-600 transition-colors">
-                            Bots
-                        </Link>
                         <Link href="/bots/select" className="hover:text-blue-600 transition-colors">
                             Select Currency/Timeframe
                         </Link>
