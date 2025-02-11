@@ -20,7 +20,7 @@ export default async function BotsPage({ searchParams }: { searchParams: { symbo
     if (!rawSymbol.includes('/')) {
         const upperSymbol = rawSymbol.toUpperCase();
         // Define known quote currencies.
-        const knownQuotes = ['USDT', 'USDC', 'BTC', 'ETH', 'BNB', 'TRY', 'USD'];
+        const knownQuotes = ['USDT', 'USDC', 'BTC', 'ETH', 'BNB', 'TRY', 'USD', 'CZK'];
         let matchedQuote = null;
         for (const quote of knownQuotes) {
             if (upperSymbol.endsWith(quote)) {
@@ -58,7 +58,7 @@ export default async function BotsPage({ searchParams }: { searchParams: { symbo
             <h1 className="text-2xl font-bold mb-4">Bots for {symbol} - {timeframe}</h1>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                 {bots.map((bot) => (
-                    <BotCard key={bot.id} bot={bot} />
+                    <BotCard key={bot._id} bot={bot} />
                 ))}
             </div>
         </div>
