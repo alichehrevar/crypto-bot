@@ -249,10 +249,25 @@ class BotService {
     }
 
     calculatePositionSize(bot, price) {
-        // Implement your position sizing logic here.
-        // For demonstration, we assume a fixed position size of 0.1.
-        return 0.1;
+        const riskParams = bot.riskParams || {};
+        // Check if the bot has defined a position sizing method.
+        if (riskParams.positionSizeType && riskParams.positionSizeValue) {
+            if (riskParams.positionSizeType === 'fixed') {
+                // Use the fixed position size.
+                return riskParams.positionSizeValue;
+            } else if (riskParams.positionSizeType === 'percentage') {
+                // Calculate the position size as a percentage of the bot's paperBalance.
+                // For example, if positionSizeValue is 2, that means 2% of the paper balance.
+                // quantity = (paperBalance × percentage) / price
+                const percentage = riskParams.positionSizeValue / 100;
+                return (bot.paperBalance * percentage) / price;
+            }
+        }
+
+        // Default behavior: use 1% of the paperBalance as the risk for this trade.
+        return (bot.paperBalance * 0.01) / price;
     }
+
 }
 
 module.exports = new BotService();
