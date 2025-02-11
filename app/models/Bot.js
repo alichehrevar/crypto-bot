@@ -38,7 +38,8 @@ const marketInfoSchema = new Schema({
         low: { type: Number },
         close: { type: Number },
         volume: { type: Number }
-    }
+    },
+    lastSignal: { type: String, default: 'HOLD' },
 }, { _id: false });
 
 /**

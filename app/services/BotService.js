@@ -1,6 +1,9 @@
 const Bot = require('../models/Bot');
 const Trade = require('../models/Trade');
-const { MACrossover, RSI, MACD } = require('../strategies');
+// Import the strategy classes.
+const RSI = require('../strategies/RSI');
+const MACD = require('../strategies/MACD');
+const MACrossover = require('../strategies/MovingAverageCrossover');
 const StrategyManager = require('../strategies/StrategyManager');
 
 class BotService {
@@ -29,8 +32,8 @@ class BotService {
         }
 
         this.activeBots.get(key).push({ bot, strategy });
-        // Register the strategy in the StrategyManager
-        this.strategyManager.registerStrategy(bot.name, strategy); // Use bot.name as strategy identifier
+        // Register the strategy in the StrategyManager using the bot's name as identifier.
+        this.strategyManager.registerStrategy(bot.name, strategy);
     }
 
     /**
@@ -71,7 +74,8 @@ class BotService {
                         bot: bot._id,
                         timestamp: { $gte: startOfDay },
                         profit: { $exists: true }
-                    }},
+                    }
+                },
                 { $group: { _id: null, totalProfit: { $sum: '$profit' } } }
             ]);
 
@@ -86,6 +90,7 @@ class BotService {
 
     /**
      * Called whenever new candles arrive for a given symbol/timeframe.
+     * Uses the StrategyManager to process signals and executes orders if needed.
      */
     async processCandle(symbol, timeframe, candles) {
         const key = `${symbol}-${timeframe}`;
@@ -101,9 +106,9 @@ class BotService {
                 continue;
             }
 
-            // Use StrategyManager to process signals
+            // Process signals using the StrategyManager.
             const signals = this.strategyManager.processSignals(candles);
-            const signal = signals[bot.name]; // Get signal for the specific bot
+            const signal = signals[bot.name]; // Get signal for the specific bot.
 
             if (signal !== 'HOLD') {
                 await this.executeOrder(bot, signal, closePrice);
@@ -134,7 +139,6 @@ class BotService {
             });
             await newTrade.save();
             console.log(`Bot "${bot.name}" opened a BUY at ${price}, qty=${quantity}`);
-
         } else if (signal === 'SELL') {
             if (!openTrade) {
                 console.log(`Bot "${bot.name}" received SELL signal but no open trade exists.`);
@@ -160,33 +164,80 @@ class BotService {
         }
     }
 
+    /**
+     * Updates a bot's market data using a newly received candle.
+     * For each bot watching this symbol and matching the timeframe, it fetches the latest candles,
+     * computes the trading signal, and updates the bot's market info with the last candle and the computed signal.
+     */
     async updateBotDataFromCandle(candle) {
         try {
-            // Find bots that are watching this symbol.
-            // You might also check the timeframe or strategy, depending on your logic.
+            // Find bots for this symbol (normalize symbol as uppercase).
             const bots = await Bot.find({ symbol: candle.symbol.toUpperCase() });
             if (!bots || bots.length === 0) {
                 console.log(`No bots found for symbol ${candle.symbol}`);
                 return;
             }
 
+            // For each bot that matches the timeframe, update market info.
             for (const bot of bots) {
-                // Update the bot's market info with the latest candle.
-                // For instance, update the "lastCandle" field.
-                bot.lastCandle = {
-                    timestamp: candle.timestamp,
-                    open: candle.open,
-                    high: candle.high,
-                    low: candle.low,
-                    close: candle.close,
-                    volume: candle.volume,
-                };
-                await bot.save();
-                console.log(`Updated bot ${bot.name} with new candle data.`);
+                if (bot.timeframe.toLowerCase() === candle.timeframe.toLowerCase()) {
+                    // Update the last candle.
+                    bot.marketInfo.lastCandle = {
+                        timestamp: candle.timestamp,
+                        open: candle.open,
+                        high: candle.high,
+                        low: candle.low,
+                        close: candle.close,
+                        volume: candle.volume,
+                    };
+
+                    // Fetch recent candles (sorted oldest first) for signal calculation.
+                    const Candle = require('../models/Candle');
+                    const recentCandles = await Candle.find({
+                        symbol: bot.symbol,
+                        timeframe: bot.timeframe.toLowerCase()
+                    }).sort({ timestamp: 1 }).limit(100);
+
+                    let computedSignal = 'HOLD';
+                    try {
+                        switch (bot.strategy) {
+                            case 'RSI': {
+                                const rsiInstance = new RSI(bot.strategyParams);
+                                computedSignal = rsiInstance.calculateSignal(recentCandles);
+                                break;
+                            }
+                            case 'MACD': {
+                                const macdInstance = new MACD(bot.strategyParams);
+                                computedSignal = macdInstance.calculateSignal(recentCandles);
+                                break;
+                            }
+                            case 'MA_Crossover': {
+                                const maCrossoverInstance = new MACrossover(bot.strategyParams);
+                                computedSignal = maCrossoverInstance.calculateSignal(recentCandles);
+                                break;
+                            }
+                            default:
+                                console.error(`Unknown strategy: ${bot.strategy}`);
+                        }
+                    } catch (error) {
+                        console.error(`Error computing signal for bot ${bot.name}: ${error.message}`);
+                    }
+
+                    // Update the bot's market info with the computed signal.
+                    bot.marketInfo.lastSignal = computedSignal;
+                    await bot.save();
+                    console.log(`Updated bot ${bot.name} with new candle data and signal: ${computedSignal}`);
+                }
             }
         } catch (error) {
             console.error(`Error updating bot data from candle: ${error.message}`);
         }
+    }
+
+    calculatePositionSize(bot, price) {
+        // Implement your position sizing logic here.
+        // For demonstration, we assume a fixed position size of 0.1.
+        return 0.1;
     }
 }
 

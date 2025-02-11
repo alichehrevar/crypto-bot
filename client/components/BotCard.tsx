@@ -1,4 +1,3 @@
-// components/BotCard.tsx
 interface BotCardProps {
     bot: {
         id: string;
@@ -7,6 +6,18 @@ interface BotCardProps {
         symbol: string;
         timeframe: string;
         active: boolean;
+        marketInfo: {
+            state: string;
+            lastCandle?: {
+                timestamp: string;
+                open: number;
+                high: number;
+                low: number;
+                close: number;
+                volume: number;
+            };
+            lastSignal?: string;
+        };
     };
 }
 
@@ -17,6 +28,7 @@ export function BotCard({ bot }: BotCardProps) {
                 <h3 className="text-lg font-semibold">{bot.name}</h3>
                 <span className={`inline-block w-3 h-3 rounded-full ${bot.active ? 'bg-green-500' : 'bg-red-500'}`} />
             </div>
+
             <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                     <span className="text-gray-500">Symbol:</span>
@@ -31,6 +43,10 @@ export function BotCard({ bot }: BotCardProps) {
                 <div className="flex justify-between">
                     <span className="text-gray-500">Timeframe:</span>
                     <span className="font-mono">{bot.timeframe}</span>
+                </div>
+                <div className="flex justify-between">
+                    <span className="text-gray-500">Signal:</span>
+                    <span className="font-mono">{bot.marketInfo.lastSignal || 'HOLD'}</span>
                 </div>
             </div>
         </div>

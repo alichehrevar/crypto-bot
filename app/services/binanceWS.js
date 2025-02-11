@@ -35,95 +35,109 @@ class BinanceWS {
 
     async processTickers(tickers) {
         try {
-            await Promise.all(tickers.map(async (ticker) => {
-                try {
-                    // Validate that the necessary fields are present.
-                    if (!ticker.s || !ticker.o || !ticker.h || !ticker.l || !ticker.c || !ticker.v || !ticker.E) {
-                        console.warn(`Ticker data missing required fields: ${JSON.stringify(ticker)}`);
-                        return;
-                    }
+            await Promise.all(
+                tickers.map(async (ticker) => {
+                    try {
+                        // Validate that the necessary fields are present.
+                        if (
+                            !ticker.s ||
+                            !ticker.o ||
+                            !ticker.h ||
+                            !ticker.l ||
+                            !ticker.c ||
+                            !ticker.v ||
+                            !ticker.E
+                        ) {
+                            console.warn(
+                                `Ticker data missing required fields: ${JSON.stringify(ticker)}`
+                            );
+                            return;
+                        }
 
-                    // Convert Binance symbol (e.g. "BTCUSDT") to "BTC/USDT".
-                    const symbol = ticker.s.endsWith('USDT')
-                        ? ticker.s.slice(0, -4) + '/USDT'
-                        : ticker.s;  // Fallback if different format
+                        // Normalize the symbol:
+                        // If the Binance symbol ends with 'USDT' or 'USDC', convert to the format "BASE/QUOTE".
+                        let symbol = '';
+                        const upperTickerSymbol = ticker.s.toUpperCase();
+                        if (upperTickerSymbol.endsWith('USDT')) {
+                            symbol = upperTickerSymbol.slice(0, -4) + '/USDT';
+                        } else if (upperTickerSymbol.endsWith('USDC')) {
+                            symbol = upperTickerSymbol.slice(0, -4) + '/USDC';
+                        } else {
+                            // Fallback: use the original symbol in uppercase.
+                            symbol = upperTickerSymbol;
+                        }
 
-                    const timestamp = new Date(ticker.E);  // Binance event time
-                    // For demonstration purposes, we treat every ticker as a 1m candle.
-                    const timeframe = '1m';
+                        // Ensure symbol is in uppercase.
+                        symbol = symbol.toUpperCase();
 
-                    // Upsert the current candle for the current minute.
-                    const candle = await Candle.findOneAndUpdate(
-                        {
-                            symbol,
-                            timeframe,
-                            timestamp: {
-                                // We consider candles that have an open time in the last minute.
-                                $gte: new Date(timestamp.getTime() - 60000),
-                                $lt: timestamp,
-                            },
-                        },
-                        {
-                            $setOnInsert: {
-                                open: parseFloat(ticker.o),
-                                volume: parseFloat(ticker.v),
+                        const timestamp = new Date(ticker.E); // Binance event time
+
+                        // For demonstration purposes, we treat every ticker as a 1m candle.
+                        const timeframe = '1m';
+
+                        // Upsert the current candle for the current minute.
+                        const candle = await Candle.findOneAndUpdate(
+                            {
                                 symbol,
                                 timeframe,
-                                timestamp,
+                                timestamp: {
+                                    // We consider candles that have an open time in the last minute.
+                                    $gte: new Date(timestamp.getTime() - 60000),
+                                    $lt: timestamp,
+                                },
                             },
-                            $set: {
-                                high: Math.max(parseFloat(ticker.h), parseFloat(ticker.o)),
-                                low: Math.min(parseFloat(ticker.l), parseFloat(ticker.o)),
-                                close: parseFloat(ticker.c),
+                            {
+                                $setOnInsert: {
+                                    open: parseFloat(ticker.o),
+                                    volume: parseFloat(ticker.v),
+                                    symbol,
+                                    timeframe,
+                                    timestamp,
+                                },
+                                $set: {
+                                    high: Math.max(parseFloat(ticker.h), parseFloat(ticker.o)),
+                                    low: Math.min(parseFloat(ticker.l), parseFloat(ticker.o)),
+                                    close: parseFloat(ticker.c),
+                                },
                             },
-                        },
-                        {
-                            upsert: true,
-                            new: true,
-                            sort: { timestamp: -1 },
-                        }
-                    );
+                            {
+                                upsert: true,
+                                new: true,
+                                sort: { timestamp: -1 },
+                            }
+                        );
 
-                    // Broadcast the updated candle to clients via the general WebSocket server.
-                    wsServer.broadcastCandle({
-                        symbol: candle.symbol,
-                        timeframe: candle.timeframe,
-                        timestamp: candle.timestamp,
-                        open: candle.open,
-                        high: candle.high,
-                        low: candle.low,
-                        close: candle.close,
-                        volume: candle.volume,
-                    });
+                        // Broadcast the updated candle to connected clients.
+                        wsServer.broadcastCandle({
+                            symbol: candle.symbol,
+                            timeframe: candle.timeframe,
+                            timestamp: candle.timestamp,
+                            open: candle.open,
+                            high: candle.high,
+                            low: candle.low,
+                            close: candle.close,
+                            volume: candle.volume,
+                        });
 
-                    // Optionally, you can broadcast via TradingViewWS:
-                    // tradingViewWS.broadcastCandleUpdate({
-                    //   symbol: candle.symbol,
-                    //   timeframe: candle.timeframe,
-                    //   timestamp: candle.timestamp,
-                    //   open: candle.open,
-                    //   high: candle.high,
-                    //   low: candle.low,
-                    //   close: candle.close,
-                    //   volume: candle.volume,
-                    // });
+                        // Optionally, broadcast via TradingViewWS:
+                        // tradingViewWS.broadcastCandleUpdate({...});
 
-                    // Update the corresponding bot's market information with the new candle.
-                    await updateBotDataFromCandle({
-                        symbol: candle.symbol,
-                        timeframe: candle.timeframe,
-                        timestamp: candle.timestamp,
-                        open: candle.open,
-                        high: candle.high,
-                        low: candle.low,
-                        close: candle.close,
-                        volume: candle.volume,
-                    });
-
-                } catch (error) {
-                    console.error(`Error processing ticker ${ticker.s}:`, error);
-                }
-            }));
+                        // Update the corresponding bot's market information.
+                        await updateBotDataFromCandle({
+                            symbol: candle.symbol,
+                            timeframe: candle.timeframe,
+                            timestamp: candle.timestamp,
+                            open: candle.open,
+                            high: candle.high,
+                            low: candle.low,
+                            close: candle.close,
+                            volume: candle.volume,
+                        });
+                    } catch (error) {
+                        console.error(`Error processing ticker ${ticker.s}:`, error);
+                    }
+                })
+            );
         } catch (error) {
             console.error('Global ticker processing error:', error);
         }
