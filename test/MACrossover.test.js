@@ -3,7 +3,7 @@
  * Example Mocha tests for the Moving Average Crossover strategy.
  */
 
-const MACrossover = require('../app/strategies/MovingAverageCrossover');
+const MACrossover = require('../app/indicators/MovingAverageCrossover');
 
 let expect;
 before(async () => {

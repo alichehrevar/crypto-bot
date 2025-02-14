@@ -1,9 +1,9 @@
 const Candle = require('../models/Candle');
-const { RSI, MACrossover } = require('../strategies');
+const { RSI, MACrossover } = require('../indicators');
 
 class BacktestService {
     /**
-     * Runs a backtest using one of the known strategies (RSI, MA_Crossover).
+     * Runs a backtest using one of the known indicators (RSI, MA_Crossover).
      * @param {Object} options
      * @param {String} options.strategy - 'RSI' or 'MA_Crossover'
      * @param {Object} options.params - strategy parameters (e.g., period, etc.)
@@ -54,7 +54,7 @@ class BacktestService {
                 case 'MA_Crossover':
                     strategyInstance = new MACrossover(params);
                     break;
-                // Add other strategies if needed
+                // Add other indicators if needed
             }
 
             // 4) Prepare for backtest

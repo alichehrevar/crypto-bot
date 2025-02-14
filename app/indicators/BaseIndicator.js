@@ -1,6 +1,6 @@
-class BaseStrategy {
+class BaseIndicator {
     constructor(params) {
-        if (new.target === BaseStrategy) {
+        if (new.target === BaseIndicator) {
             throw new Error("Cannot instantiate abstract class");
         }
         this.params = params;
@@ -11,4 +11,4 @@ class BaseStrategy {
     }
 }
 
-module.exports = BaseStrategy;
+module.exports = BaseIndicator;

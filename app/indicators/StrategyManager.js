@@ -1,6 +1,6 @@
 class StrategyManager {
     constructor() {
-        // Use a Map to store strategies by name.
+        // Use a Map to store indicators by name.
         this.strategies = new Map();
     }
 
@@ -24,7 +24,7 @@ class StrategyManager {
     }
 
     /**
-     * Processes signals for all registered strategies using the provided candle data.
+     * Processes signals for all registered indicators using the provided candle data.
      * If a strategy throws an error during signal calculation, its signal will be defaulted to "HOLD".
      *
      * @param {Array} candles - An array of candle data.

@@ -1,4 +1,4 @@
-const BaseStrategy = require('./BaseStrategy');
+const BaseStrategy = require('./BaseIndicator');
 
 class RSI extends BaseStrategy {
     constructor(params = { period: 14, overbought: 70, oversold: 30 }) {

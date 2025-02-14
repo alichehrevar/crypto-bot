@@ -1,4 +1,4 @@
-const MACD = require('../app/strategies/MACD');
+const MACD = require('../app/indicators/MACD');
 const { generateTestData } = require('./testUtils');
 
 let expect;

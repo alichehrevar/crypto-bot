@@ -1,4 +1,4 @@
-const BaseStrategy = require('./BaseStrategy');
+const BaseStrategy = require('./BaseIndicator');
 
 class MACrossover extends BaseStrategy {
     constructor(params) {

@@ -1,4 +1,4 @@
-const BaseStrategy = require('./BaseStrategy');
+const BaseStrategy = require('./BaseIndicator');
 
 class MACD extends BaseStrategy {
     constructor(params = { shortPeriod: 12, longPeriod: 26, signalPeriod: 9 }) {

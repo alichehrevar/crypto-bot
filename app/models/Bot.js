@@ -107,7 +107,8 @@ const botSchema = new Schema({
 
     // Additional fields from the bot map
     userId: { type: Schema.Types.ObjectId, ref: 'User' }, // Link to a user (if applicable)
-    botType: { type: String, enum: ['hedge', 'single'] },
+    botType: { type: String, enum: ['indicator', 'grid', 'DCA'] },
+    positionMode: { type: String, enum: ['hedge', 'single'] }, // TODO:: bot types are grid, DCA, indicator and ...
     fundMode: { type: String, enum: ['isolated', 'cross'] },
     userLevel: { type: Number, default: 1 },
 

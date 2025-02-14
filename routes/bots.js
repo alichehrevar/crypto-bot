@@ -35,7 +35,7 @@ router.get('/select', async (req, res) => {
         const normSymbol = symbol.toUpperCase();
         const normTimeframe = timeframe.toLowerCase();
 
-        // Determine which strategies to process.
+        // Determine which indicators to process.
         let strategies = [];
         if (strategy) {
             strategies = [strategy];

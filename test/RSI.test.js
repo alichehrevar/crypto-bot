@@ -1,4 +1,4 @@
-const RSI = require('../app/strategies/RSI');
+const RSI = require('../app/indicators/RSI');
 const { generateTestData } = require('./testUtils');
 
 let expect;

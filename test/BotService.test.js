@@ -1,10 +1,10 @@
 const sinon = require('sinon');
 
-// Import the service, models, strategies, and test utilities
+// Import the service, models, indicators, and test utilities
 const botService = require('../app/services/BotService');
 const Trade = require('../app/models/Trade');
 const Bot = require('../app/models/Bot');
-const { RSI, MACrossover, MACD } = require('../app/strategies');
+const { RSI, MACrossover, MACD } = require('../app/indicators');
 const { generateTestData } = require('./testUtils');
 
 let expect;
@@ -14,7 +14,7 @@ before(async () => {
     expect = chai.expect;
 });
 
-describe('BotService with multiple strategies', function () {
+describe('BotService with multiple indicators', function () {
     let sandbox;
     let candles;
 
@@ -37,7 +37,7 @@ describe('BotService with multiple strategies', function () {
         sandbox.restore();
     });
 
-    it('should process signals for multiple strategies (RSI, MA Crossover, MACD)', async function () {
+    it('should process signals for multiple indicators (RSI, MA Crossover, MACD)', async function () {
         // Create two Bot instances for testing.
         // IMPORTANT: Include the 'timeframe' property so that they match the candle data.
         const botRSI = new Bot({
