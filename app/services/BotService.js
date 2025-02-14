@@ -4,7 +4,7 @@ const Trade = require('../models/Trade');
 const RSI = require('../indicators/RSI');
 const MACD = require('../indicators/MACD');
 const MACrossover = require('../indicators/MovingAverageCrossover');
-const StrategyManager = require('../indicators/StrategyManager');
+const StrategyManager = require('../strategies/StrategyManager');
 
 class BotService {
     constructor() {
