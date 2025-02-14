@@ -1,6 +1,6 @@
 class StrategyManager {
     constructor() {
-        // Use a Map to store strategy instances by a unique name.
+        // Use a Map to store strategies by name.
         this.strategies = new Map();
     }
 
@@ -8,7 +8,7 @@ class StrategyManager {
      * Registers a strategy instance under a unique strategy name.
      *
      * @param {string} strategyName - The unique name for this strategy.
-     * @param {object} strategyInstance - The strategy instance (must have a calculateSignal() method).
+     * @param {object} strategyInstance - The strategy instance (which must have a calculateSignal() method).
      */
     registerStrategy(strategyName, strategyInstance) {
         this.strategies.set(strategyName, strategyInstance);
@@ -27,19 +27,34 @@ class StrategyManager {
 
     /**
      * Updates the configuration for a given strategy.
+     * It merges the new configuration with the current configuration and calls the strategy's updateConfig method if available.
      *
      * @param {string} strategyName - The name of the strategy.
-     * @param {object} config - New configuration object.
+     * @param {object} newConfig - New configuration object.
+     * @returns {object} The updated configuration.
+     * @throws {Error} If the specified strategy is not registered.
      */
-    configureStrategy(strategyName, config) {
+    configureStrategy(strategyName, newConfig) {
         const strategy = this.strategies.get(strategyName);
-        if (!strategy) throw new Error(`Strategy ${strategyName} not registered`);
-        if (typeof strategy.updateConfig === 'function') {
-            strategy.updateConfig(config);
-            console.log(`Updated config for strategy: ${strategyName}`);
-        } else {
-            console.warn(`Strategy ${strategyName} does not support config updates.`);
+        if (!strategy) {
+            throw new Error(`Strategy ${strategyName} not registered`);
         }
+
+        // Merge current configuration with newConfig.
+        // This assumes the strategy instance stores its configuration in a property named `config` (or similar).
+        // If not, you can directly replace or handle it accordingly.
+        const updatedConfig = { ...strategy.config, ...newConfig };
+        strategy.config = updatedConfig; // update internal configuration
+
+        // If the strategy implements an updateConfig() method, call it.
+        if (typeof strategy.updateConfig === 'function') {
+            strategy.updateConfig(updatedConfig);
+            console.log(`Updated configuration for strategy "${strategyName}":`, updatedConfig);
+        } else {
+            console.warn(`Strategy "${strategyName}" does not implement updateConfig(). Configuration updated internally.`);
+        }
+
+        return updatedConfig;
     }
 
     /**
@@ -53,26 +68,26 @@ class StrategyManager {
         if (!strategy) throw new Error(`Strategy ${strategyName} not registered`);
         if (typeof strategy.setLeverage === 'function') {
             strategy.setLeverage(params);
-            console.log(`Set leverage for strategy ${strategyName}:`, params);
+            console.log(`Set leverage for strategy "${strategyName}":`, params);
         } else {
-            console.warn(`Strategy ${strategyName} does not implement setLeverage().`);
+            console.warn(`Strategy "${strategyName}" does not implement setLeverage().`);
         }
     }
 
     /**
-     * Sets position (e.g., hedge/single side and mode) for a strategy.
+     * Sets the position details for a strategy.
      *
      * @param {string} strategyName - The name of the strategy.
-     * @param {object} params - An object containing positionSide and mode.
+     * @param {object} params - An object containing position details (e.g., hedge/single mode).
      */
     setPosition(strategyName, params) {
         const strategy = this.strategies.get(strategyName);
         if (!strategy) throw new Error(`Strategy ${strategyName} not registered`);
         if (typeof strategy.setPosition === 'function') {
             strategy.setPosition(params);
-            console.log(`Set position for strategy ${strategyName}:`, params);
+            console.log(`Set position for strategy "${strategyName}":`, params);
         } else {
-            console.warn(`Strategy ${strategyName} does not implement setPosition().`);
+            console.warn(`Strategy "${strategyName}" does not implement setPosition().`);
         }
     }
 
@@ -80,16 +95,16 @@ class StrategyManager {
      * Sets margin details for a strategy.
      *
      * @param {string} strategyName - The name of the strategy.
-     * @param {object} params - An object containing fundMode, manager, mode, and enforce.
+     * @param {object} params - An object containing margin parameters (e.g., cross/isolated, manager, mode, enforce).
      */
     setMargin(strategyName, params) {
         const strategy = this.strategies.get(strategyName);
         if (!strategy) throw new Error(`Strategy ${strategyName} not registered`);
         if (typeof strategy.setMargin === 'function') {
             strategy.setMargin(params);
-            console.log(`Set margin for strategy ${strategyName}:`, params);
+            console.log(`Set margin for strategy "${strategyName}":`, params);
         } else {
-            console.warn(`Strategy ${strategyName} does not implement setMargin().`);
+            console.warn(`Strategy "${strategyName}" does not implement setMargin().`);
         }
     }
 
@@ -97,21 +112,21 @@ class StrategyManager {
      * Sets risk limits for a strategy.
      *
      * @param {string} strategyName - The name of the strategy.
-     * @param {object} limits - An object containing dailyLossLimit and positionCount.
+     * @param {object} limits - An object containing risk limits (e.g., daily loss, position count).
      */
     setLimits(strategyName, limits) {
         const strategy = this.strategies.get(strategyName);
         if (!strategy) throw new Error(`Strategy ${strategyName} not registered`);
         if (typeof strategy.setLimits === 'function') {
             strategy.setLimits(limits);
-            console.log(`Set limits for strategy ${strategyName}:`, limits);
+            console.log(`Set limits for strategy "${strategyName}":`, limits);
         } else {
-            console.warn(`Strategy ${strategyName} does not implement setLimits().`);
+            console.warn(`Strategy "${strategyName}" does not implement setLimits().`);
         }
     }
 
     /**
-     * Collects trade information from a strategy.
+     * Collects trade data from a strategy.
      *
      * @param {string} strategyName - The name of the strategy.
      * @param {object} trade - Trade data to collect.
@@ -121,9 +136,9 @@ class StrategyManager {
         if (!strategy) throw new Error(`Strategy ${strategyName} not registered`);
         if (typeof strategy.collectTrade === 'function') {
             strategy.collectTrade(trade);
-            console.log(`Collected trade for strategy ${strategyName}:`, trade);
+            console.log(`Collected trade for strategy "${strategyName}":`, trade);
         } else {
-            console.warn(`Strategy ${strategyName} does not implement collectTrade().`);
+            console.warn(`Strategy "${strategyName}" does not implement collectTrade().`);
         }
     }
 
@@ -168,14 +183,15 @@ class StrategyManager {
 
     /**
      * Computes a consensus signal from all registered strategies.
+     * This is a simple example that can be extended to weighted or more complex consensus methods.
      *
      * @param {Array} candles - An array of candle data.
-     * @param {string} method - "weighted" or "consensus". (Stub implementation.)
+     * @param {string} method - "weighted" or "consensus" (stub implementation).
      * @returns {String} The consensus signal.
      */
     consensusSignal(candles, method = 'weighted') {
         const signals = this.processSignals(candles);
-        // Stub: simple consensus: if any strategy returns BUY, then BUY; if any returns SELL, then SELL; else HOLD.
+        // Simple consensus logic: if any strategy returns BUY, then BUY; if any returns SELL, then SELL; otherwise, HOLD.
         if (Object.values(signals).includes('BUY')) {
             return 'BUY';
         }
@@ -187,7 +203,7 @@ class StrategyManager {
 
     /**
      * Executes a strategy given risk parameters and collected trades.
-     * (This is a stub; you'll need to implement logic for risk management and trade execution.)
+     * This is a stub; you'll need to implement risk management and trade execution logic.
      *
      * @param {string} strategyName - The name of the strategy.
      * @param {object} riskParams - Risk parameters.
