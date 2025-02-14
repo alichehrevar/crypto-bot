@@ -1,9 +1,10 @@
 const Bot = require('../models/Bot');
 const Trade = require('../models/Trade');
-// Import the strategy classes.
+// Import the indicator classes from the indicators directory.
 const RSI = require('../indicators/RSI');
 const MACD = require('../indicators/MACD');
 const MACrossover = require('../indicators/MovingAverageCrossover');
+// Import the StrategyManager from the strategies' directory.
 const StrategyManager = require('../strategies/StrategyManager');
 
 class BotService {
@@ -17,7 +18,7 @@ class BotService {
      */
     async initialize() {
         const bots = await Bot.find({ active: true });
-        bots.forEach(bot => this.addBot(bot));
+        bots.forEach((bot) => this.addBot(bot));
     }
 
     /**
@@ -37,7 +38,7 @@ class BotService {
     }
 
     /**
-     * Instantiate the correct strategy class based on the bot's strategy name.
+     * Instantiate the correct indicator class based on the bot's strategy name.
      */
     createStrategy(bot) {
         switch (bot.strategy) {
@@ -169,10 +170,13 @@ class BotService {
 
     /**
      * Updates a bot's market data using a newly received candle.
-     * For each bot watching this symbol and matching the timeframe, it fetches the latest candles,
-     * computes the trading signal, and updates the bot's market info with the last candle and the computed signal.
+     * For each bot watching this symbol and matching the timeframe, it:
+     *  - Checks if the bot's lastCandle already matches the new candle (by timestamp);
+     *    if so, it skips updating to avoid duplicates.
+     *  - Otherwise, fetches recent candles, computes the trading signal,
+     *    updates the bot's market info, saves it, and broadcasts the update.
      *
-     * @param {Object} candle - The new candle object (should include symbol, timeframe, timestamp, open, high, low, close, volume).
+     * @param {Object} candle - The new candle object (must include symbol, timeframe, timestamp, open, high, low, close, volume).
      */
     async updateBotDataFromCandle(candle) {
         try {
@@ -188,6 +192,12 @@ class BotService {
             }
 
             for (const bot of bots) {
+                // Check if the last candle is already the same as the new candle (by comparing timestamps).
+                if (bot.marketInfo.lastCandle && new Date(bot.marketInfo.lastCandle.timestamp).getTime() === new Date(candle.timestamp).getTime()) {
+                    console.log(`Bot "${bot.name}" already updated with candle timestamp ${candle.timestamp}`);
+                    continue;
+                }
+
                 // Update the bot's last candle.
                 bot.marketInfo.lastCandle = {
                     timestamp: candle.timestamp,
@@ -227,13 +237,13 @@ class BotService {
                             console.error(`Unknown strategy: ${bot.strategy}`);
                     }
                 } catch (error) {
-                    console.error(`Error computing signal for bot ${bot.name}: ${error.message}`);
+                    console.error(`Error computing signal for bot "${bot.name}": ${error.message}`);
                 }
 
                 // Update the bot's market info with the computed signal.
                 bot.marketInfo.lastSignal = computedSignal;
                 await bot.save();
-                console.log(`Updated bot ${bot.name} with new candle data and signal: ${computedSignal}`);
+                console.log(`Updated bot "${bot.name}" with new candle data and signal: ${computedSignal}`);
 
                 // Normalize bot object by converting _id to id.
                 const updatedBot = bot.toObject();
@@ -267,7 +277,6 @@ class BotService {
         // Default behavior: use 1% of the paperBalance as the risk for this trade.
         return (bot.paperBalance * 0.01) / price;
     }
-
 }
 
 module.exports = new BotService();

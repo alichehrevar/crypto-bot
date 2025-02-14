@@ -1,7 +1,7 @@
-const BaseStrategy = require('./BaseIndicator');
+const BaseIndicator = require('./BaseIndicator');
 
-class MACrossover extends BaseStrategy {
-    constructor(params) {
+class MACrossover extends BaseIndicator {
+    constructor(params = { shortPeriod: 5, longPeriod: 20 }) {
         super(params);
 
         if (!params || typeof params !== 'object') {
@@ -26,7 +26,7 @@ class MACrossover extends BaseStrategy {
         }
     }
 
-    // Simple Moving Average for the last `period` candles
+    // Simple Moving Average for the last `period` candles.
     calculateSMA(candles, period) {
         if (candles.length < period) {
             throw new Error(`Not enough candles to calculate an SMA of period ${period}`);
@@ -76,7 +76,7 @@ class MACrossover extends BaseStrategy {
             const shortMA = this.calculateSMA(candles, this.shortPeriod);
             const longMA  = this.calculateSMA(candles, this.longPeriod);
 
-            // Calculate previous MAs (using one less candle)
+            // Calculate previous MAs using candles excluding the last one.
             const prevShortMA = this.calculateSMA(candles.slice(0, -1), this.shortPeriod);
             const prevLongMA  = this.calculateSMA(candles.slice(0, -1), this.longPeriod);
 
