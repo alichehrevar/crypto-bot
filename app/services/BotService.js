@@ -1,6 +1,6 @@
 const Bot = require('../models/Bot');
 const Trade = require('../models/Trade');
-// Import the indicator classes from the indicators directory.
+// Import indicator classes from the indicators directory.
 const RSI = require('../indicators/RSI');
 const MACD = require('../indicators/MACD');
 const MACrossover = require('../indicators/MovingAverageCrossover');
@@ -26,19 +26,19 @@ class BotService {
      */
     addBot(bot) {
         const strategy = this.createStrategy(bot);
+        // Normalize key: symbol uppercase, timeframe lowercase.
         const key = `${bot.symbol.toUpperCase()}-${bot.timeframe.toLowerCase()}`;
 
         if (!this.activeBots.has(key)) {
             this.activeBots.set(key, []);
         }
-
         this.activeBots.get(key).push({ bot, strategy });
         // Register the strategy in the StrategyManager using the bot's name as identifier.
         this.strategyManager.registerStrategy(bot.name, strategy);
     }
 
     /**
-     * Instantiate the correct indicator class based on the bot's strategy name.
+     * Instantiate the correct indicator instance based on the bot's strategy name.
      */
     createStrategy(bot) {
         switch (bot.strategy) {
@@ -65,13 +65,13 @@ class BotService {
             }
         }
 
-        // Check daily loss limit
         if (bot.riskParams && bot.riskParams.dailyLossLimit) {
             const startOfDay = new Date();
-            startOfDay.setHours(0, 0, 0, 0); // midnight
+            startOfDay.setHours(0, 0, 0, 0);
 
             const [aggregation] = await Trade.aggregate([
-                { $match: {
+                {
+                    $match: {
                         bot: bot._id,
                         timestamp: { $gte: startOfDay },
                         profit: { $exists: true }
@@ -85,23 +85,23 @@ class BotService {
                 return { canTrade: false, reason: 'Daily loss limit exceeded' };
             }
         }
-
         return { canTrade: true, reason: null };
     }
 
     /**
-     * Called whenever new candles arrive for a given symbol/timeframe.
-     * Uses the StrategyManager to process signals and executes orders if needed.
+     * Processes new candle data for a given symbol/timeframe.
+     * Uses the StrategyManager to compute signals from all registered strategies,
+     * and if a signal is actionable (not HOLD), executes an order.
      */
     async processCandle(symbol, timeframe, candles) {
         const normSymbol = symbol.toUpperCase();
         const normTimeframe = timeframe.toLowerCase();
         const key = `${normSymbol}-${normTimeframe}`;
         const botEntries = this.activeBots.get(key) || [];
-
         const lastCandle = candles[candles.length - 1];
         const closePrice = lastCandle.close;
 
+        // Process each bot for risk and signal.
         for (const { bot } of botEntries) {
             const { canTrade, reason } = await this.checkRisk(bot);
             if (!canTrade) {
@@ -109,10 +109,10 @@ class BotService {
                 continue;
             }
 
-            // Process signals using the StrategyManager.
+            // Use StrategyManager to process signals across all strategies.
             const signals = this.strategyManager.processSignals(candles);
-            const signal = signals[bot.name]; // Get signal for the specific bot.
-
+            // Identify the signal for this specific bot.
+            const signal = signals[bot.name];
             if (signal !== 'HOLD') {
                 await this.executeOrder(bot, signal, closePrice);
             }
@@ -120,17 +120,15 @@ class BotService {
     }
 
     /**
-     * Executes a trade based on the signal.
+     * Executes a trade based on the given signal.
      */
     async executeOrder(bot, signal, price) {
         const openTrade = await Trade.findOne({ bot: bot._id, exitPrice: null });
-
         if (signal === 'BUY') {
             if (openTrade) {
                 console.log(`Bot "${bot.name}" tried to BUY but already has an open trade.`);
                 return;
             }
-
             const quantity = this.calculatePositionSize(bot, price);
             const newTrade = new Trade({
                 bot: bot._id,
@@ -142,25 +140,20 @@ class BotService {
             });
             await newTrade.save();
             console.log(`Bot "${bot.name}" opened a BUY at ${price}, qty=${quantity}`);
-
         } else if (signal === 'SELL') {
             if (!openTrade) {
                 console.log(`Bot "${bot.name}" received SELL signal but no open trade exists.`);
                 return;
             }
-
             openTrade.exitPrice = price;
             openTrade.timestamp = new Date();
-
             if (openTrade.type === 'BUY') {
                 openTrade.profit = (price - openTrade.entryPrice) * openTrade.quantity;
             } else {
                 openTrade.profit = (openTrade.entryPrice - price) * openTrade.quantity;
             }
-
             await openTrade.save();
             console.log(`Bot "${bot.name}" closed trade. Profit: ${openTrade.profit}`);
-
             if (bot.mode === 'paper' && typeof bot.paperBalance === 'number') {
                 bot.paperBalance += openTrade.profit;
                 await bot.save();
@@ -169,36 +162,26 @@ class BotService {
     }
 
     /**
-     * Updates a bot's market data using a newly received candle.
-     * For each bot watching this symbol and matching the timeframe, it:
-     *  - Checks if the bot's lastCandle already matches the new candle (by timestamp);
-     *    if so, it skips updating to avoid duplicates.
-     *  - Otherwise, fetches recent candles, computes the trading signal,
-     *    updates the bot's market info, saves it, and broadcasts the update.
-     *
-     * @param {Object} candle - The new candle object (must include symbol, timeframe, timestamp, open, high, low, close, volume).
+     * Updates a bot's market data using a new candle.
+     * For each bot matching the symbol and timeframe, fetch recent candles, compute the signal,
+     * update the bot's market info, and broadcast the update.
      */
     async updateBotDataFromCandle(candle) {
         try {
-            // Normalize the symbol and timeframe.
             const normSymbol = candle.symbol.toUpperCase();
             const normTimeframe = candle.timeframe.toLowerCase();
-
-            // Query only bots matching the normalized symbol and timeframe.
             const bots = await Bot.find({ symbol: normSymbol, timeframe: normTimeframe });
             if (!bots || bots.length === 0) {
                 console.log(`No bots found for symbol ${normSymbol} and timeframe ${normTimeframe}`);
                 return;
             }
-
             for (const bot of bots) {
-                // Check if the last candle is already the same as the new candle (by comparing timestamps).
+                // Avoid duplicate updates if the candle timestamp hasn't changed.
                 if (bot.marketInfo.lastCandle && new Date(bot.marketInfo.lastCandle.timestamp).getTime() === new Date(candle.timestamp).getTime()) {
                     console.log(`Bot "${bot.name}" already updated with candle timestamp ${candle.timestamp}`);
                     continue;
                 }
-
-                // Update the bot's last candle.
+                // Update last candle data.
                 bot.marketInfo.lastCandle = {
                     timestamp: candle.timestamp,
                     open: candle.open,
@@ -207,14 +190,12 @@ class BotService {
                     close: candle.close,
                     volume: candle.volume,
                 };
-
-                // Fetch recent candles (sorted oldest first) for signal calculation.
+                // Fetch recent candles for signal calculation.
                 const Candle = require('../models/Candle');
                 const recentCandles = await Candle.find({
                     symbol: normSymbol,
                     timeframe: normTimeframe
                 }).sort({ timestamp: 1 }).limit(100);
-
                 let computedSignal = 'HOLD';
                 try {
                     switch (bot.strategy) {
@@ -239,8 +220,6 @@ class BotService {
                 } catch (error) {
                     console.error(`Error computing signal for bot "${bot.name}": ${error.message}`);
                 }
-
-                // Update the bot's market info with the computed signal.
                 bot.marketInfo.lastSignal = computedSignal;
                 await bot.save();
                 console.log(`Updated bot "${bot.name}" with new candle data and signal: ${computedSignal}`);
@@ -248,8 +227,7 @@ class BotService {
                 // Normalize bot object by converting _id to id.
                 const updatedBot = bot.toObject();
                 updatedBot.id = updatedBot._id.toString();
-
-                // Broadcast the updated bot to connected clients.
+                // Broadcast updated bot.
                 const wsServer = require('./WebSocketServer');
                 wsServer.broadcastBotUpdate(updatedBot);
             }
@@ -258,23 +236,19 @@ class BotService {
         }
     }
 
+    /**
+     * Calculates the position size for a trade based on risk parameters.
+     */
     calculatePositionSize(bot, price) {
         const riskParams = bot.riskParams || {};
-        // Check if the bot has defined a position sizing method.
         if (riskParams.positionSizeType && riskParams.positionSizeValue) {
             if (riskParams.positionSizeType === 'fixed') {
-                // Use the fixed position size.
                 return riskParams.positionSizeValue;
             } else if (riskParams.positionSizeType === 'percentage') {
-                // Calculate the position size as a percentage of the bot's paperBalance.
-                // For example, if positionSizeValue is 2, that means 2% of the paper balance.
-                // quantity = (paperBalance × percentage) / price
                 const percentage = riskParams.positionSizeValue / 100;
                 return (bot.paperBalance * percentage) / price;
             }
         }
-
-        // Default behavior: use 1% of the paperBalance as the risk for this trade.
         return (bot.paperBalance * 0.01) / price;
     }
 }
