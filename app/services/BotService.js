@@ -6,6 +6,7 @@ const MACD = require('../indicators/MACD');
 const MACrossover = require('../indicators/MovingAverageCrossover');
 // Import the StrategyManager from the strategies' directory.
 const StrategyManager = require('../strategies/StrategyManager');
+const DynamicStrategy = require('../strategies/DynamicStrategy');
 
 class BotService {
     constructor() {
@@ -41,16 +42,27 @@ class BotService {
      * Instantiate the correct indicator instance based on the bot's strategy name.
      */
     createStrategy(bot) {
+        let baseStrategy;
         switch (bot.strategy) {
             case 'MA_Crossover':
-                return new MACrossover(bot.strategyParams);
+                baseStrategy = new MACrossover(bot.strategyParams);
+                break;
             case 'RSI':
-                return new RSI(bot.strategyParams);
+                baseStrategy = new RSI(bot.strategyParams);
+                break;
             case 'MACD':
-                return new MACD(bot.strategyParams);
+                baseStrategy = new MACD(bot.strategyParams);
+                break;
             default:
                 throw new Error(`Unknown strategy: ${bot.strategy}`);
         }
+
+        // Suppose bot has a flag `dynamic` that indicates if it should run dynamically.
+        if (bot.dynamic) {
+            // Wrap the baseStrategy in a DynamicStrategy.
+            return new DynamicStrategy(baseStrategy, bot.strategyParams, bot.symbol, bot.timeframe);
+        }
+        return baseStrategy;
     }
 
     /**
