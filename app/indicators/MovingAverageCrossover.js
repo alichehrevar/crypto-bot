@@ -3,30 +3,38 @@ const BaseIndicator = require('./BaseIndicator');
 class MACrossover extends BaseIndicator {
     constructor(params = { shortPeriod: 5, longPeriod: 20 }) {
         super(params);
-
         if (!params || typeof params !== 'object') {
             throw new Error('MACrossover strategy requires configuration object');
         }
-
         this.shortPeriod = params.shortPeriod;
         this.longPeriod = params.longPeriod;
 
         if (typeof this.shortPeriod !== 'number' || typeof this.longPeriod !== 'number') {
             throw new Error('shortPeriod and longPeriod must be numbers');
         }
-
         if (this.shortPeriod <= 0 || this.longPeriod <= 0) {
             throw new Error('shortPeriod and longPeriod must be > 0');
         }
-
         if (this.shortPeriod >= this.longPeriod) {
-            console.warn(
-                'Typically, shortPeriod should be less than longPeriod for a crossover strategy.'
-            );
+            console.warn('Typically, shortPeriod should be less than longPeriod for a crossover strategy.');
         }
     }
 
-    // Simple Moving Average for the last `period` candles.
+    updateConfig(newConfig) {
+        Object.assign(this, newConfig);
+        if (typeof this.shortPeriod !== 'number' || typeof this.longPeriod !== 'number') {
+            throw new Error('shortPeriod and longPeriod must be numbers after update');
+        }
+        if (this.shortPeriod <= 0 || this.longPeriod <= 0) {
+            throw new Error('shortPeriod and longPeriod must be > 0 after update');
+        }
+        if (this.shortPeriod >= this.longPeriod) {
+            console.warn('Typically, shortPeriod should be less than longPeriod for a crossover strategy.');
+        }
+        console.log('MACrossover configuration updated:', newConfig);
+    }
+
+    // Calculates the SMA of the last `period` candles.
     calculateSMA(candles, period) {
         if (candles.length < period) {
             throw new Error(`Not enough candles to calculate an SMA of period ${period}`);
@@ -44,10 +52,8 @@ class MACrossover extends BaseIndicator {
                 status: 'Insufficient data'
             };
         }
-
         const shortMA = this.calculateSMA(candles, this.shortPeriod);
-        const longMA  = this.calculateSMA(candles, this.longPeriod);
-
+        const longMA = this.calculateSMA(candles, this.longPeriod);
         let status;
         if (shortMA > longMA) {
             status = 'Short MA above Long MA (BUY Zone)';
@@ -56,40 +62,26 @@ class MACrossover extends BaseIndicator {
         } else {
             status = 'Short MA equals Long MA (Neutral)';
         }
-
-        return {
-            shortMA,
-            longMA,
-            status
-        };
+        return { shortMA, longMA, status };
     }
 
     calculateSignal(candles) {
         try {
-            // We need at least `longPeriod + 1` candles to detect a recent crossover
-            // (the +1 is so we can also check "previous" shortMA and longMA)
             if (candles.length < this.longPeriod + 1) {
                 console.warn('Insufficient data for reliable MA crossover signal');
                 return 'HOLD';
             }
-
             const shortMA = this.calculateSMA(candles, this.shortPeriod);
-            const longMA  = this.calculateSMA(candles, this.longPeriod);
-
-            // Calculate previous MAs using candles excluding the last one.
+            const longMA = this.calculateSMA(candles, this.longPeriod);
             const prevShortMA = this.calculateSMA(candles.slice(0, -1), this.shortPeriod);
-            const prevLongMA  = this.calculateSMA(candles.slice(0, -1), this.longPeriod);
-
-            // Check for crossover
+            const prevLongMA = this.calculateSMA(candles.slice(0, -1), this.longPeriod);
             const crossedAbove = shortMA > longMA && prevShortMA <= prevLongMA;
             const crossedBelow = shortMA < longMA && prevShortMA >= prevLongMA;
-
             if (crossedAbove) {
                 return 'BUY';
             } else if (crossedBelow) {
                 return 'SELL';
             } else {
-                // No new crossover => HOLD
                 return 'HOLD';
             }
         } catch (error) {
