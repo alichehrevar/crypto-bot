@@ -66,7 +66,6 @@ class BotService {
                 baseStrategy = new KellyCriterionStrategy(bot.strategyParams);
                 break;
             case 'SimpleStrategy':
-                // Import SimpleStrategy from the strategies directory.
                 baseStrategy = new (require('../strategies/SimpleStrategy'))(bot.strategyParams);
                 break;
             default:
@@ -123,9 +122,17 @@ class BotService {
                 console.log(`Blocked trade for bot "${bot.name}": ${reason}`);
                 continue;
             }
-            // Use StrategyManager to process signals.
-            const signals = this.strategyManager.processSignals(candles);
-            const signal = signals[bot.name];
+
+            // Determine which signal processing method to use.
+            let signal = 'HOLD';
+            if (bot.signalProcessingMethod === 'consensus' || bot.signalProcessingMethod === 'weighted') {
+                // Use a combined signal method.
+                signal = this.strategyManager.consensusSignal(candles, bot.signalProcessingMethod);
+            } else {
+                // Default: retrieve the signal registered for this bot.
+                const signals = this.strategyManager.processSignals(candles);
+                signal = signals[bot.name];
+            }
             if (signal !== 'HOLD') {
                 await this.executeOrder(bot, signal, closePrice);
             }
@@ -143,21 +150,17 @@ class BotService {
                 return;
             }
             let quantity = 0;
-            // Retrieve the registered strategy instance.
             const strategyInstance = this.strategyManager.strategies.get(bot.name);
             if (strategyInstance && typeof strategyInstance.calculatePositionSize === 'function') {
-                // Check the function's parameters.
                 if (strategyInstance.calculatePositionSize.length === 3) {
-                    // Assume it expects (lastTradeOutcome, balance, price). For backtesting, assume last trade was 'win'.
+                    // Assume it expects (lastTradeOutcome, balance, price).
                     quantity = strategyInstance.calculatePositionSize('win', bot.paperBalance, price);
                 } else {
                     quantity = strategyInstance.calculatePositionSize(bot.paperBalance, price);
                 }
             } else {
-                // Fallback default.
                 quantity = this.calculatePositionSize(bot, price);
             }
-            // Compute TP/SL levels using the risk module.
             const { TP, SL } = require('../strategies/RiskStrategy').calculateTPSL(bot.strategyParams, price);
             const newTrade = new Trade({
                 bot: bot._id,
@@ -221,10 +224,9 @@ class BotService {
                     volume: candle.volume,
                 };
                 const Candle = require('../models/Candle');
-                const recentCandles = await Candle.find({
-                    symbol: normSymbol,
-                    timeframe: normTimeframe
-                }).sort({ timestamp: 1 }).limit(100);
+                const recentCandles = await Candle.find({ symbol: normSymbol, timeframe: normTimeframe })
+                    .sort({ timestamp: 1 })
+                    .limit(100);
                 let computedSignal = 'HOLD';
                 try {
                     switch (bot.strategy) {
@@ -243,7 +245,6 @@ class BotService {
                             computedSignal = maCrossoverInstance.calculateSignal(recentCandles);
                             break;
                         }
-                        // You can add cases for money-management strategies if they need signal computation.
                         default:
                             console.error(`Unknown strategy: ${bot.strategy}`);
                     }
