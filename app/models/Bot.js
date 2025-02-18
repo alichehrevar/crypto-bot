@@ -39,6 +39,9 @@ const marketInfoSchema = new Schema({
         close: { type: Number },
         volume: { type: Number }
     },
+    currentCandle: {
+        price: { type: Number }
+    },
     lastSignal: { type: String, default: 'HOLD' },
 }, { _id: false });
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 
 export interface Bot {
     id: string;
@@ -8,18 +8,14 @@ export interface Bot {
     strategy: string;
     symbol: string;
     timeframe: string;
-    active: boolean;
     marketInfo: {
-        state: string;
-        lastCandle?: {
-            timestamp: string | Date;
-            open: number;
-            high: number;
-            low: number;
-            close: number;
-            volume: number;
-        };
         lastSignal?: string;
+        lastCandle?: {
+            close: number;
+        };
+        currentCandle?: {
+            price: number;
+        };
     };
 }
 
@@ -30,18 +26,12 @@ interface BotUpdatesProps {
 export default function BotUpdates({ initialBots }: BotUpdatesProps) {
     const [bots, setBots] = useState<Bot[]>(initialBots);
 
-    // Reset bots state when the initialBots prop changes.
-    useEffect(() => {
-        setBots(initialBots);
-    }, [initialBots]);
-
-    // Reinitialize WebSocket when the initialBots (or symbol/timeframe) change.
     useEffect(() => {
         const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8000/api/ws';
         const ws = new WebSocket(wsUrl);
 
         ws.onopen = () => {
-            console.log('Bot update WebSocket connection opened.');
+            console.log('Connected to live updates WebSocket');
         };
 
         ws.onmessage = (event) => {
@@ -50,47 +40,63 @@ export default function BotUpdates({ initialBots }: BotUpdatesProps) {
                 if (message.type === 'bot_update' && message.data) {
                     const updatedBot: Bot = message.data;
                     setBots((prevBots) => {
-                        const index = prevBots.findIndex((bot) => bot.id === updatedBot.id);
-                        if (index !== -1) {
-                            // Replace the existing bot.
+                        const index = prevBots.findIndex((b) => b.id === updatedBot.id);
+                        if (index >= 0) {
                             const newBots = [...prevBots];
                             newBots[index] = updatedBot;
                             return newBots;
-                        } else {
-                            // Do NOT append new bots; ignore updates for bots not in the state.
-                            return prevBots;
                         }
+                        return prevBots;
                     });
                 }
             } catch (err) {
-                console.error('Error parsing bot update message:', err);
+                console.error('Error parsing WebSocket message:', err);
             }
         };
 
         ws.onerror = (err) => {
-            console.error('Bot update WebSocket error:', JSON.stringify(err));
+            console.error('WebSocket error:', err);
         };
 
         ws.onclose = () => {
-            console.log('Bot update WebSocket connection closed.');
+            console.log('WebSocket connection closed');
         };
 
         return () => {
             ws.close();
         };
-    }, [initialBots]); // Re-run this effect whenever initialBots change.
+    }, []);
 
     return (
         <div>
-            {bots.map((bot) => (
-                <div key={bot.id} className="p-4 border rounded mb-2">
-                    <h3 className="font-bold">{bot.name}</h3>
-                    <p>Symbol: {bot.symbol}</p>
-                    <p>Strategy: {bot.strategy}</p>
-                    <p>Timeframe: {bot.timeframe}</p>
-                    <p>Signal: {bot.marketInfo.lastSignal || 'HOLD'}</p>
-                </div>
-            ))}
+            <h2 className="text-xl font-bold mb-4">Live Updates</h2>
+            <ul className="space-y-4">
+                {bots.map((bot) => (
+                    <li key={bot.id} className="p-4 border rounded shadow">
+                        <h3 className="font-bold">{bot.name}</h3>
+                        <p>
+                            <strong>Symbol:</strong> {bot.symbol}
+                        </p>
+                        <p>
+                            <strong>Strategy:</strong> {bot.strategy}
+                        </p>
+                        <p>
+                            <strong>Timeframe:</strong> {bot.timeframe}
+                        </p>
+                        <p>
+                            <strong>Signal:</strong> {bot.marketInfo.lastSignal || 'HOLD'}
+                        </p>
+                        <p>
+                            <strong>Last Closed Price:</strong>{' '}
+                            {bot.marketInfo.lastCandle ? bot.marketInfo.lastCandle.close : 'N/A'}
+                        </p>
+                        <p>
+                            <strong>Live Price:</strong>{' '}
+                            {bot.marketInfo.currentCandle ? bot.marketInfo.currentCandle.price : 'N/A'}
+                        </p>
+                    </li>
+                ))}
+            </ul>
         </div>
     );
 }

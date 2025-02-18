@@ -216,25 +216,36 @@ class BotService {
                 return;
             }
             for (const bot of bots) {
+                // Check if the incoming candle timestamp matches the last finalized candle.
                 if (
                     bot.marketInfo.lastCandle &&
                     new Date(bot.marketInfo.lastCandle.timestamp).getTime() === new Date(candle.timestamp).getTime()
                 ) {
-                    console.log(`Bot "${bot.name}" already updated with candle timestamp ${candle.timestamp}`);
-                    continue;
+                    // Update the current (open) candle's live price.
+                    bot.marketInfo.currentCandle = { price: candle.close };
+                    console.log(`Bot "${bot.name}" updated current candle price to ${candle.close}`);
+                } else {
+                    // Treat as a new finalized candle.
+                    bot.marketInfo.lastCandle = {
+                        timestamp: candle.timestamp,
+                        open: candle.open,
+                        high: candle.high,
+                        low: candle.low,
+                        close: candle.close,
+                        volume: candle.volume,
+                    };
+                    // Also update current candle price.
+                    bot.marketInfo.currentCandle = { price: candle.close };
+                    console.log(`Bot "${bot.name}" set new candle data; current candle price: ${candle.close}`);
                 }
-                bot.marketInfo.lastCandle = {
-                    timestamp: candle.timestamp,
-                    open: candle.open,
-                    high: candle.high,
-                    low: candle.low,
-                    close: candle.close,
-                    volume: candle.volume,
-                };
+
+                // Fetch recent candles for signal calculation.
                 const Candle = require('../models/Candle');
-                const recentCandles = await Candle.find({ symbol: normSymbol, timeframe: normTimeframe })
-                    .sort({ timestamp: 1 })
-                    .limit(100);
+                const recentCandles = await Candle.find({
+                    symbol: normSymbol,
+                    timeframe: normTimeframe
+                }).sort({ timestamp: 1 }).limit(100);
+
                 let computedSignal = 'HOLD';
                 try {
                     switch (bot.strategy) {
@@ -261,7 +272,9 @@ class BotService {
                 }
                 bot.marketInfo.lastSignal = computedSignal;
                 await bot.save();
-                console.log(`Updated bot "${bot.name}" with new candle data and signal: ${computedSignal}`);
+                console.log(`Updated bot "${bot.name}" with signal: ${computedSignal}`);
+
+                // Normalize bot object and broadcast update.
                 const updatedBot = bot.toObject();
                 updatedBot.id = updatedBot._id.toString();
                 const wsServer = require('./WebSocketServer');
