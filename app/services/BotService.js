@@ -8,7 +8,7 @@ const MACrossover = require('../indicators/MovingAverageCrossover');
 const MartingaleStrategy = require('../strategies/moneyManagement/MartingaleStrategy');
 const MirroredMartingaleStrategy = require('../strategies/moneyManagement/MirroredMartingaleStrategy');
 const KellyCriterionStrategy = require('../strategies/moneyManagement/KellyCriterionStrategy');
-// Import the StrategyManager from the strategies' directory.
+// Import the StrategyManager from the strategies directory.
 const StrategyManager = require('../strategies/StrategyManager');
 const DynamicStrategy = require('../strategies/DynamicStrategy');
 
@@ -80,12 +80,20 @@ class BotService {
 
     /**
      * Check risk parameters to decide if a bot can open a new position.
+     * - For 'single' mode, ensure that there is no open trade.
+     * - For 'hedge' mode, enforce any max open trades limit (if provided).
      */
     async checkRisk(bot) {
         const openTradesCount = await Trade.countDocuments({ bot: bot._id, exitPrice: null });
-        if (bot.riskParams && bot.riskParams.maxOpenTrades) {
-            if (openTradesCount >= bot.riskParams.maxOpenTrades) {
-                return { canTrade: false, reason: 'Max open trades reached' };
+        if (bot.positionMode === 'single') {
+            if (openTradesCount >= 1) {
+                return { canTrade: false, reason: 'Single mode: one open trade already exists' };
+            }
+        } else if (bot.positionMode === 'hedge') {
+            if (bot.riskParams && bot.riskParams.maxOpenTrades) {
+                if (openTradesCount >= bot.riskParams.maxOpenTrades) {
+                    return { canTrade: false, reason: 'Max open trades reached' };
+                }
             }
         }
         if (bot.riskParams && bot.riskParams.dailyLossLimit) {
@@ -126,10 +134,8 @@ class BotService {
             // Determine which signal processing method to use.
             let signal = 'HOLD';
             if (bot.signalProcessingMethod === 'consensus' || bot.signalProcessingMethod === 'weighted') {
-                // Use a combined signal method.
                 signal = this.strategyManager.consensusSignal(candles, bot.signalProcessingMethod);
             } else {
-                // Default: retrieve the signal registered for this bot.
                 const signals = this.strategyManager.processSignals(candles);
                 signal = signals[bot.name];
             }
@@ -141,19 +147,23 @@ class BotService {
 
     /**
      * Executes a trade based on the given signal.
+     * - For BUY signals:
+     *   - If in "single" mode and an open trade exists, block the trade.
+     *   - If in "hedge" mode, allow multiple trades.
+     * - For SELL signals, close an open trade (if it exists).
      */
     async executeOrder(bot, signal, price) {
-        const openTrade = await Trade.findOne({ bot: bot._id, exitPrice: null });
+        // For BUY, find open trades.
+        const openTrades = await Trade.find({ bot: bot._id, exitPrice: null });
         if (signal === 'BUY') {
-            if (openTrade) {
-                console.log(`Bot "${bot.name}" tried to BUY but already has an open trade.`);
+            if (bot.positionMode === 'single' && openTrades.length > 0) {
+                console.log(`Bot "${bot.name}" in single mode already has an open trade.`);
                 return;
             }
             let quantity = 0;
             const strategyInstance = this.strategyManager.strategies.get(bot.name);
             if (strategyInstance && typeof strategyInstance.calculatePositionSize === 'function') {
                 if (strategyInstance.calculatePositionSize.length === 3) {
-                    // Assume it expects (lastTradeOutcome, balance, price).
                     quantity = strategyInstance.calculatePositionSize('win', bot.paperBalance, price);
                 } else {
                     quantity = strategyInstance.calculatePositionSize(bot.paperBalance, price);
@@ -161,6 +171,7 @@ class BotService {
             } else {
                 quantity = this.calculatePositionSize(bot, price);
             }
+            // Compute TP/SL levels using the risk module.
             const { TP, SL } = require('../strategies/RiskStrategy').calculateTPSL(bot.strategyParams, price);
             const newTrade = new Trade({
                 bot: bot._id,
@@ -173,21 +184,24 @@ class BotService {
             await newTrade.save();
             console.log(`Bot "${bot.name}" opened BUY at ${price} with quantity ${quantity}, TP: ${TP}, SL: ${SL}`);
         } else if (signal === 'SELL') {
-            if (!openTrade) {
+            if (openTrades.length === 0) {
                 console.log(`Bot "${bot.name}" received SELL signal but no open trade exists.`);
                 return;
             }
-            openTrade.exitPrice = price;
-            openTrade.timestamp = new Date();
-            if (openTrade.type === 'BUY') {
-                openTrade.profit = (price - openTrade.entryPrice) * openTrade.quantity;
+            // In hedge mode, you might close one or all open positions.
+            // For simplicity, we close the earliest open trade.
+            const tradeToClose = openTrades[0];
+            tradeToClose.exitPrice = price;
+            tradeToClose.timestamp = new Date();
+            if (tradeToClose.type === 'BUY') {
+                tradeToClose.profit = (price - tradeToClose.entryPrice) * tradeToClose.quantity;
             } else {
-                openTrade.profit = (openTrade.entryPrice - price) * openTrade.quantity;
+                tradeToClose.profit = (tradeToClose.entryPrice - price) * tradeToClose.quantity;
             }
-            await openTrade.save();
-            console.log(`Bot "${bot.name}" closed trade at ${price}. Profit: ${openTrade.profit}`);
+            await tradeToClose.save();
+            console.log(`Bot "${bot.name}" closed trade at ${price}. Profit: ${tradeToClose.profit}`);
             if (bot.mode === 'paper' && typeof bot.paperBalance === 'number') {
-                bot.paperBalance += openTrade.profit;
+                bot.paperBalance += tradeToClose.profit;
                 await bot.save();
             }
         }
