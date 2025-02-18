@@ -4,14 +4,13 @@ const Trade = require('../models/Trade');
 const RSI = require('../indicators/RSI');
 const MACD = require('../indicators/MACD');
 const MACrossover = require('../indicators/MovingAverageCrossover');
-// Import money-management strategies (adjust paths as needed).
+// Import money-management strategies (if used).
 const MartingaleStrategy = require('../strategies/moneyManagement/MartingaleStrategy');
 const MirroredMartingaleStrategy = require('../strategies/moneyManagement/MirroredMartingaleStrategy');
 const KellyCriterionStrategy = require('../strategies/moneyManagement/KellyCriterionStrategy');
 // Import the StrategyManager from the strategies' directory.
 const StrategyManager = require('../strategies/StrategyManager');
 const DynamicStrategy = require('../strategies/DynamicStrategy');
-const SimpleStrategy = require('../strategies/SimpleStrategy');
 
 class BotService {
     constructor() {
@@ -67,14 +66,13 @@ class BotService {
                 baseStrategy = new KellyCriterionStrategy(bot.strategyParams);
                 break;
             case 'SimpleStrategy':
-                // Use our simple strategy that always trades the trade fund.
-                baseStrategy = new SimpleStrategy(bot.strategyParams);
+                // Import SimpleStrategy from the strategies directory.
+                baseStrategy = new (require('../strategies/SimpleStrategy'))(bot.strategyParams);
                 break;
             default:
                 throw new Error(`Unknown strategy: ${bot.strategy}`);
         }
-
-        // If the bot has a flag `dynamic`, wrap the base strategy in a DynamicStrategy.
+        // If the bot has a flag `dynamic`, wrap the baseStrategy in a DynamicStrategy.
         if (bot.dynamic) {
             return new DynamicStrategy(baseStrategy, bot.strategyParams, bot.symbol, bot.timeframe);
         }
@@ -95,13 +93,7 @@ class BotService {
             const startOfDay = new Date();
             startOfDay.setHours(0, 0, 0, 0);
             const [aggregation] = await Trade.aggregate([
-                {
-                    $match: {
-                        bot: bot._id,
-                        timestamp: { $gte: startOfDay },
-                        profit: { $exists: true }
-                    }
-                },
+                { $match: { bot: bot._id, timestamp: { $gte: startOfDay }, profit: { $exists: true } } },
                 { $group: { _id: null, totalProfit: { $sum: '$profit' } } }
             ]);
             const currentDayProfit = aggregation?.totalProfit || 0;
@@ -131,7 +123,7 @@ class BotService {
                 console.log(`Blocked trade for bot "${bot.name}": ${reason}`);
                 continue;
             }
-            // Process signals using StrategyManager.
+            // Use StrategyManager to process signals.
             const signals = this.strategyManager.processSignals(candles);
             const signal = signals[bot.name];
             if (signal !== 'HOLD') {
@@ -144,33 +136,29 @@ class BotService {
      * Executes a trade based on the given signal.
      */
     async executeOrder(bot, signal, price) {
-        // Retrieve the open trade if any.
         const openTrade = await Trade.findOne({ bot: bot._id, exitPrice: null });
         if (signal === 'BUY') {
             if (openTrade) {
                 console.log(`Bot "${bot.name}" tried to BUY but already has an open trade.`);
                 return;
             }
-            // Determine position size.
             let quantity = 0;
             // Retrieve the registered strategy instance.
             const strategyInstance = this.strategyManager.strategies.get(bot.name);
             if (strategyInstance && typeof strategyInstance.calculatePositionSize === 'function') {
-                // For money management strategies, check the function's expected parameters.
+                // Check the function's parameters.
                 if (strategyInstance.calculatePositionSize.length === 3) {
-                    // Assume it expects (lastTradeOutcome, balance, price)
-                    quantity = strategyInstance.calculatePositionSize(bot.lastTradeOutcome || 'win', bot.paperBalance, price);
+                    // Assume it expects (lastTradeOutcome, balance, price). For backtesting, assume last trade was 'win'.
+                    quantity = strategyInstance.calculatePositionSize('win', bot.paperBalance, price);
                 } else {
-                    // Otherwise, assume it expects (balance, price)
                     quantity = strategyInstance.calculatePositionSize(bot.paperBalance, price);
                 }
             } else {
-                // Fallback to default position sizing.
+                // Fallback default.
                 quantity = this.calculatePositionSize(bot, price);
             }
             // Compute TP/SL levels using the risk module.
             const { TP, SL } = require('../strategies/RiskStrategy').calculateTPSL(bot.strategyParams, price);
-            // Create new trade.
             const newTrade = new Trade({
                 bot: bot._id,
                 symbol: bot.symbol,
@@ -204,8 +192,8 @@ class BotService {
 
     /**
      * Updates a bot's market data using a new candle.
-     * For each bot matching the symbol and timeframe, fetch recent candles, compute the signal,
-     * update the bot's market info, and broadcast the update.
+     * For each bot matching the symbol and timeframe, fetch recent candles,
+     * compute the signal, update the bot's market info, and broadcast the update.
      */
     async updateBotDataFromCandle(candle) {
         try {
@@ -217,7 +205,10 @@ class BotService {
                 return;
             }
             for (const bot of bots) {
-                if (bot.marketInfo.lastCandle && new Date(bot.marketInfo.lastCandle.timestamp).getTime() === new Date(candle.timestamp).getTime()) {
+                if (
+                    bot.marketInfo.lastCandle &&
+                    new Date(bot.marketInfo.lastCandle.timestamp).getTime() === new Date(candle.timestamp).getTime()
+                ) {
                     console.log(`Bot "${bot.name}" already updated with candle timestamp ${candle.timestamp}`);
                     continue;
                 }
@@ -230,7 +221,10 @@ class BotService {
                     volume: candle.volume,
                 };
                 const Candle = require('../models/Candle');
-                const recentCandles = await Candle.find({ symbol: normSymbol, timeframe: normTimeframe }).sort({ timestamp: 1 }).limit(100);
+                const recentCandles = await Candle.find({
+                    symbol: normSymbol,
+                    timeframe: normTimeframe
+                }).sort({ timestamp: 1 }).limit(100);
                 let computedSignal = 'HOLD';
                 try {
                     switch (bot.strategy) {
@@ -249,6 +243,7 @@ class BotService {
                             computedSignal = maCrossoverInstance.calculateSignal(recentCandles);
                             break;
                         }
+                        // You can add cases for money-management strategies if they need signal computation.
                         default:
                             console.error(`Unknown strategy: ${bot.strategy}`);
                     }
@@ -269,7 +264,7 @@ class BotService {
     }
 
     /**
-     * Default position sizing if no money management strategy is used.
+     * Default position sizing if no money-management strategy is used.
      */
     calculatePositionSize(bot, price) {
         const riskParams = bot.riskParams || {};
