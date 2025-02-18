@@ -8,9 +8,10 @@ const MACrossover = require('../indicators/MovingAverageCrossover');
 const MartingaleStrategy = require('../strategies/moneyManagement/MartingaleStrategy');
 const MirroredMartingaleStrategy = require('../strategies/moneyManagement/MirroredMartingaleStrategy');
 const KellyCriterionStrategy = require('../strategies/moneyManagement/KellyCriterionStrategy');
-// Import the StrategyManager from the strategies directory.
+// Import the StrategyManager from the strategies' directory.
 const StrategyManager = require('../strategies/StrategyManager');
 const DynamicStrategy = require('../strategies/DynamicStrategy');
+const SimpleStrategy = require('../strategies/SimpleStrategy');
 
 class BotService {
     constructor() {
@@ -64,6 +65,10 @@ class BotService {
                 break;
             case 'KellyCriterion':
                 baseStrategy = new KellyCriterionStrategy(bot.strategyParams);
+                break;
+            case 'SimpleStrategy':
+                // Use our simple strategy that always trades the trade fund.
+                baseStrategy = new SimpleStrategy(bot.strategyParams);
                 break;
             default:
                 throw new Error(`Unknown strategy: ${bot.strategy}`);
