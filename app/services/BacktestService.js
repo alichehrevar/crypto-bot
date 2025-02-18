@@ -1,14 +1,18 @@
 const Candle = require('../models/Candle');
 const { RSI, MACrossover, MACD } = require('../indicators');
+// Import money management strategies.
+const MartingaleStrategy = require('../strategies/moneyManagement/MartingaleStrategy');
+const MirroredMartingaleStrategy = require('../strategies/moneyManagement/MirroredMartingaleStrategy');
+const KellyCriterionStrategy = require('../strategies/moneyManagement/KellyCriterionStrategy');
 // Import refined risk functions.
 const riskStrategy = require('../strategies/RiskStrategy');
 
 class BacktestService {
     /**
-     * Runs a backtest using a specified indicator (e.g., RSI, MA_Crossover, or MACD).
+     * Runs a backtest using a specified strategy.
      *
      * @param {Object} options
-     * @param {String} options.strategy - 'RSI', 'MA_Crossover', or 'MACD'
+     * @param {String} options.strategy - 'RSI', 'MA_Crossover', 'MACD', 'Martingale', 'MirroredMartingale', or 'KellyCriterion'
      * @param {Object} options.params - Strategy parameters (e.g., period, shortPeriod, etc.) plus riskParams and optimizationMethod.
      * @param {String} options.symbol - e.g. "BTC/USDT"
      * @param {String} options.timeframe - e.g. "1h"
@@ -30,7 +34,8 @@ class BacktestService {
               }) {
         try {
             // 1) Validate the requested strategy.
-            if (!['RSI', 'MA_Crossover', 'MACD'].includes(strategy)) {
+            const validStrategies = ['RSI', 'MA_Crossover', 'MACD', 'Martingale', 'MirroredMartingale', 'KellyCriterion'];
+            if (!validStrategies.includes(strategy)) {
                 throw new Error('Invalid strategy');
             }
 
@@ -48,7 +53,7 @@ class BacktestService {
                 throw new Error('No historical data found');
             }
 
-            // 3) Instantiate the indicator.
+            // 3) Instantiate the strategy instance.
             let strategyInstance;
             switch (strategy) {
                 case 'RSI':
@@ -60,6 +65,15 @@ class BacktestService {
                 case 'MACD':
                     strategyInstance = new MACD(params);
                     break;
+                case 'Martingale':
+                    strategyInstance = new MartingaleStrategy(params);
+                    break;
+                case 'MirroredMartingale':
+                    strategyInstance = new MirroredMartingaleStrategy(params);
+                    break;
+                case 'KellyCriterion':
+                    strategyInstance = new KellyCriterionStrategy(params);
+                    break;
             }
 
             // 4) Prepare backtest variables.
@@ -68,10 +82,18 @@ class BacktestService {
             const trades = [];            // record closed trades
             const riskParams = params.riskParams || {};
 
-            // Determine the minimum required candles for the indicator.
-            const minRequiredCandles = strategy === 'RSI'
-                ? (params.period * 2 || 28)
-                : (params.shortPeriod + params.longPeriod || 30);
+            // Determine the minimum required candles for the strategy.
+            // For indicator strategies, use indicator-specific requirements.
+            // For money management strategies, you may assume signals are externally generated (i.e., always 'HOLD').
+            let minRequiredCandles;
+            if (['RSI', 'MACD'].includes(strategy)) {
+                minRequiredCandles = params.period ? params.period * 2 : 28;
+            } else if (strategy === 'MA_Crossover') {
+                minRequiredCandles = (params.shortPeriod && params.longPeriod) ? (params.shortPeriod + params.longPeriod) : 30;
+            } else {
+                // For money management strategies, we might simulate signals externally.
+                minRequiredCandles = 1;
+            }
 
             // 5) Main backtest loop.
             for (let i = 0; i < candles.length; i++) {
@@ -80,10 +102,9 @@ class BacktestService {
                 const currentPrice = candles[i].close;
                 const currentTime = candles[i].timestamp;
 
-                // If a position is open, check for TP/SL triggers.
+                // Check if an open position has hit TP/SL.
                 if (openPosition) {
                     if (currentPrice >= openPosition.TP || currentPrice <= openPosition.SL) {
-                        // Close the trade due to TP/SL being hit.
                         const exitPrice = currentPrice;
                         const positionValue = openPosition.sizeInBase * exitPrice;
                         const profit = positionValue - openPosition.costInQuote;
@@ -99,7 +120,6 @@ class BacktestService {
                         });
                         console.log(`Trade closed by TP/SL for position entered at ${openPosition.entryPrice}. Exit: ${exitPrice}, Profit: ${profit}`);
                         openPosition = null;
-                        // Skip further processing on this candle.
                         continue;
                     }
                 }
@@ -110,18 +130,31 @@ class BacktestService {
                     break;
                 }
 
-                // Get the signal from the indicator.
+                // Get signal from the strategy.
                 const signal = strategyInstance.calculateSignal(relevantCandles);
+                // For money management strategies that don't generate signals, you may choose to override signal logic externally.
+                // (For this example, we assume they return 'HOLD' by default.)
 
-                // Simulate trade entry and exit based on indicator signal.
                 if (signal === 'BUY') {
-                    // Only open a new position if none is open.
                     if (!openPosition) {
                         const amountToInvest = balance * positionSize;
                         if (amountToInvest <= 0) continue;
-                        // Calculate position size using the risk strategy module.
-                        const quantity = riskStrategy.calculatePositionSize(riskParams, balance, currentPrice);
-                        // Compute TP/SL levels using the risk strategy module.
+                        // For money management strategies, the calculatePositionSize might require additional parameters (e.g., lastTradeOutcome).
+                        let quantity;
+                        if (typeof strategyInstance.calculatePositionSize === 'function') {
+                            // Check function arity to decide how to call it.
+                            if (strategyInstance.calculatePositionSize.length === 3) {
+                                // Assume it expects (lastTradeOutcome, balance, price). For backtesting, assume last trade was a win.
+                                quantity = strategyInstance.calculatePositionSize('win', balance, currentPrice);
+                            } else {
+                                // Otherwise, assume it expects (balance, price).
+                                quantity = strategyInstance.calculatePositionSize(balance, currentPrice);
+                            }
+                        } else {
+                            // Fallback: use riskStrategy's default calculation.
+                            quantity = riskStrategy.calculatePositionSize(riskParams, balance, currentPrice);
+                        }
+                        // Compute TP/SL levels.
                         const { TP, SL } = riskStrategy.calculateTPSL(params, currentPrice);
                         openPosition = {
                             entryPrice: currentPrice,
@@ -132,7 +165,7 @@ class BacktestService {
                             SL  // stop loss level
                         };
                         balance -= openPosition.costInQuote;
-                        console.log(`Opened BUY at ${currentPrice} with TP: ${TP} and SL: ${SL}`);
+                        console.log(`Opened BUY at ${currentPrice} with quantity ${quantity}, TP: ${TP}, SL: ${SL}`);
                     }
                 } else if (signal === 'SELL') {
                     if (openPosition) {
@@ -202,7 +235,7 @@ class BacktestService {
     }
 
     /**
-     * Calculates basic metrics from the closed trades.
+     * Calculates basic metrics from closed trades.
      */
     calculateMetrics(trades) {
         const realTrades = trades.filter(t => !t.unrealized);
