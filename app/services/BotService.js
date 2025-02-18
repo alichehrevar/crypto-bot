@@ -4,11 +4,12 @@ const Trade = require('../models/Trade');
 const RSI = require('../indicators/RSI');
 const MACD = require('../indicators/MACD');
 const MACrossover = require('../indicators/MovingAverageCrossover');
-// Import money-management strategies (if used).
+// Import money-management strategies.
 const MartingaleStrategy = require('../strategies/moneyManagement/MartingaleStrategy');
 const MirroredMartingaleStrategy = require('../strategies/moneyManagement/MirroredMartingaleStrategy');
 const KellyCriterionStrategy = require('../strategies/moneyManagement/KellyCriterionStrategy');
-// Import the StrategyManager from the strategies directory.
+const SimpleStrategy = require('../strategies/SimpleStrategy');
+// Import the StrategyManager and DynamicStrategy.
 const StrategyManager = require('../strategies/StrategyManager');
 const DynamicStrategy = require('../strategies/DynamicStrategy');
 
@@ -66,7 +67,7 @@ class BotService {
                 baseStrategy = new KellyCriterionStrategy(bot.strategyParams);
                 break;
             case 'SimpleStrategy':
-                baseStrategy = new (require('../strategies/SimpleStrategy'))(bot.strategyParams);
+                baseStrategy = new SimpleStrategy(bot.strategyParams);
                 break;
             default:
                 throw new Error(`Unknown strategy: ${bot.strategy}`);
@@ -80,8 +81,8 @@ class BotService {
 
     /**
      * Check risk parameters to decide if a bot can open a new position.
-     * - For 'single' mode, ensure that there is no open trade.
-     * - For 'hedge' mode, enforce any max open trades limit (if provided).
+     * - For 'single' mode, allow only one open trade.
+     * - For 'hedge' mode, allow multiple trades up to riskParams.maxOpenTrades.
      */
     async checkRisk(bot) {
         const openTradesCount = await Trade.countDocuments({ bot: bot._id, exitPrice: null });
@@ -90,10 +91,8 @@ class BotService {
                 return { canTrade: false, reason: 'Single mode: one open trade already exists' };
             }
         } else if (bot.positionMode === 'hedge') {
-            if (bot.riskParams && bot.riskParams.maxOpenTrades) {
-                if (openTradesCount >= bot.riskParams.maxOpenTrades) {
-                    return { canTrade: false, reason: 'Max open trades reached' };
-                }
+            if (bot.riskParams && bot.riskParams.maxOpenTrades && openTradesCount >= bot.riskParams.maxOpenTrades) {
+                return { canTrade: false, reason: 'Max open trades reached' };
             }
         }
         if (bot.riskParams && bot.riskParams.dailyLossLimit) {
@@ -130,7 +129,6 @@ class BotService {
                 console.log(`Blocked trade for bot "${bot.name}": ${reason}`);
                 continue;
             }
-
             // Determine which signal processing method to use.
             let signal = 'HOLD';
             if (bot.signalProcessingMethod === 'consensus' || bot.signalProcessingMethod === 'weighted') {
@@ -147,13 +145,9 @@ class BotService {
 
     /**
      * Executes a trade based on the given signal.
-     * - For BUY signals:
-     *   - If in "single" mode and an open trade exists, block the trade.
-     *   - If in "hedge" mode, allow multiple trades.
-     * - For SELL signals, close an open trade (if it exists).
+     * In 'single' mode, only one trade is allowed; in 'hedge' mode, multiple trades can be opened.
      */
     async executeOrder(bot, signal, price) {
-        // For BUY, find open trades.
         const openTrades = await Trade.find({ bot: bot._id, exitPrice: null });
         if (signal === 'BUY') {
             if (bot.positionMode === 'single' && openTrades.length > 0) {
@@ -164,6 +158,7 @@ class BotService {
             const strategyInstance = this.strategyManager.strategies.get(bot.name);
             if (strategyInstance && typeof strategyInstance.calculatePositionSize === 'function') {
                 if (strategyInstance.calculatePositionSize.length === 3) {
+                    // Assume it expects (lastTradeOutcome, balance, price). For backtesting, assume 'win' as default.
                     quantity = strategyInstance.calculatePositionSize('win', bot.paperBalance, price);
                 } else {
                     quantity = strategyInstance.calculatePositionSize(bot.paperBalance, price);
@@ -171,7 +166,7 @@ class BotService {
             } else {
                 quantity = this.calculatePositionSize(bot, price);
             }
-            // Compute TP/SL levels using the risk module.
+            // Compute TP/SL levels using the risk strategy module.
             const { TP, SL } = require('../strategies/RiskStrategy').calculateTPSL(bot.strategyParams, price);
             const newTrade = new Trade({
                 bot: bot._id,
@@ -188,8 +183,7 @@ class BotService {
                 console.log(`Bot "${bot.name}" received SELL signal but no open trade exists.`);
                 return;
             }
-            // In hedge mode, you might close one or all open positions.
-            // For simplicity, we close the earliest open trade.
+            // In hedge mode, you might close one or more trades. Here we close the earliest.
             const tradeToClose = openTrades[0];
             tradeToClose.exitPrice = price;
             tradeToClose.timestamp = new Date();
@@ -280,18 +274,28 @@ class BotService {
 
     /**
      * Default position sizing if no money-management strategy is used.
+     * This method now considers the bot's fundMode:
+     * - For 'isolated', only a portion of the paperBalance (dedicated allocation) is used.
+     * - For 'cross', the full paperBalance is used.
      */
     calculatePositionSize(bot, price) {
         const riskParams = bot.riskParams || {};
+        let availableBalance = bot.paperBalance;
+        if (bot.fundMode === 'isolated') {
+            // Use a dedicated allocation for isolated mode.
+            // For example, use riskParams.isolatedAllocation (if provided) as a fraction of paperBalance.
+            const allocationFraction = riskParams.isolatedAllocation || 0.1; // Default: 10% of paperBalance.
+            availableBalance = bot.paperBalance * allocationFraction;
+        }
         if (riskParams.positionSizeType && riskParams.positionSizeValue) {
             if (riskParams.positionSizeType === 'fixed') {
                 return riskParams.positionSizeValue;
             } else if (riskParams.positionSizeType === 'percentage') {
                 const percentage = riskParams.positionSizeValue / 100;
-                return (bot.paperBalance * percentage) / price;
+                return (availableBalance * percentage) / price;
             }
         }
-        return (bot.paperBalance * 0.01) / price;
+        return (availableBalance * 0.01) / price;
     }
 }
 
