@@ -69,7 +69,6 @@ export default function BotUpdates({ initialBots }: BotUpdatesProps) {
 
     return (
         <div>
-            <h2 className="text-xl font-bold mb-4">Live Updates</h2>
             <ul className="space-y-4">
                 {bots.map((bot) => (
                     <li key={bot.id} className="p-4 border rounded shadow">
