@@ -7,30 +7,32 @@
  */
 
 function calculatePositionSize(riskParams, balance, price) {
-    // If a risk fraction is provided, calculate the risk amount and position size.
-    if (typeof riskParams.riskFraction === 'number') {
-        const riskFraction = riskParams.riskFraction; // e.g., 0.02 means 2% risk of balance
-        const riskAmount = balance * riskFraction;
-        if (riskParams.stopLossDistance && riskParams.stopLossDistance > 0) {
-            // The idea: riskAmount divided by (price * stopLossDistance) gives the number of units to buy.
-            return riskAmount / (price * riskParams.stopLossDistance);
-        } else {
-            // Fall back to simply risking riskAmount at the current price.
-            return riskAmount / price;
+    // If a specific method is provided, adjust the logic accordingly.
+    if (riskParams.positionSizingMethod === 'compound') {
+        // Compound method: use the current balance, which might have grown, to determine size.
+        // Optionally, incorporate a riskFraction.
+        if (typeof riskParams.riskFraction === 'number') {
+            const riskAmount = balance * riskParams.riskFraction;
+            if (riskParams.stopLossDistance && riskParams.stopLossDistance > 0) {
+                return riskAmount / (price * riskParams.stopLossDistance);
+            } else {
+                return riskAmount / price;
+            }
         }
-    }
-
-    // Otherwise, fallback to fixed or percentage-based sizing.
-    if (riskParams.positionSizeType && riskParams.positionSizeValue) {
-        if (riskParams.positionSizeType === 'fixed') {
-            return riskParams.positionSizeValue;
-        } else if (riskParams.positionSizeType === 'percentage') {
+        // Fallback to a fixed compound rate, e.g., 1% of balance.
+        return (balance * 0.01) / price;
+    } else if (riskParams.positionSizingMethod === 'single') {
+        // Single method: always use a fixed percentage of the initial balance.
+        // For example, use a fixed percentage provided by riskParams.
+        if (riskParams.positionSizeType === 'percentage' && riskParams.positionSizeValue) {
             const percentage = riskParams.positionSizeValue / 100;
             return (balance * percentage) / price;
         }
+        // Fallback: use 1% of the initial balance.
+        return (balance * 0.01) / price;
     }
 
-    // Default: risk 1% of balance.
+    // If no method is specified, default to a simple calculation.
     return (balance * 0.01) / price;
 }
 
