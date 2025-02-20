@@ -12,6 +12,9 @@ export default function Navigation() {
                         <Link href="/bots/select" className="hover:text-blue-600 transition-colors">
                             Select Currency/Timeframe
                         </Link>
+                        <Link href="/methods/default" className="hover:text-blue-600 transition-colors">
+                            Default Method
+                        </Link>
                     </div>
                 </div>
             </div>
