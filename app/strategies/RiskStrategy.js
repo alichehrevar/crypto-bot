@@ -1,10 +1,8 @@
 /**
- * RiskStrategy.js
- *
- * Implements risk functions for:
- *  - Calculating position size using risk fraction or fixed/percentage sizing.
- *  - Enforcing risk limits.
- *  - Calculating TP/SL levels.
+ * This module implements refined risk functions for:
+ *  - Calculating position size using either a risk fraction with a stop-loss distance or fixed/percentage sizing.
+ *  - Enforcing risk limits such as maximum daily loss and minimum account balance.
+ *  - Calculating Take Profit (TP) and Stop Loss (SL) levels based on risk/reward ratios.
  *  - Optimizing strategy parameters.
  */
 
@@ -12,6 +10,7 @@ const optimizationManager = require('./optimization/OptimizationManager');
 
 function calculatePositionSize(riskParams, balance, price) {
     if (riskParams.positionSizingMethod === 'compound') {
+        // Compound: use current balance (which may have grown) and riskFraction.
         if (typeof riskParams.riskFraction === 'number') {
             const riskAmount = balance * riskParams.riskFraction;
             if (riskParams.stopLossDistance && riskParams.stopLossDistance > 0) {
@@ -20,14 +19,24 @@ function calculatePositionSize(riskParams, balance, price) {
                 return riskAmount / price;
             }
         }
+        // Fallback: 1% of balance.
         return (balance * 0.01) / price;
     } else if (riskParams.positionSizingMethod === 'simple') {
-        if (riskParams.positionSizeType === 'percentage' && riskParams.positionSizeValue) {
-            const percentage = riskParams.positionSizeValue / 100;
-            return (balance * percentage) / price;
+        // Simple: use a fixed fraction of the initial balance.
+        if (riskParams.positionSizeType && riskParams.positionSizeValue) {
+            if (riskParams.positionSizeType === 'percentage') {
+                const percentage = riskParams.positionSizeValue / 100;
+                return (balance * percentage) / price;
+            }
+            // If using fixed, return the fixed value.
+            if (riskParams.positionSizeType === 'fixed') {
+                return riskParams.positionSizeValue;
+            }
         }
+        // Fallback: 1% of balance.
         return (balance * 0.01) / price;
     }
+    // Default fallback.
     return (balance * 0.01) / price;
 }
 
@@ -65,7 +74,7 @@ function calculateTPSL(params, entryPrice) {
 }
 
 /**
- * Optimizes strategy parameters using the specified method.
+ * Optimizes strategy parameters using the specified optimization method.
  *
  * @param {String} symbol - Trading symbol.
  * @param {String} timeframe - Timeframe.
