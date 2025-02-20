@@ -8,7 +8,7 @@ const MACrossover = require('../indicators/MovingAverageCrossover');
 const MartingaleStrategy = require('../strategies/moneyManagement/MartingaleStrategy');
 const MirroredMartingaleStrategy = require('../strategies/moneyManagement/MirroredMartingaleStrategy');
 const KellyCriterionStrategy = require('../strategies/moneyManagement/KellyCriterionStrategy');
-const SimpleStrategy = require('../strategies/SimpleStrategy');
+const SimpleStrategy = require('../strategies/moneyManagement/SimpleStrategy');
 // Import the StrategyManager and DynamicStrategy.
 const StrategyManager = require('../strategies/StrategyManager');
 const DynamicStrategy = require('../strategies/DynamicStrategy');

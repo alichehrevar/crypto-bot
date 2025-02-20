@@ -21,7 +21,7 @@ function calculatePositionSize(riskParams, balance, price) {
             }
         }
         return (balance * 0.01) / price;
-    } else if (riskParams.positionSizingMethod === 'single') {
+    } else if (riskParams.positionSizingMethod === 'simple') {
         if (riskParams.positionSizeType === 'percentage' && riskParams.positionSizeValue) {
             const percentage = riskParams.positionSizeValue / 100;
             return (balance * percentage) / price;

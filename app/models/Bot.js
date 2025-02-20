@@ -62,7 +62,7 @@ const tradeInfoSchema = new Schema({
     payoffRatio: { type: Number },
     // Outcome and risk management
     lastTradeOutcome: { type: String }, // e.g., "win" or "loss"
-    positionSizingMethod: { type: String, enum: ['compound', 'single'] },
+    positionSizingMethod: { type: String, enum: ['compound', 'simple'] },
     tradingStrategy: { type: String, enum: ['default', 'optimized', 'dynamic'] },
     optimizationMethod: { type: String, enum: ['grid', 'bayesian', 'ann'] },
     // Minimum requirements
