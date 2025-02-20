@@ -1,175 +1,72 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import BotConfigForm from '@/components/BotConfigForm';
+import { Bot } from '@/components/BotUpdates';
 
 export default function DefaultMethodPage() {
-    const [baseFund, setBaseFund] = useState<number>(1000);
-    const [tradeFund, setTradeFund] = useState<number>(10);
-    const [leverage, setLeverage] = useState<number>(1);
-    const [riskStrategy, setRiskStrategy] = useState<string>('KellyCriterionStrategy');
-    const [maxSuccessiveLoss, setMaxSuccessiveLoss] = useState<number>(3);
-    const [useCompound, setUseCompound] = useState<boolean>(true);
-    const [takeProfit, setTakeProfit] = useState<number>(2); // e.g., 2% TP
-    const [stopLoss, setStopLoss] = useState<number>(2);       // e.g., 2% SL
-    const [indicator, setIndicator] = useState<string>('RSI');
-    const [timeframe, setTimeframe] = useState<string>('1h');
+    const [deployedBots, setDeployedBots] = useState<Bot[]>([]);
+    const [refresh, setRefresh] = useState(false);
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        // Construct the bot configuration object.
-        const botConfig = {
-            baseFund, // in dollars
-            tradeFund, // percentage (e.g., 10 means 10% of base fund allocated to trading)
-            leverage,
-            riskStrategy, // e.g., 'KellyCriterionStrategy'
-            maxSuccessiveLoss,
-            positionSizingMethod: useCompound ? 'compound' : 'simple',
-            takeProfit, // take profit percentage (or factor)
-            stopLoss,   // stop loss percentage (or factor)
-            indicator,  // e.g., 'RSI'
-            timeframe   // e.g., '1h'
-        };
-        console.log('Bot configuration:', botConfig);
-        // Here you can POST this data to your backend API endpoint.
-        // Example:
-        // const res = await fetch('/api/bots', { method: 'POST', body: JSON.stringify(botConfig) });
-        // Handle response accordingly.
+    // Function to fetch all deployed bots.
+    const fetchDeployedBots = async () => {
+        try {
+            const apiUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000/api';
+            const res = await fetch(`${apiUrl}/bots`);
+            if (res.ok) {
+                const data = await res.json();
+                setDeployedBots(data);
+            } else {
+                console.error('Failed to fetch deployed bots');
+            }
+        } catch (error) {
+            console.error('Error fetching deployed bots:', error);
+        }
+    };
+
+    useEffect(() => {
+        fetchDeployedBots();
+    }, [refresh]);
+
+    // Handler for bot deployment.
+    const handleBotDeploy = async (config: any) => {
+        try {
+            const apiUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000/api';
+            const res = await fetch(`${apiUrl}/bots/deploy`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(config),
+            });
+            if (res.ok) {
+                const newBot = await res.json();
+                console.log('Bot deployed:', newBot);
+                // Trigger a refresh of the deployed bots.
+                setRefresh(!refresh);
+            } else {
+                console.error('Failed to deploy bot');
+            }
+        } catch (error) {
+            console.error('Error deploying bot:', error);
+        }
     };
 
     return (
-        <form onSubmit={handleSubmit} className="space-y-4 p-4 border rounded max-w-md mx-auto">
-            <div>
-                <label htmlFor="baseFund" className="block font-medium">Base Fund ($):</label>
-                <input
-                    id="baseFund"
-                    type="number"
-                    value={baseFund}
-                    onChange={(e) => setBaseFund(Number(e.target.value))}
-                    className="mt-1 block w-full border rounded p-2"
-                />
-            </div>
-
-            <div>
-                <label htmlFor="tradeFund" className="block font-medium">Trade Fund (%):</label>
-                <input
-                    id="tradeFund"
-                    type="number"
-                    value={tradeFund}
-                    onChange={(e) => setTradeFund(Number(e.target.value))}
-                    className="mt-1 block w-full border rounded p-2"
-                />
-            </div>
-
-            <div>
-                <label htmlFor="leverage" className="block font-medium">Leverage (1x to 100x):</label>
-                <input
-                    id="leverage"
-                    type="number"
-                    min="1"
-                    max="100"
-                    value={leverage}
-                    onChange={(e) => setLeverage(Number(e.target.value))}
-                    className="mt-1 block w-full border rounded p-2"
-                />
-            </div>
-
-            <div>
-                <label htmlFor="riskStrategy" className="block font-medium">Risk Strategy:</label>
-                <select
-                    id="riskStrategy"
-                    value={riskStrategy}
-                    onChange={(e) => setRiskStrategy(e.target.value)}
-                    className="mt-1 block w-full border rounded p-2"
-                >
-                    <option value="KellyCriterionStrategy">KellyCriterionStrategy</option>
-                    <option value="MartingaleStrategy">MartingaleStrategy</option>
-                    <option value="MirroredMartingaleStrategy">MirroredMartingaleStrategy</option>
-                    <option value="SimpleStrategy">SimpleStrategy</option>
-                </select>
-            </div>
-
-            <div>
-                <label htmlFor="maxSuccessiveLoss" className="block font-medium">Maximum Successive Loss:</label>
-                <input
-                    id="maxSuccessiveLoss"
-                    type="number"
-                    value={maxSuccessiveLoss}
-                    onChange={(e) => setMaxSuccessiveLoss(Number(e.target.value))}
-                    className="mt-1 block w-full border rounded p-2"
-                />
-            </div>
-
-            <div>
-                <label htmlFor="positionSizingMethod" className="block font-medium">
-                    Use Compound Position Sizing by Default:
-                </label>
-                <input
-                    id="positionSizingMethod"
-                    type="checkbox"
-                    checked={useCompound}
-                    onChange={(e) => setUseCompound(e.target.checked)}
-                    className="mt-1"
-                />
-            </div>
-
-            <div>
-                <label htmlFor="takeProfit" className="block font-medium">Take Profit (%):</label>
-                <input
-                    id="takeProfit"
-                    type="number"
-                    value={takeProfit}
-                    onChange={(e) => setTakeProfit(Number(e.target.value))}
-                    className="mt-1 block w-full border rounded p-2"
-                />
-            </div>
-
-            <div>
-                <label htmlFor="stopLoss" className="block font-medium">Stop Loss (%):</label>
-                <input
-                    id="stopLoss"
-                    type="number"
-                    value={stopLoss}
-                    onChange={(e) => setStopLoss(Number(e.target.value))}
-                    className="mt-1 block w-full border rounded p-2"
-                />
-            </div>
-
-            <div>
-                <label htmlFor="indicator" className="block font-medium">Indicator:</label>
-                <select
-                    id="indicator"
-                    value={indicator}
-                    onChange={(e) => setIndicator(e.target.value)}
-                    className="mt-1 block w-full border rounded p-2"
-                >
-                    <option value="RSI">RSI</option>
-                    <option value="MACD">MACD</option>
-                    <option value="MACrossover">MA_Crossover</option>
-                </select>
-            </div>
-
-            <div>
-                <label htmlFor="timeframe" className="block font-medium">Timeframe:</label>
-                <select
-                    id="timeframe"
-                    value={timeframe}
-                    onChange={(e) => setTimeframe(e.target.value)}
-                    className="mt-1 block w-full border rounded p-2"
-                >
-                    <option value="1m">1 Minute</option>
-                    <option value="5m">5 Minutes</option>
-                    <option value="15m">15 Minutes</option>
-                    <option value="30m">30 Minutes</option>
-                    <option value="1h">1 Hour</option>
-                    <option value="4h">4 Hours</option>
-                    <option value="1d">1 Day</option>
-                    <option value="1w">1 Week</option>
-                </select>
-            </div>
-
-            <button type="submit" className="w-full bg-blue-500 text-white p-2 rounded">
-                Start a Bot
-            </button>
-        </form>
+        <div className="container mx-auto p-4">
+            <h1 className="text-2xl font-bold mb-4">Deploy New Bot</h1>
+            <BotConfigForm onDeploy={handleBotDeploy} />
+            <h2 className="text-xl font-bold mt-8">Deployed Bots</h2>
+            <ul className="mt-4 space-y-4">
+                {deployedBots.map((bot: Bot, index) => (
+                    <li key={bot.id || index} className="border p-4 rounded">
+                        <p><strong>Name:</strong> {bot.name}</p>
+                        <p><strong>Symbol:</strong> {bot.symbol}</p>
+                        <p><strong>Timeframe:</strong> {bot.timeframe}</p>
+                        <p><strong>Indicator:</strong> {bot.indicator}</p>
+                        <p><strong>Risk Strategy:</strong> {bot.riskStrategy}</p>
+                        {/* Add additional fields as needed */}
+                    </li>
+                ))}
+            </ul>
+        </div>
     );
 }

@@ -8,6 +8,8 @@ export interface Bot {
     strategy: string;
     symbol: string;
     timeframe: string;
+    indicator?: string;
+    riskStrategy?: string;
     marketInfo: {
         lastSignal?: string;
         lastCandle?: {

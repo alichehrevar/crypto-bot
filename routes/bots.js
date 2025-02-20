@@ -2,8 +2,46 @@
 const express = require('express');
 const router = express.Router();
 const Bot = require('../app/models/Bot');
+const User = require('../app/models/User');
 const { validateBotParams } = require('../app/http/middleware/validation');
 const botService = require('../app/services/BotService');
+
+/**
+ * POST /bots/deploy *
+ * Deploy a new bot
+ */
+router.post('/deploy', async (req, res) => {
+    try {
+        const botData = req.body;
+
+        let user = await User.findOne({});
+        if (!user) {
+            // Create a dummy user (for testing purposes).
+            user = await User.create({
+                email: 'test@example.com',
+                password: 'password123' // This will be hashed by your pre-save hook.
+            });
+            console.log('Created dummy user:', user);
+        }
+
+        // Set the userId to the found or created user's ObjectId.
+        botData.userId = user._id;
+
+        // Ensure required fields exist.
+        if (!botData.strategy) {
+            return res.status(400).json({ error: 'Strategy field is required' });
+        }
+
+        // Create the new bot.
+        const newBot = await Bot.create(botData);
+        // Optionally, add the new bot to the running BotService.
+        botService.addBot(newBot);
+        res.status(201).json(newBot);
+    } catch (error) {
+        console.error('Error deploying bot:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
 
 /**
  * GET /bots/select
