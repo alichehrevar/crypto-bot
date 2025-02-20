@@ -1,3 +1,4 @@
+// app/methods/default/page.tsx
 'use client';
 
 import React, { useEffect, useState } from 'react';
@@ -8,7 +9,6 @@ export default function DefaultMethodPage() {
     const [deployedBots, setDeployedBots] = useState<Bot[]>([]);
     const [refresh, setRefresh] = useState(false);
 
-    // Function to fetch all deployed bots.
     const fetchDeployedBots = async () => {
         try {
             const apiUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000/api';
@@ -28,7 +28,6 @@ export default function DefaultMethodPage() {
         fetchDeployedBots();
     }, [refresh]);
 
-    // Handler for bot deployment.
     const handleBotDeploy = async (config: any) => {
         try {
             const apiUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000/api';
@@ -40,7 +39,6 @@ export default function DefaultMethodPage() {
             if (res.ok) {
                 const newBot = await res.json();
                 console.log('Bot deployed:', newBot);
-                // Trigger a refresh of the deployed bots.
                 setRefresh(!refresh);
             } else {
                 console.error('Failed to deploy bot');
@@ -61,9 +59,9 @@ export default function DefaultMethodPage() {
                         <p><strong>Name:</strong> {bot.name}</p>
                         <p><strong>Symbol:</strong> {bot.symbol}</p>
                         <p><strong>Timeframe:</strong> {bot.timeframe}</p>
-                        <p><strong>Indicator:</strong> {bot.indicator}</p>
-                        <p><strong>Risk Strategy:</strong> {bot.riskStrategy}</p>
-                        {/* Add additional fields as needed */}
+                        <p><strong>Indicator:</strong> {bot.indicator || 'N/A'}</p>
+                        <p><strong>Risk Strategy:</strong> {bot.riskStrategy || 'N/A'}</p>
+                        <p><strong>Strategy:</strong> {bot.strategy}</p>
                     </li>
                 ))}
             </ul>

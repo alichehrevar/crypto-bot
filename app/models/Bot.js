@@ -92,9 +92,11 @@ const botSchema = new Schema({
         enum: ['1m', '5m', '15m', '30m', '1h', '4h', '1d', '1w'],
         required: true
     },
+    indicator: { type: String, required: true },      // e.g. "RSI", "MACD", "MA_Crossover"
+    riskStrategy: { type: String, required: true },     // e.g. "KellyCriterionStrategy", "MartingaleStrategy", etc.
     strategy: {
         type: String,
-        enum: ['MA_Crossover', 'RSI', 'MACD'],
+        enum: ['MA_Crossover', 'RSI', 'MACD', 'Martingale', 'MirroredMartingale', 'KellyCriterion', 'SimpleStrategy'],
         required: true
     },
     strategyParams: strategyParamsSchema,

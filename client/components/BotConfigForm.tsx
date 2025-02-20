@@ -13,34 +13,37 @@ export default function BotConfigForm({ onDeploy }: BotConfigFormProps) {
     const [riskStrategy, setRiskStrategy] = useState<string>('KellyCriterionStrategy');
     const [maxSuccessiveLoss, setMaxSuccessiveLoss] = useState<number>(3);
     const [useCompound, setUseCompound] = useState<boolean>(true);
-    const [takeProfit, setTakeProfit] = useState<number>(2); // e.g., 2%
-    const [stopLoss, setStopLoss] = useState<number>(2);       // e.g., 2%
+    const [takeProfit, setTakeProfit] = useState<number>(2);
+    const [stopLoss, setStopLoss] = useState<number>(2);
     const [indicator, setIndicator] = useState<string>('RSI');
     const [timeframe, setTimeframe] = useState<string>('1h');
     const [symbol, setSymbol] = useState<string>('BTC/USDT');
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        // Construct bot configuration.
+        // Build the bot configuration. We assume that the combined strategy field (strategy) here is set to the indicator.
+        // You might decide to combine risk strategy and indicator in some way; for now, we store them separately.
         const botConfig = {
             name: `${symbol} ${timeframe} ${indicator} Bot`,
-            symbol,
+            symbol, // e.g., "BTC/USDT"
             timeframe,
-            strategy: indicator,
+            indicator,           // New field for indicator
+            riskStrategy,        // New field for risk strategy (money management)
+            strategy: indicator, // Here we set the strategy to indicator for simplicity. You may adjust this as needed.
             strategyParams: {
-                riskStrategy,
                 takeProfit,
                 stopLoss,
-                // Include other strategy parameters as needed.
+                // You can add more parameters here.
+            },
+            riskParams: {
+                // You can include additional risk parameters here.
+                maxOpenTrades: 1, // Example default
             },
             baseFund,
             tradeFund,
             leverage,
             maxSuccessiveLoss,
-            positionSizingMethod: useCompound ? 'compound' : 'simple',
-            takeProfit,
-            stopLoss,
-            // Additional fields can be added as needed.
+            positionSizingMethod: useCompound ? 'compound' : 'simple'
         };
         onDeploy(botConfig);
     };
@@ -90,7 +93,7 @@ export default function BotConfigForm({ onDeploy }: BotConfigFormProps) {
                 />
             </div>
             <div>
-                <label htmlFor="riskStrategy" className="block font-medium">Risk Strategy:</label>
+                <label htmlFor="riskStrategy" className="block font-medium">Risk Strategy (Money Management):</label>
                 <select
                     id="riskStrategy"
                     value={riskStrategy}
@@ -153,7 +156,7 @@ export default function BotConfigForm({ onDeploy }: BotConfigFormProps) {
                 >
                     <option value="RSI">RSI</option>
                     <option value="MACD">MACD</option>
-                    <option value="MACrossover">MA_Crossover</option>
+                    <option value="MA_Crossover">MA_Crossover</option>
                 </select>
             </div>
             <div>

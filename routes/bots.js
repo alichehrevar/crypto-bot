@@ -13,29 +13,24 @@ const botService = require('../app/services/BotService');
 router.post('/deploy', async (req, res) => {
     try {
         const botData = req.body;
-
+        // Check if there's an existing user; if not, create a dummy one.
         let user = await User.findOne({});
         if (!user) {
-            // Create a dummy user (for testing purposes).
             user = await User.create({
                 email: 'test@example.com',
-                password: 'password123' // This will be hashed by your pre-save hook.
+                password: 'password123'
             });
             console.log('Created dummy user:', user);
         }
-
-        // Set the userId to the found or created user's ObjectId.
         botData.userId = user._id;
 
-        // Ensure required fields exist.
-        if (!botData.strategy) {
-            return res.status(400).json({ error: 'Strategy field is required' });
+        // Validate required fields (make sure indicator and riskStrategy are provided).
+        if (!botData.indicator || !botData.riskStrategy || !botData.strategy) {
+            return res.status(400).json({ error: 'Indicator, riskStrategy, and strategy fields are required.' });
         }
 
-        // Create the new bot.
         const newBot = await Bot.create(botData);
-        // Optionally, add the new bot to the running BotService.
-        botService.addBot(newBot);
+        BotService.addBot(newBot);
         res.status(201).json(newBot);
     } catch (error) {
         console.error('Error deploying bot:', error);
