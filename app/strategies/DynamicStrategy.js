@@ -1,5 +1,5 @@
 const Candle = require('../models/Candle');
-const RiskStrategy = require('./RiskStrategy'); // your risk module
+const RiskStrategy = require('./RiskManagement'); // your risk module
 
 class DynamicStrategy {
     /**

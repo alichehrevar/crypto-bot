@@ -9,20 +9,20 @@ const { optimizeGrid } = require('./OptimizeGrid');
 
 class OptimizationManager {
     constructor() {
-        // We can add more methods (bayesian, ANN, etc.) later.
+        // Map available methods. More can be added later.
         this.methods = {
             grid: optimizeGrid,
-            // bayesian: optimizeBayesian,   // future implementation
-            // ann: optimizeANN              // future implementation
+            // bayesian: optimizeBayesian,  // future implementation
+            // ann: optimizeANN,            // future implementation
         };
     }
 
     /**
-     * Selects and executes the optimization method.
+     * Selects and executes an optimization method.
      *
-     * @param {String} symbol - Trading symbol.
-     * @param {String} timeframe - Timeframe.
-     * @param {String} optimizationMethod - The method to use ("grid", etc.).
+     * @param {String} symbol - Trading symbol (e.g., "BTC/USDT").
+     * @param {String} timeframe - Timeframe (e.g., "1h").
+     * @param {String} optimizationMethod - The optimization method to use (e.g., "grid").
      * @param {Array} historicalCandles - Historical candle data.
      * @returns {Object} Optimized parameters.
      */

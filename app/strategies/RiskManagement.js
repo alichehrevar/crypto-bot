@@ -1,42 +1,39 @@
 /**
- * This module implements refined risk functions for:
- *  - Calculating position size using either a risk fraction with a stop-loss distance or fixed/percentage sizing.
- *  - Enforcing risk limits such as maximum daily loss and minimum account balance.
+ * RiskManagement.js
+ *
+ * This module implements risk functions for:
+ *  - Calculating position size using either a risk fraction (compound) or fixed/percentage (simple) method.
+ *  - Enforcing risk limits (e.g., maximum daily loss, minimum balance).
  *  - Calculating Take Profit (TP) and Stop Loss (SL) levels based on risk/reward ratios.
- *  - Optimizing strategy parameters.
+ *  - Optimizing strategy parameters via various methods.
  */
 
-const optimizationManager = require('./optimization/OptimizationManager');
+const OptimizationManager = require('./optimization/OptimizationManager');
 
 function calculatePositionSize(riskParams, balance, price) {
     if (riskParams.positionSizingMethod === 'compound') {
-        // Compound: use current balance (which may have grown) and riskFraction.
+        // Use current balance and riskFraction for compounding.
         if (typeof riskParams.riskFraction === 'number') {
             const riskAmount = balance * riskParams.riskFraction;
             if (riskParams.stopLossDistance && riskParams.stopLossDistance > 0) {
                 return riskAmount / (price * riskParams.stopLossDistance);
-            } else {
-                return riskAmount / price;
             }
+            return riskAmount / price;
         }
-        // Fallback: 1% of balance.
         return (balance * 0.01) / price;
     } else if (riskParams.positionSizingMethod === 'simple') {
-        // Simple: use a fixed fraction of the initial balance.
+        // Use fixed percentage or fixed value.
         if (riskParams.positionSizeType && riskParams.positionSizeValue) {
             if (riskParams.positionSizeType === 'percentage') {
                 const percentage = riskParams.positionSizeValue / 100;
                 return (balance * percentage) / price;
             }
-            // If using fixed, return the fixed value.
             if (riskParams.positionSizeType === 'fixed') {
                 return riskParams.positionSizeValue;
             }
         }
-        // Fallback: 1% of balance.
         return (balance * 0.01) / price;
     }
-    // Default fallback.
     return (balance * 0.01) / price;
 }
 
@@ -46,16 +43,14 @@ function enforceRiskLimits(trades, riskParams, currentBalance) {
     const todaysTrades = trades.filter(trade => new Date(trade.exitTime) >= startOfDay);
     let dailyLoss = 0;
     todaysTrades.forEach(trade => {
-        if (trade.profit < 0) {
-            dailyLoss += trade.profit;
-        }
+        if (trade.profit < 0) dailyLoss += trade.profit;
     });
     if (riskParams.maxDailyLoss && Math.abs(dailyLoss) >= riskParams.maxDailyLoss) {
-        console.warn(`Daily loss of ${Math.abs(dailyLoss)} reached maxDailyLoss ${riskParams.maxDailyLoss}`);
+        console.warn(`Daily loss ${Math.abs(dailyLoss)} reached maxDailyLoss ${riskParams.maxDailyLoss}`);
         return false;
     }
     if (riskParams.minimumBalance && currentBalance < riskParams.minimumBalance) {
-        console.warn(`Current balance ${currentBalance} is below minimum balance ${riskParams.minimumBalance}`);
+        console.warn(`Current balance ${currentBalance} below minimum balance ${riskParams.minimumBalance}`);
         return false;
     }
     return true;
@@ -67,14 +62,11 @@ function calculateTPSL(params, entryPrice) {
         const takeProfit = entryPrice * (1 + params.stopLossDistance * params.riskRewardRatio);
         return { TP: takeProfit, SL: stopLoss };
     }
-    return {
-        TP: entryPrice * 1.02,
-        SL: entryPrice * 0.98
-    };
+    return { TP: entryPrice * 1.02, SL: entryPrice * 0.98 };
 }
 
 /**
- * Optimizes strategy parameters using the specified optimization method.
+ * Optimizes strategy parameters using the specified method.
  *
  * @param {String} symbol - Trading symbol.
  * @param {String} timeframe - Timeframe.
@@ -83,7 +75,7 @@ function calculateTPSL(params, entryPrice) {
  * @returns {Object} Optimized parameters.
  */
 function optimizeParameters(symbol, timeframe, optimizationMethod, historicalCandles) {
-    return optimizationManager.optimize(symbol, timeframe, optimizationMethod, historicalCandles);
+    return OptimizationManager.optimize(symbol, timeframe, optimizationMethod, historicalCandles);
 }
 
 module.exports = {

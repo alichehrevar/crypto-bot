@@ -1,5 +1,5 @@
 const Trade = require('../../models/Trade');
-const RiskStrategy = require('../../strategies/RiskStrategy'); // For calculating TP/SL
+const RiskStrategy = require('../../strategies/RiskManagement'); // For calculating TP/SL
 
 class OrderExecutionService {
     /**
