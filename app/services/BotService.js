@@ -8,7 +8,7 @@ const MACrossover = require('../indicators/MovingAverageCrossover');
 const MartingaleStrategy = require('../strategies/moneyManagement/MartingaleStrategy');
 const MirroredMartingaleStrategy = require('../strategies/moneyManagement/MirroredMartingaleStrategy');
 const KellyCriterionStrategy = require('../strategies/moneyManagement/KellyCriterionStrategy');
-const SimpleStrategy = require('../strategies/SimpleStrategy'); // as risk strategy
+const SimpleStrategy = require('../strategies/moneyManagement/SimpleStrategy'); // as risk strategy
 
 // Import the StrategyManager for combining indicator signals if needed.
 const StrategyManager = require('../strategies/StrategyManager');
