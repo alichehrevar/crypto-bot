@@ -1,22 +1,23 @@
 const Bot = require('../models/Bot');
 const Trade = require('../models/Trade');
-// Import indicator classes from the indicators directory.
+// Import indicator classes.
 const RSI = require('../indicators/RSI');
 const MACD = require('../indicators/MACD');
 const MACrossover = require('../indicators/MovingAverageCrossover');
-// Import money-management strategies.
+// Import risk management (money-management) strategies.
 const MartingaleStrategy = require('../strategies/moneyManagement/MartingaleStrategy');
 const MirroredMartingaleStrategy = require('../strategies/moneyManagement/MirroredMartingaleStrategy');
 const KellyCriterionStrategy = require('../strategies/moneyManagement/KellyCriterionStrategy');
-const SimpleStrategy = require('../strategies/moneyManagement/SimpleStrategy');
-// Import the StrategyManager and DynamicStrategy.
+const SimpleStrategy = require('../strategies/SimpleStrategy'); // as risk strategy
+
+// Import the StrategyManager for combining indicator signals if needed.
 const StrategyManager = require('../strategies/StrategyManager');
 const DynamicStrategy = require('../strategies/DynamicStrategy');
 
 class BotService {
     constructor() {
         this.activeBots = new Map();
-        this.strategyManager = new StrategyManager(); // Initialize StrategyManager
+        this.strategyManager = new StrategyManager(); // This can be used for signal processing if needed.
     }
 
     /**
@@ -28,61 +29,60 @@ class BotService {
     }
 
     /**
-     * Add a single bot (from DB) into the activeBots registry.
+     * Add a bot to the in-memory registry.
+     * Now, we create both an indicator instance and a risk management strategy instance.
      */
     addBot(bot) {
-        const strategy = this.createStrategy(bot);
+        const indicatorInstance = this.createIndicator(bot);
+        const riskStrategyInstance = this.createRiskStrategy(bot);
         // Normalize key: symbol uppercase, timeframe lowercase.
         const key = `${bot.symbol.toUpperCase()}-${bot.timeframe.toLowerCase()}`;
         if (!this.activeBots.has(key)) {
             this.activeBots.set(key, []);
         }
-        this.activeBots.get(key).push({ bot, strategy });
-        // Register the strategy in the StrategyManager using the bot's name as identifier.
-        this.strategyManager.registerStrategy(bot.name, strategy);
+        // Store both instances along with the bot.
+        this.activeBots.get(key).push({ bot, indicatorInstance, riskStrategyInstance });
+        // Optionally, register the indicator instance in the StrategyManager if you want to combine signals.
+        this.strategyManager.registerStrategy(bot.name, indicatorInstance);
     }
 
     /**
-     * Instantiate the appropriate strategy instance based on the bot's strategy field.
+     * Instantiate the indicator instance based on the bot.indicator field.
      */
-    createStrategy(bot) {
-        let baseStrategy;
-        switch (bot.strategy) {
-            case 'MA_Crossover':
-                baseStrategy = new MACrossover(bot.strategyParams);
-                break;
+    createIndicator(bot) {
+        switch (bot.indicator) {
             case 'RSI':
-                baseStrategy = new RSI(bot.strategyParams);
-                break;
+                return new RSI(bot.strategyParams);
             case 'MACD':
-                baseStrategy = new MACD(bot.strategyParams);
-                break;
-            case 'Martingale':
-                baseStrategy = new MartingaleStrategy(bot.strategyParams);
-                break;
-            case 'MirroredMartingale':
-                baseStrategy = new MirroredMartingaleStrategy(bot.strategyParams);
-                break;
-            case 'KellyCriterion':
-                baseStrategy = new KellyCriterionStrategy(bot.strategyParams);
-                break;
-            case 'SimpleStrategy':
-                baseStrategy = new SimpleStrategy(bot.strategyParams);
-                break;
+                return new MACD(bot.strategyParams);
+            case 'MA_Crossover':
+                return new MACrossover(bot.strategyParams);
             default:
-                throw new Error(`Unknown strategy: ${bot.strategy}`);
+                throw new Error(`Unknown indicator: ${bot.indicator}`);
         }
-        // If the bot has a flag `dynamic`, wrap the baseStrategy in a DynamicStrategy.
-        if (bot.dynamic) {
-            return new DynamicStrategy(baseStrategy, bot.strategyParams, bot.symbol, bot.timeframe);
-        }
-        return baseStrategy;
     }
 
     /**
-     * Check risk parameters to decide if a bot can open a new position.
-     * - For 'single' mode, allow only one open trade.
-     * - For 'hedge' mode, allow multiple trades up to riskParams.maxOpenTrades.
+     * Instantiate the risk management (money management) strategy based on the bot.riskStrategy field.
+     */
+    createRiskStrategy(bot) {
+        switch (bot.riskStrategy) {
+            case 'MartingaleStrategy':
+                return new MartingaleStrategy(bot.strategyParams);
+            case 'MirroredMartingaleStrategy':
+                return new MirroredMartingaleStrategy(bot.strategyParams);
+            case 'KellyCriterionStrategy':
+                return new KellyCriterionStrategy(bot.strategyParams);
+            case 'SimpleStrategy':
+                return new SimpleStrategy(bot.strategyParams);
+            default:
+                throw new Error(`Unknown risk strategy: ${bot.riskStrategy}`);
+        }
+    }
+
+    /**
+     * Checks risk limits and whether a bot can open a new position.
+     * Adjusts behavior based on bot.positionMode.
      */
     async checkRisk(bot) {
         const openTradesCount = await Trade.countDocuments({ bot: bot._id, exitPrice: null });
@@ -112,8 +112,7 @@ class BotService {
 
     /**
      * Processes new candle data for a given symbol/timeframe.
-     * Uses the StrategyManager to compute signals from all registered strategies,
-     * and if a signal is actionable (not HOLD), executes an order.
+     * Uses the indicator instance to generate a signal and the risk strategy instance for position sizing.
      */
     async processCandle(symbol, timeframe, candles) {
         const normSymbol = symbol.toUpperCase();
@@ -123,31 +122,27 @@ class BotService {
         const lastCandle = candles[candles.length - 1];
         const closePrice = lastCandle.close;
 
-        for (const { bot } of botEntries) {
+        for (const entry of botEntries) {
+            const { bot, indicatorInstance, riskStrategyInstance } = entry;
             const { canTrade, reason } = await this.checkRisk(bot);
             if (!canTrade) {
                 console.log(`Blocked trade for bot "${bot.name}": ${reason}`);
                 continue;
             }
-            // Determine which signal processing method to use.
-            let signal = 'HOLD';
-            if (bot.signalProcessingMethod === 'consensus' || bot.signalProcessingMethod === 'weighted') {
-                signal = this.strategyManager.consensusSignal(candles, bot.signalProcessingMethod);
-            } else {
-                const signals = this.strategyManager.processSignals(candles);
-                signal = signals[bot.name];
-            }
+            // Generate signal using the indicator.
+            const signal = indicatorInstance.calculateSignal(candles);
             if (signal !== 'HOLD') {
-                await this.executeOrder(bot, signal, closePrice);
+                await this.executeOrder(bot, signal, closePrice, riskStrategyInstance);
             }
         }
     }
 
     /**
      * Executes a trade based on the given signal.
-     * In 'single' mode, only one trade is allowed; in 'hedge' mode, multiple trades can be opened.
+     * Uses the risk strategy for position sizing.
      */
-    async executeOrder(bot, signal, price) {
+    async executeOrder(bot, signal, price, riskStrategyInstance) {
+        // Get open trades.
         const openTrades = await Trade.find({ bot: bot._id, exitPrice: null });
         if (signal === 'BUY') {
             if (bot.positionMode === 'single' && openTrades.length > 0) {
@@ -155,18 +150,17 @@ class BotService {
                 return;
             }
             let quantity = 0;
-            const strategyInstance = this.strategyManager.strategies.get(bot.name);
-            if (strategyInstance && typeof strategyInstance.calculatePositionSize === 'function') {
-                if (strategyInstance.calculatePositionSize.length === 3) {
-                    // Assume it expects (lastTradeOutcome, balance, price). For backtesting, assume 'win' as default.
-                    quantity = strategyInstance.calculatePositionSize('win', bot.paperBalance, price);
+            if (riskStrategyInstance && typeof riskStrategyInstance.calculatePositionSize === 'function') {
+                // Check the number of expected parameters.
+                if (riskStrategyInstance.calculatePositionSize.length === 3) {
+                    quantity = riskStrategyInstance.calculatePositionSize('win', bot.paperBalance, price);
                 } else {
-                    quantity = strategyInstance.calculatePositionSize(bot.paperBalance, price);
+                    quantity = riskStrategyInstance.calculatePositionSize(bot.paperBalance, price);
                 }
             } else {
                 quantity = this.calculatePositionSize(bot, price);
             }
-            // Compute TP/SL levels using the risk strategy module.
+            // Compute TP/SL levels using RiskStrategy module.
             const { TP, SL } = require('../strategies/RiskStrategy').calculateTPSL(bot.strategyParams, price);
             const newTrade = new Trade({
                 bot: bot._id,
@@ -183,7 +177,7 @@ class BotService {
                 console.log(`Bot "${bot.name}" received SELL signal but no open trade exists.`);
                 return;
             }
-            // In hedge mode, you might close one or more trades. Here we close the earliest.
+            // Close the earliest open trade.
             const tradeToClose = openTrades[0];
             tradeToClose.exitPrice = price;
             tradeToClose.timestamp = new Date();
@@ -203,8 +197,7 @@ class BotService {
 
     /**
      * Updates a bot's market data using a new candle.
-     * For each bot matching the symbol and timeframe, fetch recent candles,
-     * compute the signal, update the bot's market info, and broadcast the update.
+     * This method updates both the last closed candle data and the live (current) candle price.
      */
     async updateBotDataFromCandle(candle) {
         try {
@@ -216,16 +209,14 @@ class BotService {
                 return;
             }
             for (const bot of bots) {
-                // Check if the incoming candle timestamp matches the last finalized candle.
+                // Update current candle price if the timestamp matches, else treat it as new finalized candle.
                 if (
                     bot.marketInfo.lastCandle &&
                     new Date(bot.marketInfo.lastCandle.timestamp).getTime() === new Date(candle.timestamp).getTime()
                 ) {
-                    // Update the current (open) candle's live price.
                     bot.marketInfo.currentCandle = { price: candle.close };
                     console.log(`Bot "${bot.name}" updated current candle price to ${candle.close}`);
                 } else {
-                    // Treat as a new finalized candle.
                     bot.marketInfo.lastCandle = {
                         timestamp: candle.timestamp,
                         open: candle.open,
@@ -234,21 +225,17 @@ class BotService {
                         close: candle.close,
                         volume: candle.volume,
                     };
-                    // Also update current candle price.
                     bot.marketInfo.currentCandle = { price: candle.close };
                     console.log(`Bot "${bot.name}" set new candle data; current candle price: ${candle.close}`);
                 }
-
-                // Fetch recent candles for signal calculation.
+                // Recalculate signal from recent candles.
                 const Candle = require('../models/Candle');
-                const recentCandles = await Candle.find({
-                    symbol: normSymbol,
-                    timeframe: normTimeframe
-                }).sort({ timestamp: 1 }).limit(100);
-
+                const recentCandles = await Candle.find({ symbol: normSymbol, timeframe: normTimeframe })
+                    .sort({ timestamp: 1 })
+                    .limit(100);
                 let computedSignal = 'HOLD';
                 try {
-                    switch (bot.strategy) {
+                    switch (bot.indicator) {
                         case 'RSI': {
                             const rsiInstance = new RSI(bot.strategyParams);
                             computedSignal = rsiInstance.calculateSignal(recentCandles);
@@ -265,16 +252,14 @@ class BotService {
                             break;
                         }
                         default:
-                            console.error(`Unknown strategy: ${bot.strategy}`);
+                            console.error(`Unknown indicator: ${bot.indicator}`);
                     }
                 } catch (error) {
                     console.error(`Error computing signal for bot "${bot.name}": ${error.message}`);
                 }
                 bot.marketInfo.lastSignal = computedSignal;
                 await bot.save();
-                console.log(`Updated bot "${bot.name}" with signal: ${computedSignal}`);
-
-                // Normalize bot object and broadcast update.
+                console.log(`Updated bot "${bot.name}" with new candle data and signal: ${computedSignal}`);
                 const updatedBot = bot.toObject();
                 updatedBot.id = updatedBot._id.toString();
                 const wsServer = require('./WebSocketServer');
@@ -286,29 +271,19 @@ class BotService {
     }
 
     /**
-     * Default position sizing if no money-management strategy is used.
-     * This method now considers the bot's fundMode:
-     * - For 'isolated', only a portion of the paperBalance (dedicated allocation) is used.
-     * - For 'cross', the full paperBalance is used.
+     * Default position sizing if no risk strategy instance is available.
      */
     calculatePositionSize(bot, price) {
         const riskParams = bot.riskParams || {};
-        let availableBalance = bot.paperBalance;
-        if (bot.fundMode === 'isolated') {
-            // Use a dedicated allocation for isolated mode.
-            // For example, use riskParams.isolatedAllocation (if provided) as a fraction of paperBalance.
-            const allocationFraction = riskParams.isolatedAllocation || 0.1; // Default: 10% of paperBalance.
-            availableBalance = bot.paperBalance * allocationFraction;
-        }
         if (riskParams.positionSizeType && riskParams.positionSizeValue) {
             if (riskParams.positionSizeType === 'fixed') {
                 return riskParams.positionSizeValue;
             } else if (riskParams.positionSizeType === 'percentage') {
                 const percentage = riskParams.positionSizeValue / 100;
-                return (availableBalance * percentage) / price;
+                return (bot.paperBalance * percentage) / price;
             }
         }
-        return (availableBalance * 0.01) / price;
+        return (bot.paperBalance * 0.01) / price;
     }
 }
 
