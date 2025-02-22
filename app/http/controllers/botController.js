@@ -1,7 +1,7 @@
 const Bot = require('../../models/Bot');
 const User = require('../../models/User');
 const { validateBotParams } = require('../middleware/validation');
-const BotService = require('../../services/BotService');
+const BotService = require('../../services/botService/BotService');
 const mongoose = require('mongoose');
 
 /**

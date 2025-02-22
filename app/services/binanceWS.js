@@ -2,7 +2,7 @@ const WebSocket = require('ws');
 const axios = require('axios');
 const Candle = require('../models/Candle');
 const wsServer = require('./WebSocketServer');
-const { updateBotDataFromCandle } = require('./botService');
+const { updateBotDataFromCandle } = require('./botService/BotService');
 // Uncomment the next line if you wish to use TradingViewWS instead for broadcasting updates.
 // const tradingViewWS = require('./TradingViewWS');
 

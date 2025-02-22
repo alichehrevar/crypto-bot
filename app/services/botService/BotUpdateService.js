@@ -1,7 +1,7 @@
-const Bot = require('../models/Bot');
-const RSI = require('../indicators/RSI');
-const MACD = require('../indicators/MACD');
-const MACrossover = require('../indicators/MovingAverageCrossover');
+const Bot = require('../../models/Bot');
+const RSI = require('../../indicators/RSI');
+const MACD = require('../../indicators/MACD');
+const MACrossover = require('../../indicators/MovingAverageCrossover');
 
 class BotUpdateService {
     /**
@@ -42,7 +42,7 @@ class BotUpdateService {
                     console.log(`Bot "${bot.name}" set new candle data; current candle price: ${candle.close}`);
                 }
                 // Fetch recent candles for signal calculation.
-                const Candle = require('../models/Candle');
+                const Candle = require('../../models/Candle');
                 const recentCandles = await Candle.find({ symbol: normSymbol, timeframe: normTimeframe })
                     .sort({ timestamp: 1 })
                     .limit(100);
@@ -75,7 +75,7 @@ class BotUpdateService {
                 console.log(`Updated bot "${bot.name}" with new candle data and signal: ${computedSignal}`);
                 const updatedBot = bot.toObject();
                 updatedBot.id = updatedBot._id.toString();
-                const wsServer = require('./WebSocketServer');
+                const wsServer = require('../WebSocketServer');
                 wsServer.broadcastBotUpdate(updatedBot);
             }
         } catch (error) {

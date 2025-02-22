@@ -1,7 +1,7 @@
 const sinon = require('sinon');
 
 // Import the service, models, indicators, and test utilities
-const botService = require('../app/services/BotService');
+const botService = require('../app/services/botService/BotService');
 const Trade = require('../app/models/Trade');
 const Bot = require('../app/models/Bot');
 const { RSI, MACrossover, MACD } = require('../app/indicators');

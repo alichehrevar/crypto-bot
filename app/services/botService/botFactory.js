@@ -1,10 +1,10 @@
-const RSI = require('../indicators/RSI');
-const MACD = require('../indicators/MACD');
-const MACrossover = require('../indicators/MovingAverageCrossover');
-const MartingaleStrategy = require('../strategies/moneyManagement/MartingaleStrategy');
-const MirroredMartingaleStrategy = require('../strategies/moneyManagement/MirroredMartingaleStrategy');
-const KellyCriterionStrategy = require('../strategies/moneyManagement/KellyCriterionStrategy');
-const SimpleStrategy = require('../strategies/moneyManagement/SimpleStrategy');
+const RSI = require('../../indicators/RSI');
+const MACD = require('../../indicators/MACD');
+const MACrossover = require('../../indicators/MovingAverageCrossover');
+const MartingaleStrategy = require('../../strategies/moneyManagement/MartingaleStrategy');
+const MirroredMartingaleStrategy = require('../../strategies/moneyManagement/MirroredMartingaleStrategy');
+const KellyCriterionStrategy = require('../../strategies/moneyManagement/KellyCriterionStrategy');
+const SimpleStrategy = require('../../strategies/moneyManagement/SimpleStrategy');
 
 /**
  * Creates an indicator instance based on bot.indicator.

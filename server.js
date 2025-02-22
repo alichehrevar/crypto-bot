@@ -8,7 +8,7 @@ const connectDB = require('./config/db');
 const binanceWS = require('./app/services/binanceWS');
 const tradingViewWS = require('./app/services/TradingViewWS');
 const bingXWS = require('./app/services/bingXWS');
-const botService = require('./app/services/BotService');
+const botService = require('./app/services/botService/BotService');
 const wsServer = require('./app/services/WebSocketServer');
 
 const authRoutes = require('./routes/auth');

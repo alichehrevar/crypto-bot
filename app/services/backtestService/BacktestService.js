@@ -1,23 +1,24 @@
 // services/BacktestService.js
-const Candle = require('../models/Candle');
-const { RSI, MACrossover, MACD } = require('../indicators');
-// Import refined risk functions.
-const riskStrategy = require('../strategies/RiskStrategy');
+const Candle = require('../../models/Candle');
+const { processSignal } = require('./BacktestSignalProcessor');
+const { enforceRiskLimits, calculatePositionSize, calculateTPSL, optimizeParameters } = require('./BacktestRiskManager');
+const { simulateOrder } = require('./BacktestOrderSimulator');
+const { calculateMetrics } = require('./BacktestMetricsCalculator');
 
 class BacktestService {
     /**
      * Runs a backtest using a specified indicator (RSI, MA_Crossover, or MACD).
      *
      * @param {Object} options
-     * @param {String} options.strategy - Must be one of: 'RSI', 'MA_Crossover', 'MACD'
-     * @param {Object} options.params - An object containing both indicator parameters and riskParams (plus other parameters such as optimizationMethod).
+     * @param {String} options.strategy - One of: 'RSI', 'MA_Crossover', 'MACD'
+     * @param {Object} options.params - Contains indicator parameters, riskParams, optimizationMethod, etc.
      * @param {String} options.symbol - e.g., "BTC/USDT"
      * @param {String} options.timeframe - e.g., "1h"
      * @param {Date|String} options.startDate - Inclusive start date.
      * @param {Date|String} options.endDate - Inclusive end date.
-     * @param {Number} [options.initialBalance=10000] - Starting balance in quote currency.
-     * @param {Number} [options.positionSize=1.0] - Fraction of balance to risk per trade (1.0 means 100%).
-     * @returns {Object} A summary of the backtest including metrics and trade history.
+     * @param {Number} [options.initialBalance=10000] - Starting balance.
+     * @param {Number} [options.positionSize=1.0] - Fraction of balance to risk per trade.
+     * @returns {Object} A summary with performance metrics and trade history.
      */
     async run({
                   strategy,
@@ -27,54 +28,34 @@ class BacktestService {
                   startDate,
                   endDate,
                   initialBalance = 10000,
-                  positionSize = 1.0
+                  positionSize = 1.0,
               }) {
         try {
-            // 1) Validate that the indicator is one of the expected types.
+            // Validate indicator strategy.
             if (!['RSI', 'MA_Crossover', 'MACD'].includes(strategy)) {
-                throw new Error('Invalid strategy. Expected indicator: RSI, MA_Crossover, or MACD.');
+                throw new Error('Invalid strategy. Expected: RSI, MA_Crossover, or MACD.');
             }
-
-            // 2) Fetch historical candle data.
+            // Fetch historical candle data.
             const candles = await Candle.find({
                 symbol: symbol.toUpperCase(),
                 timeframe: timeframe.toLowerCase(),
-                timestamp: {
-                    $gte: new Date(startDate),
-                    $lte: new Date(endDate)
-                }
+                timestamp: { $gte: new Date(startDate), $lte: new Date(endDate) },
             }).sort({ timestamp: 1 });
             if (candles.length === 0) {
                 throw new Error('No historical data found');
             }
 
-            // 3) Instantiate the indicator instance.
-            let indicatorInstance;
-            switch (strategy) {
-                case 'RSI':
-                    indicatorInstance = new RSI(params);
-                    break;
-                case 'MA_Crossover':
-                    indicatorInstance = new MACrossover(params);
-                    break;
-                case 'MACD':
-                    indicatorInstance = new MACD(params);
-                    break;
-            }
-
-            // 4) Prepare backtest variables.
-            let balance = initialBalance; // simulated quote balance
-            let openPosition = null;      // tracks an open trade position
-            const trades = [];            // record closed trades
+            let balance = initialBalance;
+            let openPosition = null;
+            const trades = [];
             const riskParams = params.riskParams || {};
 
-            // Determine minimum required candles for the indicator.
+            // Determine minimum required candles.
             const minRequiredCandles =
                 strategy === 'RSI'
                     ? (params.period * 2 || 28)
                     : (params.shortPeriod + params.longPeriod || 30);
 
-            // 5) Main backtest loop.
             for (let i = 0; i < candles.length; i++) {
                 if (i < minRequiredCandles) continue;
                 const relevantCandles = candles.slice(0, i + 1);
@@ -82,36 +63,30 @@ class BacktestService {
                 const currentTime = candles[i].timestamp;
 
                 // Enforce risk limits.
-                if (!riskStrategy.enforceRiskLimits(trades, riskParams, balance)) {
+                if (!enforceRiskLimits(trades, riskParams, balance)) {
                     console.log("Risk limits reached. Stopping backtest.");
                     break;
                 }
 
-                // Get the signal from the indicator.
-                const signal = indicatorInstance.calculateSignal(relevantCandles);
-
-                // Process BUY/SELL signals.
+                // Process signal using the indicator.
+                const signal = processSignal(relevantCandles, strategy, params);
                 if (signal === 'BUY') {
-                    // Only open a new position if none is open.
                     if (!openPosition) {
                         const amountToInvest = balance * positionSize;
                         if (amountToInvest <= 0) continue;
-                        // Calculate position size using risk strategy (money management).
-                        let quantity = riskStrategy.calculatePositionSize(riskParams, balance, currentPrice);
-                        // Apply the position size multiplier.
+                        let quantity = calculatePositionSize(riskParams, balance, currentPrice);
                         quantity *= positionSize;
-                        // Compute TP/SL levels.
-                        const { TP, SL } = riskStrategy.calculateTPSL(params, currentPrice);
+                        const { TP, SL } = calculateTPSL(params, currentPrice);
                         openPosition = {
                             entryPrice: currentPrice,
                             sizeInBase: quantity,
                             costInQuote: quantity * currentPrice,
                             entryTime: currentTime,
                             TP,
-                            SL
+                            SL,
                         };
                         balance -= openPosition.costInQuote;
-                        console.log(`Opened BUY at ${currentPrice} with quantity ${quantity}, TP: ${TP}, SL: ${SL}`);
+                        console.log(`Opened BUY at ${currentPrice}, quantity: ${quantity}, TP: ${TP}, SL: ${SL}`);
                     }
                 } else if (signal === 'SELL') {
                     if (openPosition) {
@@ -126,7 +101,7 @@ class BacktestService {
                             entryTime: openPosition.entryTime,
                             exitTime: currentTime,
                             duration: currentTime - openPosition.entryTime,
-                            closedBy: 'SELL signal'
+                            closedBy: 'SELL signal',
                         });
                         console.log(`Closed trade at ${exitPrice}, profit: ${profit}`);
                         openPosition = null;
@@ -134,7 +109,7 @@ class BacktestService {
                 }
             }
 
-            // 6) Mark-to-market: if a position is still open, close it.
+            // Mark-to-market if a position remains open.
             if (openPosition) {
                 const lastPrice = candles[candles.length - 1].close;
                 const positionValue = openPosition.sizeInBase * lastPrice;
@@ -147,12 +122,12 @@ class BacktestService {
                     entryTime: openPosition.entryTime,
                     exitTime: candles[candles.length - 1].timestamp,
                     duration: candles[candles.length - 1].timestamp - openPosition.entryTime,
-                    unrealized: true
+                    unrealized: true,
                 });
                 openPosition = null;
             }
 
-            // 7) Optimize parameters using grid (or other method) and get refined risk parameters.
+            // Optimize parameters.
             const optimizedParams = riskStrategy.optimizeParameters(
                 symbol,
                 timeframe,
@@ -160,7 +135,6 @@ class BacktestService {
                 candles
             );
 
-            // 8) Build final summary.
             const summary = {
                 strategy,
                 params,
@@ -171,35 +145,13 @@ class BacktestService {
                 finalBalance: balance,
                 totalTrades: trades.filter(t => !t.unrealized).length,
                 trades,
-                metrics: this.calculateMetrics(trades)
+                metrics: calculateMetrics(trades),
             };
 
             return summary;
         } catch (error) {
             throw new Error(`Backtest failed: ${error.message}`);
         }
-    }
-
-    calculateMetrics(trades) {
-        const realTrades = trades.filter(t => !t.unrealized);
-        if (realTrades.length === 0) {
-            return {
-                totalPnL: 0,
-                winRate: 0,
-                avgProfit: 0,
-                maxDrawdown: 0
-            };
-        }
-        const totalPnL = realTrades.reduce((sum, t) => sum + t.profit, 0);
-        const wins = realTrades.filter(t => t.profit > 0).length;
-        const winRate = wins / realTrades.length;
-        const avgProfit = totalPnL / realTrades.length;
-        return {
-            totalPnL,
-            winRate,
-            avgProfit,
-            maxDrawdown: 0
-        };
     }
 }
 

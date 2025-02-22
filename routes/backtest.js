@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const backtestService = require('../app/services/BacktestService');
+const backtestService = require('../app/services/backtestService/BacktestService');
 
 router.post('/run', async (req, res) => {
     try {
