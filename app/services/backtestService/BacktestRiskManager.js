@@ -12,13 +12,28 @@ const OptimizationManager = require('../../strategies/optimization/OptimizationM
  */
 function calculatePositionSize(riskParams, balance, price) {
     if (riskParams.positionSizingMethod === 'compound') {
+        // Check that the riskFraction is provided and is a number.
         if (typeof riskParams.riskFraction === 'number') {
+            // Calculate the dollar amount you're willing to risk.
+            // For example, if balance is $10,000 and riskFraction is 0.02 (2%), then riskAmount is $200.
             const riskAmount = balance * riskParams.riskFraction;
+
+            // Check if a stop loss distance is defined and is greater than zero.
+            // The stopLossDistance represents the fraction of the price that determines the loss per unit.
+            // For instance, if price is $100 and stopLossDistance is 0.02, the loss per unit is $2.
             if (riskParams.stopLossDistance && riskParams.stopLossDistance > 0) {
+
+                // Determine the number of units you can buy such that if the price drops by the stop loss distance,
+                // your loss per unit (price * stopLossDistance) times the number of units equals the riskAmount.
                 return riskAmount / (price * riskParams.stopLossDistance);
             }
+
+            // If no stopLossDistance is provided, simply divide the riskAmount by the price.
+            // This means you'll buy enough units so that a full loss of the price equals the riskAmount.
             return riskAmount / price;
         }
+
+        // Fallback: if no riskFraction is provided, default to risking 1% of the balance.
         return (balance * 0.01) / price;
     } else if (riskParams.positionSizingMethod === 'simple') {
         if (riskParams.positionSizeType && riskParams.positionSizeValue) {
