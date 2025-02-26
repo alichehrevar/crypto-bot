@@ -91,15 +91,15 @@ export default function BotUpdates({ initialBots }: BotUpdatesProps) {
                             <strong>Timeframe:</strong> {bot.timeframe}
                         </p>
                         <p>
-                            <strong>Signal:</strong> {bot.marketInfo.lastSignal || 'HOLD'}
+                            <strong>Signal:</strong> {bot.marketInfo?.lastSignal || 'HOLD'}
                         </p>
                         <p>
                             <strong>Last Closed Price:</strong>{' '}
-                            {bot.marketInfo.lastCandle ? bot.marketInfo.lastCandle.close : 'N/A'}
+                            {bot.marketInfo?.lastCandle ? bot.marketInfo.lastCandle.close : 'N/A'}
                         </p>
                         <p>
                             <strong>Live Price:</strong>{' '}
-                            {bot.marketInfo.currentCandle ? bot.marketInfo.currentCandle.price : 'N/A'}
+                            {bot.marketInfo?.currentCandle ? bot.marketInfo.currentCandle.price : 'N/A'}
                         </p>
                     </li>
                 ))}
