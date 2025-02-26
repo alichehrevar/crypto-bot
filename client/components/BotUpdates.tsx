@@ -13,6 +13,9 @@ export interface Bot {
     baseFund: number;
     tradeFund: number;
     leverage: number;
+    cumulativePnL: number;
+    botTP: number;
+    botSL: number;
     marketInfo?: {
         lastSignal?: string;
         lastCandle?: {
