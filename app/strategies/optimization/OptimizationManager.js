@@ -1,30 +1,30 @@
+// strategies/optimization/OptimizationManager.js
 /**
  * OptimizationManager.js
  *
- * This module manages different optimization methods.
- * Currently, it supports a grid search method.
+ * This module manages optimization methods for risk parameters.
+ * Currently, it supports grid search via the OptimizeGrid module.
  */
 
 const { optimizeGrid } = require('./OptimizeGrid');
 
 class OptimizationManager {
     constructor() {
-        // Map available methods. More can be added later.
+        // Register available optimization methods.
         this.methods = {
             grid: optimizeGrid,
-            // bayesian: optimizeBayesian,  // future implementation
-            // ann: optimizeANN,            // future implementation
+            // Other methods (bayesian, ann) can be added here in the future.
         };
     }
 
     /**
-     * Selects and executes an optimization method.
+     * Optimizes parameters using the specified method.
      *
      * @param {String} symbol - Trading symbol (e.g., "BTC/USDT").
-     * @param {String} timeframe - Timeframe (e.g., "1h").
-     * @param {String} optimizationMethod - The optimization method to use (e.g., "grid").
-     * @param {Array} historicalCandles - Historical candle data.
-     * @returns {Object} Optimized parameters.
+     * @param {String} timeframe - Trading timeframe (e.g., "1h").
+     * @param {String} optimizationMethod - The method to use (e.g., "grid").
+     * @param {Array} historicalCandles - An array of historical candle data.
+     * @returns {Object} The optimized parameters.
      */
     optimize(symbol, timeframe, optimizationMethod, historicalCandles) {
         if (this.methods[optimizationMethod]) {
