@@ -10,7 +10,10 @@ export interface Bot {
     timeframe: string;
     indicator?: string;
     riskStrategy?: string;
-    marketInfo: {
+    baseFund: number;
+    tradeFund: number;
+    leverage: number;
+    marketInfo?: {
         lastSignal?: string;
         lastCandle?: {
             close: number;
@@ -18,7 +21,7 @@ export interface Bot {
         currentCandle?: {
             price: number;
         };
-    };
+    } | null;
 }
 
 interface BotUpdatesProps {

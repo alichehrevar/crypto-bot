@@ -62,6 +62,21 @@ export default function DefaultMethodPage() {
                         <p><strong>Indicator:</strong> {bot.indicator || 'N/A'}</p>
                         <p><strong>Risk Strategy:</strong> {bot.riskStrategy || 'N/A'}</p>
                         <p><strong>Strategy:</strong> {bot.strategy}</p>
+                        <p><strong>Base Fund ($):</strong> {bot.baseFund}</p>
+                        <p><strong>Trade Fund (%):</strong> {bot.tradeFund}%</p>
+                        <p><strong>Leverage:</strong> {bot.leverage}x</p>
+                        <p>
+                            <strong>Last Signal:</strong>{' '}
+                            {bot.marketInfo && bot.marketInfo.lastSignal ? bot.marketInfo.lastSignal : 'HOLD'}
+                        </p>
+                        <p>
+                            <strong>Last Closed Candle Price:</strong>{' '}
+                            {bot.marketInfo && bot.marketInfo.lastCandle ? bot.marketInfo.lastCandle.close : 'N/A'}
+                        </p>
+                        <p>
+                            <strong>Current Candle Price:</strong>{' '}
+                            {bot.marketInfo && bot.marketInfo.currentCandle ? bot.marketInfo.currentCandle.price : 'N/A'}
+                        </p>
                     </li>
                 ))}
             </ul>

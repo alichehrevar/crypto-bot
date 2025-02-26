@@ -10,26 +10,16 @@ class OrderExecutionService {
      * @param {Object} riskStrategyInstance - Instance for risk management strategy (if available).
      */
     async executeOrder(bot, signal, price, riskStrategyInstance) {
-        // Retrieve open trades for this bot.
-        const openTrades = await Trade.find({ bot: bot._id, exitPrice: null });
+        const openTrade = await Trade.findOne({ bot: bot._id, exitPrice: null });
         if (signal === 'BUY') {
-            if (bot.positionMode === 'single' && openTrades.length > 0) {
-                console.log(`Bot "${bot.name}" in single mode already has an open trade.`);
+            if (openTrade) {
+                console.log(`Bot "${bot.name}" tried to BUY but already has an open trade.`);
                 return;
             }
-            let quantity = 0;
-            if (riskStrategyInstance && typeof riskStrategyInstance.calculatePositionSize === 'function') {
-                // If the function expects three parameters (e.g., lastTradeOutcome, balance, price), assume 'win' as default.
-                if (riskStrategyInstance.calculatePositionSize.length === 3) {
-                    quantity = riskStrategyInstance.calculatePositionSize('win', bot.paperBalance, price);
-                } else {
-                    quantity = riskStrategyInstance.calculatePositionSize(bot.paperBalance, price);
-                }
-            } else {
-                // Fallback to default calculation.
-                quantity = (bot.paperBalance * 0.01) / price;
-            }
-            // Compute TP/SL levels using the risk strategy module.
+            let quantity = riskStrategyInstance.calculatePositionSize
+                ? riskStrategyInstance.calculatePositionSize(bot.paperBalance, price)
+                : (bot.paperBalance * 0.01) / price;
+            // Compute TP/SL levels using your risk management module.
             const { TP, SL } = RiskStrategy.calculateTPSL(bot.strategyParams, price);
             const newTrade = new Trade({
                 bot: bot._id,
@@ -42,25 +32,28 @@ class OrderExecutionService {
             await newTrade.save();
             console.log(`Bot "${bot.name}" opened BUY at ${price} with quantity ${quantity}, TP: ${TP}, SL: ${SL}`);
         } else if (signal === 'SELL') {
-            if (openTrades.length === 0) {
+            if (!openTrade) {
                 console.log(`Bot "${bot.name}" received SELL signal but no open trade exists.`);
                 return;
             }
-            // For simplicity, close the earliest open trade.
-            const tradeToClose = openTrades[0];
-            tradeToClose.exitPrice = price;
-            tradeToClose.timestamp = new Date();
-            if (tradeToClose.type === 'BUY') {
-                tradeToClose.profit = (price - tradeToClose.entryPrice) * tradeToClose.quantity;
-            } else {
-                tradeToClose.profit = (tradeToClose.entryPrice - price) * tradeToClose.quantity;
-            }
-            await tradeToClose.save();
-            console.log(`Bot "${bot.name}" closed trade at ${price}. Profit: ${tradeToClose.profit}`);
+            openTrade.exitPrice = price;
+            openTrade.timestamp = new Date();
+            openTrade.profit = (price - openTrade.entryPrice) * openTrade.quantity;
+            await openTrade.save();
+            console.log(`Bot "${bot.name}" closed trade at ${price}. Profit: ${openTrade.profit}`);
             if (bot.mode === 'paper' && typeof bot.paperBalance === 'number') {
-                bot.paperBalance += tradeToClose.profit;
-                await bot.save();
+                bot.paperBalance += openTrade.profit;
             }
+            // Update cumulative PnL.
+            bot.cumulativePnL = (bot.cumulativePnL || 0) + openTrade.profit;
+
+            // Check if bot-level TP/SL has been reached.
+            // Assuming botTP is a positive profit threshold and botSL is a negative loss threshold.
+            if ((bot.botTP && bot.cumulativePnL >= bot.botTP) || (bot.botSL && bot.cumulativePnL <= bot.botSL)) {
+                console.log(`Bot "${bot.name}" has reached its bot-level TP/SL threshold. Stopping further trading.`);
+                bot.active = false;  // Stop the bot from further trading.
+            }
+            await bot.save();
         }
     }
 }

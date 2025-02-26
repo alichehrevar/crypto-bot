@@ -7,7 +7,10 @@ const { Schema } = mongoose;
  */
 const strategyParamsSchema = new Schema({
     shortPeriod: { type: Number, min: 1 },
-    longPeriod: { type: Number, min: 1 }
+    longPeriod: { type: Number, min: 1 },
+    period: { type: Number },
+    overbought: { type: Number },
+    oversold: { type: Number },
 }, { _id: false });
 
 /**
@@ -17,6 +20,12 @@ const strategyParamsSchema = new Schema({
 const riskParamsSchema = new Schema({
     maxDrawdown: { type: Number },
     dailyLossLimit: { type: Number },
+    // Money management settings:
+    positionSizingMethod: { type: String, enum: ['compound', 'simple'] },
+    // For "compound" method:
+    riskFraction: { type: Number },
+    stopLossDistance: { type: Number },
+    // For "simple" method:
     positionSizeType: { type: String, enum: ['percentage', 'fixed'] },
     positionSizeValue: { type: Number },
     maxOpenTrades: { type: Number }
@@ -120,7 +129,10 @@ const botSchema = new Schema({
     // Operational flags and settings
     active: { type: Boolean, default: false },
     mode: { type: String, enum: ['live', 'paper'], default: 'paper' },
-    paperBalance: { type: Number, default: 10000 }
+    paperBalance: { type: Number, default: 10000 },
+    cumulativePnL: { type: Number, default: 0 },
+    botTP: { type: Number, default: 0 }, // e.g., a positive value; if cumulativePnL >= botTP, stop trading.
+    botSL: { type: Number, default: 0 }  // e.g., a negative value; if cumulativePnL <= botSL, stop trading.
 }, { timestamps: true });
 
 // Create a compound index to prevent duplicate entries for the same symbol, timeframe, and timestamp (if applicable).

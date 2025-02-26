@@ -26,6 +26,12 @@ exports.deployBot = async (req, res) => {
         }
         botData.userId = user._id;
 
+        // Set default values for missing fields.
+        botData.baseFund = botData.baseFund !== undefined ? botData.baseFund : 10000;    // default $10,000
+        botData.tradeFund = botData.tradeFund !== undefined ? botData.tradeFund : 10;     // default 10%
+        botData.leverage = botData.leverage !== undefined ? botData.leverage : 1;           // default 1x
+        botData.mode = botData.mode || 'live';
+
         const newBot = await Bot.create(botData);
         // Register the bot in the BotService.
         BotService.addBot(newBot);
