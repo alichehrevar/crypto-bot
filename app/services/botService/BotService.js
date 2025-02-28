@@ -7,16 +7,24 @@ const RiskManagementService = require('./RiskManagementService');
 const BotUpdateService = require('./BotUpdateService');
 const { createIndicator, createRiskStrategy } = require('./botFactory');
 
+/**
+ * BotService is responsible for:
+ * - Loading active bots from the database and registering them in memory.
+ * - Processing live candle data by generating trading signals from the indicator.
+ * - Checking risk conditions and executing orders via OrderExecutionService.
+ * - Updating bot market data via BotUpdateService.
+ */
 class BotService {
     constructor() {
-        // Active bots are stored in a Map keyed by a normalized combination of symbol and timeframe.
+        // activeBots: Map keyed by "SYMBOL-TIMEFRAME" (normalized)
+        // Each entry is an array of objects containing { bot, indicatorInstance, riskStrategyInstance }.
         this.activeBots = new Map();
-        // StrategyManager is used to optionally combine indicator signals (if needed).
+        // StrategyManager can optionally be used to combine signals.
         this.strategyManager = new StrategyManager();
     }
 
     /**
-     * Loads all active bots from the database and registers them in memory.
+     * Load all active bots from the database and register them in memory.
      */
     async initialize() {
         const bots = await Bot.find({ active: true });
@@ -24,51 +32,45 @@ class BotService {
     }
 
     /**
-     * Adds a single bot to the in-memory registry.
-     * This function creates both an indicator instance and a risk strategy instance for the bot.
+     * Add a bot to the in-memory registry.
+     * Creates both an indicator instance and a risk strategy instance for each bot.
      *
-     * @param {Object} bot - Bot document from the database.
+     * @param {Object} bot - The bot configuration document.
      */
     addBot(bot) {
-        // Create indicator instance based on the bot's indicator field.
+        // Create the indicator instance based on bot.indicator.
         const indicatorInstance = createIndicator(bot);
-        // Create risk management (money management) strategy instance based on the bot's riskStrategy field.
+        // Create the risk strategy (money management) instance based on bot.riskStrategy.
         const riskStrategyInstance = createRiskStrategy(bot);
-        // Normalize key: symbol is uppercase and timeframe is lowercase.
+        // Normalize key: symbol in uppercase and timeframe in lowercase.
         const key = `${bot.symbol.toUpperCase()}-${bot.timeframe.toLowerCase()}`;
         if (!this.activeBots.has(key)) {
             this.activeBots.set(key, []);
         }
-        // Store the bot along with its indicator and risk strategy instances.
+        // Store the bot along with both instances.
         this.activeBots.get(key).push({ bot, indicatorInstance, riskStrategyInstance });
-        // Optionally, register the indicator instance with the StrategyManager for combined signal processing.
+        // Optionally register the indicator instance in the StrategyManager.
         this.strategyManager.registerStrategy(bot.name, indicatorInstance);
     }
 
     /**
-     * Processes new candle data for a given symbol/timeframe.
-     * For each bot under the given key, it:
-     *  - Checks risk limits via RiskManagementService.
-     *  - Uses the indicator instance to generate a trading signal.
-     *  - If the signal is actionable (not 'HOLD'), executes an order via OrderExecutionService.
+     * Process new live candle data for a given symbol/timeframe.
+     * For each bot under that key, check risk limits, generate a signal, and execute an order if needed.
      *
-     * @param {string} symbol - Trading symbol.
-     * @param {string} timeframe - Trading timeframe.
+     * @param {string} symbol - The trading symbol.
+     * @param {string} timeframe - The trading timeframe.
      * @param {Array<Object>} candles - Array of candle objects.
      */
     async processCandle(symbol, timeframe, candles) {
-        // Normalize symbol and timeframe.
         const normSymbol = symbol.toUpperCase();
         const normTimeframe = timeframe.toLowerCase();
         const key = `${normSymbol}-${normTimeframe}`;
         const botEntries = this.activeBots.get(key) || [];
-        // Get the most recent candle's close price.
         const lastCandle = candles[candles.length - 1];
         const closePrice = lastCandle.close;
 
-        // Iterate over each active bot for this symbol/timeframe.
         for (const { bot, indicatorInstance, riskStrategyInstance } of botEntries) {
-            // Use RiskManagementService to check if the bot is allowed to trade.
+            // Check if the bot is allowed to trade based on risk limits.
             const riskCheck = await RiskManagementService.checkRisk(bot);
             if (!riskCheck.canTrade) {
                 console.log(`Blocked trade for bot "${bot.name}": ${riskCheck.reason}`);
@@ -77,15 +79,14 @@ class BotService {
             // Generate a signal using the indicator instance.
             const signal = indicatorInstance.calculateSignal(candles);
             if (signal !== 'HOLD') {
-                // If a BUY/SELL signal is generated, execute an order using OrderExecutionService.
+                // Execute the order using the risk strategy instance.
                 await OrderExecutionService.executeOrder(bot, signal, closePrice, riskStrategyInstance);
             }
         }
     }
 
     /**
-     * Updates a bot's market data using new candle information.
-     * Delegates the update logic to BotUpdateService.
+     * Update a bot's market data using new candle information.
      *
      * @param {Object} candle - New candle data.
      */
