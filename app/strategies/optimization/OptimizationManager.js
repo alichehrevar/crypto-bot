@@ -1,37 +1,43 @@
 // strategies/optimization/OptimizationManager.js
-/**
- * OptimizationManager.js
- *
- * This module manages optimization methods for risk parameters.
- * Currently, it supports grid search via the OptimizeGrid module.
- */
 
+// Import our optimization methods.
 const { optimizeGrid } = require('./OptimizeGrid');
+const { optimizeBayesian } = require('./OptimizeBayesian');
 
+/**
+ * OptimizationManager
+ *
+ * Manages different optimization methods. Depending on the 'optimizationMethod' parameter,
+ * it will call the corresponding optimization routine.
+ */
 class OptimizationManager {
     constructor() {
-        // Register available optimization methods.
+        // Map of available methods.
         this.methods = {
             grid: optimizeGrid,
-            // Other methods (bayesian, ann) can be added here in the future.
+            bayesian: optimizeBayesian,
+            // Additional methods (e.g., ANN) could be added here.
         };
     }
 
     /**
-     * Optimizes parameters using the specified method.
+     * optimize
+     *
+     * Runs the specified optimization method on historical data to tune strategy parameters.
      *
      * @param {String} symbol - Trading symbol (e.g., "BTC/USDT").
      * @param {String} timeframe - Trading timeframe (e.g., "1h").
-     * @param {String} optimizationMethod - The method to use (e.g., "grid").
-     * @param {Array} historicalCandles - An array of historical candle data.
-     * @returns {Object} The optimized parameters.
+     * @param {String} optimizationMethod - Method to use (e.g., "grid" or "bayesian").
+     * @param {Array<Object>} historicalCandles - Historical candle data.
+     * @returns {Promise<Object>} Optimized parameters.
      */
-    optimize(symbol, timeframe, optimizationMethod, historicalCandles) {
+    async optimize(symbol, timeframe, optimizationMethod, historicalCandles) {
         if (this.methods[optimizationMethod]) {
-            return this.methods[optimizationMethod](symbol, timeframe, historicalCandles);
+            // For Bayesian optimization, our function returns a promise.
+            return await this.methods[optimizationMethod](symbol, timeframe, historicalCandles);
         }
         console.warn(`Unknown optimization method "${optimizationMethod}", defaulting to grid`);
-        return this.methods['grid'](symbol, timeframe, historicalCandles);
+        return optimizeGrid(symbol, timeframe, historicalCandles);
     }
 }
 
