@@ -1,26 +1,26 @@
-// services/backtestService/BacktestService.js
-
 const Candle = require('../../models/Candle');
-// Import indicators if needed (or use BacktestSignalProcessor to create instances dynamically)
+// The processSignal function instantiates the chosen indicator and returns a signal.
 const { processSignal } = require('./BacktestSignalProcessor');
-// Import unified risk functions from our backtest risk manager.
+// Unified risk management functions (position sizing, TP/SL, risk limits, and optimization).
 const riskManager = require('./BacktestRiskManager');
-// Import order simulation function.
+// Simulates order execution based on signals.
 const { simulateOrder } = require('./BacktestOrderSimulator');
-// Import metrics calculator.
+// Calculates performance metrics from trade history.
 const { calculateMetrics } = require('./BacktestMetricsCalculator');
 
 /**
  * BacktestService
  *
- * Orchestrates the simulation of a trading strategy over historical data.
+ * Orchestrates the simulation of a trading strategy over historical candle data.
+ * It fetches historical data, processes signals via an indicator, simulates order execution,
+ * enforces risk limits, and finally calculates performance metrics.
  */
 class BacktestService {
     /**
      * Runs a backtest using a specified indicator strategy.
      *
      * @param {Object} options - Options for the backtest.
-     * @param {String} options.strategy - Indicator name used to generate signals.
+     * @param {String} options.strategy - The indicator name used to generate signals.
      *        Supported: 'RSI', 'MA_Crossover', 'MACD', 'Donchian', 'Volume', 'Heikin_Ashi',
      *                   'Combined_RSI_MACD', 'Bollinger_Bands', 'Stochastic_RSI'
      * @param {Object} options.params - Contains indicator parameters, riskParams, and optimizationMethod.
@@ -32,10 +32,29 @@ class BacktestService {
      * @param {Number} [options.positionSize=1.0] - Fraction of balance to risk per trade.
      * @returns {Object} Summary with final metrics and trade history.
      */
-    async run({ strategy, params, symbol, timeframe, startDate, endDate, initialBalance = 10000, positionSize = 1.0 }) {
+    async run({
+                  strategy,
+                  params,
+                  symbol,
+                  timeframe,
+                  startDate,
+                  endDate,
+                  initialBalance = 10000,
+                  positionSize = 1.0,
+              }) {
         try {
-            // Validate the indicator strategy.
-            const supportedIndicators = ['RSI', 'MA_Crossover', 'MACD', 'Donchian', 'Volume', 'Heikin_Ashi', 'Combined_RSI_MACD', 'Bollinger_Bands', 'Stochastic_RSI'];
+            // Validate that the chosen strategy (indicator) is supported.
+            const supportedIndicators = [
+                'RSI',
+                'MA_Crossover',
+                'MACD',
+                'Donchian',
+                'Volume',
+                'Heikin_Ashi',
+                'Combined_RSI_MACD',
+                'Bollinger_Bands',
+                'Stochastic_RSI',
+            ];
             if (!supportedIndicators.includes(strategy)) {
                 throw new Error('Invalid strategy');
             }
@@ -44,7 +63,7 @@ class BacktestService {
             const candles = await Candle.find({
                 symbol: symbol.toUpperCase(),
                 timeframe: timeframe.toLowerCase(),
-                timestamp: { $gte: new Date(startDate), $lte: new Date(endDate) }
+                timestamp: { $gte: new Date(startDate), $lte: new Date(endDate) },
             }).sort({ timestamp: 1 });
 
             if (candles.length === 0) {
@@ -55,50 +74,57 @@ class BacktestService {
             let balance = initialBalance;
             let openPosition = null;
             const trades = [];
+            // Extract risk management parameters from params.
             const riskParams = params.riskParams || {};
 
-            // Determine minimum required candles based on the strategy.
-            const minRequiredCandles = strategy === 'RSI'
-                ? (params.period * 2 || 28)
-                : (params.shortPeriod + params.longPeriod || 30);
+            // Determine the minimum required candles for signal generation.
+            // For RSI, we require roughly 2 * period candles; for others, use a sum of short and long periods.
+            const minRequiredCandles =
+                strategy === 'RSI'
+                    ? params.period * 2 || 28
+                    : params.shortPeriod && params.longPeriod
+                        ? params.shortPeriod + params.longPeriod
+                        : 30;
 
-            // Main backtest loop.
+            // Main backtest loop: iterate over each candle.
             for (let i = 0; i < candles.length; i++) {
-                // Skip if there is insufficient data.
+                // Skip if we haven't reached enough data points.
                 if (i < minRequiredCandles) continue;
                 const relevantCandles = candles.slice(0, i + 1);
                 const currentPrice = candles[i].close;
                 const currentTime = candles[i].timestamp;
 
-                // Enforce risk limits using the risk manager.
+                // Enforce risk limits based on today's trades and current balance.
                 if (!riskManager.enforceRiskLimits(trades, riskParams, balance)) {
-                    console.log("Risk limits reached. Stopping backtest.");
+                    console.log('Risk limits reached. Stopping backtest.');
                     break;
                 }
 
-                // Process the signal using our signal processor.
+                // Process the signal using the chosen indicator.
                 const signal = processSignal(relevantCandles, strategy, params);
 
-                // Use the order simulator to simulate trades if a BUY or SELL signal is generated.
+                // If we get a BUY or SELL signal, simulate order execution.
                 if (signal === 'BUY' || signal === 'SELL') {
-                    const { openPosition: newPosition, balance: newBalance, tradeRecord } = simulateOrder({
+                    const { openPosition: newPos, balance: newBal, tradeRecord } = simulateOrder({
                         balance,
                         currentPrice,
                         currentTime,
                         signal,
                         openPosition,
-                        calculatePositionSize: (bal, price) => riskManager.calculatePositionSize(riskParams, bal, price),
-                        calculateTPSL: (entryPrice) => riskManager.calculateTPSL(params, entryPrice)
+                        // Use risk manager functions for position sizing and TP/SL calculations.
+                        calculatePositionSize: (bal, price) =>
+                            riskManager.calculatePositionSize(riskParams, bal, price),
+                        calculateTPSL: (entryPrice) => riskManager.calculateTPSL(params, entryPrice),
                     });
-                    openPosition = newPosition;
-                    balance = newBalance;
+                    openPosition = newPos;
+                    balance = newBal;
                     if (tradeRecord) {
                         trades.push(tradeRecord);
                     }
                 }
             }
 
-            // Mark-to-market: if a position remains open at the end, close it at the last candle's price.
+            // Mark-to-market: if a position remains open at the end, close it using the last candle's price.
             if (openPosition) {
                 const lastPrice = candles[candles.length - 1].close;
                 const positionValue = openPosition.sizeInBase * lastPrice;
@@ -111,23 +137,23 @@ class BacktestService {
                     entryTime: openPosition.entryTime,
                     exitTime: candles[candles.length - 1].timestamp,
                     duration: candles[candles.length - 1].timestamp - openPosition.entryTime,
-                    unrealized: true
+                    unrealized: true,
                 });
                 openPosition = null;
             }
 
-            // Optimize parameters based on historical performance.
-            const optimizedParams = riskManager.optimizeParameters(
+            // Optionally, optimize parameters using the risk manager's optimization function.
+            const optimizedParams = await riskManager.optimizeParameters(
                 symbol,
                 timeframe,
                 params.optimizationMethod || 'grid',
                 candles
             );
 
-            // Calculate performance metrics from the simulated trades.
+            // Calculate performance metrics from the trade history.
             const metrics = calculateMetrics(trades);
 
-            // Build and return the summary object.
+            // Build and return a summary object.
             const summary = {
                 strategy,
                 params,
@@ -136,9 +162,9 @@ class BacktestService {
                 timeframe,
                 initialBalance,
                 finalBalance: balance,
-                totalTrades: trades.filter(t => !t.unrealized).length,
+                totalTrades: trades.filter((t) => !t.unrealized).length,
                 trades,
-                metrics
+                metrics,
             };
 
             return summary;
