@@ -1,102 +1,99 @@
+// test/RSI.test.js
+
+// Import the RSI indicator from the indicators directory.
+// Adjust the relative path if your project structure has changed.
 const RSI = require('../app/indicators/RSI');
+
+// Import a helper function to generate test candle data.
 const { generateTestData } = require('./testUtils');
 
+// Import chai's expect function using dynamic import for ES modules compatibility.
 let expect;
 before(async () => {
     const chai = await import('chai');
     expect = chai.expect;
 });
 
-
-describe('RSI Strategy', () => {
-    it('should throw an error if params are not provided', () => {
+describe('RSI Indicator', () => {
+    it('should throw an error if configuration is not provided', () => {
         expect(() => new RSI()).to.throw('RSI strategy requires configuration object');
     });
 
-    it('should throw error if period is out of range', () => {
+    it('should throw an error if period is out of range', () => {
+        // Period less than 2.
         expect(() => new RSI({ period: 1 })).to.throw('Invalid period (2-200)');
+        // Period greater than 200.
         expect(() => new RSI({ period: 201 })).to.throw('Invalid period (2-200)');
     });
 
-    it('should throw error if overbought <= oversold', () => {
+    it('should throw an error if overbought <= oversold', () => {
+        // Overbought equals oversold.
         expect(() => new RSI({ period: 14, overbought: 30, oversold: 30 }))
             .to.throw('Invalid overbought/oversold levels');
+        // Overbought is less than oversold.
         expect(() => new RSI({ period: 14, overbought: 20, oversold: 30 }))
             .to.throw('Invalid overbought/oversold levels');
     });
 
-    it('should calculate RSI correctly and return HOLD if not crossing boundaries', () => {
-        // Minimal candle data for a 14-period RSI requires at least 15 candles.
-        // Here, we generate 28 candles for a clearer scenario.
+    it('should calculate RSI correctly and return HOLD if no crossover occurs', () => {
+        // Generate sufficient candle data (28 candles for a 14-period RSI).
         const candles = generateTestData(28);
-
-        const rsiStrategy = new RSI({
+        const rsiIndicator = new RSI({
             period: 14,
             overbought: 70,
             oversold: 30,
         });
-
-        const signal = rsiStrategy.calculateSignal(candles);
-        // In a typical ascending or mild fluctuation scenario, we might not cross
-        // overbought/oversold on the last candle, so we expect 'HOLD'.
+        // In a typical upward trend or mild fluctuation, we expect the RSI signal to be HOLD.
+        const signal = rsiIndicator.calculateSignal(candles);
         expect(signal).to.equal('HOLD');
     });
 
-    it('should return BUY when rsi just moved below oversold threshold', () => {
-        // Example scenario: create data that forces RSI to drop below oversold on the last candle.
-        // (In real tests, you may adjust the candle values to ensure RSI truly crosses below 30.)
+    it('should return BUY when RSI just crosses below the oversold threshold', () => {
+        // Create an artificial scenario where RSI crosses below the oversold level.
+        // The following candles are manually set to force an oversold crossover.
         const candles = [
             { close: 100 }, { close: 101 }, { close: 102 }, { close: 103 },
             { close: 102 }, { close: 101 }, { close: 99 },  { close: 98 },
             { close: 97 },  { close: 95 }, { close: 94 }, { close: 93 },
             { close: 92 }, { close: 90 }, { close: 89 }, { close: 88 }
         ];
-
-        const rsiStrategy = new RSI({
+        const rsiIndicator = new RSI({
             period: 14,
             overbought: 70,
             oversold: 30,
         });
-
-        const signal = rsiStrategy.calculateSignal(candles);
-        // The signal should be either 'BUY' (if RSI just dipped below oversold)
-        // or 'HOLD' if the crossover did not occur exactly.
+        const signal = rsiIndicator.calculateSignal(candles);
+        // Depending on the calculation details, we expect a BUY signal if a crossover occurs,
+        // otherwise it might still be HOLD.
         expect(['BUY', 'HOLD']).to.include(signal);
     });
 
-    it('should return SELL when rsi just moved above overbought threshold', () => {
-        // Example scenario: create data that forces RSI to break above 70 on the last candle.
+    it('should return SELL when RSI just crosses above the overbought threshold', () => {
+        // Create a scenario to force an overbought crossover.
         const candles = [
             { close: 100 }, { close: 102 }, { close: 105 }, { close: 108 },
             { close: 110 }, { close: 112 }, { close: 115 }, { close: 117 },
             { close: 120 }, { close: 122 }, { close: 125 }, { close: 126 },
             { close: 128 }, { close: 129 }, { close: 130 }, { close: 133 }
         ];
-
-        const rsiStrategy = new RSI({
+        const rsiIndicator = new RSI({
             period: 14,
             overbought: 70,
             oversold: 30
         });
-
-        const signal = rsiStrategy.calculateSignal(candles);
-        // Depending on the precise RSI calculations, the signal might be 'SELL' or 'HOLD'
-        // if the overbought crossover did not clearly occur.
+        const signal = rsiIndicator.calculateSignal(candles);
         expect(['SELL', 'HOLD']).to.include(signal);
     });
 
-    it('should handle insufficient data gracefully', () => {
-        // Provide fewer than the required number of candles (e.g., 10 candles only)
+    it('should handle insufficient data gracefully by returning HOLD', () => {
+        // Provide fewer candles than required (e.g., 10 candles for a 14-period RSI).
         const candles = Array(10).fill({ close: 100 });
-
-        const rsiStrategy = new RSI({
+        const rsiIndicator = new RSI({
             period: 14,
             overbought: 70,
             oversold: 30
         });
-
-        const signal = rsiStrategy.calculateSignal(candles);
-        // With insufficient data, the function should warn and return 'HOLD'
+        const signal = rsiIndicator.calculateSignal(candles);
         expect(signal).to.equal('HOLD');
     });
 });
