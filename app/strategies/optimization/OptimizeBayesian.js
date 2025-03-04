@@ -92,8 +92,20 @@ async function optimizeBayesian(symbol, timeframe, historicalCandles) {
         let bestPrediction = -Infinity;
         // Evaluate the GP prediction for each candidate in the grid.
         grid.forEach(candidate => {
-            // Predict returns an array; we take the first element as the mean prediction.
-            const prediction = gp.predict([[candidate]])[0];
+            let prediction;
+            try {
+                // Attempt to predict at the candidate value.
+                // The API may return an array; we try to extract the mean prediction.
+                const predictionResult = gp.predict([[candidate]]);
+                // If predictionResult is an array, assume the first element is the mean.
+                prediction = Array.isArray(predictionResult) ? predictionResult[0] : predictionResult;
+            } catch (err) {
+                console.error(`Error during GP prediction at candidate ${candidate}: ${err.message}`);
+                prediction = -Infinity;
+            }
+            if (typeof prediction !== 'number' || isNaN(prediction)) {
+                prediction = -Infinity;
+            }
             if (prediction > bestPrediction) {
                 bestPrediction = prediction;
                 bestCandidate = candidate;

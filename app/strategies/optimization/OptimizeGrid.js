@@ -72,7 +72,7 @@ function optimizeGrid(symbol, timeframe, historicalCandles) {
             // Update balance.
             balance += profit;
         }
-        return balance;
+        return balance - initialBalance;
     }
 
     // Perform a grid search over candidate risk fractions.
