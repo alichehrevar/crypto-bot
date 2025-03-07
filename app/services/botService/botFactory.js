@@ -1,24 +1,33 @@
-// Indicators
-const RSI = require('../../indicators/RSI');
-const MACD = require('../../indicators/MACD');
-const MACrossover = require('../../indicators/MovingAverageCrossover');
-const Donchian = require('../../indicators/Donchian');
-const Volume = require('../../indicators/Volume');
-const HeikinAshi = require('../../indicators/HeikinAshi');
-const CombinedRsiMacd = require('../../indicators/CombinedRsiMacd');
-const BollingerBands = require('../../indicators/BollingerBands');
-const StochasticRSI = require('../../indicators/StochasticRSI');
+// botFactory.js
 
-// Strategies
+// ----- Indicators -----
+// Import all indicators from the indicators index file.
+const {
+    RSI,
+    MACD,
+    MACrossover,
+    Donchian,
+    Volume,
+    HeikinAshi,
+    CombinedRsiMacd,
+    BollingerBands,
+    // For Stochastic_RSI, we import the function directly.
+    // (Assuming your file exports: { calculateStochasticRSISignal }.)
+    calculateStochasticRSISignal,
+    HurstIndicator,
+} = require('../../indicators');
+
+// ----- Strategies (Money Management) -----
+// Import all risk management (money management) strategy modules.
 const MartingaleStrategy = require('../../strategies/moneyManagement/MartingaleStrategy');
 const MirroredMartingaleStrategy = require('../../strategies/moneyManagement/MirroredMartingaleStrategy');
 const KellyCriterionStrategy = require('../../strategies/moneyManagement/KellyCriterionStrategy');
 const SimpleStrategy = require('../../strategies/moneyManagement/SimpleStrategy');
 
 /**
- * Creates an indicator instance based on bot.indicator.
+ * Creates an indicator instance based on the bot.indicator field.
  * @param {Object} bot - The bot document.
- * @returns {Object} The indicator instance.
+ * @returns {Object} An instance or object implementing calculateSignal().
  */
 function createIndicator(bot) {
     switch (bot.indicator) {
@@ -30,7 +39,7 @@ function createIndicator(bot) {
             return new MACrossover(bot.strategyParams);
         case 'Donchian':
             return {
-                // For Donchian, we simply expose the signal function; you might wrap it in an object if needed.
+                // Wrap the signal function for Donchian.
                 calculateSignal: (candles) => Donchian.calculateDonchianSignal(candles, 'donchian')
             };
         case 'Volume':
@@ -43,21 +52,31 @@ function createIndicator(bot) {
             };
         case 'Combined_RSI_MACD':
             return {
-                calculateSignal: (candles) => CombinedRsiMacd.calculateCombinedRsiMacdSignal(candles, 'combined', { parameters: { confirmation_window: 6 } })
+                calculateSignal: (candles) =>
+                    CombinedRsiMacd.calculateCombinedRsiMacdSignal(candles, 'combined', { parameters: { confirmation_window: 6 } })
             };
         case 'Bollinger_Bands':
             return {
                 calculateSignal: (candles) => BollingerBands.calculateBollingerBandsSignal(candles, 'bollinger')
             };
         case 'Stochastic_RSI':
-            return new StochasticRSI(bot.strategyParams);  // assuming StochasticRSI is implemented similarly to others
+            // For Stochastic_RSI, use the calculateStochasticRSISignal function and return the last signal.
+            return {
+                calculateSignal: (candles) => {
+                    const signals = calculateStochasticRSISignal(candles, 'stochrsi');
+                    // Return the signal for the last candle, or 'HOLD' if signals array is empty.
+                    return signals && signals.length ? signals[signals.length - 1] : 'HOLD';
+                }
+            };
+        case 'Hurst':
+            return new HurstIndicator(bot.strategyParams);
         default:
             throw new Error(`Unknown indicator: ${bot.indicator}`);
     }
 }
 
 /**
- * Creates a risk (money-management) strategy instance based on bot.riskStrategy.
+ * Creates a risk (money-management) strategy instance based on the bot.riskStrategy field.
  * @param {Object} bot - The bot document.
  * @returns {Object} The risk strategy instance.
  */
@@ -70,7 +89,7 @@ function createRiskStrategy(bot) {
         case 'KellyCriterionStrategy':
             return new KellyCriterionStrategy(bot.strategyParams);
         case 'SimpleStrategy':
-            return new SimpleStrategy(bot.strategyParams);
+            return new SimpleStrategy(bot.riskParams);
         default:
             throw new Error(`Unknown risk strategy: ${bot.riskStrategy}`);
     }

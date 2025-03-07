@@ -8,6 +8,7 @@ const HeikinAshi = require('./HeikinAshi');
 const CombinedRsiMacd = require('./CombinedRsiMacd');
 const BollingerBands = require('./BollingerBands');
 const StochasticRSI = require('./StochasticRSI');
+const HurstIndicator = require('./Hurst');
 
 module.exports = {
     BaseStrategy,
@@ -19,5 +20,6 @@ module.exports = {
     HeikinAshi,
     CombinedRsiMacd,
     BollingerBands,
-    StochasticRSI
+    StochasticRSI,
+    HurstIndicator
 };
