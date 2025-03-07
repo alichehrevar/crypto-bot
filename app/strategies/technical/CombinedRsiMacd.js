@@ -1,4 +1,4 @@
-// indicators/CombinedRsiMacd.js
+// technical/CombinedRsiMacd.js
 
 /**
  * calculateCombinedRsiMacdSignal

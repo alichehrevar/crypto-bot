@@ -5,11 +5,11 @@ const { Schema } = mongoose;
 
 /**
  * strategyParamsSchema:
- * Contains parameters for technical indicators (e.g., RSI period, MACD periods, etc.).
+ * Contains parameters for technical technical (e.g., RSI period, MACD periods, etc.).
  */
 const strategyParamsSchema = new Schema({
-    shortPeriod: { type: Number, min: 1 },   // For indicators like MA_Crossover, MACD
-    longPeriod: { type: Number, min: 1 },      // For indicators like MA_Crossover, MACD
+    shortPeriod: { type: Number, min: 1 },   // For technical like MA_Crossover, MACD
+    longPeriod: { type: Number, min: 1 },      // For technical like MA_Crossover, MACD
     period: { type: Number },                  // For RSI (e.g., 14)
     overbought: { type: Number },              // For RSI
     oversold: { type: Number },                // For RSI

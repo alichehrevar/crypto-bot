@@ -1,8 +1,8 @@
 // test/RSI.test.js
 
-// Import the RSI indicator from the indicators directory.
+// Import the RSI indicator from the technical directory.
 // Adjust the relative path if your project structure has changed.
-const RSI = require('../app/indicators/RSI');
+const RSI = require('../app/strategies/technical/RSI');
 
 // Import a helper function to generate test candle data.
 const { generateTestData } = require('./testUtils');

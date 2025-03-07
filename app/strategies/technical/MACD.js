@@ -1,6 +1,6 @@
-// indicators/MACD.js
+// technical/MACD.js
 
-// Import the base class for indicators.
+// Import the base class for technical.
 const BaseIndicator = require('./BaseIndicator');
 
 class MACD extends BaseIndicator {

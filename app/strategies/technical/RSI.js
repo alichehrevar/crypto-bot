@@ -1,6 +1,6 @@
-// indicators/RSI.js
+// technical/RSI.js
 
-// Import the BaseIndicator which contains common functionality for all indicators.
+// Import the BaseIndicator which contains common functionality for all technical.
 const BaseIndicator = require('./BaseIndicator');
 
 class RSI extends BaseIndicator {

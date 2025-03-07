@@ -1,4 +1,4 @@
-// indicators/HeikinAshi.js
+// technical/HeikinAshi.js
 
 /**
  * calculateHeikinAshiSignal

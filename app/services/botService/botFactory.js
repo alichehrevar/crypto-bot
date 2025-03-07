@@ -1,7 +1,7 @@
 // botFactory.js
 
-// ----- Indicators -----
-// Import all indicators from the indicators index file.
+// ----- Indicators (Technical Strategies) -----
+// Import all technical from the technical index file.
 const {
     RSI,
     MACD,
@@ -11,25 +11,31 @@ const {
     HeikinAshi,
     CombinedRsiMacd,
     BollingerBands,
-    // For Stochastic_RSI, we import the function directly.
-    // (Assuming your file exports: { calculateStochasticRSISignal }.)
-    calculateStochasticRSISignal,
-    HurstIndicator,
-} = require('../../indicators');
+    StochasticRSI,
+    Hurst
+} = require('../../strategies/technical');
 
-// ----- Strategies (Money Management) -----
-// Import all risk management (money management) strategy modules.
+// ----- Risk (Money Management) Strategies -----
+// Import risk management strategies from the moneyManagement directory.
 const MartingaleStrategy = require('../../strategies/moneyManagement/MartingaleStrategy');
 const MirroredMartingaleStrategy = require('../../strategies/moneyManagement/MirroredMartingaleStrategy');
 const KellyCriterionStrategy = require('../../strategies/moneyManagement/KellyCriterionStrategy');
 const SimpleStrategy = require('../../strategies/moneyManagement/SimpleStrategy');
 
+// ----- Non-Technical Strategies -----
+// For non-technical (e.g. fundamental or sentiment-based) strategies,
+// you might create and import them from another directory.
+const FundamentalStrategy = require('../../strategies/nonTechnical/FundamentalStrategy');
+
 /**
- * Creates an indicator instance based on the bot.indicator field.
+ * Creates an indicator instance for technical bots.
+ * This function selects and instantiates the proper indicator (RSI, MACD, etc.)
+ * based on the bot.indicator field.
+ *
  * @param {Object} bot - The bot document.
- * @returns {Object} An instance or object implementing calculateSignal().
+ * @returns {Object} An object (or instance) implementing calculateSignal().
  */
-function createIndicator(bot) {
+function createTechnicalIndicator(bot) {
     switch (bot.indicator) {
         case 'RSI':
             return new RSI(bot.strategyParams);
@@ -39,7 +45,6 @@ function createIndicator(bot) {
             return new MACrossover(bot.strategyParams);
         case 'Donchian':
             return {
-                // Wrap the signal function for Donchian.
                 calculateSignal: (candles) => Donchian.calculateDonchianSignal(candles, 'donchian')
             };
         case 'Volume':
@@ -60,25 +65,19 @@ function createIndicator(bot) {
                 calculateSignal: (candles) => BollingerBands.calculateBollingerBandsSignal(candles, 'bollinger')
             };
         case 'Stochastic_RSI':
-            // For Stochastic_RSI, use the calculateStochasticRSISignal function and return the last signal.
-            return {
-                calculateSignal: (candles) => {
-                    const signals = calculateStochasticRSISignal(candles, 'stochrsi');
-                    // Return the signal for the last candle, or 'HOLD' if signals array is empty.
-                    return signals && signals.length ? signals[signals.length - 1] : 'HOLD';
-                }
-            };
+            return new StochasticRSI(bot.strategyParams);
         case 'Hurst':
-            return new HurstIndicator(bot.strategyParams);
+            return new Hurst(bot.strategyParams);
         default:
             throw new Error(`Unknown indicator: ${bot.indicator}`);
     }
 }
 
 /**
- * Creates a risk (money-management) strategy instance based on the bot.riskStrategy field.
+ * Creates a risk (money-management) strategy instance.
+ *
  * @param {Object} bot - The bot document.
- * @returns {Object} The risk strategy instance.
+ * @returns {Object} An instance implementing risk management functions.
  */
 function createRiskStrategy(bot) {
     switch (bot.riskStrategy) {
@@ -95,7 +94,26 @@ function createRiskStrategy(bot) {
     }
 }
 
+/**
+ * Creates a strategy instance based on the bot's strategy type.
+ * If the bot is technical (default), it uses technical technical.
+ * If the bot is non-technical, it creates a non-technical strategy.
+ *
+ * @param {Object} bot - The bot document.
+ * @returns {Object} An instance implementing calculateSignal().
+ */
+function createStrategy(bot) {
+    // Default to "technical" if strategyType is not provided.
+    if (!bot.strategyType || bot.strategyType === 'technical') {
+        return createTechnicalIndicator(bot);
+    } else if (bot.strategyType === 'nonTechnical') {
+        return new FundamentalStrategy(bot.strategyParams);
+    } else {
+        throw new Error(`Unknown strategy type: ${bot.strategyType}`);
+    }
+}
+
 module.exports = {
-    createIndicator,
+    createIndicator: createStrategy,
     createRiskStrategy,
 };

@@ -1,4 +1,4 @@
-// indicators/MovingAverageCrossover.js
+// technical/MovingAverageCrossover.js
 
 // Import the base indicator class.
 const BaseIndicator = require('./BaseIndicator');

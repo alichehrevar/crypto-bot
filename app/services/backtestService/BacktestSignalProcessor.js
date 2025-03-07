@@ -1,4 +1,4 @@
-// Import indicator classes from the indicators index.
+// Import indicator classes from the technical index.
 const {
     RSI,
     MACD,
@@ -9,7 +9,7 @@ const {
     CombinedRsiMacd,
     BollingerBands,
     StochasticRSI
-} = require('../../indicators');
+} = require('../../strategies/technical');
 
 /**
  * processSignal

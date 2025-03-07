@@ -71,7 +71,7 @@ exports.selectBots = async (req, res) => {
         const normSymbol = symbol.toUpperCase();
         const normTimeframe = timeframe.toLowerCase();
 
-        // Determine which indicators to process.
+        // Determine which technical to process.
         let strategies = [];
         if (strategy) {
             strategies = [strategy];

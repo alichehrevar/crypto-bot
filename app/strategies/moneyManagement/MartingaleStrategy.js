@@ -1,4 +1,4 @@
-const BaseIndicator = require('../../indicators/BaseIndicator');
+const BaseIndicator = require('../technical/BaseIndicator');
 
 class MartingaleStrategy extends BaseIndicator {
     /**

@@ -1,7 +1,7 @@
 const Bot = require('../../models/Bot');
-const RSI = require('../../indicators/RSI');
-const MACD = require('../../indicators/MACD');
-const MACrossover = require('../../indicators/MovingAverageCrossover');
+const RSI = require('../../strategies/technical/RSI');
+const MACD = require('../../strategies/technical/MACD');
+const MACrossover = require('../../strategies/technical/MovingAverageCrossover');
 
 class BotUpdateService {
     /**

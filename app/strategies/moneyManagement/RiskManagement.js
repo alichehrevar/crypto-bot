@@ -8,7 +8,7 @@
  * - optimizeParameters: Optimizes parameters using an external optimization manager.
  */
 
-const OptimizationManager = require('./optimization/OptimizationManager');
+const OptimizationManager = require('../optimization/OptimizationManager');
 
 /**
  * Calculates the position size for a trade.

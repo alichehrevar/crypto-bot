@@ -3,9 +3,9 @@
  * Example Mocha tests for the Moving Average Crossover indicator.
  */
 
-// Import the MACrossover indicator from the indicators directory.
+// Import the MACrossover indicator from the technical directory.
 // (Ensure the file name and path match your project structure.)
-const MACrossover = require('../app/indicators/MovingAverageCrossover');
+const MACrossover = require('../app/strategies/technical/MovingAverageCrossover');
 
 let expect;
 before(async () => {

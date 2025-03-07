@@ -4,7 +4,7 @@
 const Candle = require('../models/Candle');
 // Import the risk management module that contains an optimization function.
 // (Ensure that RiskManagement or RiskStrategy path matches your project structure.)
-const RiskManagement = require('../strategies/RiskManagement');
+const RiskManagement = require('./moneyManagement/RiskManagement');
 
 /**
  * DynamicStrategy

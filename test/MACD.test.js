@@ -1,7 +1,7 @@
 // test/MACD.test.js
 
-// Import the MACD indicator from the indicators directory.
-const MACD = require('../app/indicators/MACD');
+// Import the MACD indicator from the technical directory.
+const MACD = require('../app/strategies/technical/MACD');
 // Import a helper to generate test candle data.
 const { generateTestData } = require('./testUtils');
 
