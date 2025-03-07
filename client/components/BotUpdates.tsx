@@ -1,7 +1,9 @@
+// components/BotUpdates.tsx
 'use client';
 
 import React, { useEffect, useState } from 'react';
 
+// Bot interface updated to include optional marketInfo properties.
 export interface Bot {
     id: string;
     name: string;
@@ -13,9 +15,6 @@ export interface Bot {
     baseFund: number;
     tradeFund: number;
     leverage: number;
-    cumulativePnL: number;
-    botTP: number;
-    botSL: number;
     marketInfo?: {
         lastSignal?: string;
         lastCandle?: {
@@ -31,43 +30,36 @@ interface BotUpdatesProps {
     initialBots: Bot[];
 }
 
+/**
+ * BotUpdates subscribes to live updates via WebSocket and updates the state
+ * to reflect current candle price and signal for each bot.
+ */
 export default function BotUpdates({ initialBots }: BotUpdatesProps) {
     const [bots, setBots] = useState<Bot[]>(initialBots);
 
     useEffect(() => {
-        const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8000/api/ws';
-        const ws = new WebSocket(wsUrl);
+        // Connect to the WebSocket endpoint.
+        const ws = new WebSocket(process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8000/api/ws');
 
-        ws.onopen = () => {
-            console.log('Connected to live updates WebSocket');
-        };
-
+        // When a message is received, parse it and update the corresponding bot.
         ws.onmessage = (event) => {
             try {
                 const message = JSON.parse(event.data);
+                // We expect messages with type 'bot_update'
                 if (message.type === 'bot_update' && message.data) {
-                    const updatedBot: Bot = message.data;
-                    setBots((prevBots) => {
-                        const index = prevBots.findIndex((b) => b.id === updatedBot.id);
-                        if (index >= 0) {
-                            const newBots = [...prevBots];
-                            newBots[index] = updatedBot;
-                            return newBots;
-                        }
-                        return prevBots;
-                    });
+                    setBots((prevBots) =>
+                        prevBots.map((bot) =>
+                            bot.id === message.data.id ? { ...bot, marketInfo: message.data.marketInfo } : bot
+                        )
+                    );
                 }
-            } catch (err) {
-                console.error('Error parsing WebSocket message:', err);
+            } catch (error) {
+                console.error('Error processing WebSocket message:', error);
             }
         };
 
-        ws.onerror = (err) => {
-            console.error('WebSocket error:', err);
-        };
-
-        ws.onclose = () => {
-            console.log('WebSocket connection closed');
+        ws.onerror = (error) => {
+            console.error('Bot update WebSocket error:', error);
         };
 
         return () => {
@@ -77,33 +69,13 @@ export default function BotUpdates({ initialBots }: BotUpdatesProps) {
 
     return (
         <div>
-            <ul className="space-y-4">
-                {bots.map((bot) => (
-                    <li key={bot.id} className="p-4 border rounded shadow">
-                        <h3 className="font-bold">{bot.name}</h3>
-                        <p>
-                            <strong>Symbol:</strong> {bot.symbol}
-                        </p>
-                        <p>
-                            <strong>Strategy:</strong> {bot.strategy}
-                        </p>
-                        <p>
-                            <strong>Timeframe:</strong> {bot.timeframe}
-                        </p>
-                        <p>
-                            <strong>Signal:</strong> {bot.marketInfo?.lastSignal || 'HOLD'}
-                        </p>
-                        <p>
-                            <strong>Last Closed Price:</strong>{' '}
-                            {bot.marketInfo?.lastCandle ? bot.marketInfo.lastCandle.close : 'N/A'}
-                        </p>
-                        <p>
-                            <strong>Live Price:</strong>{' '}
-                            {bot.marketInfo?.currentCandle ? bot.marketInfo.currentCandle.price : 'N/A'}
-                        </p>
-                    </li>
-                ))}
-            </ul>
+            {bots.map((bot) => (
+                <div key={bot.id} className="p-4 border rounded mb-2">
+                    <h3 className="font-bold">{bot.name}</h3>
+                    <p><strong>Current Candle Price:</strong> {bot.marketInfo && bot.marketInfo.currentCandle ? bot.marketInfo.currentCandle.price : 'N/A'}</p>
+                    <p><strong>Last Signal:</strong> {bot.marketInfo && bot.marketInfo.lastSignal ? bot.marketInfo.lastSignal : 'HOLD'}</p>
+                </div>
+            ))}
         </div>
     );
 }
