@@ -1,27 +1,41 @@
-import { CandleChart } from '@/components/CandleChart';
-import { BotCard } from '@/components/BotCard';
-import { getApiClient } from '@/lib/api';
-import { Bot, Candle } from '@/types';
+// app/dashboard/page.tsx
+import React from 'react';
+import Link from 'next/link';
 
-export default async function DashboardPage() {
-    const api = getApiClient();
-    const bots = await api.get<Bot[]>('/bots');
-    const candles = await api.get<Candle[]>('/candles/BTC/USDT/1m');
-
+/**
+ * DashboardPage
+ *
+ * This page serves as the main dashboard for the trading system.
+ * It provides three navigation links to different strategy pages:
+ * - Default Strategy
+ * - Optimized Strategy
+ * - Dynamic Strategy
+ *
+ * Users can click on any link to navigate to the corresponding strategy page.
+ */
+export default function DashboardPage() {
     return (
         <div className="container mx-auto p-4">
             <h1 className="text-2xl font-bold mb-8">Trading Dashboard</h1>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-                {bots.data.map(bot => (
-                    <BotCard key={bot.id} bot={bot} />
-                ))}
-            </div>
-
-            <div className="p-4 rounded-lg shadow">
-                <h2 className="text-xl mb-4">BTC/USDT Real-time Chart</h2>
-                <CandleChart initialData={candles.data} />
-            </div>
+            <nav className="mb-8">
+                <ul className="flex flex-col gap-4">
+                    <li>
+                        <Link href="/methods/default">
+                            <span className="text-blue-600 hover:underline">Default Strategy</span>
+                        </Link>
+                    </li>
+                    <li>
+                        <Link href="/methods/optimized">
+                            <span className="text-blue-600 hover:underline">Optimized Strategy</span>
+                        </Link>
+                    </li>
+                    <li>
+                        <Link href="/methods/dynamic">
+                            <span className="text-blue-600 hover:underline">Dynamic Strategy</span>
+                        </Link>
+                    </li>
+                </ul>
+            </nav>
         </div>
     );
 }

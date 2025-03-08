@@ -1,37 +1,32 @@
+// routes/auth.js
 const express = require('express');
-const { body, validationResult } = require('express-validator');
 const router = express.Router();
+const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../app/models/User');
 
-router.post('/register', async (req, res) => {
+// POST /api/auth/login
+router.post('/login', async (req, res) => {
     try {
-        const user = await User.create(req.body);
-        const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET);
+        // Extract email and password from the request body.
+        const { email, password } = req.body;
+        // Look up the user by email.
+        const user = await User.findOne({ email });
+        if (!user) {
+            return res.status(401).json({ error: 'Invalid email or password' });
+        }
+        // Compare the provided password with the hashed password.
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (!isMatch) {
+            return res.status(401).json({ error: 'Invalid email or password' });
+        }
+        // If credentials are valid, create a JWT.
+        const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+        // Return the token to the client.
         res.json({ token });
     } catch (error) {
-        res.status(400).json({ error: error.message });
+        res.status(500).json({ error: error.message });
     }
-});
-
-router.post('/login', [
-    body('email').isEmail().normalizeEmail(),
-    body('password').isLength({ min: 6 })
-], async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        return res.status(400).json({ errors: errors.array() });
-    }
-
-    const { email, password } = req.body;
-    const user = await User.findOne({ email });
-
-    if (!user || !(await bcrypt.compare(password, user.password))) {
-        return res.status(401).json({ error: 'Invalid credentials' });
-    }
-
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET);
-    res.json({ token });
 });
 
 module.exports = router;

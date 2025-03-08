@@ -5,6 +5,7 @@ const mongoose = require('mongoose'); // Required for DB status checks
 const http = require('http');
 
 const connectDB = require('./config/db');
+const User = require('./app/models/User');
 const binanceWS = require('./app/services/binanceWS');
 const tradingViewWS = require('./app/services/TradingViewWS');
 const bingXWS = require('./app/services/bingXWS');
@@ -29,7 +30,18 @@ app.use(cors({
 }));
 
 // Database Connection
-connectDB().then(() => {
+connectDB().then(async () => {
+    // Check if any user exists; if not, create a default user.
+    const userCount = await User.countDocuments();
+    if (userCount === 0) {
+        // Create a default user.
+        // The User schema will hash the password before saving.
+        const defaultUser = await User.create({
+            email: 'admin@tradingx.com',
+            password: 'password123123'
+        });
+        console.log('Default user created:', defaultUser.email);
+    }
     // Start WebSocket connections after DB is connected
     binanceWS.connect();
     bingXWS.connect();

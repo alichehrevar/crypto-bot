@@ -25,7 +25,7 @@ const SimpleStrategy = require('../../strategies/moneyManagement/SimpleStrategy'
 // ----- Non-Technical Strategies -----
 // For non-technical (e.g. fundamental or sentiment-based) strategies,
 // you might create and import them from another directory.
-const FundamentalStrategy = require('../../strategies/nonTechnical/FundamentalStrategy');
+// const FundamentalStrategy = require('../../strategies/nonTechnical/FundamentalStrategy');
 
 /**
  * Creates an indicator instance for technical bots.
