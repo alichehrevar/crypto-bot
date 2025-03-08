@@ -1,18 +1,23 @@
+// app/services/WebSocketServer.js
+
 const WebSocket = require('ws');
 
 class WSServer {
     constructor() {
+        // This will hold the WebSocket server instance.
         this.wss = null;
     }
 
     /**
-     * Initializes the WebSocket server without binding directly to an HTTP server.
+     * Initializes the WebSocket server.
+     * We’re using the "noServer" option because we will bind the upgrade handling
+     * to an existing HTTP server in our main server.js file.
      */
     init() {
         this.wss = new WebSocket.Server({ noServer: true });
         console.log('WebSocket server initialized');
 
-        // Log when a client connects and disconnects.
+        // Log when clients connect and disconnect.
         this.wss.on('connection', (ws, request) => {
             const clientAddr = request.socket.remoteAddress;
             console.log(`New client connected from ${clientAddr}`);
@@ -24,10 +29,11 @@ class WSServer {
     }
 
     /**
-     * Handles HTTP upgrade requests to upgrade to WebSocket connections.
+     * Handles HTTP upgrade requests to WebSocket connections.
+     * This method is called from the HTTP server's 'upgrade' event.
      *
-     * @param {object} request - The HTTP request.
-     * @param {object} socket - The network socket between client and server.
+     * @param {object} request - The HTTP upgrade request.
+     * @param {object} socket - The underlying network socket.
      * @param {Buffer} head - The first packet of the upgraded stream.
      */
     handleUpgrade(request, socket, head) {
@@ -42,9 +48,9 @@ class WSServer {
     }
 
     /**
-     * Broadcasts a candle update to all connected clients.
+     * Broadcasts a candle update message to all connected WebSocket clients.
      *
-     * @param {object} candle - The candle data to broadcast.
+     * @param {object} candle - The candle data to send.
      */
     broadcastCandle(candle) {
         if (!this.wss) {
@@ -53,7 +59,7 @@ class WSServer {
         }
         const message = {
             type: 'candle_update',
-            data: candle
+            data: candle,
         };
         this.wss.clients.forEach((client) => {
             if (client.readyState === WebSocket.OPEN) {
@@ -63,9 +69,9 @@ class WSServer {
     }
 
     /**
-     * Broadcasts a bot update to all connected clients.
+     * Broadcasts a bot update message to all connected WebSocket clients.
      *
-     * @param {object} bot - The bot data to broadcast.
+     * @param {object} bot - The bot data to send.
      */
     broadcastBotUpdate(bot) {
         if (!this.wss) {
@@ -74,7 +80,7 @@ class WSServer {
         }
         const message = {
             type: 'bot_update',
-            data: bot
+            data: bot,
         };
         this.wss.clients.forEach((client) => {
             if (client.readyState === WebSocket.OPEN) {
