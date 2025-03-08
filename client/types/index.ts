@@ -6,33 +6,40 @@
  * This interface defines the expected structure of a Bot object.
  * It includes basic bot details along with market information.
  */
+// types/Bot.ts
+
+/**
+ * Interface representing a trading bot.
+ */
 export interface Bot {
     // Unique identifier for the bot.
+    _id: string;
     id: string;
     // Bot's name (e.g., "BTC/USDT 1h MACD Bot").
     name: string;
-    // The trading strategy used by the bot.
+    // The overall trading strategy used by the bot.
     strategy: string;
     // The symbol being traded (e.g., "BTC/USDT").
     symbol: string;
-    // The timeframe used (e.g., "1h").
+    // The timeframe used for trading (e.g., "1h").
     timeframe: string;
-    // Primary indicator used by the bot (e.g., "RSI", "MACD", etc.). Optional.
+    // The primary technical indicator used (e.g., "RSI", "MACD", etc.).
     indicator?: string;
-    // Money management or risk strategy (e.g., "MartingaleStrategy"). Optional.
+    // The risk (money management) strategy used (e.g., "KellyCriterionStrategy", "MartingaleStrategy", etc.).
     riskStrategy?: string;
     // The base fund amount in dollars.
     baseFund: number;
+    // The current paper balance (starting balance for paper trading).
     paperBalance: number;
-    // The trade fund expressed as a percentage.
+    // The trade fund expressed as a percentage (portion of baseFund allocated for trading).
     tradeFund: number;
-    // The leverage used (e.g., 1 means 1x).
+    // The leverage used (e.g., 1 means 1x leverage).
     leverage: number;
-    // Market information including candle data and last signal.
+    // Market information including candle data and the latest signal.
     marketInfo?: {
         // The last computed trading signal (e.g., "BUY", "SELL", or "HOLD").
         lastSignal?: string;
-        // Data for the last closed candle.
+        // Data for the last closed (finalized) candle.
         lastCandle?: {
             close: number;
             timestamp?: string | Date;
@@ -41,12 +48,53 @@ export interface Bot {
             low?: number;
             volume?: number;
         };
-        // Data for the currently active candle.
+        // Data for the current (live) candle price.
         currentCandle?: {
             price: number;
         };
     } | null;
+    // Cumulative profit and loss accumulated by the bot.
+    cumulativePnL?: number;
+    // Bot-level take profit threshold (if reached, the bot stops trading).
+    botTP?: number;
+    // Bot-level stop loss threshold (if reached, the bot stops trading).
+    botSL?: number;
+    // Risk management parameters.
+    riskParams?: {
+        maxDrawdown?: number;
+        dailyLossLimit?: number;
+        positionSizingMethod?: 'compound' | 'simple';
+        // For compound method: fraction of the balance to risk.
+        riskFraction?: number;
+        // For compound method: stop loss distance as a fraction (e.g., 0.02 for 2%).
+        stopLossDistance?: number;
+        // For simple method: type and fixed value.
+        positionSizeType?: 'percentage' | 'fixed';
+        positionSizeValue?: number;
+        maxOpenTrades?: number;
+    };
+    // Trade configuration information.
+    tradeInfo?: {
+        takeProfit?: number;
+        stopLoss?: number;
+        leverage?: number;
+        side?: 'buy' | 'sell';
+        positionSide?: 'long' | 'short';
+        winProbability?: number;
+        payoffRatio?: number;
+        lastTradeOutcome?: string;
+        // This field duplicates riskParams.positionSizingMethod; you can choose to use one.
+        positionSizingMethod?: 'compound' | 'simple';
+        tradingStrategy?: 'default' | 'optimized' | 'dynamic';
+        optimizationMethod?: 'grid' | 'bayesian' | 'ann';
+        minimumTrade?: number;
+        minimumWinRatio?: number;
+        minimumAccuracy?: number;
+        configId?: string;
+        signalProcessingMethod?: 'weighted' | 'consensus';
+    };
 }
+
 
 /**
  * LiveBot Interface
