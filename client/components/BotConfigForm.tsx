@@ -3,30 +3,52 @@
 
 import React, { useEffect, useState } from 'react';
 
+/**
+ * BotConfig represents the configuration data required to deploy a new bot.
+ */
 export interface BotConfig {
-    symbol: string;
-    baseFund: number;
-    tradeFund: number;
-    leverage: number;
-    riskStrategy: string;
-    compoundPositionSizing: boolean;
-    takeProfit: number;
-    stopLoss: number;
-    indicator: string;
-    timeframe: string;
-    additionalIndicators: Array<{ indicator: string; timeframe: string }>;
-    strategy: string;
+    name: string; // Bot name (e.g. "BTC/USDT 1h RSI Bot")
+    symbol: string; // Trading pair (e.g. "BTC/USDT")
+    baseFund: number; // Base fund in dollars.
+    tradeFund: number; // Trade fund percentage.
+    leverage: number; // Leverage factor.
+    riskStrategy: string; // Money management strategy.
+    compoundPositionSizing: boolean; // Use compound or simple position sizing.
+    takeProfit: number; // Take profit multiplier.
+    stopLoss: number; // Stop loss multiplier.
+    indicator: string; // Primary indicator (e.g. "RSI", "MACD", etc.)
+    timeframe: string; // Primary timeframe (e.g. "1h", "5m", etc.)
+    additionalIndicators: Array<{ indicator: string; timeframe: string }>; // Additional indicator configurations.
+    strategy: string; // Overall trading strategy (for now we set it equal to the indicator).
+    strategyParams: object; // Configuration for the indicator (e.g. { period, overbought, oversold }).
 }
 
+/**
+ * BotConfigFormProps defines the properties expected by the BotConfigForm component.
+ */
 interface BotConfigFormProps {
     onDeploy: (config: BotConfig) => void;
 }
 
+/**
+ * BotConfigForm component
+ *
+ * Renders a form to deploy a new bot with configuration options.
+ * It collects:
+ *  - Bot Name
+ *  - Symbol
+ *  - Base Fund, Trade Fund, and Leverage
+ *  - Risk Strategy and compound position sizing option
+ *  - Take Profit and Stop Loss multipliers
+ *  - Primary Indicator (with its timeframe) and additional indicators
+ *  - Default strategy parameters are set based on the chosen primary indicator.
+ */
 export default function BotConfigForm({ onDeploy }: BotConfigFormProps) {
-    // Form state
+    // Form state variables.
+    const [name, setName] = useState('');
     const [symbol, setSymbol] = useState('BTC/USDT');
     const [baseFund, setBaseFund] = useState(10000);
-    const [tradeFund, setTradeFund] = useState(50); // in percentage
+    const [tradeFund, setTradeFund] = useState(50);
     const [leverage, setLeverage] = useState(1);
     const [riskStrategy, setRiskStrategy] = useState('KellyCriterionStrategy');
     const [compoundPositionSizing, setCompoundPositionSizing] = useState(true);
@@ -41,7 +63,7 @@ export default function BotConfigForm({ onDeploy }: BotConfigFormProps) {
     const [error, setError] = useState<string>('');
     const [success, setSuccess] = useState<string>('');
 
-    // Predefined options (you can also fetch these from an API if needed)
+    // Predefined options.
     const riskStrategyOptions = [
         'KellyCriterionStrategy',
         'MartingaleStrategy',
@@ -63,7 +85,15 @@ export default function BotConfigForm({ onDeploy }: BotConfigFormProps) {
     const timeframeOptions = ['1m', '5m', '15m', '30m', '1h', '4h', '1d', '1w'];
     const leverageOptions = Array.from({ length: 100 }, (_, i) => i + 1);
 
-    // Fetch available symbols from backend on mount
+    // Define default strategy parameters for known indicators.
+    const defaultStrategyParams: Record<string, object> = {
+        RSI: { period: 14, overbought: 70, oversold: 30 },
+        MACD: { shortPeriod: 12, longPeriod: 26, signalPeriod: 9 },
+        MA_Crossover: { shortPeriod: 5, longPeriod: 20 },
+        // For other indicators, you can set defaults if needed.
+    };
+
+    // Fetch available symbols from backend on mount.
     useEffect(() => {
         async function fetchSymbols() {
             try {
@@ -73,7 +103,6 @@ export default function BotConfigForm({ onDeploy }: BotConfigFormProps) {
                     throw new Error('Failed to fetch symbols');
                 }
                 const data = await res.json();
-                // Assume API returns an array or { data: [...] }
                 const symbolList = data.data ? data.data : data;
                 setSymbols(symbolList);
                 if (symbolList.length > 0) {
@@ -87,12 +116,12 @@ export default function BotConfigForm({ onDeploy }: BotConfigFormProps) {
         fetchSymbols();
     }, []);
 
-    // Handler to add an additional indicator row
+    // Handler to add an additional indicator row.
     const addAdditionalIndicator = () => {
         setAdditionalIndicators([...additionalIndicators, { indicator: 'RSI', timeframe: '1m' }]);
     };
 
-    // Handler to update an additional indicator entry
+    // Handler to update an additional indicator entry.
     const updateAdditionalIndicator = (
         index: number,
         field: 'indicator' | 'timeframe',
@@ -103,15 +132,36 @@ export default function BotConfigForm({ onDeploy }: BotConfigFormProps) {
         setAdditionalIndicators(updated);
     };
 
-    // Form submission handler: calls onDeploy prop with the config
+    // Form submission handler.
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
         setSuccess('');
 
-        // Build configuration object for bot deployment.
-        const config = {
-            symbol,
+        // Validate required fields.
+        if (!name.trim()) {
+            setError('Bot name is required.');
+            return;
+        }
+        if (!symbol.trim()) {
+            setError('Symbol is required.');
+            return;
+        }
+
+        // Format symbol: if no slash is present, insert one.
+        let formattedSymbol = symbol.trim().toUpperCase();
+        if (!formattedSymbol.includes('/')) {
+            if (formattedSymbol.endsWith('USDT')) {
+                formattedSymbol = formattedSymbol.slice(0, -4) + '/USDT';
+            } else if (formattedSymbol.endsWith('USDC')) {
+                formattedSymbol = formattedSymbol.slice(0, -4) + '/USDC';
+            }
+        }
+
+        // Build the bot configuration object.
+        const config: BotConfig = {
+            name: name.trim(),
+            symbol: formattedSymbol,
             baseFund,
             tradeFund,
             leverage,
@@ -122,10 +172,10 @@ export default function BotConfigForm({ onDeploy }: BotConfigFormProps) {
             indicator,
             timeframe,
             additionalIndicators,
-            strategy: indicator // Assuming strategy equals indicator for now.
+            strategy: indicator, // For now, we set strategy equal to the primary indicator.
+            strategyParams: defaultStrategyParams[indicator] || {}
         };
 
-        // Call the parent handler.
         onDeploy(config);
     };
 
@@ -135,6 +185,18 @@ export default function BotConfigForm({ onDeploy }: BotConfigFormProps) {
             {error && <p className="text-red-500 mb-2">{error}</p>}
             {success && <p className="text-green-500 mb-2">{success}</p>}
             <form onSubmit={handleSubmit} className="space-y-4">
+                {/* Bot Name */}
+                <div>
+                    <label className="block mb-1 font-semibold">Bot Name</label>
+                    <input
+                        type="text"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        className="w-full p-2 border rounded"
+                        placeholder="e.g. BTC/USDT 1h RSI Bot"
+                        required
+                    />
+                </div>
                 {/* Symbol Select */}
                 <div>
                     <label className="block mb-1 font-semibold">Symbol</label>
@@ -142,6 +204,7 @@ export default function BotConfigForm({ onDeploy }: BotConfigFormProps) {
                         value={symbol}
                         onChange={(e) => setSymbol(e.target.value)}
                         className="w-full p-2 border rounded"
+                        required
                     >
                         {symbols.map((s) => (
                             <option key={s} value={s}>
@@ -150,7 +213,6 @@ export default function BotConfigForm({ onDeploy }: BotConfigFormProps) {
                         ))}
                     </select>
                 </div>
-
                 {/* Base Fund */}
                 <div>
                     <label className="block mb-1 font-semibold">Base Fund ($)</label>
@@ -160,9 +222,9 @@ export default function BotConfigForm({ onDeploy }: BotConfigFormProps) {
                         onChange={(e) => setBaseFund(Number(e.target.value))}
                         className="w-full p-2 border rounded"
                         min={0}
+                        required
                     />
                 </div>
-
                 {/* Trade Fund */}
                 <div>
                     <label className="block mb-1 font-semibold">Trade Fund (%)</label>
@@ -173,9 +235,9 @@ export default function BotConfigForm({ onDeploy }: BotConfigFormProps) {
                         className="w-full p-2 border rounded"
                         min={0}
                         max={100}
+                        required
                     />
                 </div>
-
                 {/* Leverage */}
                 <div>
                     <label className="block mb-1 font-semibold">Leverage (1x to 100x)</label>
@@ -183,6 +245,7 @@ export default function BotConfigForm({ onDeploy }: BotConfigFormProps) {
                         value={leverage}
                         onChange={(e) => setLeverage(Number(e.target.value))}
                         className="w-full p-2 border rounded"
+                        required
                     >
                         {leverageOptions.map((lv) => (
                             <option key={lv} value={lv}>
@@ -191,7 +254,6 @@ export default function BotConfigForm({ onDeploy }: BotConfigFormProps) {
                         ))}
                     </select>
                 </div>
-
                 {/* Risk Strategy */}
                 <div>
                     <label className="block mb-1 font-semibold">Risk Strategy</label>
@@ -199,6 +261,7 @@ export default function BotConfigForm({ onDeploy }: BotConfigFormProps) {
                         value={riskStrategy}
                         onChange={(e) => setRiskStrategy(e.target.value)}
                         className="w-full p-2 border rounded"
+                        required
                     >
                         {riskStrategyOptions.map((rs) => (
                             <option key={rs} value={rs}>
@@ -207,7 +270,6 @@ export default function BotConfigForm({ onDeploy }: BotConfigFormProps) {
                         ))}
                     </select>
                 </div>
-
                 {/* Compound Position Sizing Switch */}
                 <div className="flex items-center">
                     <input
@@ -218,7 +280,6 @@ export default function BotConfigForm({ onDeploy }: BotConfigFormProps) {
                     />
                     <label>Use compound position sizing</label>
                 </div>
-
                 {/* Take Profit */}
                 <div>
                     <label className="block mb-1 font-semibold">Take Profit (Multiplier)</label>
@@ -228,9 +289,9 @@ export default function BotConfigForm({ onDeploy }: BotConfigFormProps) {
                         onChange={(e) => setTakeProfit(Number(e.target.value))}
                         className="w-full p-2 border rounded"
                         step="0.01"
+                        required
                     />
                 </div>
-
                 {/* Stop Loss */}
                 <div>
                     <label className="block mb-1 font-semibold">Stop Loss (Multiplier)</label>
@@ -240,9 +301,9 @@ export default function BotConfigForm({ onDeploy }: BotConfigFormProps) {
                         onChange={(e) => setStopLoss(Number(e.target.value))}
                         className="w-full p-2 border rounded"
                         step="0.01"
+                        required
                     />
                 </div>
-
                 {/* Primary Indicator and Timeframe */}
                 <div className="flex flex-col md:flex-row gap-4">
                     <div className="flex-1">
@@ -251,6 +312,7 @@ export default function BotConfigForm({ onDeploy }: BotConfigFormProps) {
                             value={indicator}
                             onChange={(e) => setIndicator(e.target.value)}
                             className="w-full p-2 border rounded"
+                            required
                         >
                             {indicatorOptions.map((ind) => (
                                 <option key={ind} value={ind}>
@@ -265,6 +327,7 @@ export default function BotConfigForm({ onDeploy }: BotConfigFormProps) {
                             value={timeframe}
                             onChange={(e) => setTimeframe(e.target.value)}
                             className="w-full p-2 border rounded"
+                            required
                         >
                             {timeframeOptions.map((tf) => (
                                 <option key={tf} value={tf}>
@@ -274,7 +337,6 @@ export default function BotConfigForm({ onDeploy }: BotConfigFormProps) {
                         </select>
                     </div>
                 </div>
-
                 {/* Additional Indicators */}
                 <div>
                     <label className="block mb-1 font-semibold">Additional Indicators</label>
@@ -284,6 +346,7 @@ export default function BotConfigForm({ onDeploy }: BotConfigFormProps) {
                                 value={item.indicator}
                                 onChange={(e) => updateAdditionalIndicator(index, 'indicator', e.target.value)}
                                 className="flex-1 p-2 border rounded"
+                                required
                             >
                                 {indicatorOptions.map((ind) => (
                                     <option key={ind} value={ind}>
@@ -295,6 +358,7 @@ export default function BotConfigForm({ onDeploy }: BotConfigFormProps) {
                                 value={item.timeframe}
                                 onChange={(e) => updateAdditionalIndicator(index, 'timeframe', e.target.value)}
                                 className="flex-1 p-2 border rounded"
+                                required
                             >
                                 {timeframeOptions.map((tf) => (
                                     <option key={tf} value={tf}>
@@ -312,7 +376,6 @@ export default function BotConfigForm({ onDeploy }: BotConfigFormProps) {
                         Add Additional Indicator
                     </button>
                 </div>
-
                 {/* Deploy Button */}
                 <div>
                     <button

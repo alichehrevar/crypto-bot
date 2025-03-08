@@ -1,3 +1,5 @@
+// app/services/BotUpdateService.js
+
 const Bot = require('../../models/Bot');
 const RSI = require('../../strategies/technical/RSI');
 const MACD = require('../../strategies/technical/MACD');
@@ -13,23 +15,35 @@ class BotUpdateService {
      */
     async updateBotDataFromCandle(candle) {
         try {
+            // Normalize symbol and timeframe.
             const normSymbol = candle.symbol.toUpperCase();
             const normTimeframe = candle.timeframe.toLowerCase();
-            const bots = await Bot.find({ symbol: normSymbol, timeframe: normTimeframe });
+
+            // Query only active bots for this symbol and timeframe.
+            const bots = await Bot.find({
+                symbol: normSymbol,
+                timeframe: normTimeframe,
+                active: true
+            });
+
+            // If no active bot exists for this symbol/timeframe, don't log an error.
             if (!bots || bots.length === 0) {
-                console.log(`No bots found for symbol ${normSymbol} and timeframe ${normTimeframe}`);
+                // Uncomment the next line if you want a debug log (optional):
+                // console.debug(`No deployed bot for symbol ${normSymbol} and timeframe ${normTimeframe}`);
                 return;
             }
+
             for (const bot of bots) {
-                // If the incoming candle's timestamp matches the last closed candle, update current candle.
+                // Check if the incoming candle's timestamp matches the last closed candle.
                 if (
                     bot.marketInfo.lastCandle &&
                     new Date(bot.marketInfo.lastCandle.timestamp).getTime() === new Date(candle.timestamp).getTime()
                 ) {
+                    // Update current candle price.
                     bot.marketInfo.currentCandle = { price: candle.close };
                     console.log(`Bot "${bot.name}" updated current candle price to ${candle.close}`);
                 } else {
-                    // Otherwise, treat the incoming candle as a new finalized candle.
+                    // Treat the incoming candle as a new finalized candle.
                     bot.marketInfo.lastCandle = {
                         timestamp: candle.timestamp,
                         open: candle.open,
@@ -41,13 +55,17 @@ class BotUpdateService {
                     bot.marketInfo.currentCandle = { price: candle.close };
                     console.log(`Bot "${bot.name}" set new candle data; current candle price: ${candle.close}`);
                 }
+
                 // Fetch recent candles for signal calculation.
                 const Candle = require('../../models/Candle');
-                const recentCandles = await Candle.find({ symbol: normSymbol, timeframe: normTimeframe })
-                    .sort({ timestamp: 1 })
-                    .limit(100);
+                const recentCandles = await Candle.find({
+                    symbol: normSymbol,
+                    timeframe: normTimeframe
+                }).sort({ timestamp: 1 }).limit(100);
+
                 let computedSignal = 'HOLD';
                 try {
+                    // Compute the signal based on the bot's selected indicator.
                     switch (bot.indicator) {
                         case 'RSI': {
                             const rsiInstance = new RSI(bot.strategyParams);
@@ -70,9 +88,12 @@ class BotUpdateService {
                 } catch (error) {
                     console.error(`Error computing signal for bot "${bot.name}": ${error.message}`);
                 }
+                // Update the bot's last signal.
                 bot.marketInfo.lastSignal = computedSignal;
                 await bot.save();
                 console.log(`Updated bot "${bot.name}" with new candle data and signal: ${computedSignal}`);
+
+                // Convert the bot document to a plain object, convert _id to id, and broadcast update.
                 const updatedBot = bot.toObject();
                 updatedBot.id = updatedBot._id.toString();
                 const wsServer = require('../WebSocketServer');

@@ -47,13 +47,13 @@ export default function BotList({ bots }: BotListProps) {
                                 <strong>Strategy:</strong> {bot.strategy}
                             </p>
                             <p>
-                                <strong>Base Fund ($):</strong> {bot.baseFund}
+                                <strong>Base Fund ($):</strong> {bot.paperBalance ? bot.paperBalance.toLocaleString('en-EN') : 'N/A'}
                             </p>
                             <p>
-                                <strong>Trade Fund (%):</strong> {bot.tradeFund}%
+                                <strong>Trade Fund (%):</strong> {bot.tradeFund !== undefined ? `${bot.tradeFund}%` : 'N/A'}
                             </p>
                             <p>
-                                <strong>Leverage:</strong> {bot.leverage}x
+                                <strong>Leverage:</strong> {bot.leverage ? `${bot.leverage}x` : 'N/A'}
                             </p>
                             <p>
                                 <strong>Last Signal:</strong>{' '}

@@ -23,6 +23,7 @@ export interface Bot {
     riskStrategy?: string;
     // The base fund amount in dollars.
     baseFund: number;
+    paperBalance: number;
     // The trade fund expressed as a percentage.
     tradeFund: number;
     // The leverage used (e.g., 1 means 1x).
