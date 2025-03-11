@@ -1,10 +1,9 @@
-// app/components/OptimizedBotConfigForm.tsx
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 
-// Define the configuration interface for an optimized bot.
-export interface OptimizedBotConfig {
+// Define the configuration interface for the bot deployment.
+export interface BotConfig {
     symbol: string;
     baseFund: number;
     tradeFund: number;
@@ -15,24 +14,23 @@ export interface OptimizedBotConfig {
     stopLoss: number;
     indicator: string;
     timeframe: string;
-    // Extra fields for optimization:
-    optimizationMethod: string;
+    additionalIndicators: Array<{ indicator: string; timeframe: string }>;
+    strategy: string;
+    // Extra optimization fields:
+    optimizationMethod: 'grid' | 'bayesian';
     minOptimizationAccuracy: number;
     minSimulatedTrades: number;
-    additionalIndicators: Array<{ indicator: string; timeframe: string }>;
-    // In our simple case, we assume strategy equals indicator.
-    strategy: string;
 }
 
-interface OptimizedBotConfigFormProps {
-    onDeploy: (config: OptimizedBotConfig) => void;
+interface OptimizedStrategyFormProps {
+    onDeploy: (config: BotConfig) => void;
 }
 
-const OptimizedBotConfigForm: React.FC<OptimizedBotConfigFormProps> = ({ onDeploy }) => {
-    // State for each input field.
+export default function OptimizedStrategyForm({ onDeploy }: OptimizedStrategyFormProps) {
+    // Form state variables.
     const [symbol, setSymbol] = useState('BTC/USDT');
     const [baseFund, setBaseFund] = useState(10000);
-    const [tradeFund, setTradeFund] = useState(50); // as a percentage
+    const [tradeFund, setTradeFund] = useState(50); // Percentage
     const [leverage, setLeverage] = useState(1);
     const [riskStrategy, setRiskStrategy] = useState('KellyCriterionStrategy');
     const [compoundPositionSizing, setCompoundPositionSizing] = useState(true);
@@ -40,17 +38,18 @@ const OptimizedBotConfigForm: React.FC<OptimizedBotConfigFormProps> = ({ onDeplo
     const [stopLoss, setStopLoss] = useState(0.98);
     const [indicator, setIndicator] = useState('RSI');
     const [timeframe, setTimeframe] = useState('1h');
-    // Extra optimization inputs:
-    const [optimizationMethod, setOptimizationMethod] = useState('grid'); // options: 'grid', 'bayesian'
-    const [minOptimizationAccuracy, setMinOptimizationAccuracy] = useState(0.8);
-    const [minSimulatedTrades, setMinSimulatedTrades] = useState(10);
     const [additionalIndicators, setAdditionalIndicators] = useState<
         Array<{ indicator: string; timeframe: string }>
     >([]);
+    // Extra optimization fields.
+    const [optimizationMethod, setOptimizationMethod] = useState<'grid' | 'bayesian'>('grid');
+    const [minOptimizationAccuracy, setMinOptimizationAccuracy] = useState(0.5);
+    const [minSimulatedTrades, setMinSimulatedTrades] = useState(10);
     const [symbols, setSymbols] = useState<string[]>([]);
     const [error, setError] = useState<string>('');
+    const [success, setSuccess] = useState<string>('');
 
-    // Predefined options (these could also be fetched from an API).
+    // Predefined options.
     const riskStrategyOptions = [
         'KellyCriterionStrategy',
         'MartingaleStrategy',
@@ -70,7 +69,6 @@ const OptimizedBotConfigForm: React.FC<OptimizedBotConfigFormProps> = ({ onDeplo
         'Hurst'
     ];
     const timeframeOptions = ['1m', '5m', '15m', '30m', '1h', '4h', '1d', '1w'];
-    const optimizationMethodOptions = ['grid', 'bayesian'];
     const leverageOptions = Array.from({ length: 100 }, (_, i) => i + 1);
 
     // Fetch available symbols from backend on mount.
@@ -83,7 +81,6 @@ const OptimizedBotConfigForm: React.FC<OptimizedBotConfigFormProps> = ({ onDeplo
                     throw new Error('Failed to fetch symbols');
                 }
                 const data = await res.json();
-                // Assume API returns either an array or { data: [...] }.
                 const symbolList = data.data ? data.data : data;
                 setSymbols(symbolList);
                 if (symbolList.length > 0) {
@@ -97,13 +94,17 @@ const OptimizedBotConfigForm: React.FC<OptimizedBotConfigFormProps> = ({ onDeplo
         fetchSymbols();
     }, []);
 
-    // Handler to add an additional indicator entry.
+    // Handler to add an additional indicator row.
     const addAdditionalIndicator = () => {
         setAdditionalIndicators([...additionalIndicators, { indicator: 'RSI', timeframe: '1m' }]);
     };
 
-    // Handler to update an additional indicator.
-    const updateAdditionalIndicator = (index: number, field: 'indicator' | 'timeframe', value: string) => {
+    // Handler to update an additional indicator entry.
+    const updateAdditionalIndicator = (
+        index: number,
+        field: 'indicator' | 'timeframe',
+        value: string
+    ) => {
         const updated = [...additionalIndicators];
         updated[index] = { ...updated[index], [field]: value };
         setAdditionalIndicators(updated);
@@ -113,8 +114,10 @@ const OptimizedBotConfigForm: React.FC<OptimizedBotConfigFormProps> = ({ onDeplo
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
+        setSuccess('');
+
         // Build the configuration object.
-        const config: OptimizedBotConfig = {
+        const config: BotConfig = {
             symbol,
             baseFund,
             tradeFund,
@@ -125,11 +128,11 @@ const OptimizedBotConfigForm: React.FC<OptimizedBotConfigFormProps> = ({ onDeplo
             stopLoss,
             indicator,
             timeframe,
+            additionalIndicators,
+            strategy: indicator, // For now, we mirror indicator and strategy.
             optimizationMethod,
             minOptimizationAccuracy,
             minSimulatedTrades,
-            additionalIndicators,
-            strategy: indicator // For now, assume strategy equals primary indicator.
         };
 
         onDeploy(config);
@@ -139,8 +142,9 @@ const OptimizedBotConfigForm: React.FC<OptimizedBotConfigFormProps> = ({ onDeplo
         <div className="border p-4 rounded shadow">
             <h2 className="text-xl font-bold mb-4">Deploy New Optimized Bot</h2>
             {error && <p className="text-red-500 mb-2">{error}</p>}
+            {success && <p className="text-green-500 mb-2">{success}</p>}
             <form onSubmit={handleSubmit} className="space-y-4">
-                {/* Symbol */}
+                {/* Symbol Select */}
                 <div>
                     <label className="block mb-1 font-semibold">Symbol</label>
                     <select
@@ -213,7 +217,7 @@ const OptimizedBotConfigForm: React.FC<OptimizedBotConfigFormProps> = ({ onDeplo
                     </select>
                 </div>
 
-                {/* Compound Position Sizing */}
+                {/* Compound Position Sizing Switch */}
                 <div className="flex items-center">
                     <input
                         type="checkbox"
@@ -280,43 +284,6 @@ const OptimizedBotConfigForm: React.FC<OptimizedBotConfigFormProps> = ({ onDeplo
                     </div>
                 </div>
 
-                {/* Optimization Fields */}
-                <div className="flex flex-col md:flex-row gap-4">
-                    <div className="flex-1">
-                        <label className="block mb-1 font-semibold">Optimization Method</label>
-                        <select
-                            value={optimizationMethod}
-                            onChange={(e) => setOptimizationMethod(e.target.value)}
-                            className="w-full p-2 border rounded"
-                        >
-                            {optimizationMethodOptions.map((opt) => (
-                                <option key={opt} value={opt}>
-                                    {opt.toUpperCase()}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-                    <div className="flex-1">
-                        <label className="block mb-1 font-semibold">Min Optimization Accuracy</label>
-                        <input
-                            type="number"
-                            value={minOptimizationAccuracy}
-                            onChange={(e) => setMinOptimizationAccuracy(Number(e.target.value))}
-                            className="w-full p-2 border rounded"
-                            step="0.01"
-                        />
-                    </div>
-                    <div className="flex-1">
-                        <label className="block mb-1 font-semibold">Min Simulated Trades</label>
-                        <input
-                            type="number"
-                            value={minSimulatedTrades}
-                            onChange={(e) => setMinSimulatedTrades(Number(e.target.value))}
-                            className="w-full p-2 border rounded"
-                        />
-                    </div>
-                </div>
-
                 {/* Additional Indicators */}
                 <div>
                     <label className="block mb-1 font-semibold">Additional Indicators</label>
@@ -355,6 +322,40 @@ const OptimizedBotConfigForm: React.FC<OptimizedBotConfigFormProps> = ({ onDeplo
                     </button>
                 </div>
 
+                {/* Optimization Fields */}
+                <div className="flex flex-col md:flex-row gap-4">
+                    <div className="flex-1">
+                        <label className="block mb-1 font-semibold">Optimization Method</label>
+                        <select
+                            value={optimizationMethod}
+                            onChange={(e) => setOptimizationMethod(e.target.value as 'grid' | 'bayesian')}
+                            className="w-full p-2 border rounded"
+                        >
+                            <option value="grid">Grid</option>
+                            <option value="bayesian">Bayesian</option>
+                        </select>
+                    </div>
+                    <div className="flex-1">
+                        <label className="block mb-1 font-semibold">Minimum Optimization Accuracy</label>
+                        <input
+                            type="number"
+                            value={minOptimizationAccuracy}
+                            onChange={(e) => setMinOptimizationAccuracy(Number(e.target.value))}
+                            className="w-full p-2 border rounded"
+                            step="0.01"
+                        />
+                    </div>
+                    <div className="flex-1">
+                        <label className="block mb-1 font-semibold">Minimum Simulated Trades</label>
+                        <input
+                            type="number"
+                            value={minSimulatedTrades}
+                            onChange={(e) => setMinSimulatedTrades(Number(e.target.value))}
+                            className="w-full p-2 border rounded"
+                        />
+                    </div>
+                </div>
+
                 {/* Deploy Button */}
                 <div>
                     <button
@@ -367,6 +368,4 @@ const OptimizedBotConfigForm: React.FC<OptimizedBotConfigFormProps> = ({ onDeplo
             </form>
         </div>
     );
-};
-
-export default OptimizedBotConfigForm;
+}
