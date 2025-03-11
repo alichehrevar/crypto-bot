@@ -1,27 +1,16 @@
 // strategies/DynamicStrategy.js
-
-// Import the Candle model to fetch recent historical data.
 const Candle = require('../models/Candle');
-// Import the risk management module that contains an optimization function.
-// (Ensure that RiskManagement or RiskStrategy path matches your project structure.)
-const RiskManagement = require('./moneyManagement/RiskManagement');
+const OptimizationManager = require('./optimization/OptimizationManager');
+const { getThresholdForTimeframe } = require('../../utils/CandleCountThresholds');
 
-/**
- * DynamicStrategy
- *
- * This class wraps a base indicator strategy to allow for dynamic updates to its configuration.
- * It periodically fetches recent candle data, re-optimizes parameters using a risk management
- * optimization function (e.g., weighted optimization), and updates the base strategy configuration.
- */
 class DynamicStrategy {
     /**
-     * Constructs a DynamicStrategy instance.
-     *
-     * @param {Object} baseStrategy - An instance of a base indicator strategy (e.g., RSI, MACD).
-     * @param {Object} initialConfig - The initial configuration parameters for the strategy.
-     * @param {string} symbol - The trading symbol (e.g., "BTC/USDT").
-     * @param {string} timeframe - The trading timeframe (e.g., "1h").
-     * @param {number} [updateIntervalMs=60000] - Interval in milliseconds for parameter updates.
+     * Wraps a base strategy to enable dynamic parameter updates.
+     * @param {object} baseStrategy - An instance of an indicator strategy (e.g., RSI, MACD, etc.)
+     * @param {object} initialConfig - The initial configuration parameters.
+     * @param {string} symbol - Trading symbol, e.g., "BTC/USDT"
+     * @param {string} timeframe - Timeframe, e.g., "1h"
+     * @param {number} updateIntervalMs - How often (in ms) to re‑evaluate parameters.
      */
     constructor(baseStrategy, initialConfig, symbol, timeframe, updateIntervalMs = 60000) {
         this.baseStrategy = baseStrategy;
@@ -30,14 +19,13 @@ class DynamicStrategy {
         this.timeframe = timeframe;
         this.lastUpdateTime = Date.now();
 
-        // Start periodic dynamic updates.
+        // Start dynamic parameter updates.
         this.startDynamicUpdates(updateIntervalMs);
     }
 
     /**
-     * Calculates a trading signal using the underlying base strategy.
-     *
-     * @param {Array<Object>} candles - An array of candle data.
+     * Proxy for calculating a signal using the base strategy.
+     * @param {Array} candles - An array of candle data.
      * @returns {string} The trading signal ('BUY', 'SELL', or 'HOLD').
      */
     calculateSignal(candles) {
@@ -45,68 +33,67 @@ class DynamicStrategy {
     }
 
     /**
-     * Updates the configuration of the base strategy.
-     * If the base strategy supports an updateConfig method, it will be called.
+     * Periodically re-optimizes the strategy parameters based on recent candle data.
+     * It checks if the number of recent candles reaches the threshold defined for the timeframe.
+     * If yes, it uses the OptimizationManager to update its configuration.
      *
-     * @param {Object} newConfig - New configuration parameters.
-     */
-    updateConfig(newConfig) {
-        // Merge new configuration parameters with the current config.
-        this.config = { ...this.config, ...newConfig };
-        // If the base strategy provides an updateConfig function, call it.
-        if (typeof this.baseStrategy.updateConfig === 'function') {
-            this.baseStrategy.updateConfig(this.config);
-        }
-        console.log(`DynamicStrategy updated configuration for ${this.symbol} ${this.timeframe}:`, this.config);
-    }
-
-    /**
-     * Starts dynamic parameter updates at a specified interval.
-     * This method periodically fetches recent candle data and uses the risk management module
-     * to re-optimize strategy parameters.
-     *
-     * @param {number} intervalMs - The update interval in milliseconds.
+     * @param {number} intervalMs - The interval in milliseconds to check for updates.
      */
     startDynamicUpdates(intervalMs) {
         setInterval(async () => {
             try {
-                // Fetch recent candles from the database.
+                // Fetch recent candle data for the given symbol/timeframe.
                 const recentCandles = await this.fetchRecentCandles();
-                // Optimize the configuration using the risk management optimization function.
-                // Here, we use a 'weighted' optimization method as an example.
-                const optimizedConfig = RiskManagement.optimizeParameters(
+
+                // Get the required number of candles for this timeframe.
+                const threshold = getThresholdForTimeframe(this.timeframe.toLowerCase());
+
+                // If we haven't reached the threshold, skip reoptimization.
+                if (recentCandles.length < threshold) {
+                    console.log(`DynamicStrategy: Only ${recentCandles.length} candles available; need ${threshold} for optimization.`);
+                    return;
+                }
+
+                // Call the optimization function (e.g., using a weighted or Bayesian method).
+                const optimizedConfig = await OptimizationManager.optimize(
                     this.symbol,
                     this.timeframe,
-                    'weighted', // You can switch this method as needed.
+                    this.config.optimizationMethod || 'grid', // default method
                     recentCandles
                 );
-                // Update the base strategy's configuration with the optimized parameters.
-                this.updateConfig(optimizedConfig);
+
+                // Merge the optimized configuration into the current configuration.
+                this.config = { ...this.config, ...optimizedConfig };
+
+                // If the base strategy supports updating its configuration, update it.
+                if (typeof this.baseStrategy.updateConfig === 'function') {
+                    this.baseStrategy.updateConfig(this.config);
+                    console.log(`DynamicStrategy updated configuration for ${this.symbol} ${this.timeframe}:`, this.config);
+                }
                 this.lastUpdateTime = Date.now();
             } catch (error) {
-                console.error(`Dynamic update error for ${this.symbol} ${this.timeframe}: ${error.message}`);
+                console.error('Dynamic update error:', error.message);
             }
         }, intervalMs);
     }
 
     /**
-     * Fetches the most recent candle data for the strategy's symbol and timeframe.
-     *
-     * @returns {Promise<Array<Object>>} A promise that resolves to an array of candle objects,
-     *                                  sorted in ascending order by timestamp.
+     * Fetches recent candle data for the strategy's symbol and timeframe.
+     * @returns {Promise<Array>} A promise that resolves to an array of candles in ascending order.
      */
     async fetchRecentCandles() {
         try {
+            // Query the database for the latest 100 candles for the given symbol and timeframe.
             const candles = await Candle.find({
                 symbol: this.symbol.toUpperCase(),
                 timeframe: this.timeframe.toLowerCase()
             })
                 .sort({ timestamp: -1 })
                 .limit(100);
-            // Reverse the array so that candles are in ascending order (oldest first).
+            // Reverse the array so that candles are sorted oldest first.
             return candles.reverse();
         } catch (error) {
-            console.error(`Error fetching recent candles for ${this.symbol} ${this.timeframe}: ${error.message}`);
+            console.error('Error fetching recent candles:', error.message);
             return [];
         }
     }

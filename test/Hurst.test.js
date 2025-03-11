@@ -1,6 +1,6 @@
 // test/Hurst.test.js
 
-const Hurst = require('../app/strategies/technical/Hurst');
+const Hurst = require('../app/metrics/Hurst');
 const { generateTestData } = require('./testUtils');
 
 let expect;

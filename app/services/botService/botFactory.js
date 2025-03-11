@@ -1,7 +1,8 @@
 // botFactory.js
 
-// ----- Indicators (Technical Strategies) -----
-// Import all technical from the technical index file.
+// ----- Technical Indicators -----
+// Import all technical indicators from the centralized index file.
+// (Make sure that your technical index file exports all the necessary indicator classes.)
 const {
     RSI,
     MACD,
@@ -11,8 +12,7 @@ const {
     HeikinAshi,
     CombinedRsiMacd,
     BollingerBands,
-    StochasticRSI,
-    Hurst
+    StochasticRSI
 } = require('../../strategies/technical');
 
 // ----- Risk (Money Management) Strategies -----
@@ -23,58 +23,71 @@ const KellyCriterionStrategy = require('../../strategies/moneyManagement/KellyCr
 const SimpleStrategy = require('../../strategies/moneyManagement/SimpleStrategy');
 
 // ----- Non-Technical Strategies -----
-// For non-technical (e.g. fundamental or sentiment-based) strategies,
-// you might create and import them from another directory.
+// (Uncomment or add non-technical strategies if needed)
 // const FundamentalStrategy = require('../../strategies/nonTechnical/FundamentalStrategy');
+
+// ----- Dynamic Strategy Wrapper -----
+// Import the dynamic wrapper to enable dynamic parameter updates.
+const DynamicStrategy = require('../../strategies/DynamicStrategy');
 
 /**
  * Creates an indicator instance for technical bots.
- * This function selects and instantiates the proper indicator (RSI, MACD, etc.)
+ * This function selects and instantiates the proper technical indicator (RSI, MACD, etc.)
  * based on the bot.indicator field.
  *
  * @param {Object} bot - The bot document.
- * @returns {Object} An object (or instance) implementing calculateSignal().
+ * @returns {Object} An instance implementing calculateSignal().
  */
 function createTechnicalIndicator(bot) {
+    let indicatorInstance;
     switch (bot.indicator) {
         case 'RSI':
-            return new RSI(bot.strategyParams);
+            indicatorInstance = new RSI(bot.strategyParams);
+            break;
         case 'MACD':
-            return new MACD(bot.strategyParams);
+            indicatorInstance = new MACD(bot.strategyParams);
+            break;
         case 'MA_Crossover':
-            return new MACrossover(bot.strategyParams);
+            indicatorInstance = new MACrossover(bot.strategyParams);
+            break;
         case 'Donchian':
-            return {
+            // For Donchian, we assume a static function is provided.
+            indicatorInstance = {
                 calculateSignal: (candles) => Donchian.calculateDonchianSignal(candles, 'donchian')
             };
+            break;
         case 'Volume':
-            return {
+            indicatorInstance = {
                 calculateSignal: (candles) => Volume.calculateVolumeSignal(candles, 'volume')
             };
+            break;
         case 'Heikin_Ashi':
-            return {
+            indicatorInstance = {
                 calculateSignal: (candles) => HeikinAshi.calculateHeikinAshiSignal(candles, 'heikinashi')
             };
+            break;
         case 'Combined_RSI_MACD':
-            return {
+            indicatorInstance = {
                 calculateSignal: (candles) =>
                     CombinedRsiMacd.calculateCombinedRsiMacdSignal(candles, 'combined', { parameters: { confirmation_window: 6 } })
             };
+            break;
         case 'Bollinger_Bands':
-            return {
+            indicatorInstance = {
                 calculateSignal: (candles) => BollingerBands.calculateBollingerBandsSignal(candles, 'bollinger')
             };
+            break;
         case 'Stochastic_RSI':
-            return new StochasticRSI(bot.strategyParams);
-        case 'Hurst':
-            return new Hurst(bot.strategyParams);
+            indicatorInstance = new StochasticRSI(bot.strategyParams);
+            break;
         default:
             throw new Error(`Unknown indicator: ${bot.indicator}`);
     }
+    return indicatorInstance;
 }
 
 /**
- * Creates a risk (money-management) strategy instance.
+ * Creates a risk (money-management) strategy instance based on bot.riskStrategy.
  *
  * @param {Object} bot - The bot document.
  * @returns {Object} An instance implementing risk management functions.
@@ -88,6 +101,7 @@ function createRiskStrategy(bot) {
         case 'KellyCriterionStrategy':
             return new KellyCriterionStrategy(bot.strategyParams);
         case 'SimpleStrategy':
+            // Note: For simple strategy, we pass risk parameters instead of strategy parameters.
             return new SimpleStrategy(bot.riskParams);
         default:
             throw new Error(`Unknown risk strategy: ${bot.riskStrategy}`);
@@ -95,25 +109,27 @@ function createRiskStrategy(bot) {
 }
 
 /**
- * Creates a strategy instance based on the bot's strategy type.
- * If the bot is technical (default), it uses technical technical.
- * If the bot is non-technical, it creates a non-technical strategy.
+ * Creates a complete strategy instance for the bot.
+ * For technical strategies, it creates an indicator instance.
+ * If the bot is dynamic (i.e. dynamic reoptimization is desired),
+ * the indicator is wrapped with the DynamicStrategy to allow periodic updates.
  *
  * @param {Object} bot - The bot document.
  * @returns {Object} An instance implementing calculateSignal().
  */
 function createStrategy(bot) {
-    // Default to "technical" if strategyType is not provided.
-    if (!bot.strategyType || bot.strategyType === 'technical') {
-        return createTechnicalIndicator(bot);
-    } else if (bot.strategyType === 'nonTechnical') {
-        return new FundamentalStrategy(bot.strategyParams);
-    } else {
-        throw new Error(`Unknown strategy type: ${bot.strategyType}`);
+    // Create the technical indicator instance.
+    let indicatorInstance = createTechnicalIndicator(bot);
+
+    // If the bot is marked as dynamic, wrap the indicator in a DynamicStrategy.
+    if (bot.dynamic) {
+        return new DynamicStrategy(indicatorInstance, bot.strategyParams, bot.symbol, bot.timeframe);
     }
+    return indicatorInstance;
 }
 
 module.exports = {
+    // Export the createStrategy function as createIndicator for backward compatibility.
     createIndicator: createStrategy,
     createRiskStrategy,
 };
