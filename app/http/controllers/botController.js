@@ -18,14 +18,13 @@ exports.deployBot = async (req, res) => {
             return res.status(400).json({ error: 'Indicator, riskStrategy, and strategy fields are required.' });
         }
 
-        // Ensure there is a valid user; if none exists, create a dummy one.
-        let user = await User.findOne({});
-        if (!user) {
-            user = await User.create({
-                email: 'test@example.com',
-                password: 'password123'
-            });
-            console.log('Created dummy user:', user.email);
+        let user;
+        // If the request is authenticated, use the authorized user.
+        if (req.user && req.user.id) {
+            user = await User.findById(req.user.id);
+            if (!user) {
+                return res.status(401).json({ error: 'User not found.' });
+            }
         }
         botData.userId = user._id;
 

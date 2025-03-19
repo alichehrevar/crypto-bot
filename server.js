@@ -13,6 +13,7 @@ const botService = require('./app/services/botService/BotService');
 const wsServer = require('./app/services/WebSocketServer');
 
 const authRoutes = require('./routes/auth');
+const accountRoutes = require('./routes/accounts');
 const candleRoutes = require('./routes/candles');
 const botRoutes = require('./routes/bots');
 const backtestRoutes = require('./routes/backtest');
@@ -59,6 +60,7 @@ app.get('/health', (req, res) => {
 
 // API Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/accounts', accountRoutes);
 app.use('/api/candles', candleRoutes);
 app.use('/api/bots', botRoutes);
 app.use('/api/backtest', backtestRoutes);

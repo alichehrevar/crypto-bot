@@ -91,8 +91,6 @@ class DynamicStrategy {
                     let performance = summary.finalBalance;
                     // 5a. Discard candidate if its performance is below the minimum bot accuracy.
                     if (performance < this.minBotAccuracy) continue;
-                    // 5b. Cap performance at 0.8.
-                    if (performance > 0.8) performance = 0.8;
                     if (performance > bestPerformance) {
                         bestPerformance = performance;
                         bestCandidate = { indicator: candidateIndicator, params: candidateParams, performance };
