@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 
 // Define the configuration interface for the bot deployment.
+// Note: We've added "accountId" to store the attached account's ID.
 export interface BotConfig {
     symbol: string;
     baseFund: number;
@@ -20,6 +21,8 @@ export interface BotConfig {
     optimizationMethod: 'grid' | 'bayesian';
     minOptimizationAccuracy: number;
     minSimulatedTrades: number;
+    // New field to store the selected account ID.
+    accountId: string;
 }
 
 interface OptimizedStrategyFormProps {
@@ -28,28 +31,34 @@ interface OptimizedStrategyFormProps {
 
 export default function OptimizedStrategyForm({ onDeploy }: OptimizedStrategyFormProps) {
     // Form state variables.
-    const [symbol, setSymbol] = useState('BTC/USDT');
-    const [baseFund, setBaseFund] = useState(10000);
-    const [tradeFund, setTradeFund] = useState(50); // Percentage
-    const [leverage, setLeverage] = useState(1);
-    const [riskStrategy, setRiskStrategy] = useState('KellyCriterionStrategy');
-    const [compoundPositionSizing, setCompoundPositionSizing] = useState(true);
-    const [takeProfit, setTakeProfit] = useState(1.02);
-    const [stopLoss, setStopLoss] = useState(0.98);
-    const [indicator, setIndicator] = useState('RSI');
-    const [timeframe, setTimeframe] = useState('1h');
+    const [symbol, setSymbol] = useState('BTC/USDT'); // Selected trading symbol.
+    const [baseFund, setBaseFund] = useState(10000); // Starting fund.
+    const [tradeFund, setTradeFund] = useState(50); // Percentage of the base fund used for trading.
+    const [leverage, setLeverage] = useState(1); // Leverage value.
+    const [riskStrategy, setRiskStrategy] = useState('KellyCriterionStrategy'); // Risk management strategy.
+    const [compoundPositionSizing, setCompoundPositionSizing] = useState(true); // Whether to use compound sizing.
+    const [takeProfit, setTakeProfit] = useState(1.02); // Take profit multiplier.
+    const [stopLoss, setStopLoss] = useState(0.98); // Stop loss multiplier.
+    const [indicator, setIndicator] = useState('RSI'); // Primary indicator.
+    const [timeframe, setTimeframe] = useState('1h'); // Primary timeframe.
     const [additionalIndicators, setAdditionalIndicators] = useState<
         Array<{ indicator: string; timeframe: string }>
-    >([]);
+    >([]); // Additional indicators.
     // Extra optimization fields.
     const [optimizationMethod, setOptimizationMethod] = useState<'grid' | 'bayesian'>('grid');
     const [minOptimizationAccuracy, setMinOptimizationAccuracy] = useState(0.5);
     const [minSimulatedTrades, setMinSimulatedTrades] = useState(10);
+    // New state to hold available symbols fetched from the backend.
     const [symbols, setSymbols] = useState<string[]>([]);
+    // New state to hold the list of attached accounts (Binance, OKX, BingX).
+    const [accounts, setAccounts] = useState<any[]>([]);
+    // New state to hold the selected account ID.
+    const [selectedAccountId, setSelectedAccountId] = useState('');
+    // States for error and success messages.
     const [error, setError] = useState<string>('');
     const [success, setSuccess] = useState<string>('');
 
-    // Predefined options.
+    // Predefined options for dropdowns.
     const riskStrategyOptions = [
         'KellyCriterionStrategy',
         'MartingaleStrategy',
@@ -70,16 +79,18 @@ export default function OptimizedStrategyForm({ onDeploy }: OptimizedStrategyFor
     const timeframeOptions = ['1m', '5m', '15m', '30m', '1h', '4h', '1d', '1w'];
     const leverageOptions = Array.from({ length: 100 }, (_, i) => i + 1);
 
-    // Fetch available symbols from backend on mount.
+    // Fetch available symbols from the backend on component mount.
     useEffect(() => {
         async function fetchSymbols() {
             try {
                 const apiUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000/api';
+                // Request to the backend for currencies/symbols.
                 const res = await fetch(`${apiUrl}/currencies`);
                 if (!res.ok) {
                     throw new Error('Failed to fetch symbols');
                 }
                 const data = await res.json();
+                // Assume that data contains an array in either data.data or data directly.
                 const symbolList = data.data ? data.data : data;
                 setSymbols(symbolList);
                 if (symbolList.length > 0) {
@@ -91,6 +102,31 @@ export default function OptimizedStrategyForm({ onDeploy }: OptimizedStrategyFor
             }
         }
         fetchSymbols();
+    }, []);
+
+    // Fetch attached accounts from the backend on component mount.
+    useEffect(() => {
+        async function fetchAccounts() {
+            try {
+                const apiUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000/api';
+                // Request to fetch all attached accounts (Binance, OKX, BingX).
+                const res = await fetch(`${apiUrl}/accounts`);
+                if (!res.ok) {
+                    throw new Error('Failed to fetch accounts');
+                }
+                const data = await res.json();
+                // Assume data is an array of account objects.
+                setAccounts(data);
+                // If accounts exist, set the default selected account.
+                if (data.length > 0) {
+                    setSelectedAccountId(data[0]._id);
+                }
+            } catch (err) {
+                console.error('Error fetching accounts:', err);
+                setError('Failed to load accounts');
+            }
+        }
+        fetchAccounts();
     }, []);
 
     // Handler to add an additional indicator row.
@@ -111,29 +147,31 @@ export default function OptimizedStrategyForm({ onDeploy }: OptimizedStrategyFor
 
     // Form submission handler.
     const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        setError('');
-        setSuccess('');
+        e.preventDefault(); // Prevent default form submission behavior.
+        setError(''); // Reset error message.
+        setSuccess(''); // Reset success message.
 
-        // Build the configuration object.
+        // Build the configuration object with all form data.
         const config: BotConfig = {
-            symbol,
-            baseFund,
-            tradeFund,
-            leverage,
-            riskStrategy,
-            compoundPositionSizing,
-            takeProfit,
-            stopLoss,
-            indicator,
-            timeframe,
-            additionalIndicators,
-            strategy: indicator, // For now, we mirror indicator and strategy.
-            optimizationMethod,
-            minOptimizationAccuracy,
-            minSimulatedTrades,
+            symbol, // Selected symbol.
+            baseFund, // Base fund amount.
+            tradeFund, // Trade fund percentage.
+            leverage, // Selected leverage.
+            riskStrategy, // Selected risk strategy.
+            compoundPositionSizing, // Compound position sizing option.
+            takeProfit, // Take profit multiplier.
+            stopLoss, // Stop loss multiplier.
+            indicator, // Primary indicator.
+            timeframe, // Primary timeframe.
+            additionalIndicators, // Array of additional indicators.
+            strategy: indicator, // For now, strategy mirrors the primary indicator.
+            optimizationMethod, // Selected optimization method.
+            minOptimizationAccuracy, // Minimum optimization accuracy.
+            minSimulatedTrades, // Minimum number of simulated trades.
+            accountId: selectedAccountId, // Attached account ID from the select box.
         };
 
+        // Call the onDeploy function passed via props with the built configuration.
         onDeploy(config);
     };
 
@@ -154,6 +192,26 @@ export default function OptimizedStrategyForm({ onDeploy }: OptimizedStrategyFor
                         {symbols.map((s) => (
                             <option key={s} value={s}>
                                 {s}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+
+                {/* Attached Account Select */}
+                <div>
+                    <label className="block mb-1 font-semibold">Attached Account</label>
+                    <select
+                        value={selectedAccountId}
+                        onChange={(e) => setSelectedAccountId(e.target.value)}
+                        className="w-full p-2 border rounded"
+                    >
+                        {/* Default option prompting the user to select an account */}
+                        <option value="">Select an account</option>
+                        {/* Map over accounts fetched from backend */}
+                        {accounts.map((acc) => (
+                            <option key={acc._id} value={acc._id}>
+                                {/* Display the account type and a masked API key (first 4 characters) */}
+                                {acc.type} - {acc.apiKey.substring(0, 4)}...
                             </option>
                         ))}
                     </select>

@@ -3,6 +3,9 @@ const crypto = require('crypto');
 const zlib = require('zlib');
 const Candle = require('../models/Candle');
 
+// For Node 18+ the global fetch API is available. If not, you may need to require node-fetch:
+// const fetch = require('node-fetch');
+
 class BingXWS {
     constructor() {
         this.ws = null;
@@ -11,14 +14,16 @@ class BingXWS {
         this.maxReconnectAttempts = 10;
         this.subscriptions = new Map();
         this.pingInterval = null;
+        // Default credentials from environment if needed for WS connection.
         this.apiKey = process.env.BINGX_API_KEY;
         this.apiSecret = process.env.BINGX_API_SECRET;
     }
 
-    generateSignature(timestamp) {
+    // Generates signature using the account's secret.
+    generateSignature(timestamp, apiSecret = this.apiSecret) {
         const signString = `timestamp=${timestamp}`;
         return crypto
-            .createHmac('sha256', this.apiSecret)
+            .createHmac('sha256', apiSecret)
             .update(signString)
             .digest('hex');
     }
@@ -29,27 +34,27 @@ class BingXWS {
         const timestamp = Date.now().toString();
         const signature = this.generateSignature(timestamp);
 
-        // BingX Perpetual Swap WebSocket endpoint with authentication
+        // BingX Perpetual Swap WebSocket endpoint with authentication.
         const endpoint = `wss://open-api-swap.bingx.com/swap-market`;
 
         this.ws = new WebSocket(endpoint, {
-            perMessageDeflate: false // Disable compression if not needed
+            perMessageDeflate: false // Disable compression if not needed.
         });
 
-        // Add explicit binaryType setting
+        // Set explicit binaryType.
         this.ws.binaryType = 'arraybuffer';
 
-        // Set up ping interval
+        // Set up ping interval.
         this.setupPingInterval();
 
         this.ws.on('open', () => {
             console.log('[BingXWS] Connected to BingX WebSocket');
             this.reconnectAttempts = 0;
 
-            // Authenticate the connection
+            // Authenticate the connection.
             this.authenticate(timestamp, signature);
 
-            // Resubscribe to all active subscriptions
+            // Resubscribe to all active subscriptions.
             this.subscriptions.forEach((sub) => {
                 this.sendSubscription(sub.symbol, sub.interval);
             });
@@ -58,20 +63,20 @@ class BingXWS {
         this.ws.on('message', async (data, isBinary) => {
             try {
                 let message;
-                // Handle binary messages (common in exchange APIs)
+                // Handle binary messages.
                 if (isBinary) {
                     message = this.parseBinaryMessage(data);
                 } else {
                     message = JSON.parse(data.toString());
                 }
 
-                // Handle ping messages
+                // Handle ping messages.
                 if (message.ping) {
                     this.handlePing(message.ping);
                     return;
                 }
 
-                // Handle authentication response
+                // Handle authentication response.
                 if (message.event === 'login') {
                     this.handleAuthResponse(message);
                     return;
@@ -97,11 +102,11 @@ class BingXWS {
 
     authenticate(timestamp, signature) {
         const authMessage = {
-            "event": "login",
-            "params": {
-                "apiKey": this.apiKey,
-                "timestamp": timestamp,
-                "signature": signature
+            event: "login",
+            params: {
+                apiKey: this.apiKey,
+                timestamp: timestamp,
+                signature: signature
             }
         };
         this.sendWhenReady(authMessage);
@@ -120,12 +125,11 @@ class BingXWS {
     setupPingInterval() {
         this.pingInterval = setInterval(() => {
             if (this.ws?.readyState === WebSocket.OPEN) {
-                // Send proper WebSocket ping frame
                 this.ws.ping();
             }
         }, 25000);
 
-        // Add ping/pong handlers
+        // Ping/Pong handlers.
         this.ws.on('ping', () => {
             console.debug('[BingXWS] Received ping');
             this.ws.pong();
@@ -173,7 +177,7 @@ class BingXWS {
         if (!msg || typeof msg !== 'object') return;
 
         try {
-            // Handle different message types
+            // Handle kline messages.
             if (msg.topic && msg.topic.includes('kline')) {
                 await this.processKlineMessage(msg);
             } else if (msg.topic && msg.topic.includes('ticker')) {
@@ -203,7 +207,7 @@ class BingXWS {
             isClosed: klineData.x
         };
 
-        // Validate numeric values
+        // Validate numeric values.
         const isValid = ['open', 'high', 'low', 'close', 'volume']
             .every(key => Number.isFinite(candleData[key]));
 
@@ -215,7 +219,6 @@ class BingXWS {
     }
 
     async processTickerMessage(msg) {
-        // Implement ticker processing if needed
         console.log('[BingXWS] Ticker update:', msg);
     }
 
@@ -237,7 +240,6 @@ class BingXWS {
             '1w': '1w',
             '1M': '1M'
         };
-
         return mapping[interval] || interval;
     }
 
@@ -280,9 +282,9 @@ class BingXWS {
         const key = `${symbol}-${interval}`;
         if (this.subscriptions.has(key)) {
             const unsubscribeMsg = {
-                "id": Date.now(),
-                "reqType": "unsub",
-                "dataType": `${symbol.toLowerCase()}@kline_${interval}`
+                id: Date.now(),
+                reqType: "unsub",
+                dataType: `${symbol.toLowerCase()}@kline_${interval}`
             };
             this.sendWhenReady(unsubscribeMsg);
             this.subscriptions.delete(key);
@@ -291,9 +293,9 @@ class BingXWS {
 
     sendSubscription(symbol, interval) {
         const subscribeMsg = {
-            "id": Date.now(),
-            "reqType": "sub",
-            "dataType": `${symbol.toLowerCase()}@kline_${interval}`
+            id: Date.now(),
+            reqType: "sub",
+            dataType: `${symbol.toLowerCase()}@kline_${interval}`
         };
         this.sendWhenReady(subscribeMsg);
     }
@@ -311,7 +313,7 @@ class BingXWS {
         }
     }
 
-    // Public methods for managing the connection
+    // Public methods for managing the connection.
     disconnect() {
         if (this.ws) {
             this.cleanup();
@@ -327,10 +329,9 @@ class BingXWS {
         return Array.from(this.subscriptions.values());
     }
 
-    // Add binary message parser
+    // Add binary message parser.
     parseBinaryMessage(data) {
         try {
-            // Handle BingX's potential gzip compression
             const decompressed = zlib.gunzipSync(data);
             return JSON.parse(decompressed.toString());
         } catch (error) {
@@ -338,7 +339,45 @@ class BingXWS {
             return null;
         }
     }
+
+    /**
+     * Fetch the account balance from BingX using REST API.
+     * @param {Object} account - The account object containing API credentials.
+     * @returns {Promise<number>} The account balance.
+     */
+    async getBalance(account) {
+        // Use the account's credentials instead of the instance's defaults.
+        const { apiKey, secretKey } = account;
+        const timestamp = Date.now().toString();
+        const signature = crypto
+            .createHmac('sha256', secretKey)
+            .update(`timestamp=${timestamp}`)
+            .digest('hex');
+
+        // Hypothetical BingX REST endpoint for balance.
+        const endpoint = `https://open-api-swap.bingx.com/api/v1/account/balance?timestamp=${timestamp}&signature=${signature}`;
+
+        // Set headers including the account's API key.
+        const headers = {
+            "Content-Type": "application/json",
+            "X-BX-APIKEY": apiKey
+        };
+
+        try {
+            const res = await fetch(endpoint, { method: "GET", headers });
+            if (!res.ok) {
+                throw new Error(`BingX getBalance failed with status ${res.status}`);
+            }
+            const data = await res.json();
+            // Adjust based on BingX's response format.
+            // Assume data returns an object with a "balance" property.
+            return data.balance;
+        } catch (error) {
+            console.error('[BingXWS] Error fetching balance:', error);
+            throw error;
+        }
+    }
 }
 
-// Export a singleton instance
+// Export a singleton instance.
 module.exports = new BingXWS();

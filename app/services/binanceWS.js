@@ -1,5 +1,6 @@
 const WebSocket = require('ws');
 const axios = require('axios');
+const crypto = require('crypto'); // Import crypto for signature generation.
 const Candle = require('../models/Candle');
 const wsServer = require('./WebSocketServer');
 const { updateBotDataFromCandle } = require('./botService/BotService');
@@ -140,6 +141,49 @@ class BinanceWS {
             );
         } catch (error) {
             console.error('Global ticker processing error:', error);
+        }
+    }
+
+    /**
+     * Get the account balance for a Binance account using REST API.
+     * @param {Object} account - The account object containing apiKey and secretKey.
+     * @returns {Promise<number>} - The free USDT balance.
+     */
+    async getBalance(account) {
+        const { apiKey, secretKey } = account;
+        const timestamp = Date.now();
+        // Build the query string with the required timestamp.
+        const queryString = `timestamp=${timestamp}`;
+        // Generate the HMAC SHA256 signature.
+        const signature = crypto
+            .createHmac('sha256', secretKey)
+            .update(queryString)
+            .digest('hex');
+        // Binance REST endpoint to get account information.
+        const endpoint = `https://api.binance.com/api/v3/account?${queryString}&signature=${signature}`;
+        try {
+            const response = await axios.get(endpoint, {
+                headers: {
+                    'X-MBX-APIKEY': apiKey,
+                },
+            });
+            // Binance returns an object with a "balances" array.
+            // Here we look for the free balance of USDT.
+            const balances = response.data.balances;
+            const usdtBalance = balances.find(b => b.asset === 'USDT');
+            return usdtBalance ? parseFloat(usdtBalance.free) : 0;
+        } catch (error) {
+            console.error('BinanceWS getBalance error:', error.response?.data || error.message);
+            throw error;
+        }
+    }
+
+    // Additional existing methods remain unchanged...
+
+    disconnect() {
+        if (this.ws) {
+            this.ws.close();
+            this.ws = null;
         }
     }
 }

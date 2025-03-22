@@ -3,6 +3,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Cookies from 'js-cookie';
 
 export default function OkxAccountPage() {
     const [apiKey, setApiKey] = useState('');
@@ -14,10 +15,14 @@ export default function OkxAccountPage() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
+            const token = Cookies.get("token");
             const apiUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000/api';
             const res = await fetch(`${apiUrl}/accounts/okx`, { // proxy to backend API endpoint
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
                 body: JSON.stringify({ apiKey, secretKey, passphrase }),
             });
             if (res.ok) {
@@ -35,7 +40,7 @@ export default function OkxAccountPage() {
     return (
         <div className="container mx-auto p-4">
             <h1 className="text-2xl font-bold mb-4">Link OKX Account</h1>
-            {message && <p>{message}</p>}
+            {message && <p className="text-[13px] text-red-600">{message}</p>}
             <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
                     <label className="block mb-1">API Key:</label>
