@@ -12,23 +12,20 @@ const LiveUpdatesPage: React.FC = () => {
 
     // For now, we simulate live updates by re-fetching the deployed bots.
     // In a real application, you might subscribe to a WebSocket.
-    const fetchLiveBots = async () => {
+    const fetchLiveBots = React.useCallback(async () => {
         try {
             const res = await api.get<Bot[]>('/bots');
             setLiveBots(res.data);
         } catch (error) {
             console.error('Error fetching live bot updates:', error);
         }
-    };
+    }, [api]);
 
     useEffect(() => {
         fetchLiveBots();
-        // Optionally set an interval to refresh live data.
-        const interval = setInterval(() => {
-            fetchLiveBots();
-        }, 5000);
+        const interval = setInterval(fetchLiveBots, 5000);
         return () => clearInterval(interval);
-    }, []);
+    }, [fetchLiveBots]);
 
     return (
         <div className="container mx-auto p-4">

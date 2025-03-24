@@ -2,14 +2,12 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import BotConfigForm, { BotConfig } from '@/components/BotConfigForm';
 import BotList from '@/components/BotList';
 import LiveBotUpdates from '@/components/LiveBotUpdates';
 import { Bot } from '@/types';
 
 export default function DefaultMethodPage() {
-    const router = useRouter();
     const [deployedBots, setDeployedBots] = useState<Bot[]>([]);
     const [refresh, setRefresh] = useState(false);
     const [view, setView] = useState<'deployed' | 'live'>('deployed'); // navigation toggle
@@ -51,7 +49,7 @@ export default function DefaultMethodPage() {
                 const errData = await res.json();
                 setError(errData.error || 'Failed to deploy bot');
             }
-        } catch (err) {
+        } catch {
             setError('An unexpected error occurred while deploying the bot');
         }
     };

@@ -2,14 +2,12 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { LiveBot } from '@/types';
 
 const WS_URL = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8000/api/ws';
 
 export default function LiveBotUpdates() {
     const [bots, setBots] = useState<LiveBot[]>([]);
-    const router = useRouter();
 
     // Placeholder handlers for Pause/Resume and Cancel actions.
     const handlePauseResume = (botId: string) => {
@@ -57,7 +55,7 @@ export default function LiveBotUpdates() {
             } else {
                 try {
                     errorMsg = JSON.stringify(event);
-                } catch (err) {
+                } catch {
                     errorMsg = event.toString();
                 }
             }

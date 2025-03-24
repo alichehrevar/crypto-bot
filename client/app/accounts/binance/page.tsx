@@ -2,14 +2,12 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import Cookies from "js-cookie";
 
 export default function BinanceAccountPage() {
     const [apiKey, setApiKey] = useState('');
     const [secretKey, setSecretKey] = useState('');
     const [message, setMessage] = useState('');
-    const router = useRouter();
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -25,14 +23,14 @@ export default function BinanceAccountPage() {
                 body: JSON.stringify({ apiKey, secretKey }),
             });
             if (res.ok) {
-                const data = await res.json();
+                await res.json();
                 setMessage('Binance account linked successfully!');
                 // Optionally redirect or clear the form.
             } else {
                 const errorData = await res.json();
                 setMessage('Error: ' + errorData.error);
             }
-        } catch (error) {
+        } catch {
             setMessage('Unexpected error');
         }
     };

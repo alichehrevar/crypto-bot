@@ -2,7 +2,6 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import Cookies from 'js-cookie';
 
 export default function OkxAccountPage() {
@@ -10,7 +9,6 @@ export default function OkxAccountPage() {
     const [secretKey, setSecretKey] = useState('');
     const [passphrase, setPassphrase] = useState('');
     const [message, setMessage] = useState('');
-    const router = useRouter();
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -26,13 +24,13 @@ export default function OkxAccountPage() {
                 body: JSON.stringify({ apiKey, secretKey, passphrase }),
             });
             if (res.ok) {
-                const data = await res.json();
+                await res.json();
                 setMessage('OKX account linked successfully!');
             } else {
                 const errorData = await res.json();
                 setMessage('Error: ' + errorData.error);
             }
-        } catch (error) {
+        } catch {
             setMessage('Unexpected error');
         }
     };

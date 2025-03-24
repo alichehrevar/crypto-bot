@@ -2,7 +2,6 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 
 // Define an interface for a position.
 export interface Position {
@@ -34,7 +33,6 @@ interface BotDetailsProps {
 export default function BotDetails({ botId }: BotDetailsProps) {
     const [positions, setPositions] = useState<Position[]>([]);
     const [error, setError] = useState('');
-    const router = useRouter();
 
     // Fetch positions for this bot.
     useEffect(() => {

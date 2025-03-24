@@ -25,7 +25,7 @@ export default function BotList({ bots }: BotListProps) {
                 <ul className="space-y-4">
                     {bots.map((bot) => (
                         <li
-                            key={bot.id || (bot as any)._id}
+                            key={bot.id || bot._id}
                             className="border p-4 rounded"
                         >
                             <p>

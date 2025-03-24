@@ -23,6 +23,7 @@ export interface Bot {
     symbol: string;
     // The timeframe used for trading (e.g., "1h").
     timeframe: string;
+    active: boolean;
     // The primary technical indicator used (e.g., "RSI", "MACD", etc.).
     indicator?: string;
     // The risk (money management) strategy used (e.g., "KellyCriterionStrategy", "MartingaleStrategy", etc.).
@@ -48,6 +49,8 @@ export interface Bot {
             low?: number;
             volume?: number;
         };
+        baseFund: number; // Base fund in dollars.
+        tradeFund: number; // Trade fund percentage.
         // Data for the current (live) candle price.
         currentCandle?: {
             price: number;

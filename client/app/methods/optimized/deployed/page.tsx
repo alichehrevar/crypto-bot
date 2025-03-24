@@ -10,18 +10,19 @@ const DeployedBotsPage: React.FC = () => {
     const [bots, setBots] = useState<Bot[]>([]);
     const api = getApiClient();
 
-    const fetchBots = async () => {
+
+    const fetchBots = React.useCallback(async () => {
         try {
             const res = await api.get<Bot[]>('/bots');
             setBots(res.data);
         } catch (error) {
             console.error('Error fetching deployed bots:', error);
         }
-    };
+    }, [api]);
 
     useEffect(() => {
         fetchBots();
-    }, []);
+    }, [fetchBots]);
 
     return (
         <div className="container mx-auto p-4">

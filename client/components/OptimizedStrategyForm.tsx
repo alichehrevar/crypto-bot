@@ -25,6 +25,14 @@ export interface BotConfig {
     accountId: string;
 }
 
+// Define a type for attached accounts.
+export interface Account {
+    _id: string;
+    type: string;
+    apiKey: string;
+    // Add additional properties if needed.
+}
+
 interface OptimizedStrategyFormProps {
     onDeploy: (config: BotConfig) => void;
 }
@@ -51,7 +59,7 @@ export default function OptimizedStrategyForm({ onDeploy }: OptimizedStrategyFor
     // New state to hold available symbols fetched from the backend.
     const [symbols, setSymbols] = useState<string[]>([]);
     // New state to hold the list of attached accounts (Binance, OKX, BingX).
-    const [accounts, setAccounts] = useState<any[]>([]);
+    const [accounts, setAccounts] = useState<Account[]>([]);
     // New state to hold the selected account ID.
     const [selectedAccountId, setSelectedAccountId] = useState('');
     // States for error and success messages.

@@ -1,12 +1,31 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import OptimizedStrategyForm, { BotConfig } from '@/components/OptimizedStrategyForm';
 
+// Define an interface for a deployed bot.
+interface DeployedBot {
+    _id: string;
+    name: string;
+    symbol: string;
+    timeframe: string;
+    indicator?: string;
+    riskStrategy?: string;
+    strategy: string;
+    marketInfo?: {
+        baseFund: number;
+        tradeFund?: number;
+        lastSignal?: string;
+        lastCandle?: { close: number };
+        currentCandle?: { price: number };
+    };
+    tradeInfo?: {
+        leverage?: number;
+    };
+}
+
 export default function OptimizedStrategyPage() {
-    const router = useRouter();
-    const [deployedBots, setDeployedBots] = useState<any[]>([]);
+    const [deployedBots, setDeployedBots] = useState<DeployedBot[]>([]);
     const [refresh, setRefresh] = useState(false);
 
     // Fetch deployed bots from the backend.
