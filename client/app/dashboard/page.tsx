@@ -36,6 +36,26 @@ export default function DashboardPage() {
                     </li>
                 </ul>
             </nav>
+            <h1 className="text-2xl font-bold mb-8">Account Links</h1>
+            <nav className="mb-8">
+                <ul className="flex flex-col gap-4">
+                    <li>
+                        <Link href="/accounts/okx">
+                            <span className="text-green-700 hover:underline">OKX</span>
+                        </Link>
+                    </li>
+                    <li>
+                        <Link href="/accounts/binance">
+                            <span className="text-green-700 hover:underline">Binance</span>
+                        </Link>
+                    </li>
+                    <li>
+                        <Link href="/accounts/bingx">
+                            <span className="text-green-700 hover:underline">BingX</span>
+                        </Link>
+                    </li>
+                </ul>
+            </nav>
         </div>
     );
 }

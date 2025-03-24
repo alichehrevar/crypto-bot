@@ -3,6 +3,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Cookies from "js-cookie";
 
 export default function BinanceAccountPage() {
     const [apiKey, setApiKey] = useState('');
@@ -13,10 +14,14 @@ export default function BinanceAccountPage() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
+            const token = Cookies.get("token");
             const apiUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000/api';
             const res = await fetch(`${apiUrl}/accounts/binance`, { // proxy to our backend API endpoint
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
                 body: JSON.stringify({ apiKey, secretKey }),
             });
             if (res.ok) {
