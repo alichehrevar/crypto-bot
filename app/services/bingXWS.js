@@ -3,7 +3,7 @@ const crypto = require('crypto');
 const zlib = require('zlib');
 const Candle = require('../models/Candle');
 
-// For Node 18+ the global fetch API is available. If not, you may need to require node-fetch:
+// For Node 18+ the global fetch API is available. If not, you may need to require node-fetch.
 // const fetch = require('node-fetch');
 
 class BingXWS {
@@ -14,13 +14,18 @@ class BingXWS {
         this.maxReconnectAttempts = 10;
         this.subscriptions = new Map();
         this.pingInterval = null;
-        // Default credentials from environment if needed for WS connection.
-        this.apiKey = process.env.BINGX_API_KEY;
-        this.apiSecret = process.env.BINGX_API_SECRET;
+        // Removed default credentials from environment.
+        // this.apiKey = process.env.BINGX_API_KEY;
+        // this.apiSecret = process.env.BINGX_API_SECRET;
     }
 
-    // Generates signature using the account's secret.
-    generateSignature(timestamp, apiSecret = this.apiSecret) {
+    /**
+     * Generates a signature using the provided apiSecret.
+     * @param {string} timestamp - The timestamp as a string.
+     * @param {string} apiSecret - The API secret key.
+     * @returns {string} The generated signature.
+     */
+    generateSignature(timestamp, apiSecret) {
         const signString = `timestamp=${timestamp}`;
         return crypto
             .createHmac('sha256', apiSecret)
@@ -32,7 +37,9 @@ class BingXWS {
         if (this.ws) return;
 
         const timestamp = Date.now().toString();
-        const signature = this.generateSignature(timestamp);
+        // When connecting, you'll need to supply the appropriate credentials.
+        // For now, we leave the signature blank. Later, you can update this to pass the user’s credentials.
+        const signature = ''; // You might call: this.generateSignature(timestamp, userProvidedSecret)
 
         // BingX Perpetual Swap WebSocket endpoint with authentication.
         const endpoint = `wss://open-api-swap.bingx.com/swap-market`;
@@ -52,7 +59,9 @@ class BingXWS {
             this.reconnectAttempts = 0;
 
             // Authenticate the connection.
-            this.authenticate(timestamp, signature);
+            // Note: Remove default credentials; authentication should be done with user-provided values.
+            // Example (to be implemented later):
+            // this.authenticate(timestamp, signature, userProvidedApiKey);
 
             // Resubscribe to all active subscriptions.
             this.subscriptions.forEach((sub) => {
@@ -100,11 +109,20 @@ class BingXWS {
         });
     }
 
-    authenticate(timestamp, signature) {
+    /**
+     * Authenticate the WebSocket connection.
+     * This function now requires that you pass in the API key and secret from the user’s account.
+     * For now, it is a placeholder.
+     *
+     * @param {string} timestamp
+     * @param {string} signature
+     * @param {string} apiKey - User provided API key.
+     */
+    authenticate(timestamp, signature, apiKey) {
         const authMessage = {
             event: "login",
             params: {
-                apiKey: this.apiKey,
+                apiKey: apiKey, // Use the user-provided API key.
                 timestamp: timestamp,
                 signature: signature
             }
@@ -346,7 +364,7 @@ class BingXWS {
      * @returns {Promise<number>} The account balance.
      */
     async getBalance(account) {
-        // Use the account's credentials instead of the instance's defaults.
+        // Use the account's credentials.
         const { apiKey, secretKey } = account;
         const timestamp = Date.now().toString();
         const signature = crypto
