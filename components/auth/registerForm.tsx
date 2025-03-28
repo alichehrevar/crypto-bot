@@ -1,53 +1,58 @@
 'use client'
 
 import { FormEvent, useState } from "react";
-import Link from "next/link";
-import {useRouter} from "next/navigation";
-import { Checkbox, Input, Button, Form, addToast } from "@heroui/react";
+import { Checkbox, Input, Button, addToast } from "@heroui/react";
+import { Link } from "@heroui/link";
+import { useRouter } from "next/navigation";
 
 import { sendRequest } from "@/actions/post";
 import { AuthResponse } from "@/types/auth";
 
-export default function LoginForm () {
+export default function RegisterForm () {
 
   const router = useRouter();
-
   const [FormLoading, setFormLoading] = useState(false);
 
   async function handleLoginFormSubmission (event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setFormLoading(true);
-    const formData = Object.fromEntries(new FormData(event.currentTarget));
+    const formData = new FormData(event.currentTarget);
 
-    try {
-      await sendRequest(formData, '/auth/login')
-        .then((res: AuthResponse) => {
-          if (res.error) {
-            addToast({
-              title: res.error,
-              color: "danger",
-            });
-          } else {
-            addToast({
-              title: 'Welcome !',
-              color: "success",
-            });
-            router.push('/');
-          }
-        })
-    } catch {
+    if (formData.get('password') !== formData.get('repeat_password')) {
       addToast({
-        title: "Something went wrong",
-        description: "Please, try again later",
+        title: 'Password must match',
         color: "danger",
       });
-    } finally {
-      setFormLoading(false);
+    } else {
+      try {
+        await sendRequest(Object.fromEntries(new FormData(event.currentTarget)), '/auth/register')
+          .then((res: AuthResponse) => {
+            if (res.error) {
+              addToast({
+                title: res.error,
+                color: "danger",
+              });
+            } else {
+              addToast({
+                title: 'Welcome !',
+                color: "success",
+              });
+              router.push('/');
+            }
+          })
+      } catch {
+        addToast({
+          title: "Something went wrong",
+          description: "Please, try again later",
+          color: "danger",
+        });
+      } finally {
+        setFormLoading(false);
+      }
     }
   }
 
   return (
-    <Form className="flex items-center justify-center flex-col gap-4 w-3/4 lg:w-1/2 mx-auto" onSubmit={handleLoginFormSubmission}>
+    <form className="flex items-center justify-center flex-col gap-4 w-3/4 lg:w-1/2 mx-auto" onSubmit={handleLoginFormSubmission}>
       <h3 className="flex justify-start w-full font-bold text-[24px] mb-3">Login</h3>
       <Input isRequired label="Email" name="email" type="email" />
       <Input
@@ -65,6 +70,7 @@ export default function LoginForm () {
           }
         }}
       />
+      <Input isRequired label="Repeat Password" name="repeat_password" type="password" />
       <div className="flex items-center justify-between w-full">
         <Checkbox defaultSelected size="sm">
           <span className="text-[13px]">
@@ -74,12 +80,12 @@ export default function LoginForm () {
         <Link className="text-[13px] dark:text-white light:text-[var(--text-color-light)]" href="/forgot-password">Forgot Password?</Link>
       </div>
       <Button className="w-full mt-6 py-6 border-white" isLoading={FormLoading} type="submit" variant="bordered">
-        Login
+        Register
       </Button>
       <div className="flex items-center gap-x-1.5">
-        <span className="font-light text-[13px]">Don&#39;t have an account? </span>
-        <Link className="dark:text-white text-[14px] font-bold" href="/register">Join Us</Link>
+        <span className="font-light text-[13px]">Have an account? </span>
+        <Link className="dark:text-white text-[14px] font-bold" href="/login">Login</Link>
       </div>
-    </Form>
+    </form>
   )
 }
