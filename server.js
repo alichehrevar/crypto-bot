@@ -29,7 +29,7 @@ app.use(express.json());
 // Allow CORS
 const allowedOrigins = [
     'https://tradingx-backend.alichv.com/',
-    'http://localhost:2024', // For local development
+    'http://localhost:3005', // For local development
 ];
 app.use(cors({
     origin: (origin, callback) => {
@@ -42,6 +42,12 @@ app.use(cors({
     methods: ['GET', 'POST'],
     allowedHeaders: ['Content-Type'],
 }));
+
+// Add Content-Security-Policy (CSP) header
+app.use((req, res, next) => {
+    res.setHeader('Content-Security-Policy', "default-src 'self'; media-src *; script-src 'self';");
+    next();
+});
 
 // Database Connection
 connectDB().then(async () => {
