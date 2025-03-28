@@ -28,7 +28,6 @@ app.use(express.json());
 
 // Allow CORS
 const allowedOrigins = [
-    'https://tradingx-backend.alichv.com',
     'http://localhost:3005', // For local development
     'https://tradingx.alichv.com'
 ];
