@@ -40,7 +40,7 @@ app.use(cors({
         }
     },
     methods: ['GET', 'POST'],
-    allowedHeaders: ['Content-Type'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
 }));
 
 // Add Content-Security-Policy (CSP) header
