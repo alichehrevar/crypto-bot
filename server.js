@@ -25,9 +25,22 @@ const app = express();
 
 // Middleware
 app.use(express.json());
+
+// Allow CORS
+const allowedOrigins = [
+    'https://tradingx-backend.alichv.com/',
+    'http://localhost:2024', // For local development
+];
 app.use(cors({
-    origin: '*',
-    methods: ['GET', 'POST']
+    origin: (origin, callback) => {
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true); // Allow request if origin matches
+        } else {
+            callback(new Error('Not allowed by CORS')); // Reject request otherwise
+        }
+    },
+    methods: ['GET', 'POST'],
+    allowedHeaders: ['Content-Type'],
 }));
 
 // Database Connection
