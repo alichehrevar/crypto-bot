@@ -2,7 +2,6 @@
 const BinanceAccount = require('../../models/BinanceAccount');
 const OkxAccount = require('../../models/OkxAccount');
 const BingxAccount = require('../../models/BingxAccount');
-const User = require('../../models/User');
 
 // Import services that handle the API calls for each exchange.
 const BinanceService = require('../../services/binanceWS');
