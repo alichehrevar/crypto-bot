@@ -19,7 +19,7 @@ export default function OkxAccountPage() {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
+                    'Authorization': `${token}`
                 },
                 body: JSON.stringify({ apiKey, secretKey, passphrase }),
             });

@@ -8,8 +8,7 @@ module.exports = function authenticate(req, res, next) {
     }
 
     try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        req.user = decoded;
+        req.user = jwt.verify(token, process.env.JWT_SECRET);
         next();
     } catch (error) {
         res.status(400).json({ error: 'Invalid token' });

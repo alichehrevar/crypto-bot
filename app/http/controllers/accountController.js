@@ -15,7 +15,7 @@ const BingxService = require('../../services/bingXWS');
 exports.linkBinanceAccount = async (req, res) => {
     try {
         const { apiKey, secretKey } = req.body;
-        const userId = req.user._id; // Assuming authentication middleware sets req.user
+        const userId = req.user.id;
 
         if (!apiKey || !secretKey) {
             return res.status(400).json({ error: 'Both apiKey and secretKey are required' });
@@ -40,7 +40,7 @@ exports.linkBinanceAccount = async (req, res) => {
 exports.linkOkxAccount = async (req, res) => {
     try {
         const { apiKey, secretKey, passphrase } = req.body;
-        const userId = req.user._id; // Assuming authentication middleware sets req.user
+        const userId = req.user.id;
 
         if (!apiKey || !secretKey || !passphrase) {
             return res.status(400).json({ error: 'apiKey, secretKey, and passphrase are required' });
@@ -66,7 +66,7 @@ exports.addBingxAccount = async (req, res) => {
         const { apiKey, secretKey } = req.body;
         // Validate incoming data (you might have some middleware for this)
         const newAccount = new BingxAccount({
-            userId: req.user._id,
+            userId: req.user.id,
             apiKey,
             secretKey
         });
