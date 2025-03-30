@@ -17,7 +17,7 @@ exports.login = async (req, res) => {
             return res.status(401).json({ error: 'Invalid email or password' });
         }
         // If credentials are valid, create a JWT.
-        const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+        const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1y' });
         // Return the token to the client.
         res.json({ token });
     } catch (error) {
@@ -46,7 +46,7 @@ exports.register = async (req, res) => {
             });
         }
         // Registered successfully, create a JWT.
-        const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+        const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1y' });
         // Return the token to the client.
         res.json({ token });
     } catch (error) {

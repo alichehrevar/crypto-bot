@@ -9,6 +9,21 @@ const OkxService = require('../../services/okxWS'); // Ensure you have this or a
 const BingxService = require('../../services/bingXWS');
 
 /**
+ * Get Binance account.
+ */
+exports.getBinanceAccount = async (req, res) => {
+    try {
+        const userId = req.user.id;
+
+        const account = await BinanceAccount.findOne({ userId });
+        res.status(201).json({ message: '', account: account });
+    } catch (error) {
+        console.error("Error linking Binance account:", error);
+        res.status(500).json({ error: error.message });
+    }
+};
+
+/**
  * Link or update a user's Binance account.
  */
 exports.linkBinanceAccount = async (req, res) => {
@@ -29,6 +44,21 @@ exports.linkBinanceAccount = async (req, res) => {
         res.json(account);
     } catch (error) {
         console.error("Error linking Binance account:", error);
+        res.status(500).json({ error: error.message });
+    }
+};
+
+/**
+ * Get OKX account.
+ */
+exports.getOkxAccount = async (req, res) => {
+    try {
+        const userId = req.user.id;
+
+        const account = await OkxAccount.findOne({ userId });
+        res.status(201).json({ message: '', account: account });
+    } catch (error) {
+        console.error("Error linking OKX account:", error);
         res.status(500).json({ error: error.message });
     }
 };
