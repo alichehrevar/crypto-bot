@@ -58,19 +58,39 @@ exports.linkOkxAccount = async (req, res) => {
 };
 
 /**
+ * Get bingX account.
+ */
+exports.getBingxAccount = async (req, res) => {
+    try {
+        const bingxAccount = await BingxAccount.findOne({userId: req.user.id})
+        res.status(201).json({ message: '', account: bingxAccount });
+    } catch (error) {
+        res.status(500).json({ message: 'Error adding BingX account', error: error.message });
+    }
+};
+
+/**
  * Link or update a user's bingX account.
  */
 exports.addBingxAccount = async (req, res) => {
     try {
         const { apiKey, secretKey } = req.body;
-        // Validate incoming data (you might have some middleware for this)
-        const newAccount = new BingxAccount({
-            userId: req.user.id,
-            apiKey,
-            secretKey
-        });
-        await newAccount.save();
-        res.status(201).json({ message: 'BingX account added successfully', account: newAccount });
+        let bingxAccount = await BingxAccount.findOne({userId: req.user.id})
+        if (!bingxAccount) {
+            bingxAccount = new BingxAccount({
+                userId: req.user.id,
+                apiKey,
+                secretKey
+            });
+            await bingxAccount.save();
+        } else {
+            await BingxAccount.updateOne(
+                { userId: req.user.id },
+                { apiKey, secretKey }
+            );
+        }
+
+        res.status(201).json({ message: 'BingX account added successfully', account: bingxAccount });
     } catch (error) {
         res.status(500).json({ message: 'Error adding BingX account', error: error.message });
     }
