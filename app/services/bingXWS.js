@@ -367,9 +367,10 @@ class BingXWS {
         // Use the account's credentials.
         const { apiKey, secretKey } = account;
         const timestamp = Date.now().toString();
+        const prehash = timestamp + 'GET' + '/api/v1/account/balance';
         const signature = crypto
             .createHmac('sha256', secretKey)
-            .update(`timestamp=${timestamp}`)
+            .update(prehash)
             .digest('hex');
 
         // Hypothetical BingX REST endpoint for balance.

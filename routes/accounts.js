@@ -2,9 +2,11 @@
 const express = require('express');
 const router = express.Router();
 const accountController = require('../app/http/controllers/accountController');
-const authenticate = require('../app/http/middleware/auth'); // Ensure you have authentication middleware
+const authenticate = require('../app/http/middleware/auth'); // Authentication middleware
 
 // Protect these routes with auth middleware.
+router.get('/', authenticate, accountController.getAllAccountsData);
+
 router.get('/binance', authenticate, accountController.getBinanceAccount);
 router.post('/binance', authenticate, accountController.linkBinanceAccount);
 

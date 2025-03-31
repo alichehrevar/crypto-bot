@@ -9,17 +9,44 @@ const OkxService = require('../../services/okxWS'); // Ensure you have this or a
 const BingxService = require('../../services/bingXWS');
 
 /**
+ * Get all accounts.
+ */
+exports.getAllAccountsData = async (req, res) => {
+    try {
+        // Get the user's ID from the verified token (set in req.user)
+        const userId = req.user.id;
+
+        // Query each account collection for the user's account.
+        const binanceAccount = await BinanceAccount.findOne({ userId });
+        const okxAccount = await OkxAccount.findOne({ userId });
+        const bingxAccount = await BingxAccount.findOne({ userId });
+
+        res.status(200).json({
+            message: 'Accounts fetched successfully',
+            accounts: {
+                binance: binanceAccount || {},
+                okx: okxAccount || {},
+                bingx: bingxAccount || {},
+            }
+        });
+    } catch (error) {
+        console.error("Error fetching accounts:", error);
+        res.status(500).json({ error: error.message });
+    }
+};
+
+/**
  * Get Binance account.
  */
 exports.getBinanceAccount = async (req, res) => {
     try {
         const userId = req.user.id;
 
-        const account = await BinanceAccount.findOne({ userId });
-        res.status(201).json({ message: '', account: account });
+        const account = await BinanceAccount.findOne({userId});
+        res.status(201).json({message: '', account: account});
     } catch (error) {
-        console.error("Error linking Binance account:", error);
-        res.status(500).json({ error: error.message });
+        console.error("Error finding Binance account:", error);
+        res.status(500).json({error: error.message});
     }
 };
 
@@ -28,23 +55,23 @@ exports.getBinanceAccount = async (req, res) => {
  */
 exports.linkBinanceAccount = async (req, res) => {
     try {
-        const { apiKey, secretKey } = req.body;
+        const {apiKey, secretKey} = req.body;
         const userId = req.user.id;
 
         if (!apiKey || !secretKey) {
-            return res.status(400).json({ error: 'Both apiKey and secretKey are required' });
+            return res.status(400).json({error: 'Both apiKey and secretKey are required'});
         }
 
         // Use upsert: update if account exists; otherwise create a new one.
         const account = await BinanceAccount.findOneAndUpdate(
-            { userId },
-            { apiKey, secretKey },
-            { new: true, upsert: true }
+            {userId},
+            {apiKey, secretKey},
+            {new: true, upsert: true}
         );
         res.json(account);
     } catch (error) {
         console.error("Error linking Binance account:", error);
-        res.status(500).json({ error: error.message });
+        res.status(500).json({error: error.message});
     }
 };
 
@@ -55,11 +82,11 @@ exports.getOkxAccount = async (req, res) => {
     try {
         const userId = req.user.id;
 
-        const account = await OkxAccount.findOne({ userId });
-        res.status(201).json({ message: '', account: account });
+        const account = await OkxAccount.findOne({userId});
+        res.status(201).json({message: '', account: account});
     } catch (error) {
-        console.error("Error linking OKX account:", error);
-        res.status(500).json({ error: error.message });
+        console.error("Error finding OKX account:", error);
+        res.status(500).json({error: error.message});
     }
 };
 
@@ -68,22 +95,22 @@ exports.getOkxAccount = async (req, res) => {
  */
 exports.linkOkxAccount = async (req, res) => {
     try {
-        const { apiKey, secretKey, passphrase } = req.body;
+        const {apiKey, secretKey, passphrase} = req.body;
         const userId = req.user.id;
 
         if (!apiKey || !secretKey || !passphrase) {
-            return res.status(400).json({ error: 'apiKey, secretKey, and passphrase are required' });
+            return res.status(400).json({error: 'apiKey, secretKey, and passphrase are required'});
         }
 
         const account = await OkxAccount.findOneAndUpdate(
-            { userId },
-            { apiKey, secretKey, passphrase },
-            { new: true, upsert: true }
+            {userId},
+            {apiKey, secretKey, passphrase},
+            {new: true, upsert: true}
         );
         res.json(account);
     } catch (error) {
         console.error("Error linking OKX account:", error);
-        res.status(500).json({ error: error.message });
+        res.status(500).json({error: error.message});
     }
 };
 
@@ -93,9 +120,9 @@ exports.linkOkxAccount = async (req, res) => {
 exports.getBingxAccount = async (req, res) => {
     try {
         const bingxAccount = await BingxAccount.findOne({userId: req.user.id})
-        res.status(201).json({ message: '', account: bingxAccount });
+        res.status(201).json({message: '', account: bingxAccount});
     } catch (error) {
-        res.status(500).json({ message: 'Error adding BingX account', error: error.message });
+        res.status(500).json({message: 'Error finding BingX account', error: error.message});
     }
 };
 
@@ -104,7 +131,7 @@ exports.getBingxAccount = async (req, res) => {
  */
 exports.addBingxAccount = async (req, res) => {
     try {
-        const { apiKey, secretKey } = req.body;
+        const {apiKey, secretKey} = req.body;
         let bingxAccount = await BingxAccount.findOne({userId: req.user.id})
         if (!bingxAccount) {
             bingxAccount = new BingxAccount({
@@ -115,14 +142,14 @@ exports.addBingxAccount = async (req, res) => {
             await bingxAccount.save();
         } else {
             await BingxAccount.updateOne(
-                { userId: req.user.id },
-                { apiKey, secretKey }
+                {userId: req.user.id},
+                {apiKey, secretKey}
             );
         }
 
-        res.status(201).json({ message: 'BingX account added successfully', account: bingxAccount });
+        res.status(201).json({message: 'BingX account added successfully', account: bingxAccount});
     } catch (error) {
-        res.status(500).json({ message: 'Error adding BingX account', error: error.message });
+        res.status(500).json({message: 'Error adding BingX account', error: error.message});
     }
 };
 
@@ -132,7 +159,7 @@ exports.addBingxAccount = async (req, res) => {
  * Fetches the balance for the specified account.
  */
 exports.getAccountBalance = async (req, res) => {
-    const { accountId } = req.params;
+    const {accountId} = req.params;
     try {
         let account;
         let type = '';
@@ -151,7 +178,7 @@ exports.getAccountBalance = async (req, res) => {
             if (account) type = 'bingx';
         }
         if (!account) {
-            return res.status(404).json({ error: 'Account not found' });
+            return res.status(404).json({error: 'Account not found'});
         }
 
         let balance;
@@ -167,11 +194,11 @@ exports.getAccountBalance = async (req, res) => {
                 balance = await BingxService.getBalance(account);
                 break;
             default:
-                return res.status(400).json({ error: 'Unsupported account type' });
+                return res.status(400).json({error: 'Unsupported account type'});
         }
-        return res.json({ balance });
+        return res.json({balance});
     } catch (error) {
         console.error('Error fetching account balance:', error.message);
-        return res.status(500).json({ error: 'Error fetching account balance' });
+        return res.status(500).json({error: 'Error fetching account balance'});
     }
 };
