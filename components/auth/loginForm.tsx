@@ -49,9 +49,21 @@ export default function LoginForm () {
   return (
     <Form className="flex items-center justify-center flex-col gap-4 w-3/4 lg:w-1/2 mx-auto" onSubmit={handleLoginFormSubmission}>
       <h3 className="flex justify-start w-full font-bold text-[24px] mb-3">Login</h3>
-      <Input isRequired label="Email" name="email" type="email" />
       <Input
         isRequired
+        classNames={{
+          inputWrapper: 'dark:border-white border-[1.4px] backdrop-blur-sm'
+        }}
+        label="Email"
+        name="email"
+        type="email"
+        variant="bordered"
+      />
+      <Input
+        isRequired
+        classNames={{
+          inputWrapper: 'dark:border-white border-[1.4px] backdrop-blur-sm'
+        }}
         label="Password"
         minLength={8}
         name="password"
@@ -64,6 +76,7 @@ export default function LoginForm () {
             return "Password must be at least 8 characters long";
           }
         }}
+        variant="bordered"
       />
       <div className="flex items-center justify-between w-full">
         <Checkbox defaultSelected size="sm">
