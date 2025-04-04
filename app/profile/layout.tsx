@@ -9,13 +9,13 @@ export default function ProfileLayout ({
   children: React.ReactNode;
 }) {
   return (
-    <section className="w-screen h-screen overflow-y-auto">
-      <div className="flex items-center justify-center w-full gap-4">
-        <div className="flex w-1/6">
+    <section className="w-screen h-screen">
+      <div className="flex items-center justify-center w-full">
+        <div className="flex w-1/6 self-stretch">
           <SideBar />
         </div>
-        <div className="flex w-5/6">
-          <div className="flex items-start justify-start h-screen w-full flex-col gap-4">
+        <div className="flex w-5/6 self-stretch overflow-y-auto scrollbar-hide">
+          <div className="flex items-start justify-start h-screen w-full flex-col gap-4 relative">
             <ProfileHeader />
             {children}
           </div>

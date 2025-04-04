@@ -6,7 +6,7 @@ import { ThemeSwitch } from "@/components/theme-switch";
 
 export default function ProfileHeader() {
   return (
-    <div className="flex items-center justify-end w-full h-[80px] border-b-1 dark:border-gray-900 light:border-gray-50 px-4 gap-4">
+    <div className="flex items-center justify-end w-full h-[68px] border-b-1 dark:border-gray-900 light:border-gray-50 px-4 py-3 gap-4 sticky top-0 z-50 bg-white dark:bg-black shadow-md">
       <ThemeSwitch />
       <div className="flex items-center justify-center px-4 border-r-1 border-l-1 border-gray-400">
         <Badge className="cursor-pointer" color="danger" content={<span className="text-[8px]">5</span>} shape="circle" size="sm">
