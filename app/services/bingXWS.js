@@ -38,7 +38,7 @@ class BingXWS {
 
         const timestamp = Date.now().toString();
         // When connecting, you'll need to supply the appropriate credentials.
-        // For now, we leave the signature blank. Later, you can update this to pass the user’s credentials.
+        // For now, we leave the signature blank. Later, you can update this to pass the user's credentials.
         const signature = ''; // You might call: this.generateSignature(timestamp, userProvidedSecret)
 
         // BingX Perpetual Swap WebSocket endpoint with authentication.
@@ -111,7 +111,7 @@ class BingXWS {
 
     /**
      * Authenticate the WebSocket connection.
-     * This function now requires that you pass in the API key and secret from the user’s account.
+     * This function now requires that you pass in the API key and secret from the user's account.
      * For now, it is a placeholder.
      *
      * @param {string} timestamp
@@ -364,36 +364,66 @@ class BingXWS {
      * @returns {Promise<number>} The account balance.
      */
     async getBalance(account) {
-        // Use the account's credentials.
         const { apiKey, secretKey } = account;
         const timestamp = Date.now().toString();
-        const prehash = timestamp + 'GET' + '/api/v1/account/balance';
+        
+        // Correct signature generation for BingX according to their documentation
+        const queryString = `timestamp=${timestamp}`;
         const signature = crypto
             .createHmac('sha256', secretKey)
-            .update(prehash)
+            .update(queryString)
             .digest('hex');
 
-        // Hypothetical BingX REST endpoint for balance.
-        const endpoint = `https://open-api-swap.bingx.com/api/v1/account/balance?timestamp=${timestamp}&signature=${signature}`;
+        // Correct BingX API endpoint for spot account balance
+        const endpoint = `https://open-api.bingx.com/openApi/spot/v1/account/balance?${queryString}&signature=${signature}`;
 
-        // Set headers including the account's API key.
         const headers = {
             "Content-Type": "application/json",
-            "X-BX-APIKEY": apiKey
+            "X-BX-APIKEY": apiKey,
+            "X-BX-SIGNATURE": signature,
+            "X-BX-TIMESTAMP": timestamp
         };
 
         try {
-            const res = await fetch(endpoint, { method: "GET", headers });
-            if (!res.ok) {
-                throw new Error(`BingX getBalance failed with status ${res.status}`);
+            console.log('[BingXWS] Making balance request to:', endpoint);
+            console.log('[BingXWS] Headers:', JSON.stringify(headers, null, 2));
+
+            const res = await fetch(endpoint, { 
+                method: "GET", 
+                headers
+            });
+            
+            const responseText = await res.text();
+            console.log('[BingXWS] Raw response:', responseText);
+            
+            let data;
+            try {
+                data = JSON.parse(responseText);
+            } catch (e) {
+                console.error('[BingXWS] Failed to parse response as JSON:', e);
+                throw new Error(`Invalid JSON response: ${responseText}`);
             }
-            const data = await res.json();
-            // Adjust based on BingX's response format.
-            // Assume data returns an object with a "balance" property.
-            return data.balance;
+            
+            if (!res.ok) {
+                console.error('[BingXWS] API Error Response:', data);
+                throw new Error(`BingX API error (${res.status}): ${data.msg || data.message || 'Unknown error'}`);
+            }
+            
+            if (data.code !== 0) {
+                console.error('[BingXWS] API Error Code:', data.code, 'Message:', data.msg);
+                throw new Error(`BingX API error (${data.code}): ${data.msg || 'Unknown error'}`);
+            }
+            
+            if (!data.data || !data.data.balances) {
+                console.error('[BingXWS] Unexpected response format:', data);
+                throw new Error('Unexpected response format from BingX API');
+            }
+            
+            return data.data.balances;
         } catch (error) {
             console.error('[BingXWS] Error fetching balance:', error);
-            throw error;
+            console.error('[BingXWS] Error stack:', error.stack);
+            throw new Error(`Failed to fetch BingX balance: ${error.message}`);
         }
     }
 }

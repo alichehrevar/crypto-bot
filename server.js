@@ -66,7 +66,23 @@ connectDB().then(async () => {
     }
     // Start WebSocket connections after DB is connected
     binanceWS.connect();
-    bingXWS.connect();
+    
+    // For BingX, we need to find a user with BingX credentials and use them
+    // This is a temporary solution - in a production app, you'd want to handle this more robustly
+    const BingxAccount = require('./app/models/BingxAccount');
+    BingxAccount.findOne().then(account => {
+        if (account) {
+            console.log('[Server] Found BingX account, connecting with credentials');
+            bingXWS.connect(account);
+        } else {
+            console.warn('[Server] No BingX account found, connecting without authentication');
+            bingXWS.connect();
+        }
+    }).catch(err => {
+        console.error('[Server] Error finding BingX account:', err);
+        bingXWS.connect();
+    });
+    
     botService.initialize();
 });
 

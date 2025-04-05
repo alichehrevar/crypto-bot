@@ -147,6 +147,12 @@ exports.addBingxAccount = async (req, res) => {
             );
         }
 
+        // Reconnect the WebSocket with the new credentials
+        BingxService.disconnect(); // Disconnect first to clean up
+        setTimeout(() => {
+            BingxService.connect(bingxAccount); // Reconnect with new credentials
+        }, 1000);
+
         res.status(201).json({message: 'BingX account added successfully', account: bingxAccount});
     } catch (error) {
         res.status(500).json({message: 'Error adding BingX account', error: error.message});
