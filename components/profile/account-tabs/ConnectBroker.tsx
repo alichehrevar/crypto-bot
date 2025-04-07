@@ -5,12 +5,17 @@ import BinanceTab from "@/components/profile/broker-tabs/Binance";
 export default function ConnectBrokerTab() {
   return (
     <section className="dark:bg-[#161616] light:bg-white shadow-lg flex flex-col items-start justify-center w-full rounded-2xl mx-4 py-10 px-10 gap-10">
-      <Tabs isVertical aria-label="Options" classNames={{
-        tabList: 'bg-unset gap-3 w-[300px]',
-        tab: 'h-12',
-        tabContent: 'w-full group-data-[selected=true]:bg-none',
-        panel: "w-full flex items-center justify-center mt-4"
-      }}>
+      <Tabs
+        isVertical
+        aria-label="Options"
+        classNames={{
+          tabList: 'bg-unset gap-3 w-[300px]',
+          tab: 'h-12',
+          tabContent: 'w-full',
+          panel: "w-full flex items-center justify-center mt-4"
+        }}
+        variant="light"
+      >
         <Tab key="binance" title={
           <div className="flex items-center justify-between w-full gap-2">
             <span>Binance</span>

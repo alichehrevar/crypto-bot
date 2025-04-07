@@ -9,6 +9,9 @@ export default function SettingsPage () {
   return (
     <div className="flex w-full flex-col justify-center items-center mt-10">
       <Tabs aria-label="Options" classNames={{
+        base: 'w-full px-4',
+        tabList: 'w-3/5 mx-auto',
+        tab: 'h-10',
         panel: "w-full flex items-center justify-center mt-4"
       }}>
         <Tab key="account-settings" title="Account Settings">
