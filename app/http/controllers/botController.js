@@ -20,7 +20,6 @@ exports.deployBot = async (req, res) => {
 
         let user;
         // If the request is authenticated, use the authorized user.
-        console.log(req.user)
         if (req.user && req.user.id) {
             user = await User.findById(req.user.id);
             if (!user) {
