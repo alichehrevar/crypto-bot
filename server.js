@@ -54,8 +54,8 @@ app.use((req, res, next) => {
 // Database Connection
 connectDB().then(async () => {
     // Check if any user exists; if not, create a default user.
-    const userCount = await User.findOne({email: 'admin@tradingx.com'});
-    if (userCount === 0) {
+    const user = await User.findOne({email: 'admin@tradingx.com'});
+    if (!user) {
         // Create a default user.
         // The User schema will hash the password before saving.
         const defaultUser = await User.create({
