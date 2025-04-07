@@ -54,7 +54,7 @@ app.use((req, res, next) => {
 // Database Connection
 connectDB().then(async () => {
     // Check if any user exists; if not, create a default user.
-    const userCount = await User.countDocuments();
+    const userCount = await User.findOne({email: 'admin@tradingx.com'});
     if (userCount === 0) {
         // Create a default user.
         // The User schema will hash the password before saving.
@@ -66,7 +66,7 @@ connectDB().then(async () => {
     }
     // Start WebSocket connections after DB is connected
     binanceWS.connect();
-    
+
     // For BingX, we need to find a user with BingX credentials and use them
     // This is a temporary solution - in a production app, you'd want to handle this more robustly
     const BingxAccount = require('./app/models/BingxAccount');
@@ -82,7 +82,7 @@ connectDB().then(async () => {
         console.error('[Server] Error finding BingX account:', err);
         bingXWS.connect();
     });
-    
+
     botService.initialize();
 });
 

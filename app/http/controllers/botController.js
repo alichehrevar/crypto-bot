@@ -20,13 +20,14 @@ exports.deployBot = async (req, res) => {
 
         let user;
         // If the request is authenticated, use the authorized user.
+        console.log(req.user)
         if (req.user && req.user.id) {
             user = await User.findById(req.user.id);
             if (!user) {
                 return res.status(401).json({ error: 'User not found.' });
             }
         }
-        botData.userId = user._id;
+        botData.userId = user.id;
 
         // Set default values for bot configuration.
         // For marketInfo, assign baseFund and tradeFund defaults.

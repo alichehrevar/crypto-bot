@@ -2,9 +2,10 @@ const express = require('express');
 const router = express.Router();
 const { validateBotParams } = require('../app/http/middleware/validation');
 const botController = require('../app/http/controllers/botController');
+const authenticate = require('../app/http/middleware/auth'); // Authentication middleware
 
 // Deploy a new bot.
-router.post('/deploy', botController.deployBot);
+router.post('/deploy', authenticate, botController.deployBot);
 
 // Select bots (upsert indicator bots for a given symbol/timeframe).
 router.get('/select', botController.selectBots);
