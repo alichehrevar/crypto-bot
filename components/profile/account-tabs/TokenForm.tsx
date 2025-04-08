@@ -6,7 +6,7 @@ import { ChevronLeftIcon } from "@/components/icons";
 import { TokenFormType } from "@/types/profile/settings/tokenFormType";
 import { sendRequest } from "@/actions/post";
 
-export default function TokenForm(props: {type: 'binance' | 'okx' | 'bingx'}) {
+export default function TokenForm(props: {type: 'binance' | 'okx' | 'bingx' | 'bybit'}) {
 
   const [formLoading, setFormLoading] = useState(false);
 

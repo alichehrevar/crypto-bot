@@ -1,8 +1,9 @@
-import { Card, CardBody, Tab, Tabs } from "@heroui/react";
+import { Tab, Tabs } from "@heroui/react";
 
 import BinanceTab from "@/components/profile/broker-tabs/Binance";
 import OKXTab from "@/components/profile/broker-tabs/OKX";
 import BingXTab from "@/components/profile/broker-tabs/BingX";
+import ByBitTab from "@/components/profile/broker-tabs/ByBit";
 
 export default function ConnectBrokerTab() {
   return (
@@ -62,12 +63,7 @@ export default function ConnectBrokerTab() {
             </svg>
           </div>
         }>
-          <Card>
-            <CardBody>
-              Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt
-              mollit anim id est laborum.
-            </CardBody>
-          </Card>
+          <ByBitTab />
         </Tab>
       </Tabs>
     </section>
