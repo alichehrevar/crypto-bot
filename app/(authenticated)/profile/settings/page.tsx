@@ -3,7 +3,8 @@
 import { Card, CardBody, Tab, Tabs } from "@heroui/react";
 
 import AccountSettingsTab from "@/components/profile/account-tabs/AccountSettings";
-import ConnectBrokerTab from "@/components/profile/account-tabs/ConnectBroker";
+import ConnectBrokerTab from "@/components/profile/account-tabs/broker/ConnectBroker";
+import IOPanel from "@/components/profile/account-tabs/IOPanel/IOPanel";
 
 export default function SettingsPage () {
   return (
@@ -21,12 +22,7 @@ export default function SettingsPage () {
           <ConnectBrokerTab />
         </Tab>
         <Tab key="io-panel" title="IO Panel">
-          <Card>
-            <CardBody>
-              Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt
-              mollit anim id est laborum.
-            </CardBody>
-          </Card>
+          <IOPanel />
         </Tab>
         <Tab key="subscription" title="Subscription">
           <Card>

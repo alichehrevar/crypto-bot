@@ -6,7 +6,7 @@ export async function getData (url: string) {
     const nextCookies = await cookies();
 
     try {
-        const response = await fetch(process.env.API_URL! + '/api/v2'  + url, {
+        const response = await fetch(process.env.API_URL! + '/api'  + url, {
             method: 'get',
             headers: {
                 'Content-Type': 'application/json',

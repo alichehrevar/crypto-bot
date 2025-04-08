@@ -1,9 +1,9 @@
 import { Tab, Tabs } from "@heroui/react";
 
-import BinanceTab from "@/components/profile/broker-tabs/Binance";
-import OKXTab from "@/components/profile/broker-tabs/OKX";
-import BingXTab from "@/components/profile/broker-tabs/BingX";
-import ByBitTab from "@/components/profile/broker-tabs/ByBit";
+import BinanceTab from "@/components/profile/account-tabs/broker/broker-tabs/Binance";
+import OKXTab from "@/components/profile/account-tabs/broker/broker-tabs/OKX";
+import BingXTab from "@/components/profile/account-tabs/broker/broker-tabs/BingX";
+import ByBitTab from "@/components/profile/account-tabs/broker/broker-tabs/ByBit";
 
 export default function ConnectBrokerTab() {
   return (
