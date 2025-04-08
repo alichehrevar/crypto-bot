@@ -6,6 +6,8 @@ import { ChevronLeftIcon } from "@/components/icons";
 import { getData } from "@/actions/get";
 import { IndicatorsList, IndicatorsListData } from "@/types/profile/settings/indicatorsList";
 import RSIForm from "@/components/profile/account-tabs/IOPanel/indicators/RSIForm";
+import MACDForm from "@/components/profile/account-tabs/IOPanel/indicators/MACDForm";
+import StochasticRSIForm from "@/components/profile/account-tabs/IOPanel/indicators/StochasticRSIForm";
 
 export default function IOPanel() {
 
@@ -118,6 +120,8 @@ export default function IOPanel() {
           </div>
         </div>
         {selected === 'RSI' && <RSIForm />}
+        {selected === 'MACD' && <MACDForm />}
+        {selected === 'Stochastic_RSI' && <StochasticRSIForm />}
       </div>
     </section>
   )
