@@ -19,6 +19,7 @@ const botRoutes = require('./routes/bots');
 const backtestRoutes = require('./routes/backtest');
 const visualizationRoutes = require('./routes/visualization');
 const currencyRoutes = require('./routes/currencies');
+const indicatorsRoutes = require('./routes/indicators');
 
 // Initialize Express application
 const app = express();
@@ -29,6 +30,7 @@ app.use(express.json());
 // Allow CORS
 const allowedOrigins = [
     'http://localhost:3005', // For local development
+    'http://localhost:3007', // For local development
     'http://localhost:8000', // For local development
     'https://tradingx.alichv.com',
     'https://tradingx-backend.alichv.com',
@@ -103,6 +105,7 @@ app.use('/api/bots', botRoutes);
 app.use('/api/backtest', backtestRoutes);
 app.use('/api/visualize', visualizationRoutes);
 app.use('/api/currencies', currencyRoutes);
+app.use('/api/indicators', indicatorsRoutes);
 
 // Error Handling Middleware
 app.use((err, req, res, next) => {
