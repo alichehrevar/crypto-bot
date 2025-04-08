@@ -8,6 +8,8 @@ import { IndicatorsList, IndicatorsListData } from "@/types/profile/settings/ind
 import RSIForm from "@/components/profile/account-tabs/IOPanel/indicators/RSIForm";
 import MACDForm from "@/components/profile/account-tabs/IOPanel/indicators/MACDForm";
 import StochasticRSIForm from "@/components/profile/account-tabs/IOPanel/indicators/StochasticRSIForm";
+import BoillingerBandsForm from "@/components/profile/account-tabs/IOPanel/indicators/BoillingerBandsForm";
+import HeikinAshiForm from "@/components/profile/account-tabs/IOPanel/indicators/HeikinAshiForm";
 
 export default function IOPanel() {
 
@@ -122,6 +124,8 @@ export default function IOPanel() {
         {selected === 'RSI' && <RSIForm />}
         {selected === 'MACD' && <MACDForm />}
         {selected === 'Stochastic_RSI' && <StochasticRSIForm />}
+        {selected === 'Bollinger_Bands' && <BoillingerBandsForm />}
+        {selected === 'Heikin_Ashi' && <HeikinAshiForm />}
       </div>
     </section>
   )
