@@ -9,7 +9,7 @@ export async function updateRequest (body: BodyInit | null, url: string) {
             method: 'PUT',
             headers: {
                 Accept: 'application/json',
-                'Authorization': `Bearer ${nextCookies?.get('TOKEN')?.value}`,
+                'Authorization': `Bearer ${nextCookies?.get('token')?.value}`,
                 ...(body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
             },
             body: JSON.stringify(body),

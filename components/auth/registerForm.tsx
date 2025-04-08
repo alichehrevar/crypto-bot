@@ -24,7 +24,7 @@ export default function RegisterForm () {
       });
     } else {
       try {
-        await sendRequest(Object.fromEntries(new FormData(event.currentTarget)), '/auth/register')
+        await sendRequest(Object.fromEntries(new FormData(event.currentTarget)), "/auth/register")
           .then((res: AuthResponse) => {
             if (res.error) {
               addToast({
