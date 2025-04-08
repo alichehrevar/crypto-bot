@@ -1,6 +1,8 @@
 import { Card, CardBody, Tab, Tabs } from "@heroui/react";
 
 import BinanceTab from "@/components/profile/broker-tabs/Binance";
+import OKXTab from "@/components/profile/broker-tabs/OKX";
+import BingXTab from "@/components/profile/broker-tabs/BingX";
 
 export default function ConnectBrokerTab() {
   return (
@@ -38,12 +40,7 @@ export default function ConnectBrokerTab() {
             </svg>
           </div>
         }>
-          <Card>
-            <CardBody>
-              Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt
-              mollit anim id est laborum.
-            </CardBody>
-          </Card>
+          <OKXTab />
         </Tab>
         <Tab key="bingx" title={
           <div className="flex items-center justify-between w-full gap-2">
@@ -54,12 +51,7 @@ export default function ConnectBrokerTab() {
             </svg>
           </div>
         }>
-          <Card>
-            <CardBody>
-              Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt
-              mollit anim id est laborum.
-            </CardBody>
-          </Card>
+          <BingXTab />
         </Tab>
         <Tab key="bybit" title={
           <div className="flex items-center justify-between w-full gap-2">

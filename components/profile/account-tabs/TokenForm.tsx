@@ -57,7 +57,7 @@ export default function TokenForm(props: {type: 'binance' | 'okx' | 'bingx'}) {
       {props.type === 'okx' &&
         <Input
           isRequired
-          className="w-full lg:w-[49%]"
+          className="w-full"
           classNames={{
             inputWrapper: 'dark:border-white border-[0.5px] backdrop-blur-sm'
           }}
