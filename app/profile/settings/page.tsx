@@ -7,7 +7,7 @@ import ConnectBrokerTab from "@/components/profile/account-tabs/ConnectBroker";
 
 export default function SettingsPage () {
   return (
-    <div className="flex w-full flex-col justify-center items-center mt-10">
+    <div className="container mt-10 relative">
       <Tabs aria-label="Options" classNames={{
         base: 'w-full px-4',
         tabList: 'w-3/5 mx-auto',

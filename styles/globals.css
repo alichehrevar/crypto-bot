@@ -5,3 +5,7 @@
 :root {
     --text-color-light: #777777;
 }
+
+label[data-slot="label"]:after {
+    display: none;
+}

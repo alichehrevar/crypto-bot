@@ -10,7 +10,9 @@ export default function ConnectBrokerTab() {
         aria-label="Options"
         classNames={{
           tabList: 'bg-unset gap-3 w-[300px]',
-          tab: 'h-12',
+          tab: 'h-12 ',
+          cursor: 'dark:bg-unset group-data-[selected=true]:border-1 group-data-[selected=true]:border-primary',
+          tabWrapper: 'w-full',
           tabContent: 'w-full',
           panel: "w-full flex items-center justify-center mt-4"
         }}

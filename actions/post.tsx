@@ -1,7 +1,7 @@
 'use server';
 import { cookies } from "next/headers";
 
-export async function sendRequest(body: { [p: string]: File | string }, url: string) {
+export async function sendRequest(body: BodyInit | null, url: string) {
     const nextCookies = await cookies();
 
     try {
@@ -9,7 +9,7 @@ export async function sendRequest(body: { [p: string]: File | string }, url: str
             method: 'POST',
             headers: {
                 Accept: 'application/json',
-                loginToken: `${nextCookies?.get('TOKEN')?.value}`,
+                Authorization: `Bearer ${nextCookies?.get('TOKEN')?.value}`,
                 ...(body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
             },
             body: JSON.stringify(body),
