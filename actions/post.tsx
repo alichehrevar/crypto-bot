@@ -17,12 +17,12 @@ export async function sendRequest(body: { [p: string]: File | string }, url: str
 
         const responseJson = await response.json()
 
-        if (responseJson.status && responseJson.token) {
+        if (responseJson.token) {
             const cookieStore = await cookies()
 
             cookieStore.set('token', responseJson.token, {
                 httpOnly: false,
-                secure: true,
+                secure: process.env.NODE_ENV === 'production',
                 maxAge: 60 * 60 * 24 * 180, // 6 months
                 path: '/'
             })

@@ -2,7 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import Link from "next/link";
-import {useRouter} from "next/navigation";
+import { useRouter } from "next/navigation";
 import { Checkbox, Input, Button, Form, addToast } from "@heroui/react";
 
 import { sendRequest } from "@/actions/post";
@@ -32,7 +32,7 @@ export default function LoginForm () {
               title: 'Welcome !',
               color: "success",
             });
-            router.push('/');
+            router.push('/profile/settings');
           }
         })
     } catch {
