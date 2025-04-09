@@ -2,7 +2,7 @@ import { Accordion, AccordionItem, addToast, Tab, Tabs } from "@heroui/react";
 import { useEffect, useState } from "react";
 import Image from "next/image";
 
-import { ChevronLeftIcon } from "@/components/icons";
+import { ChevronLeftIcon } from "@/components/shared/icons";
 import { getData } from "@/actions/get";
 import { IndicatorsList, IndicatorsListData } from "@/types/profile/settings/indicatorsList";
 import RSIForm from "@/components/profile/account-tabs/IOPanel/indicators/RSIForm";

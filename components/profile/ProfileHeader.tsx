@@ -2,7 +2,7 @@
 
 import { Avatar, Badge } from "@heroui/react";
 
-import { ThemeSwitch } from "@/components/theme-switch";
+import { ThemeSwitch } from "@/components/shared/theme-switch";
 
 export default function ProfileHeader() {
   return (

@@ -2,7 +2,7 @@ import { Accordion, AccordionItem, addToast, Checkbox, Input } from "@heroui/rea
 import { Button } from "@heroui/button";
 import { FormEvent, useState } from "react";
 
-import { ChevronLeftIcon } from "@/components/icons";
+import { ChevronLeftIcon } from "@/components/shared/icons";
 import { TokenFormType } from "@/types/profile/settings/tokenFormType";
 import { sendRequest } from "@/actions/post";
 
