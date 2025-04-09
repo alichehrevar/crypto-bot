@@ -23,6 +23,7 @@
     "@heroui/theme": "2.4.12",
     "@nivo/bar": "^0.88.0",
     "@nivo/core": "^0.88.0",
+    "@nivo/radial-bar": "^0.88.0",
     "@react-aria/ssr": "3.9.7",
     "@react-aria/visually-hidden": "3.8.20",
     "clsx": "2.1.1",

@@ -2,10 +2,32 @@ import { ResponsivePie } from '@nivo/pie'
 
 import { PieChartType } from "@/types/profile/ChartTypes";
 
+const data: PieChartType = [
+  {
+    "id": "binance",
+    "label": "Binance",
+    "value": 393,
+    "color": "hsl(40, 70%, 100%)"
+  },
+  {
+    "id": "bingx",
+    "label": "BingX",
+    "value": 514,
+    "color": "hsl(128, 70%, 100%)"
+  },
+  {
+    "id": "okx",
+    "label": "OKX",
+    "value": 162,
+    "color": "hsl(101, 70%, 100%)"
+  },
+]
+
 // make sure parent container have a defined height when using
 // responsive component, otherwise height will be 0 and
 // no chart will be rendered.
-const AssetsPieChart = (props: {data: PieChartType}) => (
+const AssetsPieChart = () => (
+
   <ResponsivePie
     activeOuterRadiusOffset={8}
     arcLabelsRadiusOffset={0.6}
@@ -32,10 +54,10 @@ const AssetsPieChart = (props: {data: PieChartType}) => (
         ]
       ]
     }}
-    borderWidth={1}
+    borderWidth={0}
     colors={{ scheme: 'accent' }}
     cornerRadius={13}
-    data={props.data}
+    data={data}
     defs={[
       {
         id: 'dots',

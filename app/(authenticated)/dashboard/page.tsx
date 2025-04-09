@@ -1,33 +1,14 @@
 'use client'
 
 import Image from "next/image";
-import {Divider} from "@heroui/react";
+import { Divider } from "@heroui/react";
+import React from "react";
 
-import AssetsPieChart from "@/components/profile/charts/PieChart";
-import { PieChartType } from "@/types/profile/ChartTypes";
+import PnLSection from "@/components/profile/dashboard/PnLSection";
+import AssetSection from "@/components/profile/dashboard/AssetSection";
+import CryptoCurrencyReportSection from "@/components/profile/dashboard/CryptoCurrencyReportSection";
 
 export default function Dashboard() {
-
-  const data: PieChartType = [
-    {
-      "id": "binance",
-      "label": "Binance",
-      "value": 393,
-      "color": "hsl(40, 70%, 100%)"
-    },
-    {
-      "id": "bingx",
-      "label": "BingX",
-      "value": 514,
-      "color": "hsl(128, 70%, 100%)"
-    },
-    {
-      "id": "okx",
-      "label": "OKX",
-      "value": 162,
-      "color": "hsl(101, 70%, 100%)"
-    },
-  ]
 
   return (
     <section className="container px-2 lg:px-8 mt-16 mx-auto">
@@ -43,12 +24,15 @@ export default function Dashboard() {
         <Image alt="Overview" className="object-cover" height={120} src="/images/profile/overview.png" width={500} />
       </div>
       <Divider className="my-10" />
-      <div className="grid grid-cols-1 lg:grid-cols-3 min-h-[220px]">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 min-h-[220px]">
         <div className="flex items-start justify-start flex-col dark:bg-[#161616] light:bg-white rounded-2xl p-6 gap-4">
-          <h4 className="font-bold text-[16px]">Assets</h4>
-          <div className="h-[160px] w-full">
-            <AssetsPieChart data={data} />
-          </div>
+          <AssetSection />
+        </div>
+        <div className="flex items-start justify-start flex-col dark:bg-[#161616] light:bg-white rounded-2xl py-6 px-3 gap-4">
+          <PnLSection />
+        </div>
+        <div className="flex items-center justify-start flex-col dark:bg-[#161616] light:bg-white rounded-2xl py-6 px-3 gap-4 h-full">
+          <CryptoCurrencyReportSection />
         </div>
       </div>
     </section>
