@@ -1,7 +1,6 @@
 import { ResponsivePie } from '@nivo/pie'
 
 import { PieChartType } from "@/types/profile/ChartTypes";
-import { hidden } from "next/dist/lib/picocolors";
 
 // make sure parent container have a defined height when using
 // responsive component, otherwise height will be 0 and
