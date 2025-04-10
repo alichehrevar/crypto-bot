@@ -33,6 +33,7 @@ const allowedOrigins = [
     'http://localhost:3007', // For local development
     'http://localhost:8000', // For local development
     'https://tradingx.alichv.com',
+    'https://tradingx-template.alichv.com',
     'https://tradingx-backend.alichv.com',
 ];
 app.use(cors({

@@ -366,7 +366,7 @@ class BingXWS {
     async getBalance(account) {
         const { apiKey, secretKey } = account;
         const timestamp = Date.now().toString();
-        
+
         // Correct signature generation for BingX according to their documentation
         const queryString = `timestamp=${timestamp}`;
         const signature = crypto
@@ -388,14 +388,14 @@ class BingXWS {
             console.log('[BingXWS] Making balance request to:', endpoint);
             console.log('[BingXWS] Headers:', JSON.stringify(headers, null, 2));
 
-            const res = await fetch(endpoint, { 
-                method: "GET", 
+            const res = await fetch(endpoint, {
+                method: "GET",
                 headers
             });
-            
+
             const responseText = await res.text();
             console.log('[BingXWS] Raw response:', responseText);
-            
+
             let data;
             try {
                 data = JSON.parse(responseText);
@@ -403,27 +403,72 @@ class BingXWS {
                 console.error('[BingXWS] Failed to parse response as JSON:', e);
                 throw new Error(`Invalid JSON response: ${responseText}`);
             }
-            
+
             if (!res.ok) {
                 console.error('[BingXWS] API Error Response:', data);
                 throw new Error(`BingX API error (${res.status}): ${data.msg || data.message || 'Unknown error'}`);
             }
-            
+
             if (data.code !== 0) {
                 console.error('[BingXWS] API Error Code:', data.code, 'Message:', data.msg);
                 throw new Error(`BingX API error (${data.code}): ${data.msg || 'Unknown error'}`);
             }
-            
+
             if (!data.data || !data.data.balances) {
                 console.error('[BingXWS] Unexpected response format:', data);
                 throw new Error('Unexpected response format from BingX API');
             }
-            
+
             return data.data.balances;
         } catch (error) {
             console.error('[BingXWS] Error fetching balance:', error);
             console.error('[BingXWS] Error stack:', error.stack);
             throw new Error(`Failed to fetch BingX balance: ${error.message}`);
+        }
+    }
+
+    async executeOrder(orderDetails, account) {
+        // orderDetails might include properties such as:
+        // { symbol, side, orderType, quantity, price (if limit order), etc. }
+        // account is the user's BingX account object with apiKey and secretKey.
+
+        const { apiKey, secretKey } = account;
+        const timestamp = Date.now().toString();
+
+        // Construct a prehash string as required by BingX for signing the order request.
+        // Example: prehash = timestamp + HTTP_METHOD + requestPath + body
+        // (Consult BingX API documentation for the required signature format.)
+        const method = 'POST';
+        const requestPath = '/api/v1/order/create'; // Example path; update as needed.
+        const body = JSON.stringify(orderDetails);
+        const prehash = timestamp + method + requestPath + body;
+        const signature = crypto
+            .createHmac('sha256', secretKey)
+            .update(prehash)
+            .digest('hex');
+
+        const endpoint = `https://open-api-swap.bingx.com${requestPath}?timestamp=${timestamp}&signature=${signature}`;
+
+        const headers = {
+            "Content-Type": "application/json",
+            "X-BX-APIKEY": apiKey
+        };
+
+        try {
+            const res = await fetch(endpoint, {
+                method: method,
+                headers,
+                body
+            });
+            if (!res.ok) {
+                throw new Error(`Order execution failed with status ${res.status}`);
+            }
+            const data = await res.json();
+            console.log('Order executed successfully:', data);
+            return data;
+        } catch (error) {
+            console.error('[BingXWS] Error executing order:', error);
+            throw error;
         }
     }
 }
