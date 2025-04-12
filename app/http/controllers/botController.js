@@ -31,8 +31,8 @@ exports.deployBot = async (req, res) => {
         // Set default values for bot configuration.
         // For marketInfo, assign baseFund and tradeFund defaults.
         botData.marketInfo = botData.marketInfo || {};
-        botData.marketInfo.baseFund = (botData.marketInfo.baseFund !== undefined) ? botData.marketInfo.baseFund : 10000;
-        botData.marketInfo.tradeFund = (botData.marketInfo.tradeFund !== undefined) ? botData.marketInfo.tradeFund : 50;
+        botData.marketInfo.baseFund = (botData.baseFund !== undefined) ? botData.baseFund : 10000;
+        botData.marketInfo.tradeFund = (botData.tradeFund !== undefined) ? botData.tradeFund : 50;
         // For tradeInfo, assign a default leverage.
         botData.tradeInfo = botData.tradeInfo || {};
         botData.tradeInfo.leverage = (botData.tradeInfo.leverage !== undefined) ? botData.tradeInfo.leverage : 1;

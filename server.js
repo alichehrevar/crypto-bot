@@ -12,6 +12,9 @@ const bingXWS = require('./app/services/bingXWS');
 const botService = require('./app/services/botService/BotService');
 const wsServer = require('./app/services/WebSocketServer');
 
+// Import Socket.IO's Server class
+const { Server } = require('socket.io');
+
 const authRoutes = require('./routes/auth');
 const accountRoutes = require('./routes/accounts');
 const candleRoutes = require('./routes/candles');
@@ -20,6 +23,7 @@ const backtestRoutes = require('./routes/backtest');
 const visualizationRoutes = require('./routes/visualization');
 const currencyRoutes = require('./routes/currencies');
 const indicatorsRoutes = require('./routes/indicators');
+const logsRouter = require('./routes/logs');
 
 // Initialize Express application
 const app = express();
@@ -107,6 +111,7 @@ app.use('/api/backtest', backtestRoutes);
 app.use('/api/visualize', visualizationRoutes);
 app.use('/api/currencies', currencyRoutes);
 app.use('/api/indicators', indicatorsRoutes);
+app.use('/logs', logsRouter);
 
 // Error Handling Middleware
 app.use((err, req, res, next) => {
@@ -149,20 +154,54 @@ wsServer.init();
 
 // Handle WebSocket upgrade requests in one place.
 server.on('upgrade', (request, socket, head) => {
-    if (request.url) {
-        if (request.url.startsWith('/api/ws')) {
-            // Use your general WebSocket service.
-            wsServer.handleUpgrade(request, socket, head);
-        } else if (request.url.startsWith('/api/tradingview/ws')) {
-            // Use TradingViewWS's handleUpgrade.
-            tradingViewWS.handleUpgrade(request, socket, head);
-        } else {
-            // For unrecognized upgrade paths, destroy the socket.
-            socket.destroy();
-        }
+    if (!request.url) {
+        socket.destroy();
+        return;
+    }
+
+    // Allow Socket.IO upgrade requests to pass through
+    if (request.url.startsWith('/socket.io')) {
+        return;
+    }
+
+    if (request.url.startsWith('/api/ws')) {
+        // Use your general WebSocket service.
+        wsServer.handleUpgrade(request, socket, head);
+    } else if (request.url.startsWith('/api/tradingview/ws')) {
+        // Use TradingViewWS's handleUpgrade.
+        tradingViewWS.handleUpgrade(request, socket, head);
     } else {
+        // For unrecognized upgrade paths, destroy the socket.
         socket.destroy();
     }
+});
+
+// Now create the Socket.IO server, passing the HTTP server to it.
+const io = new Server(server, {
+    cors: {
+        origin: allowedOrigins,
+        methods: ["GET", "POST"],
+    }
+});
+
+// Listen for Socket.IO connections.
+io.on('connection', (socket) => {
+    console.log('New Socket.IO connection established:', socket.id);
+    // Optionally, you can add event listeners on the socket here.
+});
+
+// Import logEmitter components.
+const { logEmitter, originalConsoleLog } = require('./logs/logEmitter');
+
+// Simulate some application activity that logs messages every 5 seconds.
+setInterval(() => {
+    console.log('Simulated log entry at', new Date().toLocaleTimeString());
+}, 5000);
+
+// Listen for log events, log them using the original function, and emit to Socket.IO.
+logEmitter.on('log', (msg) => {
+    originalConsoleLog('Log event received:', msg);
+    io.emit('newLog', { timestamp: new Date().toISOString(), message: msg });
 });
 
 // Start the TradingViewWS server if needed, but do not attach an additional upgrade handler.

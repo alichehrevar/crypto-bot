@@ -83,8 +83,8 @@ class OrderExecutionService {
 
             // Call the broker-specific order execution.
             try {
-                const brokerResponse = await this.executeBotOrder(bot, orderDetails);
-                console.log(`Broker response for SELL:`, brokerResponse);
+                // const brokerResponse = await this.executeBotOrder(bot, orderDetails);
+                console.log(`Broker response for SELL:`, 'try to connect to broker');
             } catch (error) {
                 console.error(`Error executing SELL order via broker:`, error);
             }
