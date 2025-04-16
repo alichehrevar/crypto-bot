@@ -2,6 +2,7 @@ const WebSocket = require('ws');
 const axios = require('axios');
 const crypto = require('crypto'); // Import crypto for signature generation.
 const Candle = require('../models/Candle');
+const Bot = require('../../app/models/Bot'); // Import Bot model to check active deployed bots.
 const wsServer = require('./WebSocketServer');
 const { updateBotDataFromCandle } = require('./botService/BotService');
 // Uncomment the next line if you wish to use TradingViewWS instead for broadcasting updates.
@@ -36,10 +37,17 @@ class BinanceWS {
 
     async processTickers(tickers) {
         try {
+            // Fetch active bots from the database and create a set of symbols in normalized format.
+            // We assume that in your database, bots store the symbol in the format "BASE/QUOTE" (e.g., "BTC/USDT")
+            const activeBots = await Bot.find({ active: true }).select('symbol');
+            const activeSymbolsSet = new Set(
+                activeBots.map(bot => bot.symbol.toUpperCase())
+            );
+
             await Promise.all(
                 tickers.map(async (ticker) => {
                     try {
-                        // Validate that the necessary fields are present.
+                        // Validate that necessary fields are present.
                         if (
                             !ticker.s ||
                             !ticker.o ||
@@ -49,14 +57,11 @@ class BinanceWS {
                             !ticker.v ||
                             !ticker.E
                         ) {
-                            console.warn(
-                                `Ticker data missing required fields: ${JSON.stringify(ticker)}`
-                            );
+                            console.warn(`Ticker data missing required fields: ${JSON.stringify(ticker)}`);
                             return;
                         }
 
-                        // Normalize the symbol:
-                        // If the Binance symbol ends with 'USDT' or 'USDC', convert to the format "BASE/QUOTE".
+                        // Normalize the symbol from ticker.
                         let symbol = '';
                         const upperTickerSymbol = ticker.s.toUpperCase();
                         if (upperTickerSymbol.endsWith('USDT')) {
@@ -64,25 +69,24 @@ class BinanceWS {
                         } else if (upperTickerSymbol.endsWith('USDC')) {
                             symbol = upperTickerSymbol.slice(0, -4) + '/USDC';
                         } else {
-                            // Fallback: use the original symbol in uppercase.
                             symbol = upperTickerSymbol;
                         }
-
-                        // Ensure symbol is in uppercase.
                         symbol = symbol.toUpperCase();
 
+                        // If this symbol is not among the active bot symbols, skip processing.
+                        if (!activeSymbolsSet.has(symbol)) {
+                            return;
+                        }
+
                         const timestamp = new Date(ticker.E); // Binance event time
+                        const timeframe = '1m'; // For demonstration, we treat each ticker as a 1m candle
 
-                        // For demonstration purposes, we treat every ticker as a 1m candle.
-                        const timeframe = '1m';
-
-                        // Upsert the current candle for the current minute.
+                        // Upsert candle into your database.
                         const candle = await Candle.findOneAndUpdate(
                             {
                                 symbol,
                                 timeframe,
                                 timestamp: {
-                                    // We consider candles that have an open time in the last minute.
                                     $gte: new Date(timestamp.getTime() - 60000),
                                     $lt: timestamp,
                                 },
@@ -94,11 +98,13 @@ class BinanceWS {
                                     symbol,
                                     timeframe,
                                     timestamp,
+                                    isClosed: ticker.x
                                 },
                                 $set: {
                                     high: Math.max(parseFloat(ticker.h), parseFloat(ticker.o)),
                                     low: Math.min(parseFloat(ticker.l), parseFloat(ticker.o)),
                                     close: parseFloat(ticker.c),
+                                    isClosed: ticker.x
                                 },
                             },
                             {
@@ -120,10 +126,10 @@ class BinanceWS {
                             volume: candle.volume,
                         });
 
-                        // Optionally, broadcast via TradingViewWS:
+                        // Optionally, broadcast via TradingViewWS.
                         // tradingViewWS.broadcastCandleUpdate({...});
 
-                        // Update the corresponding bot's market information.
+                        // Update bot market data using the new candle.
                         await updateBotDataFromCandle({
                             symbol: candle.symbol,
                             timeframe: candle.timeframe,
@@ -152,14 +158,11 @@ class BinanceWS {
     async getBalance(account) {
         const { apiKey, secretKey } = account;
         const timestamp = Date.now();
-        // Build the query string with the required timestamp.
         const queryString = `timestamp=${timestamp}`;
-        // Generate the HMAC SHA256 signature.
         const signature = crypto
             .createHmac('sha256', secretKey)
             .update(queryString)
             .digest('hex');
-        // Binance REST endpoint to get account information.
         const endpoint = `https://api.binance.com/api/v3/account?${queryString}&signature=${signature}`;
         try {
             const response = await axios.get(endpoint, {
@@ -167,8 +170,6 @@ class BinanceWS {
                     'X-MBX-APIKEY': apiKey,
                 },
             });
-            // Binance returns an object with a "balances" array.
-            // Here we look for the free balance of USDT.
             const balances = response.data.balances;
             const usdtBalance = balances.find(b => b.asset === 'USDT');
             return usdtBalance ? parseFloat(usdtBalance.free) : 0;
@@ -177,8 +178,6 @@ class BinanceWS {
             throw error;
         }
     }
-
-    // Additional existing methods remain unchanged...
 
     disconnect() {
         if (this.ws) {

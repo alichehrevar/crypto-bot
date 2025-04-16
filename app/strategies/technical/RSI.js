@@ -1,6 +1,6 @@
-// technical/RSI.js
+// strategies/technical/RSI.js
 
-// Import the BaseIndicator which contains common functionality for all technical.
+// Import the BaseIndicator which contains common functionality for all technical indicators.
 const BaseIndicator = require('./BaseIndicator');
 
 class RSI extends BaseIndicator {
@@ -16,47 +16,41 @@ class RSI extends BaseIndicator {
      * @throws {Error} If no configuration object is provided or if properties are invalid.
      */
     constructor(params) {
-        // Do not assign a default value to params; force the user to supply a configuration.
         super(params);
         if (!params || typeof params !== 'object') {
-            throw new Error('RSI strategy requires configuration object');
+            throw new Error('RSI indicator requires a configuration object.');
         }
-
-        // Initialize configuration with provided values (or fallback defaults if desired).
-        // (You may choose to remove fallback defaults if you want the user to explicitly supply all values.)
+        // Set the period, overbought, and oversold values from the provided parameters.
+        // (Fallback defaults are provided here; you may remove them if you want users to supply all values explicitly.)
         this.period = params.period || 14;
         this.overbought = params.overbought || 70;
         this.oversold = params.oversold || 30;
 
-        // Validate the period value.
+        // Validate configuration values.
         if (typeof this.period !== 'number' || this.period < 2 || this.period > 200) {
-            throw new Error('Invalid period (2-200)');
+            throw new Error('Invalid RSI period (must be between 2 and 200).');
         }
-
-        // Validate overbought and oversold thresholds.
         if (this.overbought <= this.oversold || this.overbought > 100 || this.oversold < 0) {
-            throw new Error('Invalid overbought/oversold levels');
+            throw new Error('Invalid overbought/oversold thresholds. Ensure that overbought > oversold, overbought ≤ 100, and oversold ≥ 0.');
         }
     }
 
     /**
      * updateConfig
      *
-     * Updates the indicator's configuration dynamically.
-     * This method merges new configuration values into the current instance and revalidates.
+     * Dynamically updates the indicator's configuration.
+     * Merges new configuration values into the existing instance and validates them.
      *
-     * @param {Object} newConfig - New configuration values.
-     * @throws {Error} If updated configuration is invalid.
+     * @param {Object} newConfig - New configuration values to merge.
+     * @throws {Error} If the updated configuration is invalid.
      */
     updateConfig(newConfig) {
-        // Merge new configuration into the current instance.
         Object.assign(this, newConfig);
-        // Revalidate the updated configuration.
         if (typeof this.period !== 'number' || this.period < 2 || this.period > 200) {
-            throw new Error('Invalid period (2-200) after update');
+            throw new Error('Invalid RSI period (must be between 2 and 200) after update.');
         }
         if (this.overbought <= this.oversold || this.overbought > 100 || this.oversold < 0) {
-            throw new Error('Invalid overbought/oversold levels after update');
+            throw new Error('Invalid overbought/oversold thresholds after update.');
         }
         console.log('RSI configuration updated:', newConfig);
     }
@@ -66,19 +60,19 @@ class RSI extends BaseIndicator {
      *
      * Calculates the RSI value using the standard Wilder's smoothing method.
      *
-     * @param {Array<Object>} candles - Array of candle objects with a numeric "close" property.
-     * @returns {number} The calculated RSI value.
+     * @param {Array<Object>} candles - Array of candle objects that must include a numeric "close" property.
+     * @returns {number} The calculated RSI value rounded to two decimals.
      * @throws {Error} If insufficient data or invalid candle format is encountered.
      */
     calculateRSI(candles) {
-        // Ensure there are enough candles for calculation.
         if (!candles || candles.length < this.period + 1) {
-            throw new Error(`Need at least ${this.period + 1} candles for RSI calculation`);
+            throw new Error(`At least ${this.period + 1} candles are required for RSI calculation.`);
         }
-        // Extract closing prices and validate their format.
+
+        // Extract closing prices from the candles.
         const closes = candles.map(c => {
             if (typeof c.close !== 'number') {
-                throw new Error('Invalid candle format - missing close price');
+                throw new Error('Invalid candle format: missing numeric close price.');
             }
             return c.close;
         });
@@ -86,7 +80,7 @@ class RSI extends BaseIndicator {
         let avgGain = 0;
         let avgLoss = 0;
 
-        // Compute initial simple moving average (SMA) for gains and losses.
+        // Calculate initial simple moving average for gains and losses.
         for (let i = 1; i <= this.period; i++) {
             const diff = closes[i] - closes[i - 1];
             avgGain += Math.max(diff, 0);
@@ -95,7 +89,7 @@ class RSI extends BaseIndicator {
         avgGain /= this.period;
         avgLoss /= this.period;
 
-        // Apply Wilder's smoothing to update the averages for subsequent candles.
+        // Apply Wilder's smoothing for subsequent price changes.
         for (let i = this.period + 1; i < closes.length; i++) {
             const diff = closes[i] - closes[i - 1];
             const gain = Math.max(diff, 0);
@@ -104,10 +98,9 @@ class RSI extends BaseIndicator {
             avgLoss = (avgLoss * (this.period - 1) + loss) / this.period;
         }
 
-        // If there is no loss, RSI is set to 100.
+        // If there is no loss, return RSI as 100.
         if (avgLoss === 0) return 100;
         const rs = avgGain / avgLoss;
-        // Return the RSI value rounded to two decimals.
         return Number((100 - (100 / (1 + rs))).toFixed(2));
     }
 
@@ -117,7 +110,7 @@ class RSI extends BaseIndicator {
      * Returns detailed RSI metrics based on the provided candles.
      *
      * @param {Array<Object>} candles - Array of candle objects.
-     * @returns {Object} An object containing the RSI value and thresholds.
+     * @returns {Object} An object containing the RSI value, thresholds, period, and a status indicator.
      */
     getMetrics(candles) {
         const rsi = this.calculateRSI(candles);
@@ -133,23 +126,28 @@ class RSI extends BaseIndicator {
     /**
      * calculateSignal
      *
-     * Determines a trading signal based on the RSI value.
-     * It compares the current RSI with the oversold and overbought thresholds and checks for a crossover.
+     * Determines the trading signal ('BUY', 'SELL', or 'HOLD') based on the RSI values.
+     * It calculates the current RSI and a previous RSI (excluding the latest candle) to determine if
+     * a crossover has occurred.
      *
      * @param {Array<Object>} candles - Array of candle objects.
      * @returns {string} 'BUY', 'SELL', or 'HOLD'
      */
     calculateSignal(candles) {
+        console.log('RSI.calculateSignal called with candles:', candles);
         try {
-            // Ensure sufficient data is available (using twice the period for safety).
+            // Ensure sufficient candles are provided. Optionally adjust the required length if needed.
             if (candles.length < this.period * 2) {
-                console.warn('Insufficient data for reliable RSI signal');
+                console.warn('Insufficient data for reliable RSI signal; defaulting to HOLD.');
                 return 'HOLD';
             }
-            // Calculate the current RSI and the RSI of all candles except the last one.
+
+            // Calculate RSI based on all candles and then without the most recent update.
             const rsi = this.calculateRSI(candles);
             const prevRSI = this.calculateRSI(candles.slice(0, -1));
-            console.log('RSI values are: ', [prevRSI, rsi] )
+            const metrics = this.getMetrics(candles);
+            console.log('Calculated RSI:', [rsi, prevRSI]);
+
             // Determine if a crossover has occurred.
             if (rsi < this.oversold && prevRSI >= this.oversold) {
                 return 'BUY';
