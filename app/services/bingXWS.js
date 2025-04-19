@@ -79,6 +79,11 @@ class BingXWS {
                     message = JSON.parse(data.toString());
                 }
 
+                if (!message) {
+                    // parsing failed or empty payload
+                    return;
+                }
+
                 // Handle ping messages.
                 if (message.ping) {
                     this.handlePing(message.ping);
