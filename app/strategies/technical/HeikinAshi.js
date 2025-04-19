@@ -1,59 +1,79 @@
-// technical/HeikinAshi.js
+// strategies/technical/HeikinAshi.js
+
+const BaseIndicator = require("./BaseIndicator");
 
 /**
- * calculateHeikinAshiSignal
- *
- * This function generates trading signals based on Heikin-Ashi candles.
- * It assumes that each candle object contains:
- *   - A Heikin-Ashi open value stored in a field named `${indicatorName}_ha_open`
- *   - A Heikin-Ashi close value stored in a field named `${indicatorName}_ha_close`
- *
- * Signal Generation Logic:
- * - A BUY signal is generated when the current candle's Heikin-Ashi close is above its Heikin-Ashi open,
- *   and the previous candle's Heikin-Ashi close was at or below its Heikin-Ashi open.
- * - A SELL signal is generated when the current candle's Heikin-Ashi close is below its Heikin-Ashi open,
- *   and the previous candle's Heikin-Ashi close was at or above its Heikin-Ashi open.
- * - Otherwise, the signal remains 'HOLD'.
- *
- * @param {Array<Object>} candles - Array of candle objects, sorted in ascending order by timestamp.
- * @param {string} indicatorName - The base name for the Heikin-Ashi fields (e.g., "heikinashi").
- * @returns {Array<string>} An array of signals, one for each candle.
+ * Heikin-Ashi indicator class.
+ * Computes HA candles and generates buy/sell/hold signals based on HA open/close crossover.
  */
-function calculateHeikinAshiSignal(candles, indicatorName) {
-    // Construct the field names for the Heikin-Ashi open and close values.
-    const haOpenField = `${indicatorName}_ha_open`;
-    const haCloseField = `${indicatorName}_ha_close`;
-
-    // Initialize the signals array with "HOLD" for all candles.
-    const signals = new Array(candles.length).fill('HOLD');
-
-    // We start from the second candle since the first candle doesn't have a previous candle to compare.
-    for (let i = 1; i < candles.length; i++) {
-        // Retrieve the current candle's Heikin-Ashi open and close values.
-        const currentHaOpen = candles[i][haOpenField];
-        const currentHaClose = candles[i][haCloseField];
-
-        // Retrieve the previous candle's Heikin-Ashi open and close values.
-        const prevHaOpen = candles[i - 1][haOpenField];
-        const prevHaClose = candles[i - 1][haCloseField];
-
-        // Check for a BUY signal:
-        // Current candle's Heikin-Ashi close is above its open AND previous candle's Heikin-Ashi close was at or below its open.
-        if (currentHaClose > currentHaOpen && prevHaClose <= prevHaOpen) {
-            signals[i] = 'BUY';
-        }
-            // Check for a SELL signal:
-        // Current candle's Heikin-Ashi close is below its open AND previous candle's Heikin-Ashi close was at or above its open.
-        else if (currentHaClose < currentHaOpen && prevHaClose >= prevHaOpen) {
-            signals[i] = 'SELL';
-        }
-        // Otherwise, the signal remains as 'HOLD'.
-        else {
-            signals[i] = 'HOLD';
-        }
+class HeikinAshi extends BaseIndicator {
+    /**
+     * @param {Object} params - no required params, but placeholder for consistency
+     */
+    constructor(params = {}) {
+        super(params);
+        // No specific numeric params needed for Heikin-Ashi
     }
 
-    return signals;
+    /**
+     * Compute Heikin-Ashi candles for the series.
+     * @param {Array<{ open: number, high: number, low: number, close: number }>} candles
+     * @returns {Array<{ haOpen: number, haHigh: number, haLow: number, haClose: number }>} HA series
+     */
+    getMetrics(candles) {
+        if (!Array.isArray(candles) || candles.length === 0) {
+            throw new Error("Need at least one candle for Heikin-Ashi");
+        }
+        const ha = [];
+        for (let i = 0; i < candles.length; i++) {
+            const { open, high, low, close } = candles[i];
+            if (i === 0) {
+                // First HA candle uses real open/close
+                const haClose0 = (open + high + low + close) / 4;
+                const haOpen0 = (open + close) / 2;
+                ha.push({ haOpen: haOpen0, haHigh: high, haLow: low, haClose: haClose0 });
+            } else {
+                const prev = ha[i - 1];
+                const haClose = (open + high + low + close) / 4;
+                const haOpen = (prev.haOpen + prev.haClose) / 2;
+                const haHigh = Math.max(high, haOpen, haClose);
+                const haLow = Math.min(low, haOpen, haClose);
+                ha.push({ haOpen, haHigh, haLow, haClose });
+            }
+        }
+        return ha;
+    }
+
+    /**
+     * Calculate a single signal based on the last two HA candles.
+     * @param {Array<{ open: number, high: number, low: number, close: number }>} candles
+     * @returns {string} 'BUY', 'SELL', or 'HOLD'
+     */
+    calculateSignal(candles) {
+        try {
+            if (!Array.isArray(candles) || candles.length < 2) {
+                console.warn("Insufficient data for Heikin-Ashi signal");
+                return 'HOLD';
+            }
+
+            const haSeries = this.getMetrics(candles);
+            const prev = haSeries[haSeries.length - 2];
+            const last = haSeries[haSeries.length - 1];
+
+            // BUY: The HA close crosses above HA open
+            if (last.haClose > last.haOpen && prev.haClose <= prev.haOpen) {
+                return 'BUY';
+            }
+            // SELL: HA close crosses below HA open
+            if (last.haClose < last.haOpen && prev.haClose >= prev.haOpen) {
+                return 'SELL';
+            }
+            return 'HOLD';
+        } catch (err) {
+            console.error(`HeikinAshi calculation failed: ${err.message}`);
+            return 'HOLD';
+        }
+    }
 }
 
-module.exports = { calculateHeikinAshiSignal };
+module.exports = HeikinAshi;
