@@ -1,19 +1,24 @@
-const Candle = require('../../models/Candle');
+// app/http/controllers/currenciesController.js
+
+const Currency = require('../../models/Currency');
 
 /**
  * getCurrencies
  *
- * Retrieves all distinct currency symbols from the Candle collection.
+ * Retrieves all active currencies from the Currency collection, sorted by symbol.
  */
 exports.getCurrencies = async (req, res) => {
     try {
-        // Get distinct symbols from Candle collection.
-        const symbols = await Candle.distinct('symbol');
-        // Sort alphabetically.
-        symbols.sort();
+        const docs = await Currency
+            .find({ active: true })
+            .sort({ symbol: 1 });
+
+        // If you only need the symbol strings, uncomment the next line:
+        // const symbols = docs.map(c => c.symbol);
+
         res.json({
             success: true,
-            data: symbols
+            data: docs  // or: data: symbols
         });
     } catch (error) {
         console.error('Error fetching currencies:', error);

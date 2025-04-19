@@ -11,6 +11,7 @@ const tradingViewWS = require('./app/services/TradingViewWS');
 const bingXWS = require('./app/services/bingXWS');
 const botService = require('./app/services/botService/BotService');
 const wsServer = require('./app/services/WebSocketServer');
+const seedSymbols = require('./app/services/seeds/currencySeeder');
 
 // Import Socket.IO's Server class
 const { Server } = require('socket.io');
@@ -89,6 +90,12 @@ connectDB().then(async () => {
         console.error('[Server] Error finding BingX account:', err);
         bingXWS.connect();
     });
+
+    try {
+        await seedSymbols();
+    } catch (err) {
+        console.error('Currency seeding failed:', err);
+    }
 
     botService.initialize();
 });
