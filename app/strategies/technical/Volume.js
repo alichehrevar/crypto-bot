@@ -1,58 +1,77 @@
+// strategies/technical/Volume.js
+
+const BaseIndicator = require("./BaseIndicator");
+
 /**
- * calculateVolumeSignal
- *
- * This function generates trading signals (BUY, SELL, HOLD) based on volume changes relative
- * to a computed average volume. It assumes that each candle in the provided array contains:
- *   - a 'volume' property (current candle volume)
- *   - an average volume property under the key `${indicatorName}_avg_volume`
- *
- * Signal Generation:
- * - BUY Signal: If the current candle's volume is greater than 1.5 times its average volume,
- *   and the previous candle's volume was less than or equal to 1.5 times its average volume.
- * - SELL Signal: If the current candle's volume is less than 0.5 times its average volume,
- *   and the previous candle's volume was greater than or equal to 0.5 times its average volume.
- * - Otherwise, the signal is HOLD.
- *
- * @param {Array<Object>} candles - Array of candle objects sorted in ascending order by time.
- * @param {string} indicatorName - Name of the indicator (e.g., "volume").
- * @returns {Array<string>} Array of signals for each candle.
+ * Volume strategy based on average volume crossover.
+ * Parameters:
+ *  - period: lookback window for average volume (number >= 1)
  */
-function calculateVolumeSignal(candles, indicatorName) {
-    // Construct the property name for the average volume.
-    const avgVolField = `${indicatorName}_avg_volume`;
-
-    // Initialize the signals array with 'HOLD' as the default value for each candle.
-    const signals = new Array(candles.length).fill('HOLD');
-
-    // Start processing from the second candle since we need to compare each candle with its previous one.
-    for (let i = 1; i < candles.length; i++) {
-        // Retrieve the current candle's volume and its average volume.
-        const currentVolume = candles[i].volume;
-        const avgVolume = candles[i][avgVolField];
-
-        // Retrieve the previous candle's volume and its average volume.
-        const prevVolume = candles[i - 1].volume;
-        const prevAvgVolume = candles[i - 1][avgVolField];
-
-        // Check for a BUY signal:
-        // If the current volume exceeds 1.5 times the current average volume AND
-        // the previous volume was less than or equal to 1.5 times the previous average volume.
-        if (currentVolume > avgVolume * 1.5 && prevVolume <= prevAvgVolume * 1.5) {
-            signals[i] = 'BUY';
+class Volume extends BaseIndicator {
+    /**
+     * @param {{ period: number }} params
+     */
+    constructor(params) {
+        super(params);
+        if (!params || typeof params.period !== 'number' || params.period < 1) {
+            throw new Error('Volume indicator requires a numeric period >= 1');
         }
-            // Check for a SELL signal:
-            // If the current volume is less than 0.5 times the current average volume AND
-        // the previous volume was greater than or equal to 0.5 times the previous average volume.
-        else if (currentVolume < avgVolume * 0.5 && prevVolume >= prevAvgVolume * 0.5) {
-            signals[i] = 'SELL';
-        }
-        // Otherwise, the signal remains as 'HOLD'.
-        else {
-            signals[i] = 'HOLD';
-        }
+        this.period = params.period;
     }
 
-    return signals;
+    /**
+     * Compute the average volume over the lookback window.
+     * @param {Array<{ volume: number }>} candles
+     * @returns {{ avgVolume: number }}
+     */
+    getMetrics(candles) {
+        if (candles.length < this.period) {
+            throw new Error(`Need at least ${this.period} candles for Volume`);
+        }
+        const window = candles.slice(-this.period);
+        const sum = window.reduce((acc, c) => acc + c.volume, 0);
+        const avgVolume = sum / this.period;
+        return { avgVolume };
+    }
+
+    /**
+     * Calculate the BUY/SELL/HOLD signal based on volume spikes/drops:
+     * - BUY: current volume > 1.5 * avgVolume AND previous volume <= 1.5 * prevAvg
+     * - SELL: current volume < 0.5 * avgVolume AND previous volume >= 0.5 * prevAvg
+     * @param {Array<{ volume: number }>} candles
+     * @returns {string}
+     */
+    calculateSignal(candles) {
+        try {
+            // Need at least period+1 candles to compare current vs prior
+            if (candles.length < this.period + 1) {
+                console.warn('Insufficient data for Volume signal');
+                return 'HOLD';
+            }
+
+            // Metrics for a prior window and current window
+            const priorWindow = candles.slice(0, -1);
+            const priorMetrics = this.getMetrics(priorWindow);
+
+            const currentMetrics = this.getMetrics(candles);
+
+            const prevVol = candles[candles.length - 2].volume;
+            const lastVol = candles[candles.length - 1].volume;
+
+            // BUY condition
+            if (lastVol > currentMetrics.avgVolume * 1.5 && prevVol <= priorMetrics.avgVolume * 1.5) {
+                return 'BUY';
+            }
+            // SELL condition
+            if (lastVol < currentMetrics.avgVolume * 0.5 && prevVol >= priorMetrics.avgVolume * 0.5) {
+                return 'SELL';
+            }
+            return 'HOLD';
+        } catch (err) {
+            console.error(`Volume calculation failed: ${err.message}`);
+            return 'HOLD';
+        }
+    }
 }
 
-module.exports = { calculateVolumeSignal };
+module.exports = Volume;

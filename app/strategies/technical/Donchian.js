@@ -1,46 +1,76 @@
-/**
- * calculateDonchianSignal
- *
- * This function generates trading signals based on the Donchian channel's middle band crossover.
- *
- * Assumptions:
- * - The input is an array of candle objects sorted in ascending order by timestamp.
- * - Each candle object has a `close` property and a middle band value stored in a property named `${indicatorName}_middle`.
- *
- * Signal Logic:
- * - BUY signal: current candle's close > current candle's middle band
- *   AND previous candle's close <= previous candle's middle band.
- * - SELL signal: current candle's close < current candle's middle band
- *   AND previous candle's close >= previous candle's middle band.
- * - Otherwise, the signal is 'HOLD'.
- *
- * @param {Array<Object>} candles - Array of candle objects.
- * @param {string} indicatorName - Name of the indicator (e.g., "donchian").
- * @returns {Array<string>} Array of signals for each candle.
- */
-function calculateDonchianSignal(candles, indicatorName) {
-    // Define the property name for the middle band.
-    const middleField = `${indicatorName}_middle`;
+const BaseIndicator = require('./BaseIndicator');
 
-    // Initialize an array of signals, defaulting to 'HOLD'
-    const signals = new Array(candles.length).fill('HOLD');
+class Donchian extends BaseIndicator {
+    /**
+     * @param {{ period: number }} params
+     *   period: look‑back window size for the channel
+     */
+    constructor(params) {
+        super(params);
+        if (!params || typeof params.period !== 'number' || params.period < 1) {
+            throw new Error('Donchian requires a numeric period ≥ 1');
+        }
+        this.period = params.period;
+    }
 
-    // Start from index 1 since we compare each candle to its previous one.
-    for (let i = 1; i < candles.length; i++) {
-        const currentClose = candles[i].close;
-        const currentMiddle = candles[i][middleField];
-        const prevClose = candles[i - 1].close;
-        const prevMiddle = candles[i - 1][middleField];
+    /**
+     * Compute the Donchian bands (upper, lower, middle).
+     * @param {Array<{ high: number, low: number }>} candles
+     */
+    getMetrics(candles) {
+        if (candles.length < this.period) {
+            throw new Error(`Need at least ${this.period} candles for Donchian`);
+        }
 
-        if (currentClose > currentMiddle && prevClose <= prevMiddle) {
-            signals[i] = 'BUY';
-        } else if (currentClose < currentMiddle && prevClose >= prevMiddle) {
-            signals[i] = 'SELL';
-        } else {
-            signals[i] = 'HOLD';
+        // Take the last `period` candles
+        const slice = candles.slice(-this.period);
+        const highs = slice.map(c => c.high);
+        const lows = slice.map(c => c.low);
+
+        const upper = Math.max(...highs);
+        const lower = Math.min(...lows);
+        const middle = (upper + lower) / 2;
+
+        return { upper, lower, middle };
+    }
+
+    /**
+     * Returns 'BUY', 'SELL', or 'HOLD' based on middle-band crossover.
+     * @param {Array<{ close: number, high?:number, low?:number }>} candles
+     */
+    calculateSignal(candles) {
+        try {
+            // Need at least period+1 to compare current vs prior
+            if (candles.length < this.period + 1) {
+                console.warn('Not enough data for Donchian signal');
+                return 'HOLD';
+            }
+
+            // Compute bands for the prior candle window and for the current window
+            const priorWindow = candles.slice(0, -1);
+            const priorMetrics = this.getMetrics(priorWindow);
+
+
+             // includes the new closed candle
+            const currentMetrics = this.getMetrics(candles);
+
+            const prevClose = candles[candles.length - 2].close;
+            const lastClose = candles[candles.length - 1].close;
+
+            // BUY: price crosses above the prior middle
+            if (lastClose > currentMetrics.middle && prevClose <= priorMetrics.middle) {
+                return 'BUY';
+            }
+            // SELL: price crosses below the prior middle
+            if (lastClose < currentMetrics.middle && prevClose >= priorMetrics.middle) {
+                return 'SELL';
+            }
+            return 'HOLD';
+        } catch (err) {
+            console.error(`Donchian calculation error: ${err.message}`);
+            return 'HOLD';
         }
     }
-    return signals;
 }
 
-module.exports = { calculateDonchianSignal };
+module.exports = Donchian;
