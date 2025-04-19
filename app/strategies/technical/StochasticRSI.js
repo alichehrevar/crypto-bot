@@ -1,58 +1,103 @@
+// strategies/technical/StochasticRSI.js
+
+const BaseIndicator = require('./BaseIndicator');
+
 /**
- * calculateStochasticRSISignal
+ * StochasticRSI indicator class
  *
- * This function generates trading signals based on the Stochastic RSI indicator.
- *
- * Assumptions:
- * - The input is an array of candle objects sorted in ascending order by timestamp.
- * - Each candle object contains:
- *    - a %K value stored in a property named `${indicatorName}_k`
- *    - a %D value stored in a property named `${indicatorName}_d`
- *
- * Signal Logic:
- * - BUY Signal: When the current candle’s %K is greater than its %D and the previous candle’s %K was less than or equal to its %D.
- * - SELL Signal: When the current candle’s %K is less than its %D and the previous candle’s %K was greater than or equal to its %D.
- * - Otherwise, the signal is 'HOLD'.
- *
- * @param {Array<Object>} candles - Array of candle objects.
- * @param {string} indicatorName - Base name for the Stochastic RSI fields (e.g., "stochrsi").
- * @returns {Array<string>} Array of signals corresponding to each candle.
+ * Calculates signals based on Stochastic RSI crossovers of %K and %D lines.
  */
-function calculateStochasticRSISignal(candles, indicatorName) {
-    // Build the property names for the %K and %D values.
-    const kField = `${indicatorName}_k`;
-    const dField = `${indicatorName}_d`;
-
-    // Initialize an array for signals with the default 'HOLD' value.
-    const signals = new Array(candles.length).fill('HOLD');
-
-    // Start looping from index 1 since we need the previous candle for comparison.
-    for (let i = 1; i < candles.length; i++) {
-        // Get current candle's %K and %D values.
-        const kCurrent = candles[i][kField];
-        const dCurrent = candles[i][dField];
-
-        // Get previous candle's %K and %D values.
-        const kPrevious = candles[i - 1][kField];
-        const dPrevious = candles[i - 1][dField];
-
-        // BUY condition:
-        // Current %K > current %D AND previous %K <= previous %D.
-        if (kCurrent > dCurrent && kPrevious <= dPrevious) {
-            signals[i] = 'BUY';
+class StochasticRSI extends BaseIndicator {
+    /**
+     * @param {Object} params - configuration object
+     *   - kPeriod: lookback period for %K
+     *   - dPeriod: smoothing period for %D
+     *   - overbought?: threshold for overbought (optional)
+     *   - oversold?: threshold for oversold (optional)
+     */
+    constructor(params) {
+        super(params);
+        if (!params || typeof params !== 'object') {
+            throw new Error('StochasticRSI requires configuration object');
         }
-            // SELL condition:
-        // Current %K < current %D AND previous %K >= previous %D.
-        else if (kCurrent < dCurrent && kPrevious >= dPrevious) {
-            signals[i] = 'SELL';
+        const { kPeriod, dPeriod, overbought = 80, oversold = 20 } = params;
+        if (!Number.isInteger(kPeriod) || kPeriod < 1) {
+            throw new Error('Invalid kPeriod for StochasticRSI');
         }
-        // Otherwise, the signal remains 'HOLD'.
-        else {
-            signals[i] = 'HOLD';
+        if (!Number.isInteger(dPeriod) || dPeriod < 1) {
+            throw new Error('Invalid dPeriod for StochasticRSI');
         }
+        this.kPeriod = kPeriod;
+        this.dPeriod = dPeriod;
+        this.overbought = overbought;
+        this.oversold = oversold;
     }
 
-    return signals;
+    /**
+     * updateConfig merges new params and re-validates
+     */
+    updateConfig(newConfig) {
+        Object.assign(this, newConfig);
+        // Re-validate periods
+        if (!Number.isInteger(this.kPeriod) || this.kPeriod < 1) {
+            throw new Error('Invalid kPeriod after update');
+        }
+        if (!Number.isInteger(this.dPeriod) || this.dPeriod < 1) {
+            throw new Error('Invalid dPeriod after update');
+        }
+        console.log('StochasticRSI config updated:', newConfig);
+    }
+
+    /**
+     * calculateSignal for the last candle based on %K and %D crossover
+     * @param {Array<Object>} candles - array of candles with properties `${name}_k` and `${name}_d`
+     */
+    calculateSignal(candles) {
+        const name = this.name || 'stochrsi';
+        const kField = `${name}_k`;
+        const dField = `${name}_d`;
+        if (!candles || candles.length < 2) {
+            console.warn('Insufficient data for StochasticRSI signal');
+            return 'HOLD';
+        }
+        const last = candles.length - 1;
+        const kCurr = candles[last][kField];
+        const dCurr = candles[last][dField];
+        const kPrev = candles[last - 1][kField];
+        const dPrev = candles[last - 1][dField];
+
+        if (typeof kCurr !== 'number' || typeof dCurr !== 'number' || typeof kPrev !== 'number' || typeof dPrev !== 'number') {
+            console.error('Missing StochasticRSI fields on candles');
+            return 'HOLD';
+        }
+        console.log('Calculated StochasticRSI K/D:', kPrev, dPrev, '->', kCurr, dCurr);
+        if (kPrev <= dPrev && kCurr > dCurr) {
+            return 'BUY';
+        }
+        if (kPrev >= dPrev && kCurr < dCurr) {
+            return 'SELL';
+        }
+        return 'HOLD';
+    }
+
+    /**
+     * getMetrics returns last values and thresholds
+     */
+    getMetrics(candles) {
+        const name = this.name || 'stochrsi';
+        const kField = `${name}_k`;
+        const dField = `${name}_d`;
+        const last = candles.length - 1;
+        const kVal = candles[last][kField];
+        const dVal = candles[last][dField];
+        return {
+            k: kVal,
+            d: dVal,
+            overbought: this.overbought,
+            oversold: this.oversold,
+            status: kVal > this.overbought ? 'overbought' : kVal < this.oversold ? 'oversold' : 'neutral'
+        };
+    }
 }
 
-module.exports = { calculateStochasticRSISignal };
+module.exports = StochasticRSI;
