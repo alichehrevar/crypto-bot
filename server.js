@@ -11,7 +11,7 @@ const tradingViewWS = require('./app/services/TradingViewWS');
 const bingXWS = require('./app/services/bingXWS');
 const botService = require('./app/services/botService/BotService');
 const wsServer = require('./app/services/WebSocketServer');
-const seedSymbols = require('./app/services/seeds/currencySeeder');
+const seedSymbols = require('./db/seeds/currencySeeder');
 
 // Import Socket.IO's Server class
 const { Server } = require('socket.io');
