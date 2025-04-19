@@ -1,69 +1,98 @@
+// strategies/technical/BollingerBands.js
+
+const BaseIndicator = require("./BaseIndicator");
+
 /**
- * calculateBollingerBandsSignal
- *
- * This function generates BUY/SELL/HOLD signals based on Bollinger Bands crossover logic.
- *
- * Assumptions:
- * - The input is an array of candle objects sorted in ascending order by timestamp.
- * - Each candle object contains:
- *     - 'close': the closing price.
- *     - A basis value stored in a property named `${indicatorName}_basis`.
- *     - Upper and lower bands stored in properties `${indicatorName}_upper1` and `${indicatorName}_lower1`.
- *
- * Signal Logic:
- * - BUY Signal: When the current candle's close price crosses above the lower1 band,
- *   and the previous candle's close was at or below its lower1 band.
- * - SELL Signal: When the current candle's close price crosses below the upper1 band,
- *   and the previous candle's close was at or above its upper1 band.
- * - Otherwise, the signal is 'HOLD'.
- *
- * @param {Array<Object>} candles - Array of candle objects.
- * @param {string} indicatorName - Base name for Bollinger Bands indicator (e.g., "bollinger").
- * @returns {Array<string>} Array of signals for each candle.
+ * Bollinger Bands indicator:
+ * - basis: simple moving average (SMA)
+ * - upper1: basis + numStdDev * standard deviation
+ * - lower1: basis - numStdDev * standard deviation
+ * Signals:
+ *   BUY when price crosses above lower1
+ *   SELL when price crosses below upper1
  */
-function calculateBollingerBandsSignal(candles, indicatorName) {
-    // Construct the property names for the Bollinger Bands components.
-    const basisField = `${indicatorName}_basis`;
-    const upper1Field = `${indicatorName}_upper1`;
-    const lower1Field = `${indicatorName}_lower1`;
-    // (Optional: Upper2 and Lower2 can be used for extended logic)
-    // const upper2Field = `${indicatorName}_upper2`;
-    // const lower2Field = `${indicatorName}_lower2`;
-
-    // Initialize an array for signals with a default value 'HOLD' for each candle.
-    const signals = new Array(candles.length).fill('HOLD');
-
-    // Start from index 1 because we compare the current candle with the previous one.
-    for (let i = 1; i < candles.length; i++) {
-        // Get the current candle's close price.
-        const currentClose = candles[i].close;
-        // Retrieve the current candle's lower1 and upper1 values.
-        const currentLower1 = candles[i][lower1Field];
-        const currentUpper1 = candles[i][upper1Field];
-
-        // Get the previous candle's close price.
-        const prevClose = candles[i - 1].close;
-        // Retrieve the previous candle's lower1 and upper1 values.
-        const prevLower1 = candles[i - 1][lower1Field];
-        const prevUpper1 = candles[i - 1][upper1Field];
-
-        // Generate BUY signal:
-        // If current close is above the current lower1 band, and the previous close was at or below the previous lower1.
-        if (currentClose > currentLower1 && prevClose <= prevLower1) {
-            signals[i] = 'BUY';
-        }
-            // Generate SELL signal:
-        // If current close is below the current upper1 band, and the previous close was at or above the previous upper1.
-        else if (currentClose < currentUpper1 && prevClose >= prevUpper1) {
-            signals[i] = 'SELL';
-        }
-        // Otherwise, the signal remains 'HOLD'
-        else {
-            signals[i] = 'HOLD';
+class BollingerBands extends BaseIndicator {
+    /**
+     * @param {Object} params
+     *   - period: lookback length for SMA and std dev
+     *   - stdDevMultiplier: number of standard deviations for bands
+     */
+    constructor(params) {
+        super(params);
+        if (!params || typeof params !== 'object') throw new Error('BollingerBands requires params');
+        this.period = params.period || 20;
+        this.stdDevMultiplier = params.stdDevMultiplier || 2;
+        if (this.period < 1 || typeof this.stdDevMultiplier !== 'number') {
+            throw new Error('Invalid BollingerBands configuration');
         }
     }
 
-    return signals;
+    /**
+     * updateConfig: allow dynamic update of period or multiplier
+     */
+    updateConfig(newConfig) {
+        Object.assign(this, newConfig);
+        if (this.period < 1 || typeof this.stdDevMultiplier !== 'number') {
+            throw new Error('Invalid BollingerBands configuration after update');
+        }
+        console.log('BollingerBands config updated:', newConfig);
+    }
+
+    /**
+     * getMetrics: calculate bands for given candles
+     * @param {Array<Object>} candles
+     * @returns {Object} with basis, upper1, lower1 for last candle
+     */
+    getMetrics(candles) {
+        if (candles.length < this.period) {
+            throw new Error(`Need at least ${this.period} candles for BollingerBands`);
+        }
+        const slice = candles.slice(-this.period);
+        const closes = slice.map(c => c.close);
+        const sum = closes.reduce((a, b) => a + b, 0);
+        const mean = sum / this.period;
+        const variance = closes.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / this.period;
+        const stdDev = Math.sqrt(variance);
+        return {
+            basis: Number(mean.toFixed(2)),
+            upper1: Number((mean + this.stdDevMultiplier * stdDev).toFixed(2)),
+            lower1: Number((mean - this.stdDevMultiplier * stdDev).toFixed(2)),
+            period: this.period,
+            stdDevMultiplier: this.stdDevMultiplier
+        };
+    }
+
+    /**
+     * calculateSignal: determines BUY/SELL/HOLD for last candle
+     * @param {Array<Object>} candles
+     * @returns {string}
+     */
+    calculateSignal(candles) {
+        try {
+            if (candles.length < this.period + 1) {
+                console.warn('Not enough data for BollingerBands signal');
+                return 'HOLD';
+            }
+            const prevSlice = candles.slice(0, -1);
+            const metricsPrev = this.getMetrics(prevSlice);
+            const metricsCurr = this.getMetrics(candles);
+            const prevClose = prevSlice[prevSlice.length - 1].close;
+            const currClose = candles[candles.length - 1].close;
+
+            // CROSS BELOW UPPER -> SELL
+            if (prevClose >= metricsPrev.upper1 && currClose < metricsCurr.upper1) {
+                return 'SELL';
+            }
+            // CROSS ABOVE LOWER -> BUY
+            if (prevClose <= metricsPrev.lower1 && currClose > metricsCurr.lower1) {
+                return 'BUY';
+            }
+            return 'HOLD';
+        } catch (err) {
+            console.error(`BollingerBands signal error: ${err.message}`);
+            return 'HOLD';
+        }
+    }
 }
 
-module.exports = { calculateBollingerBandsSignal };
+module.exports = BollingerBands;
