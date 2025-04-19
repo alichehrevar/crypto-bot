@@ -1,6 +1,6 @@
 // services/currencySeeder.js
 const ccxt     = require('ccxt');
-const Currency = require('../models/Currency');
+const Currency = require('../../models/Currency');
 
 async function seedSymbols() {
     const exchange = new ccxt.binance();
