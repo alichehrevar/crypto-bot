@@ -7,14 +7,14 @@ exports.login = async (req, res) => {
         // Extract email and password from the request body.
         const { email, password } = req.body;
         // Look up the user by email.
-        const user = await User.findOne({ email });
+        const user = await User.findOne({ email: email });
         if (!user) {
             return res.status(401).json({ error: 'Invalid email or password' });
         }
         // Compare the provided password with the hashed password.
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
-            return res.status(401).json({ error: 'Invalid email or password' });
+            return res.status(401).json({ error: 'Invalid password' });
         }
         // If credentials are valid, create a JWT.
         const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1y' });
