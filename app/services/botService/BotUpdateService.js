@@ -94,26 +94,22 @@ class BotUpdateService {
 
                 // Only recalculate the signal if the incoming candle is marked as closed.
                 if (candle.isClosed) {
-                    console.log('candle is closed, computing signal...')
                     // Determine the number of candles to retrieve based on the bot's strategy params.
-                    // For example, if the indicator is RSI and period is provided:
                     let requiredCount = 50; // fallback default for indicators that don't use a period
                     if (bot.strategyParams && bot.strategyParams.period) {
-                        // Optionally you might require period+1 candles.
-                        requiredCount = bot.strategyParams.period + 1;
+                        // Optionally, you might require period+1 candles.
+                        requiredCount = bot.strategyParams.period + 2;
                     }
 
                     // Retrieve the latest requiredCount closed candles.
                     let recentCandles = candleStore.getLatestCandles(normSymbol, normTimeframe, requiredCount);
 
-                    // If we don't have enough candles, fetch historical candles from broker.
+                    // If we don't have enough candles, fetch historical candles from a broker.
                     if (recentCandles.length < requiredCount) {
                         const historicalCandles = await fetchHistoricalCandles(normSymbol, normTimeframe, requiredCount - recentCandles.length);
                         // Combine historical candles (oldest first) with those in memory.
                         recentCandles = historicalCandles.concat(recentCandles);
                     }
-
-                    console.log('recentCandles:', recentCandles.length);
 
                     let computedSignal = 'HOLD';
                     try {

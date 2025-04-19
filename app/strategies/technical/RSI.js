@@ -1,6 +1,6 @@
 // strategies/technical/RSI.js
 
-// Import the BaseIndicator which contains common functionality for all technical indicators.
+// Import the BaseIndicator, which contains common functionality for all technical indicators.
 const BaseIndicator = require('./BaseIndicator');
 
 class RSI extends BaseIndicator {
@@ -80,7 +80,7 @@ class RSI extends BaseIndicator {
         let avgGain = 0;
         let avgLoss = 0;
 
-        // Calculate initial simple moving average for gains and losses.
+        // Calculate the initial simple moving average for gains and losses.
         for (let i = 1; i <= this.period; i++) {
             const diff = closes[i] - closes[i - 1];
             avgGain += Math.max(diff, 0);
@@ -134,10 +134,9 @@ class RSI extends BaseIndicator {
      * @returns {string} 'BUY', 'SELL', or 'HOLD'
      */
     calculateSignal(candles) {
-        console.log('RSI.calculateSignal called with candles:', candles);
         try {
-            // Ensure sufficient candles are provided. Optionally adjust the required length if needed.
-            if (candles.length < this.period * 2) {
+            // Ensure sufficient candles are provided. Optionally, adjust the required length if needed.
+            if (candles.length < this.period + 1) {
                 console.warn('Insufficient data for reliable RSI signal; defaulting to HOLD.');
                 return 'HOLD';
             }
@@ -145,7 +144,6 @@ class RSI extends BaseIndicator {
             // Calculate RSI based on all candles and then without the most recent update.
             const rsi = this.calculateRSI(candles);
             const prevRSI = this.calculateRSI(candles.slice(0, -1));
-            const metrics = this.getMetrics(candles);
             console.log('Calculated RSI:', [rsi, prevRSI]);
 
             // Determine if a crossover has occurred.
