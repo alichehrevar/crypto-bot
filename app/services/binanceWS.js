@@ -4,7 +4,7 @@ const crypto = require('crypto'); // Import crypto for signature generation.
 const Candle = require('../models/Candle');
 const Bot = require('../../app/models/Bot'); // Import Bot model to check active deployed bots.
 const wsServer = require('./WebSocketServer');
-const { updateBotDataFromCandle } = require('./botService/BotService');
+const BotService = require('./botService/BotService');
 // Uncomment the next line if you wish to use TradingViewWS instead for broadcasting updates.
 // const tradingViewWS = require('./TradingViewWS');
 
@@ -114,6 +114,11 @@ class BinanceWS {
                             }
                         );
 
+                        await BotService.processCandle(candle.symbol, candle.timeframe, {
+                            ...candle.toObject(),
+                            isClosed: ticker.x
+                        });
+
                         // Broadcast the updated candle to connected clients.
                         wsServer.broadcastCandle({
                             symbol: candle.symbol,
@@ -128,18 +133,7 @@ class BinanceWS {
 
                         // Optionally, broadcast via TradingViewWS.
                         // tradingViewWS.broadcastCandleUpdate({...});
-
-                        // Update bot market data using the new candle.
-                        await updateBotDataFromCandle({
-                            symbol: candle.symbol,
-                            timeframe: candle.timeframe,
-                            timestamp: candle.timestamp,
-                            open: candle.open,
-                            high: candle.high,
-                            low: candle.low,
-                            close: candle.close,
-                            volume: candle.volume,
-                        });
+                        await BotService.processCandle(candle.symbol, candle.timeframe);
                     } catch (error) {
                         console.error(`Error processing ticker ${ticker.s}:`, error);
                     }

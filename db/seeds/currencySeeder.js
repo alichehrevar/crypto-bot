@@ -8,7 +8,7 @@ async function seedSymbols() {
     const ops = [];
 
     for (let market of Object.values(exchange.markets)) {
-        // we only want spot USDT/USDC markets, adjust as needed
+        // we only want to spot USDT/USDC markets, adjust as needed
         if (!market.active || !market.symbol.endsWith('/USDT')) continue;
 
         ops.push({
