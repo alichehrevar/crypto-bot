@@ -1,8 +1,10 @@
+// server.js
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const mongoose = require('mongoose'); // Required for DB status checks
+const mongoose = require('mongoose');
 const http = require('http');
+const { WebSocketServer } = require('ws');
 
 const connectDB = require('./config/db');
 const User = require('./app/models/User');
@@ -12,31 +14,36 @@ const bingXWS = require('./app/services/bingXWS');
 const botService = require('./app/services/botService/BotService');
 const wsServer = require('./app/services/WebSocketServer');
 const seedSymbols = require('./db/seeds/currencySeeder');
+const { logEmitter, originalConsoleLog } = require('./logs/logEmitter');
 
-// Import Socket.IO's Server class
-const { Server } = require('socket.io');
+// Routers
+const authRoutes         = require('./routes/auth');
+const accountRoutes      = require('./routes/accounts');
+const candleRoutes       = require('./routes/candles');
+const botRoutes          = require('./routes/bots');
+const backtestRoutes     = require('./routes/backtest');
+const visualizationRoutes= require('./routes/visualization');
+const currencyRoutes     = require('./routes/currencies');
+const indicatorsRoutes   = require('./routes/indicators');
+const logsRouter         = require('./routes/logs');
 
-const authRoutes = require('./routes/auth');
-const accountRoutes = require('./routes/accounts');
-const candleRoutes = require('./routes/candles');
-const botRoutes = require('./routes/bots');
-const backtestRoutes = require('./routes/backtest');
-const visualizationRoutes = require('./routes/visualization');
-const currencyRoutes = require('./routes/currencies');
-const indicatorsRoutes = require('./routes/indicators');
-const logsRouter = require('./routes/logs');
-
-// Initialize Express application
 const app = express();
 
-// Middleware
+// JSON & CSP
 app.use(express.json());
+app.use((req, res, next) => {
+    res.setHeader(
+        'Content-Security-Policy',
+        "default-src 'self'; media-src *; script-src 'self';"
+    );
+    next();
+});
 
-// Allow CORS
+// CORS
 const allowedOrigins = [
-    'http://localhost:3005', // For local development
-    'http://localhost:3007', // For local development
-    'http://localhost:8000', // For local development
+    'http://localhost:3005',
+    'http://localhost:3007',
+    'http://localhost:8000',
     'https://tradingx.alichv.com',
     'https://tradingx-template.alichv.com',
     'https://tradingx-backend.alichv.com',
@@ -44,72 +51,68 @@ const allowedOrigins = [
 app.use(cors({
     origin: (origin, callback) => {
         if (!origin || allowedOrigins.includes(origin)) {
-            callback(null, true); // Allow request if origin matches
+            callback(null, true);
         } else {
-            callback(new Error('Not allowed by CORS')); // Reject request otherwise
+            callback(new Error('Not allowed by CORS'));
         }
     },
-    methods: ['GET', 'POST'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+    methods: ['GET','POST','PUT','DELETE','OPTIONS'],
+    allowedHeaders: ['Content-Type','Authorization','Accept']
 }));
 
-// Add Content-Security-Policy (CSP) header
-app.use((req, res, next) => {
-    res.setHeader('Content-Security-Policy', "default-src 'self'; media-src *; script-src 'self';");
-    next();
-});
-
-// Database Connection
+// Connect to Mongo
 connectDB().then(async () => {
-    // Check if any user exists; if not, create a default user.
-    const user = await User.findOne({email: 'admin@tradingx.com'});
-    if (!user) {
-        // Create a default user.
-        // The User schema will hash the password before saving.
-        const defaultUser = await User.create({
+    // Ensure default admin user exists
+    const admin = await User.findOne({ email: 'admin@tradingx.com' });
+    if (!admin) {
+        const u = await User.create({
             email: 'admin@tradingx.com',
             password: 'password123123'
         });
-        console.log('Default user created:', defaultUser.email);
+        console.log('Default user created:', u.email);
     }
-    // Start WebSocket connections after DB is connected
+
+    // Start WS services
     binanceWS.connect();
 
-    // For BingX, we need to find a user with BingX credentials and use them
-    // This is a temporary solution - in a production app, you'd want to handle this more robustly
+    // BingX auth‐aware connect
     const BingxAccount = require('./app/models/BingxAccount');
-    BingxAccount.findOne().then(account => {
-        if (account) {
-            console.log('[Server] Found BingX account, connecting with credentials');
-            bingXWS.connect(account);
-        } else {
-            console.warn('[Server] No BingX account found, connecting without authentication');
+    BingxAccount.findOne()
+        .then(acc => {
+            if (acc) {
+                console.log('[Server] Found BingX credentials');
+                bingXWS.connect(acc);
+            } else {
+                console.warn('[Server] No BingX account – connecting unauthenticated');
+                bingXWS.connect();
+            }
+        })
+        .catch(err => {
+            console.error('[Server] BingX lookup error:', err);
             bingXWS.connect();
-        }
-    }).catch(err => {
-        console.error('[Server] Error finding BingX account:', err);
-        bingXWS.connect();
-    });
+        });
 
+    // Seed symbols collection
     try {
         await seedSymbols();
     } catch (err) {
         console.error('Currency seeding failed:', err);
     }
 
-    botService.initialize();
+    // Initialize bots
+    await botService.initialize();
 });
 
-// Health Check Endpoint
+// Health check
 app.get('/health', (req, res) => {
-    res.status(200).json({
+    res.json({
         status: 'OK',
         timestamp: new Date(),
         dbStatus: mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected'
     });
 });
 
-// API Routes
+// API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/accounts', accountRoutes);
 app.use('/api/candles', candleRoutes);
@@ -118,109 +121,89 @@ app.use('/api/backtest', backtestRoutes);
 app.use('/api/visualize', visualizationRoutes);
 app.use('/api/currencies', currencyRoutes);
 app.use('/api/indicators', indicatorsRoutes);
+
+// Logs REST endpoint (historical fetch)
 app.use('/logs', logsRouter);
 
-// Error Handling Middleware
+// Error handler
 app.use((err, req, res, next) => {
     console.error(err.stack);
-    if (res && typeof res.status === 'function') {
-        res.status(500).json({
-            success: false,
-            error: process.env.NODE_ENV === 'production'
-                ? 'Internal Server Error'
-                : err.message
-        });
-    } else {
-        if (res && typeof res.send === 'function') {
-            res.send('An unexpected error occurred');
-        } else {
-            console.error('Response object is broken or missing.');
-            res.end('An unexpected error occurred');
+    res.status(500).json({
+        success: false,
+        error: process.env.NODE_ENV === 'production' ? 'Internal Server Error' : err.message
+    });
+});
+
+// 404 catcher
+app.use((req, res) => {
+    res.status(404).json({ success: false, error: 'Endpoint not found' });
+});
+
+// Create HTTP server
+const server = http.createServer(app);
+
+// Init general WS server
+wsServer.init();
+
+// —— Logs WebSocket (plain‐ws) ——
+const logsWSS = new WebSocketServer({ noServer: true });
+logsWSS.on('connection', (ws, req) => {
+    originalConsoleLog('Logs WS client connected:', req.socket.remoteAddress);
+    ws.on('close', () => {
+        originalConsoleLog('Logs WS client disconnected');
+    });
+});
+
+// Emit logs to WS clients
+logEmitter.on('log', (msg) => {
+    const payload = JSON.stringify({ timestamp: new Date().toISOString(), message: msg });
+    for (const client of logsWSS.clients) {
+        if (client.readyState === client.OPEN) {
+            client.send(payload);
         }
     }
 });
 
-// Test Endpoint for Debugging
-app.get('/test', (req, res) => {
-    res.status(200).json({ message: 'Everything is working fine' });
-});
-
-// 404 Handler
-app.use((req, res) => {
-    res.status(404).json({
-        success: false,
-        error: 'Endpoint not found'
-    });
-});
-
-// Create HTTP server from Express app
-const server = http.createServer(app);
-
-// Initialize the general WebSocket server.
-wsServer.init();
-
-// Handle WebSocket upgrade requests in one place.
+// Unified upgrade handler
 server.on('upgrade', (request, socket, head) => {
-    if (!request.url) {
+    const { url } = request;
+    if (!url) {
         socket.destroy();
         return;
     }
 
-    // Allow Socket.IO upgrade requests to pass through
-    if (request.url.startsWith('/socket.io')) {
-        return;
-    }
+    if (url.startsWith('/api/ws')) {
+        wsServer.handleUpgrade(request, socket, head, (ws) => {
+            wsServer.emit('connection', ws, request);
+        });
 
-    if (request.url.startsWith('/api/ws')) {
-        // Use your general WebSocket service.
-        wsServer.handleUpgrade(request, socket, head);
-    } else if (request.url.startsWith('/api/tradingview/ws')) {
-        // Use TradingViewWS's handleUpgrade.
-        tradingViewWS.handleUpgrade(request, socket, head);
+    } else if (url.startsWith('/api/tradingview/ws')) {
+        tradingViewWS.handleUpgrade(request, socket, head, (ws) => {
+            tradingViewWS.emit('connection', ws, request);
+        });
+
+    } else if (url === '/logs/ws') {
+        logsWSS.handleUpgrade(request, socket, head, (ws) => {
+            logsWSS.emit('connection', ws, request);
+        });
+
     } else {
-        // For unrecognized upgrade paths, destroy the socket.
         socket.destroy();
     }
 });
 
-// Now create the Socket.IO server, passing the HTTP server to it.
-const io = new Server(server, {
-    cors: {
-        origin: allowedOrigins,
-        methods: ["GET", "POST"],
-    }
-});
-
-// Listen for Socket.IO connections.
-io.on('connection', (socket) => {
-    console.log('New Socket.IO connection established:', socket.id);
-    // Optionally, you can add event listeners on the socket here.
-});
-
-// Import logEmitter components.
-const { logEmitter, originalConsoleLog } = require('./logs/logEmitter');
-
-// Simulate some application activity that logs messages every 5 seconds.
+// Simulate periodic log entries
 setInterval(() => {
     console.log('Simulated log entry at', new Date().toLocaleTimeString());
 }, 5000);
 
-// Listen for log events, log them using the original function, and emit to Socket.IO.
-logEmitter.on('log', (msg) => {
-    originalConsoleLog('Log event received:', msg);
-    io.emit('newLog', { timestamp: new Date().toISOString(), message: msg });
-});
-
-// Start the TradingViewWS server if needed, but do not attach an additional upgrade handler.
-// tradingViewWS.startServer(server); // Remove or comment out this line if present.
-
-// Start the HTTP server.
+// Start server
 const PORT = process.env.PORT || 8000;
 server.listen(PORT, () => {
-    console.log(`Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
+    console.log(`Server running in ${process.env.NODE_ENV||'development'} on port ${PORT}`);
 });
 
-// Handle unhandled promise rejections.
+// Catch unhandled promise rejections
 process.on('unhandledRejection', (err) => {
     console.error(`Unhandled Rejection: ${err.message}`);
     server.close(() => process.exit(1));
