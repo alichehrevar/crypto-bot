@@ -1,11 +1,12 @@
-// app/services/binanceWS.js
 const WebSocket = require('ws');
 const axios = require('axios');
-const crypto = require('crypto');
+const crypto = require('crypto'); // Import crypto for signature generation.
 const Candle = require('../models/Candle');
-const Bot = require('../models/Bot');
+const Bot = require('../../app/models/Bot'); // Import Bot model to check active deployed bots.
 const wsServer = require('./WebSocketServer');
 const BotService = require('./botService/BotService');
+// Uncomment the next line if you wish to use TradingViewWS instead for broadcasting updates.
+// const tradingViewWS = require('./TradingViewWS');
 
 class BinanceWS {
     constructor() {
@@ -13,6 +14,7 @@ class BinanceWS {
     }
 
     connect() {
+        // Connect to Binance's miniTicker stream.
         this.ws = new WebSocket('wss://stream.binance.com:9443/ws/!miniTicker@arr');
 
         this.ws.on('open', () => {
@@ -23,8 +25,8 @@ class BinanceWS {
             try {
                 const tickers = JSON.parse(data);
                 await this.processTickers(tickers);
-            } catch (err) {
-                console.error('WS message processing error:', err);
+            } catch (error) {
+                console.error('WS message processing error:', error);
             }
         });
 
@@ -34,92 +36,138 @@ class BinanceWS {
     }
 
     async processTickers(tickers) {
-        // 1) find which symbols have active bots
-        const active = await Bot.find({ active: true }).select('symbol');
-        const activeSet = new Set(active.map(b => b.symbol.toUpperCase()));
+        try {
+            // Fetch active bots from the database and create a set of symbols in normalized format.
+            // We assume that in your database, bots store the symbol in the format "BASE/QUOTE" (e.g., "BTC/USDT")
+            const activeBots = await Bot.find({ active: true }).select('symbol');
+            const activeSymbolsSet = new Set(
+                activeBots.map(bot => bot.symbol.toUpperCase())
+            );
 
-        await Promise.all(tickers.map(async t => {
-            try {
-                if (!t.s || !t.o || !t.h || !t.l || !t.c || !t.v || !t.E) return;
-
-                // 2) normalize ticker symbol
-                let sym = t.s.toUpperCase();
-                if (sym.endsWith('USDT')) sym = sym.slice(0, -4) + '/USDT';
-                else if (sym.endsWith('USDC')) sym = sym.slice(0, -4) + '/USDC';
-
-                if (!activeSet.has(sym)) return;           // skip if no bot cares
-                const timeframe = '1m';
-                const ts = new Date(t.E);
-
-                // 3) upsert candle (includes `isClosed` = t.x from Binance)
-                const candle = await Candle.findOneAndUpdate(
-                    {
-                        symbol: sym, timeframe,
-                        timestamp: { $gte: new Date(ts - 60000), $lt: ts }
-                    },
-                    {
-                        $setOnInsert: {
-                            open: parseFloat(t.o),
-                            volume: parseFloat(t.v),
-                            symbol: sym,
-                            timeframe,
-                            timestamp: ts
-                        },
-                        $set: {
-                            high: Math.max(parseFloat(t.h), parseFloat(t.o)),
-                            low:  Math.min(parseFloat(t.l), parseFloat(t.o)),
-                            close: parseFloat(t.c),
-                            isClosed: t.x
+            await Promise.all(
+                tickers.map(async (ticker) => {
+                    try {
+                        // Validate that necessary fields are present.
+                        if (
+                            !ticker.s ||
+                            !ticker.o ||
+                            !ticker.h ||
+                            !ticker.l ||
+                            !ticker.c ||
+                            !ticker.v ||
+                            !ticker.E
+                        ) {
+                            console.warn(`Ticker data missing required fields: ${JSON.stringify(ticker)}`);
+                            return;
                         }
-                    },
-                    { upsert: true, new: true, sort: { timestamp: -1 } }
-                );
 
-                // 4) broadcast
-                wsServer.broadcastCandle({
-                    symbol: candle.symbol,
-                    timeframe: candle.timeframe,
-                    timestamp: candle.timestamp,
-                    open: candle.open,
-                    high: candle.high,
-                    low: candle.low,
-                    close: candle.close,
-                    volume: candle.volume,
-                });
+                        // Normalize the symbol from ticker.
+                        let symbol = '';
+                        const upperTickerSymbol = ticker.s.toUpperCase();
+                        if (upperTickerSymbol.endsWith('USDT')) {
+                            symbol = upperTickerSymbol.slice(0, -4) + '/USDT';
+                        } else if (upperTickerSymbol.endsWith('USDC')) {
+                            symbol = upperTickerSymbol.slice(0, -4) + '/USDC';
+                        } else {
+                            symbol = upperTickerSymbol;
+                        }
+                        symbol = symbol.toUpperCase();
 
-                // 5) pull last N candles for your longest indicator
-                const LOOKBACK = 100; // or derive from your longest period
-                const recent = await Candle.find({ symbol: sym, timeframe })
-                    .sort({ timestamp: -1 })
-                    .limit(LOOKBACK)
-                    .lean();
-                // reverse into chronological order:
-                recent.reverse();
+                        // If this symbol is not among the active bot symbols, skip processing.
+                        if (!activeSymbolsSet.has(symbol)) {
+                            return;
+                        }
 
-                // 6) feed into your single BotService
-                await BotService.processCandle(sym, timeframe, recent);
+                        const timestamp = new Date(ticker.E); // Binance event time
+                        const timeframe = '1m'; // For demonstration, we treat each ticker as a 1m candle
 
-            } catch (err) {
-                console.error(`Error processing ticker ${t.s}:`, err);
-            }
-        }));
+                        // Upsert candle into your database.
+                        const candle = await Candle.findOneAndUpdate(
+                            {
+                                symbol,
+                                timeframe,
+                                timestamp: {
+                                    $gte: new Date(timestamp.getTime() - 60000),
+                                    $lt: timestamp,
+                                },
+                            },
+                            {
+                                $setOnInsert: {
+                                    open: parseFloat(ticker.o),
+                                    volume: parseFloat(ticker.v),
+                                    symbol,
+                                    timeframe,
+                                    timestamp,
+                                    isClosed: ticker.x
+                                },
+                                $set: {
+                                    high: Math.max(parseFloat(ticker.h), parseFloat(ticker.o)),
+                                    low: Math.min(parseFloat(ticker.l), parseFloat(ticker.o)),
+                                    close: parseFloat(ticker.c),
+                                    isClosed: ticker.x
+                                },
+                            },
+                            {
+                                upsert: true,
+                                new: true,
+                                sort: { timestamp: -1 },
+                            }
+                        );
+
+                        // Broadcast the updated candle to connected clients.
+                        wsServer.broadcastCandle({
+                            symbol: candle.symbol,
+                            timeframe: candle.timeframe,
+                            timestamp: candle.timestamp,
+                            open: candle.open,
+                            high: candle.high,
+                            low: candle.low,
+                            close: candle.close,
+                            volume: candle.volume,
+                        });
+
+                        // Optionally, broadcast via TradingViewWS.
+                        // tradingViewWS.broadcastCandleUpdate({...});
+
+                        // pass it into your unified BotService:
+                        await BotService.processCandle(candle.symbol, candle.timeframe, candle);
+
+                    } catch (error) {
+                        console.error(`Error processing ticker ${ticker.s}:`, error);
+                    }
+                })
+            );
+        } catch (error) {
+            console.error('Global ticker processing error:', error);
+        }
     }
 
     /**
-     * Get free USDT balance for a Binance account via REST.
+     * Get the account balance for a Binance account using REST API.
+     * @param {Object} account - The account object containing apiKey and secretKey.
+     * @returns {Promise<number>} - The free USDT balance.
      */
-    async getBalance({ apiKey, secretKey }) {
+    async getBalance(account) {
+        const { apiKey, secretKey } = account;
         const timestamp = Date.now();
-        const qs = `timestamp=${timestamp}`;
-        const sig = crypto.createHmac('sha256', secretKey).update(qs).digest('hex');
-        const url = `https://api.binance.com/api/v3/account?${qs}&signature=${sig}`;
+        const queryString = `timestamp=${timestamp}`;
+        const signature = crypto
+            .createHmac('sha256', secretKey)
+            .update(queryString)
+            .digest('hex');
+        const endpoint = `https://api.binance.com/api/v3/account?${queryString}&signature=${signature}`;
         try {
-            const res = await axios.get(url, { headers: { 'X-MBX-APIKEY': apiKey } });
-            const usdt = res.data.balances.find(b => b.asset === 'USDT');
-            return usdt ? parseFloat(usdt.free) : 0;
-        } catch (err) {
-            console.error('BinanceWS getBalance error:', err.response?.data || err);
-            throw err;
+            const response = await axios.get(endpoint, {
+                headers: {
+                    'X-MBX-APIKEY': apiKey,
+                },
+            });
+            const balances = response.data.balances;
+            const usdtBalance = balances.find(b => b.asset === 'USDT');
+            return usdtBalance ? parseFloat(usdtBalance.free) : 0;
+        } catch (error) {
+            console.error('BinanceWS getBalance error:', error.response?.data || error.message);
+            throw error;
         }
     }
 

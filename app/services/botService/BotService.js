@@ -53,7 +53,7 @@ class BotService {
                 // updating current open candle price
                 bot.marketInfo.currentCandle = { price: candle.close };
             } else {
-                // new closed candle arrives
+                // a new closed candle arrives
                 bot.marketInfo.lastCandle    = { ...candle };
                 bot.marketInfo.currentCandle = { price: candle.close };
             }
@@ -63,6 +63,8 @@ class BotService {
 
             // 2) only run full logic when candle just closed
             if (!candle.isClosed) continue;
+
+            console.info('a new closed candle arrived: ' + symbol)
 
             // 3) gather recent candles (period+1)
             const period = bot.strategyParams?.period || 50;
@@ -97,6 +99,8 @@ class BotService {
                 ? this._aggregateWeighted(signals)
                 : this._aggregateConsensus(signals.map(s => s.signal));
 
+            console.info('aggregate method: ' + method)
+
             // clear stored signals after action
             if (finalSignal !== 'HOLD') this.botSignals.set(botId, []);
 
@@ -110,9 +114,10 @@ class BotService {
             // 8) risk check + order execution
             const { canTrade, reason } = await RiskManagementService.checkRisk(bot);
             if (!canTrade) {
-                console.log(`Bot "${bot.name}" blocked (<1h risk>): ${reason}`);
+                console.info(`Bot "${bot.name}" blocked (<1h risk>): ${reason}`);
                 continue;
             }
+            console.info('executed signal: ' + finalSignal)
             if (finalSignal !== 'HOLD') {
                 await OrderExecutionService.executeOrder(bot, finalSignal, candle.close);
             }

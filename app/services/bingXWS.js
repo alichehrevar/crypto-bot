@@ -352,13 +352,34 @@ class BingXWS {
         return Array.from(this.subscriptions.values());
     }
 
-    // Add binary message parser.
+    /**
+     * Attempt to gunzip & parse JSON; if it’s a plain “Ping” frame or
+     * fails to decompress/parse, return a ping object or null.
+     */
     parseBinaryMessage(data) {
+        // First, try a quick string check in case it's not gzipped at all
+        const raw = data.toString();
+        if (raw === 'Ping' || raw === 'pong' || raw === 'PING') {
+            // normalize into your existing ping handler format
+            return { ping: Date.now() };
+        }
+
         try {
+            // Attempt to gunzip
             const decompressed = zlib.gunzipSync(data);
-            return JSON.parse(decompressed.toString());
-        } catch (error) {
-            console.error('Binary message parsing failed:', error);
+            const text = decompressed.toString();
+
+            // Only JSON.parse if it looks like JSON
+            const first = text.trim()[0];
+            if (first === '{' || first === '[') {
+                return JSON.parse(text);
+            } else {
+                // non-JSON text, treat as ping
+                return { ping: text };
+            }
+        } catch (err) {
+            // zlib error or parse error
+            console.debug('[BingXWS] parseBinaryMessage non-gzip or invalid JSON:', err.message);
             return null;
         }
     }
