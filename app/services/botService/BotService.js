@@ -64,11 +64,69 @@ class BotService {
             // 2) only run full logic when candle just closed
             if (!candle.isClosed) continue;
 
-            console.info('a new closed candle arrived: ' + symbol)
+            console.log('a new closed candle arrived: ' + symbol)
 
-            // 3) gather recent candles (period+1)
-            const period = bot.strategyParams?.period || 50;
-            const needed = period + 2;
+            // 3) gather recent candles (indicator-specific window)
+            let needed;
+            const params = bot.strategyParams || {};
+
+            // figure out how many candles each indicator needs:
+            switch (bot.indicator) {
+                case 'RSI':
+                    // need period + 2 so we can compare current and previous RSI
+                    needed = (params.period ?? 14) + 2;
+                    break;
+
+                case 'MACD':
+                    // need longPeriod candles to build MACD line, plus signalPeriod to smooth
+                    // +1 to have a “previous” value
+                    needed = (params.longPeriod ?? 26) + (params.signalPeriod ?? 9) + 1;
+                    break;
+
+                case 'MA_Crossover':
+                    // need at least as many as the longer moving‐average
+                    needed = Math.max(params.shortPeriod ?? 5, params.longPeriod ?? 20) + 1;
+                    break;
+
+                case 'Donchian':
+                    // Donchian typically uses a ‘period’ look back
+                    needed = (params.period ?? 20) + 1;
+                    break;
+
+                case 'Volume':
+                    // if you compute avg volume over N candles, need N+1
+                    needed = (params.period ?? 14) + 1;
+                    break;
+
+                case 'Heikin_Ashi':
+                    // HA only compares open vs close, so 2 candles is enough
+                    needed = 2;
+                    break;
+
+                case 'Combined_RSI_MACD':
+                    // the “combined” needs enough for both RSI and MACD
+                    const rsiCount  = (params.period        ?? 14) + 2;
+                    const macdCount = (params.longPeriod    ?? 26) + (params.signalPeriod ?? 9) + 1;
+                    needed = Math.max(rsiCount, macdCount);
+                    break;
+
+                case 'Bollinger_Bands':
+                    // BB uses a rolling stddev & mean over ‘period’
+                    needed = (params.period ?? 20) + 1;
+                    break;
+
+                case 'Stochastic_RSI':
+                    // StochRSI needs the RSI lookback plus %K/%D smoothing lengths
+                    const stoRsiBase = params.period ?? 14;
+                    const kLen       = params.kPeriod   ?? 3;
+                    const dLen       = params.dPeriod   ?? 3;
+                    needed = stoRsiBase + kLen + dLen + 1;
+                    break;
+
+                default:
+                    // fallback if you ever add a new indicator without special logic
+                    needed = 50;
+            }
             let recent = candleStore.getLatestCandles(symbol, timeframe, needed);
 
             if (recent.length < needed) {
@@ -99,7 +157,7 @@ class BotService {
                 ? this._aggregateWeighted(signals)
                 : this._aggregateConsensus(signals.map(s => s.signal));
 
-            console.info('aggregate method: ' + method)
+            console.log('aggregate method: ' + method)
 
             // clear stored signals after action
             if (finalSignal !== 'HOLD') this.botSignals.set(botId, []);
@@ -114,10 +172,10 @@ class BotService {
             // 8) risk check + order execution
             const { canTrade, reason } = await RiskManagementService.checkRisk(bot);
             if (!canTrade) {
-                console.info(`Bot "${bot.name}" blocked (<1h risk>): ${reason}`);
+                console.log(`Bot "${bot.name}" blocked (<1h risk>): ${reason}`);
                 continue;
             }
-            console.info('executed signal: ' + finalSignal)
+            console.log('executed signal for symbol: ' + symbol + ' with indicator: ' + bot.indicator + ' with signal: ' + finalSignal)
             if (finalSignal !== 'HOLD') {
                 await OrderExecutionService.executeOrder(bot, finalSignal, candle.close);
             }

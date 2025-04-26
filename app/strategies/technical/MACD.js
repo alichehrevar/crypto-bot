@@ -22,9 +22,9 @@ class MACD extends BaseIndicator {
             throw new Error('MACD strategy requires a parameter object');
         }
         // Set the periods from the configuration.
-        this.shortPeriod = params.shortPeriod;
-        this.longPeriod = params.longPeriod;
-        this.signalPeriod = params.signalPeriod;
+        this.shortPeriod = params.shortPeriod || 12;
+        this.longPeriod = params.longPeriod || 26;
+        this.signalPeriod = params.signalPeriod || 9;
 
         // Validate that the periods are numbers and greater than 0.
         if (typeof this.shortPeriod !== 'number' || typeof this.longPeriod !== 'number' || typeof this.signalPeriod !== 'number') {
