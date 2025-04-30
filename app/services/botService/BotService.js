@@ -11,214 +11,177 @@ class BotService {
     constructor() {
         // Map<"SYMBOL-TIMEFRAME", BotDocument[]>
         this.activeBots = new Map();
-        // Map<botId, Array<{signal,weight}>>
-        this.botSignals = new Map();
     }
 
-    /** Load all active bots and register them */
+    /** Load all active bots at startup */
     async initialize() {
         const bots = await Bot.find({ active: true });
-        for (const bot of bots) this.addBot(bot);
-    }
-
-    /** Keep an in-memory list of bots per symbol/timeframe */
-    addBot(bot) {
-        const key = `${bot.symbol.toUpperCase()}-${bot.timeframe.toLowerCase()}`;
-        if (!this.activeBots.has(key)) this.activeBots.set(key, []);
-        this.activeBots.get(key).push(bot);
-        this.botSignals.set(bot._id.toString(), []);
+        bots.forEach(bot => this.registerBot(bot));
     }
 
     /**
-     * Core entry point: called on every new candle (closed or updating).
-     * - Updates marketInfo in DB
-     * - On closed candles: computes signals, aggregates, risk-checks, orders, broadcasts
-     *
-     * @param {string} symbol   e.g. "BTC/USDT"
-     * @param {string} timeframe e.g. "1m"
-     * @param {object} candle    { timestamp, open, high, low, close, volume, isClosed }
+     * Register a single bot in our in-memory map, keyed by each of its indicators/timeframes.
+     * Expects: bot.indicators = [{ name, timeframe, params }, …]
+     */
+    registerBot(bot) {
+        if (!Array.isArray(bot.indicators)) return;
+        for (const { name, timeframe } of bot.indicators) {
+            const key = `${bot.symbol.toUpperCase()}-${timeframe.toLowerCase()}`;
+            if (!this.activeBots.has(key)) this.activeBots.set(key, []);
+            this.activeBots.get(key).push(bot);
+        }
+    }
+
+    /**
+     * Called for every incoming candle update.
+     * - Keeps an in-memory store of recent candles
+     * - Updates bot.marketInfo in the DB
+     * - When a candle closes, computes signals, aggregates, risk-checks, executes orders
      */
     async processCandle(symbol, timeframe, candle) {
         const key = `${symbol.toUpperCase()}-${timeframe.toLowerCase()}`;
         const bots = this.activeBots.get(key) || [];
         if (!bots.length) return;
 
-        // 1) Update in-memory candles and DB marketInfo
+        // 1) update our in-memory candle cache & bot.marketInfo
         candleStore.updateCandle(symbol, timeframe, candle);
         for (const bot of bots) {
             const last = bot.marketInfo.lastCandle;
-            const sameTs = last && new Date(last.timestamp).getTime() === new Date(candle.timestamp).getTime();
+            const isSameTs = last && new Date(last.timestamp).getTime() === candle.timestamp.getTime();
 
-            if (sameTs) {
-                // updating current open candle price
+            if (isSameTs) {
                 bot.marketInfo.currentCandle = { price: candle.close };
             } else {
-                // a new closed candle arrives
-                bot.marketInfo.lastCandle    = { ...candle };
+                bot.marketInfo.lastCandle = { ...candle };
                 bot.marketInfo.currentCandle = { price: candle.close };
             }
-
-            // persist every tick so clients see price updates
             await bot.save();
 
-            // 2) only run full logic when candle just closed
+            // 2) only on closed candles do we run the full strategy
             if (!candle.isClosed) continue;
+            console.log(`[BotService] Candle closed for ${symbol} ${timeframe}`);
 
-            console.log('a new closed candle arrived: ' + symbol)
+            // 3) for each indicator, fetch exactly as many bars as it needs
+            const rawSignals = [];
+            for (const { name, params } of bot.indicators) {
+                // determine look-back count
+                let needed;
+                switch (name) {
+                    case 'RSI':
+                        needed = (params.period ?? 14) + 2; break;
+                    case 'MACD':
+                        needed = (params.longPeriod ?? 26) + (params.signalPeriod ?? 9) + 1; break;
+                    case 'MA_Crossover':
+                        needed = Math.max(params.shortPeriod ?? 5, params.longPeriod ?? 20) + 1; break;
+                    case 'Donchian':
+                        needed = (params.period ?? 20) + 1; break;
+                    case 'Volume':
+                        needed = (params.period ?? 14) + 1; break;
+                    case 'Heikin_Ashi':
+                        needed = 2; break;
+                    case 'Combined_RSI_MACD': {
+                        const r = (params.period ?? 14) + 2;
+                        const m = (params.longPeriod ?? 26) + (params.signalPeriod ?? 9) + 1;
+                        needed = Math.max(r, m);
+                        break;
+                    }
+                    case 'Bollinger_Bands':
+                        needed = (params.period ?? 20) + 1; break;
+                    case 'Stochastic_RSI': {
+                        const base = params.period ?? 14;
+                        const k = params.kPeriod ?? 3;
+                        const d = params.dPeriod ?? 3;
+                        needed = base + k + d + 1;
+                        break;
+                    }
+                    default:
+                        needed = 50;
+                }
 
-            // 3) gather recent candles (indicator-specific window)
-            let needed;
-            const params = bot.strategyParams || {};
+                // pull from in-memory, backfill via REST if needed
+                let recent = candleStore.getLatestCandles(symbol, timeframe, needed);
+                if (recent.length < needed) {
+                    const more = await this._fetchHistorical(symbol, timeframe, needed - recent.length);
+                    recent = more.concat(recent);
+                }
 
-            // figure out how many candles each indicator needs:
-            switch (bot.indicator) {
-                case 'RSI':
-                    // need period + 2 so we can compare current and previous RSI
-                    needed = (params.period ?? 14) + 2;
-                    break;
-
-                case 'MACD':
-                    // need longPeriod candles to build MACD line, plus signalPeriod to smooth
-                    // +1 to have a “previous” value
-                    needed = (params.longPeriod ?? 26) + (params.signalPeriod ?? 9) + 1;
-                    break;
-
-                case 'MA_Crossover':
-                    // need at least as many as the longer moving‐average
-                    needed = Math.max(params.shortPeriod ?? 5, params.longPeriod ?? 20) + 1;
-                    break;
-
-                case 'Donchian':
-                    // Donchian typically uses a ‘period’ look back
-                    needed = (params.period ?? 20) + 1;
-                    break;
-
-                case 'Volume':
-                    // if you compute avg volume over N candles, need N+1
-                    needed = (params.period ?? 14) + 1;
-                    break;
-
-                case 'Heikin_Ashi':
-                    // HA only compares open vs close, so 2 candles is enough
-                    needed = 2;
-                    break;
-
-                case 'Combined_RSI_MACD':
-                    // the “combined” needs enough for both RSI and MACD
-                    const rsiCount  = (params.period        ?? 14) + 2;
-                    const macdCount = (params.longPeriod    ?? 26) + (params.signalPeriod ?? 9) + 1;
-                    needed = Math.max(rsiCount, macdCount);
-                    break;
-
-                case 'Bollinger_Bands':
-                    // BB uses a rolling stddev & mean over ‘period’
-                    needed = (params.period ?? 20) + 1;
-                    break;
-
-                case 'Stochastic_RSI':
-                    // StochRSI needs the RSI lookback plus %K/%D smoothing lengths
-                    const stoRsiBase = params.period ?? 14;
-                    const kLen       = params.kPeriod   ?? 3;
-                    const dLen       = params.dPeriod   ?? 3;
-                    needed = stoRsiBase + kLen + dLen + 1;
-                    break;
-
-                default:
-                    // fallback if you ever add a new indicator without special logic
-                    needed = 50;
-            }
-            let recent = candleStore.getLatestCandles(symbol, timeframe, needed);
-
-            if (recent.length < needed) {
-                // backfill missing from broker REST
-                const more = await this._fetchHistorical(symbol, timeframe, needed - recent.length);
-                recent = more.concat(recent);
+                // instantiate and calculate
+                try {
+                    const Cls = Indicators[name.replace(/-/g, '')];
+                    const instance = new Cls(params);
+                    const sig = instance.calculateSignal(recent);
+                    rawSignals.push(sig);
+                    console.log(`[BotService]  ${bot.name} → ${name} → ${sig}`);
+                } catch (e) {
+                    console.error(`[BotService]  signal error ${bot.name}/${name}:`, e.message);
+                    rawSignals.push('HOLD');
+                }
             }
 
-            // 4) compute each indicator’s raw signal
-            let rawSignal = 'HOLD';
-            try {
-                const IndicatorClass = Indicators[bot.indicator.replace(/-/g,'')];
-                const instance = new IndicatorClass(bot.strategyParams);
-                rawSignal = instance.calculateSignal(recent);
-            } catch (err) {
-                console.error(`Signal error for ${bot.name}:`, err.message);
-            }
-
-            // store raw signals for aggregation
-            const botId = bot._id.toString();
-            const signals = this.botSignals.get(botId) || [];
-            signals.push({ signal: rawSignal, weight: 1 });
-            this.botSignals.set(botId, signals);
-
-            // 5) aggregate
-            const method = bot.tradeInfo?.signalProcessingMethod || 'consensus';
+            // 4) aggregate just these signals
+            const method = bot.tradeInfo.signalProcessingMethod || 'consensus';
             const finalSignal = method === 'weighted'
-                ? this._aggregateWeighted(signals)
-                : this._aggregateConsensus(signals.map(s => s.signal));
+                ? this._aggregateWeighted(rawSignals.map(s => ({ signal: s, weight: 1 })))
+                : this._aggregateConsensus(rawSignals);
+            console.log(`[BotService]  ${bot.name} aggregated (${method}):`, finalSignal);
 
-            console.log('aggregate method: ' + method)
-
-            // clear stored signals after action
-            if (finalSignal !== 'HOLD') this.botSignals.set(botId, []);
-
-            // 6) update lastSignal + save
+            // 5) persist & broadcast
             bot.marketInfo.lastSignal = finalSignal;
             await bot.save();
-
-            // 7) broadcast updated bot state
             wsServer.broadcastBotUpdate(bot.toObject());
 
-            // 8) risk check + order execution
+            // 6) risk check & order
             const { canTrade, reason } = await RiskManagementService.checkRisk(bot);
             if (!canTrade) {
-                console.log(`Bot "${bot.name}" blocked (<1h risk>): ${reason}`);
-                continue;
-            }
-            console.log('executed signal for symbol: ' + symbol + ' with indicator: ' + bot.indicator + ' with signal: ' + finalSignal)
-            if (finalSignal !== 'HOLD') {
+                console.log(`[BotService]  ${bot.name} blocked: ${reason}`);
+            } else if (finalSignal !== 'HOLD') {
+                console.log(`[BotService]  executing ${finalSignal} for ${bot.name}`);
                 await OrderExecutionService.executeOrder(bot, finalSignal, candle.close);
             }
         }
     }
 
-    /** Consensus: BUY if *all* “BUY”, SELL if *all* “SELL”, else HOLD */
+    /** BUY if all BUY, SELL if all SELL, else HOLD */
     _aggregateConsensus(signals) {
         if (!signals.length) return 'HOLD';
-        if (signals.every(s => s === 'BUY')) return 'BUY';
+        if (signals.every(s => s === 'BUY'))  return 'BUY';
         if (signals.every(s => s === 'SELL')) return 'SELL';
         return 'HOLD';
     }
 
     /**
-     * Weighted: map BUY=+1, SELL=-1, HOLD=0; compute weighted average;
-     * >0.5 => BUY, < -0.5 => SELL, else HOLD
+     * Weighted: BUY=+1, SELL=-1, HOLD=0 → average;
+     * >0.5=>BUY, < -0.5=>SELL, else HOLD
      */
     _aggregateWeighted(signObjs) {
         if (!signObjs.length) return 'HOLD';
-        let sum=0, totalW=0;
-        for (const {signal,weight} of signObjs) {
-            totalW += weight;
-            if (signal==='BUY')  sum += weight;
-            if (signal==='SELL') sum -= weight;
+        let sum = 0, total = 0;
+        for (const { signal, weight } of signObjs) {
+            total += weight;
+            if (signal === 'BUY')  sum += weight;
+            if (signal === 'SELL') sum -= weight;
         }
-        const avg = sum/totalW;
-        return avg>0.5 ? 'BUY' : avg< -0.5 ? 'SELL' : 'HOLD';
+        const avg = sum / total;
+        return avg > 0.5 ? 'BUY' : avg < -0.5 ? 'SELL' : 'HOLD';
     }
 
-    /** Fetch closed candles from Binance REST when memory not full */
+    /** backfill via Binance REST if memory is short */
     async _fetchHistorical(symbol, timeframe, count) {
         const resp = await axios.get('https://api.binance.com/api/v3/klines', {
             params: {
-                symbol: symbol.replace('/',''),
+                symbol: symbol.replace('/', ''),
                 interval: timeframe,
                 limit: count
             }
         });
         return resp.data.map(k => ({
             timestamp: new Date(k[0]),
-            open: +k[1], high: +k[2], low: +k[3],
-            close: +k[4], volume: +k[5], isClosed: true
+            open:  +k[1],
+            high:  +k[2],
+            low:   +k[3],
+            close: +k[4],
+            volume:+k[5],
+            isClosed: true
         }));
     }
 }

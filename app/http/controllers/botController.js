@@ -4,6 +4,18 @@ const Bot = require('../../models/Bot');
 const User = require('../../models/User');
 const BotService = require('../../services/botService/BotService');
 
+const defaultStrategyParams = {
+    RSI:         { period: 14, overbought: 70, oversold: 30 },
+    MACD:        { shortPeriod: 12, longPeriod: 26, signalPeriod: 9 },
+    MA_Crossover:{ shortPeriod: 5,  longPeriod: 20 },
+    Donchian:    { period: 20 },
+    Volume:      { period: 14 },
+    Heikin_Ashi: {},
+    Combined_RSI_MACD: { parameters: { confirmation_window: 6 } },
+    Bollinger_Bands:   { period: 20, stdDev: 2 },
+    Stochastic_RSI:    { period: 14, kPeriod: 3, dPeriod: 3 }
+};
+
 /**
  * Deploy a new bot.
  * This function ensures a valid user exists (creates one if needed),
@@ -11,44 +23,78 @@ const BotService = require('../../services/botService/BotService');
  */
 exports.deployBot = async (req, res) => {
     try {
-        const botData = req.body;
+        const user = await User.findById(req.user?.id);
+        if (!user) return res.status(401).json({ error: 'User not found.' });
 
-        // Validate required fields.
-        if (!botData.indicator || !botData.riskStrategy || !botData.strategy) {
-            return res.status(400).json({ error: 'Indicator, riskStrategy, and strategy fields are required.' });
-        }
+        const {
+            name,
+            symbol,
+            baseFund,
+            tradeFund,
+            leverage,
+            riskStrategy,
+            takeProfit,
+            stopLoss,
 
-        let user;
-        // If the request is authenticated, use the authorized user.
-        if (req.user && req.user.id) {
-            user = await User.findById(req.user.id);
-            if (!user) {
-                return res.status(401).json({ error: 'User not found.' });
-            }
-        }
-        botData.userId = user.id;
+            // primary
+            indicator,
+            timeframe,
+            strategyParams,
 
-        // Set default values for bot configuration.
-        // For marketInfo, assign baseFund and tradeFund defaults.
-        botData.marketInfo = botData.marketInfo || {};
-        botData.marketInfo.baseFund = (botData.baseFund !== undefined) ? botData.baseFund : 10000;
-        botData.marketInfo.tradeFund = (botData.tradeFund !== undefined) ? botData.tradeFund : 50;
-        // For tradeInfo, assign a default leverage.
-        botData.tradeInfo = botData.tradeInfo || {};
-        botData.tradeInfo.leverage = (botData.tradeInfo.leverage !== undefined) ? botData.tradeInfo.leverage : 1;
+            // zero or more extras
+            additionalIndicators = []
+        } = req.body;
 
-        // Set bot mode to live and mark as active.
-        botData.mode = botData.mode || 'live';
-        botData.active = true;
 
-        // Create the bot.
-        const newBot = await Bot.create(botData);
-        // Register the new bot with BotService.
-        BotService.addBot(newBot);
-        res.status(201).json(newBot);
-    } catch (error) {
-        console.error('Error deploying bot:', error);
-        res.status(500).json({ error: error.message });
+        // construct one–or–many indicator entries
+        const indicators = [
+            {
+                name:      indicator,
+                timeframe,
+                params:    strategyParams || defaultStrategyParams[indicator] || {}
+            },
+            ...additionalIndicators.map(ai => ({
+                name:      ai.indicator,
+                timeframe: ai.timeframe,
+                params:    defaultStrategyParams[ai.indicator] || {}
+            }))
+        ];
+
+        // create the bot document
+        const bot = await Bot.create({
+            name,
+            symbol,
+            indicators,                  // <-- new multi-indicator array
+
+            // money / trade config
+            riskStrategy,
+            tradeInfo: {
+                takeProfit,
+                stopLoss,
+                leverage,
+            },
+            marketInfo: {
+                baseFund:  baseFund  != null ? baseFund  : 10000,
+                tradeFund: tradeFund != null ? tradeFund : 50
+            },
+
+            timeframe: timeframe,
+
+            // tie to user + go live
+            userId:  user._id,
+            mode:    'live',
+            active:  true
+        });
+
+        // now register this bot in memory
+        // (we renamed your old addBot → registerBot)
+        BotService.registerBot(bot);
+
+        res.status(201).json(bot);
+    }
+    catch (err) {
+        console.error('Error deploying bot:', err);
+        res.status(500).json({ error: err.message });
     }
 };
 
@@ -88,13 +134,6 @@ exports.selectBots = async (req, res) => {
         } else {
             strategies = ['MA_Crossover', 'RSI', 'MACD'];
         }
-
-        // Define default configuration objects for each indicator.
-        const defaultConfigs = {
-            RSI: { period: 14, overbought: 70, oversold: 30 },
-            MACD: { fastPeriod: 12, slowPeriod: 26, signalPeriod: 9 },
-            MA_Crossover: { shortPeriod: 5, longPeriod: 20 }
-        };
 
         // For each indicator, upsert a bot configuration.
         for (const strat of strategies) {
