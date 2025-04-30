@@ -136,6 +136,9 @@ class MACrossover extends BaseIndicator {
             const crossedAbove = shortMA > longMA && prevShortMA <= prevLongMA;
             // Check for bearish crossover.
             const crossedBelow = shortMA < longMA && prevShortMA >= prevLongMA;
+
+            console.log('Calculated MAC prevShortMA:', prevShortMA, 'prevLongMA:', prevLongMA, 'shortMA:', shortMA, 'longMA:', longMA);
+
             if (crossedAbove) {
                 return 'BUY';
             } else if (crossedBelow) {

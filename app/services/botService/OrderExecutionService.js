@@ -1,141 +1,124 @@
 // app/services/botService/OrderExecutionService.js
-
 const Trade = require('../../models/Trade');
-const { createRiskStrategy } = require('./botFactory');
 const RiskStrategy = require('../../strategies/moneyManagement/RiskManagement');
-const BingxService = require('../bingXWS');
 const BinanceService = require('../binanceWS');
-const OkxService = require('../okxWS');
+const BingxService  = require('../bingXWS');
+const OkxService    = require('../okxWS');
 
 class OrderExecutionService {
     /**
-     * Executes a trade based on the given signal.
-     * Builds its own risk‐strategy instance from bot.riskStrategy / bot.riskParams.
+     * Execute a BUY or SELL for a bot, either paper‐trade or via a broker API.
      *
-     * @param {Object} bot
-     * @param {'BUY'|'SELL'} signal
-     * @param {number} price
+     * @param {Document} bot                    Mongoose Bot document
+     * @param {'BUY'|'SELL'} signal            Trading signal
+     * @param {number} price                    Execution price
+     * @param {Object} [riskStrategyInstance]   Instance with calculatePositionSize()
      */
-    async executeOrder(bot, signal, price) {
-        // 1) instantiate your money‐management strategy
-        const riskStrategyInstance = createRiskStrategy(bot);
-
-        // 2) look for an existing open trade
+    async executeOrder(bot, signal, price, riskStrategyInstance) {
+        // 1) See if there's already an open trade
         const openTrade = await Trade.findOne({ bot: bot._id, exitPrice: null });
 
-        // 3) common order payload
-        const orderDetails = {
-            symbol: bot.symbol,
-            orderType: 'MARKET',
-            side: signal,
-        };
-
+        // 2) Determine quantity
+        let quantity;
         if (signal === 'BUY') {
-            // if already long, skip
             if (openTrade) {
-                console.log(`Bot "${bot.name}" attempted BUY but already has an open position.`);
+                console.log(`🔒 Bot "${bot.name}" tried to BUY but already has an open trade.`);
                 return;
             }
-
-            // compute position size
-            let quantity;
-            if (typeof riskStrategyInstance.calculatePositionSize === 'function') {
+            // prefer user‐supplied risk strategy, else default 1% of base fund
+            if (riskStrategyInstance?.calculatePositionSize) {
                 quantity = riskStrategyInstance.calculatePositionSize(
-                    bot.paperBalance, price
+                    // fallback to marketInfo.baseFund or paperBalance
+                    bot.paperBalance ?? bot.marketInfo.baseFund,
+                    price
                 );
             } else {
-                // fallback: 1% of balance
-                quantity = (bot.paperBalance * 0.01) / price;
+                const fund = bot.paperBalance ?? bot.marketInfo.baseFund;
+                quantity = (fund * (bot.marketInfo.tradeFund / 100)) / price;
             }
-
-            orderDetails.quantity = quantity;
-
-            // send to broker
-            try {
-                const resp = await this.executeBotOrder(bot, orderDetails);
-                console.log(`Broker BUY response:`, resp);
-            } catch (err) {
-                console.error(`Broker BUY error:`, err);
+        } else if (signal === 'SELL') {
+            if (!openTrade) {
+                console.log(`🔒 Bot "${bot.name}" received SELL but no open trade exists.`);
+                return;
             }
+            quantity = openTrade.quantity;
+        } else {
+            console.log(`⚪️ HOLD for "${bot.name}", skipping.`);
+            return;
+        }
 
+        const isPaper = bot.mode === 'paper';
+        const orderDetails = {
+            symbol: bot.symbol.replace('/', ''), // e.g. "BTCUSDT"
+            side: signal,
+            type: 'MARKET',
+            quantity,
+        };
+
+        // 3) Execute (paper or real)
+        if (isPaper) {
+            console.log(`✏️ Paper ${signal} for "${bot.name}" qty=${quantity} @ ${price}`);
+        } else {
+            if (!bot.accountType || !bot.account) {
+                console.warn(`⚠️ Bot "${bot.name}" missing accountType or credentials—falling back to paper.`);
+            } else {
+                let svc;
+                switch (bot.accountType) {
+                    case 'binance': svc = BinanceService; break;
+                    case 'bingx':   svc = BingxService;   break;
+                    case 'okx':     svc = OkxService;     break;
+                    default:
+                        console.error(`🚫 Unsupported broker: ${bot.accountType}`);
+                }
+                if (svc) {
+                    try {
+                        const resp = await svc.executeOrder(orderDetails, bot.account);
+                        console.log(`✅ Broker ${signal} response for "${bot.name}":`, resp);
+                    } catch (err) {
+                        console.error(`❌ Broker ${signal} error for "${bot.name}":`, err);
+                    }
+                }
+            }
+        }
+
+        // 4) Record the trade in our DB
+        if (signal === 'BUY') {
             // compute TP/SL
             const { TP, SL } = RiskStrategy.calculateTPSL(bot.strategyParams, price);
-
-            // record locally
-            const trade = new Trade({
+            const t = new Trade({
                 bot: bot._id,
                 symbol: bot.symbol,
                 type: 'BUY',
                 entryPrice: price,
                 quantity,
-                timestamp: new Date()
+                TP,
+                SL,
+                timestamp: new Date(),
             });
-            await trade.save();
-
-            console.log(
-                `BOT ${bot.name} BUY @${price} qty=${quantity} TP=${TP} SL=${SL}`
-            );
-        }
-        else if (signal === 'SELL') {
-            // no open trade ⇒ nothing to close
-            if (!openTrade) {
-                console.log(`Bot "${bot.name}" received SELL but no open trade.`);
-                return;
-            }
-
-            // send market‐sell for the same qty
-            orderDetails.quantity = openTrade.quantity;
-
-            try {
-                const resp = await this.executeBotOrder(bot, orderDetails);
-                console.log(`Broker SELL response:`, resp);
-            } catch (err) {
-                console.error(`Broker SELL error:`, err);
-            }
-
-            // finalize local record
+            await t.save();
+            console.log(`📝 Saved BUY trade for "${bot.name}" @ ${price} qty=${quantity}`);
+        } else {
+            // SELL closes an open trade
             openTrade.exitPrice = price;
             openTrade.timestamp = new Date();
-            openTrade.profit = (price - openTrade.entryPrice) * openTrade.quantity;
+            openTrade.profit    = (price - openTrade.entryPrice) * openTrade.quantity;
             await openTrade.save();
+            console.log(`📝 Closed trade for "${bot.name}" @ ${price}, profit=${openTrade.profit}`);
 
-            console.log(
-                `BOT ${bot.name} SELL @${price} profit=${openTrade.profit}`
-            );
-
-            // paper balance PnL update
-            if (bot.mode === 'paper' && typeof bot.paperBalance === 'number') {
-                bot.paperBalance += openTrade.profit;
-            }
+            // update paperBalance & cumulativePnL
+            if (bot.mode === 'paper') bot.paperBalance += openTrade.profit;
             bot.cumulativePnL = (bot.cumulativePnL || 0) + openTrade.profit;
 
-            // check bot‐level TP/SL
-            if ((bot.botTP && bot.cumulativePnL >= bot.botTP) ||
-                (bot.botSL && bot.cumulativePnL <= bot.botSL)) {
-                console.log(`Bot "${bot.name}" reached PnL limit, deactivating.`);
+            // check bot‐level TP/SL thresholds
+            if (
+                (bot.botTP && bot.cumulativePnL >= bot.botTP) ||
+                (bot.botSL && bot.cumulativePnL <= bot.botSL)
+            ) {
+                console.log(`🏁 Bot-level threshold reached for "${bot.name}", deactivating bot.`);
                 bot.active = false;
             }
             await bot.save();
         }
-    }
-
-    /**
-     * Send the order to the correct broker service.
-     * @param {Object} bot
-     * @param {object} orderDetails
-     */
-    async executeBotOrder(bot, orderDetails) {
-        let svc;
-        switch (bot.accountType) {
-            case 'binance':  svc = BinanceService; break;
-            case 'okx':      svc = OkxService;     break;
-            case 'bingx':    svc = BingxService;   break;
-            default:
-                throw new Error(`Unsupported broker: ${bot.accountType}`);
-        }
-
-        // assume bot.account is already populated with { apiKey, secretKey, … }
-        return svc.executeOrder(orderDetails, bot.account);
     }
 }
 

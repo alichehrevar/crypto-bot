@@ -147,6 +147,8 @@ class MACD extends BaseIndicator {
             const prevSignal = validSignal[validSignal.length - 2];
             const currSignal = validSignal[validSignal.length - 1];
 
+            console.log('Calculated MACD:', [currSignal, prevSignal]);
+
             // Check for bullish crossover: MACD crosses above Signal.
             if (prevMACD < prevSignal && currMACD > currSignal) {
                 return 'BUY';
