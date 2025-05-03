@@ -10,15 +10,15 @@ export const MenuItems = [
     children: [
       {
         name: 'Technical Bots',
-        link: '/bots/technical',
+        link: '/profile/bots/technical',
       },
       {
         name: 'DCA',
-        link: '/bots/dca',
+        link: '/profile/bots/dca',
       },
       {
         name: 'Grid',
-        link: '/bots/grid',
+        link: '/profile/bots/grid',
       }
     ]
   },
