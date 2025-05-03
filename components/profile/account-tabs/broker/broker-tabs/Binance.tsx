@@ -12,7 +12,7 @@ export default function BinanceTab() {
           <span className="font-bold">Binance</span>
         </div>
         <div className="relative w-[600px] h-[420px]">
-          <Image fill alt="binance" className="object-cover" src="/images/binance-list.png" />
+          <Image fill alt="binance" className="object-cover" src="/images/profile/binance-list.png" />
         </div>
       </div>
       <TokenForm type="binance" />
