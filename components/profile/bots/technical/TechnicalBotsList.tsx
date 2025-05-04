@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { addToast } from "@heroui/react";
 
 import { getData } from "@/actions/get";
-import { Bot, DeployedBotsResponse, Trade } from "@/types/profile/DeployedBots";
+import { Bot, DeployedBotsResponse } from "@/types/profile/DeployedBots";
 import TradesList from "./TradesList";
 import CloseBotModal from "./modals/closeBotModal";
 import PlayPauseBotModal from "./modals/playPauseBotModal";
