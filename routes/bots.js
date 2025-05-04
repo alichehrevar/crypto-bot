@@ -19,7 +19,13 @@ router.get('/:id', botController.getBotById);
 // Update an existing bot configuration.
 router.put('/:id', validateBotParams, botController.updateBot);
 
+// Pause / Resume
+router.post('/:id/pause', authenticate,  botController.pauseBot);
+router.post('/:id/resume', authenticate, botController.resumeBot);
+
 // Delete a bot configuration.
-router.delete('/:id', botController.deleteBot);
+router.delete('/:id', authenticate, botController.deleteBot);
+
+router.post('/:botId/trades/:tradeId/close', authenticate, botController.closeTrade);
 
 module.exports = router;

@@ -216,6 +216,65 @@ exports.selectBots = async (req, res) => {
 };
 
 /**
+ * Pause a bot (stop it from trading, but keep it in the list).
+ */
+exports.pauseBot = async (req, res) => {
+    try {
+        const bot = await Bot.findById(req.params.id);
+        if (!bot) return res.status(404).json({ success: false, error: 'Bot not found' });
+
+        bot.active = false;
+        await bot.save();
+
+        // Also remove it from in-memory processing
+        BotService.removeBot(bot);
+
+        res.json({ success: true, message: `"${bot.name}" paused.` });
+    } catch (err) {
+        console.error('pauseBot error:', err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+};
+
+/**
+ * Resume a bot (reactivate trading).
+ */
+exports.resumeBot = async (req, res) => {
+    try {
+        const bot = await Bot.findById(req.params.id);
+        if (!bot) return res.status(404).json({ success: false, error: 'Bot not found' });
+
+        bot.active = true;
+        await bot.save();
+
+        // Re-register in in-memory engine
+        BotService.registerBot(bot);
+
+        res.json({ success: true, message: `"${bot.name}" resumed.` });
+    } catch (err) {
+        console.error('resumeBot error:', err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+};
+
+/**
+ * Close (delete) a bot entirely.
+ * You already have deleteBot, but ensure you also remove it from BotService.
+ */
+exports.deleteBot = async (req, res) => {
+    try {
+        const bot = await Bot.findByIdAndDelete(req.params.id);
+        if (!bot) return res.status(404).json({ success: false, error: 'Bot not found' });
+
+        BotService.removeBot(bot);
+        res.json({ success: true, message: `"${bot.name}" deleted.` });
+    } catch (err) {
+        console.error('deleteBot error:', err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+};
+
+/**
  * Close an open trade.
  */
 exports.closeTrade = async (req, res) => {

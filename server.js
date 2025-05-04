@@ -26,6 +26,7 @@ const visualizationRoutes= require('./routes/visualization');
 const currencyRoutes     = require('./routes/currencies');
 const indicatorsRoutes   = require('./routes/indicators');
 const logsRouter         = require('./routes/logs');
+const marketRoutes = require('./routes/market')
 
 const app = express();
 
@@ -125,6 +126,8 @@ app.use('/api/backtest', backtestRoutes);
 app.use('/api/visualize', visualizationRoutes);
 app.use('/api/currencies', currencyRoutes);
 app.use('/api/indicators', indicatorsRoutes);
+app.use('/api/market', marketRoutes)
+
 
 // Logs REST endpoint (historical fetch)
 app.use('/logs', logsRouter);
