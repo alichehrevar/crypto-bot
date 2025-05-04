@@ -1,0 +1,94 @@
+import { useEffect, useState } from "react";
+import { addToast } from "@heroui/react";
+
+import { getData } from "@/actions/get";
+import { Bot, DeployedBotsResponse } from "@/types/profile/DeployedBots";
+import { PauseIcon, XIcon } from "@/utils/icons";
+
+export default function TechnicalBotsList() {
+  const [deployedBots, setDeployedBots] = useState<Bot[]>([]);
+
+  const tableHeaderItems = [
+    'Bot',
+    'Strategy',
+    'Account',
+    'Symbol',
+    'Trade Fund',
+    'Leverage',
+    'Risk Strategy',
+    'Technical Value',
+    'Signal',
+    'PnL',
+    '',
+  ];
+
+  useEffect(() => {
+    fetchDeployedBots()
+      .then((response: DeployedBotsResponse) => {
+        if (response.success) {
+          setDeployedBots(response.bots);
+        } else {
+          addToast({
+            title: response.error,
+            color: "danger",
+          });
+        }
+      })
+      .catch(() => {
+        addToast({
+          title: "Error getting deployed bots!",
+          color: "danger",
+        });
+      });
+  }, []);
+
+  async function fetchDeployedBots() {
+    return getData('/bots');
+  }
+
+  return (
+    <div className="flex flex-col w-full gap-4 p-4 rounded-md">
+      {/* Table Header */}
+      <div className="grid grid-cols-11 font-semibold text-sm pb-2 mb-2">
+        {tableHeaderItems.map((item, index) => (
+          <div key={index} className="truncate">
+            {item}
+          </div>
+        ))}
+      </div>
+
+      {/* Table Rows */}
+      {deployedBots.map((bot: Bot, botIndex) => (
+        <div
+          key={botIndex}
+          className="grid grid-cols-11 items-center text-[13px] dark:bg-[#1A1A1A] rounded-md px-4 py-3 cursor-pointer hover:shadow-lg transition-all duration-300"
+        >
+          <span>Indicator Bot</span>
+          <span>Default</span>
+          <span>BingX</span>
+          <span>{bot.symbol}</span>
+          <span>{bot.marketInfo.tradeFund}</span>
+          <span>x{bot.tradeInfo.leverage}</span>
+          <span>{bot.riskStrategy}</span>
+          <span>{bot.indicators?.[0]?.name ?? '—'}</span>
+          <span>{bot.marketInfo.lastSignal ?? '—'}</span>
+          <span
+            className={`${
+              bot.pnl.pct > 0 ? 'text-green-500' : bot.pnl.pct < 0 ? 'text-red-500' : ''
+            }`}
+          >
+            x{bot.tradeInfo.leverage}({bot.pnl.pct}%)
+          </span>
+          <div className="flex space-x-2">
+            <button className="bg-gray-800 hover:bg-gray-700 px-1.5 py-1.5 rounded text-sm">
+              <PauseIcon className="size-4" />
+            </button>
+            <button className="bg-gray-800 hover:bg-red-600 px-1.5 py-1.5 rounded text-sm">
+              <XIcon className="size-4" />
+            </button>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}

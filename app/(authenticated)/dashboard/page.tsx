@@ -1,12 +1,13 @@
 'use client'
 
+import React from "react";
 import Image from "next/image";
 import { Divider } from "@heroui/react";
-import React from "react";
 
 import PnLSection from "@/components/profile/dashboard/PnLSection";
 import AssetSection from "@/components/profile/dashboard/AssetSection";
 import CryptoCurrencyReportSection from "@/components/profile/dashboard/CryptoCurrencyReportSection";
+import TechnicalBotsList from "@/components/profile/bots/technical/TechnicalBotsList";
 
 export default function Dashboard() {
 
@@ -34,6 +35,9 @@ export default function Dashboard() {
         <div className="flex items-center justify-start flex-col dark:bg-[#161616] light:bg-white rounded-2xl py-6 px-3 gap-4 h-full">
           <CryptoCurrencyReportSection />
         </div>
+      </div>
+      <div className="grid grid-cols-1 dark:bg-[#161616] light:bg-white mt-4 rounded-2xl py-6 px-3">
+        <TechnicalBotsList />
       </div>
     </section>
   )
