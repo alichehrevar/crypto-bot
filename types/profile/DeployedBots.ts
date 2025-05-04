@@ -30,6 +30,7 @@ export type Trade = {
   quantity: number;
   symbol: string;
   timestamp: string;
+  profit: number;
   type: 'BUY' | 'SELL';
   __v: number;
   _id: string;
@@ -68,4 +69,10 @@ export type DeployedBotsResponse = {
   success: boolean,
   bots: Bot[],
   error: string
+}
+
+export type CloseTradeResponse = {
+  success: boolean,
+  error: string,
+  trade: Trade
 }
