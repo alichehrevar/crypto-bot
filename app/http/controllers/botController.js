@@ -1,16 +1,18 @@
 // app/http/controllers/botController.js
 
-const Bot = require('../../models/Bot');
-const User = require('../../models/User');
-const BotService = require('../../services/botService/BotService');
+const Bot         = require('../../models/Bot');
+const User        = require('../../models/User');
+const Trade      = require('../../models/Trade');
+const BotService  = require('../../services/botService/BotService');
+const PnLService  = require('../../services/PnLService');
 
 const defaultStrategyParams = {
-    RSI:         { period: 14, overbought: 70, oversold: 30 },
-    MACD:        { shortPeriod: 12, longPeriod: 26, signalPeriod: 9 },
-    MA_Crossover:{ shortPeriod: 5,  longPeriod: 20 },
-    Donchian:    { period: 20 },
-    Volume:      { period: 14 },
-    Heikin_Ashi: {},
+    RSI:               { period: 14, overbought: 70, oversold: 30 },
+    MACD:              { shortPeriod: 12, longPeriod: 26, signalPeriod: 9 },
+    MA_Crossover:      { shortPeriod: 5,  longPeriod: 20 },
+    Donchian:          { period: 20 },
+    Volume:            { period: 14 },
+    Heikin_Ashi:       {},
     Combined_RSI_MACD: { parameters: { confirmation_window: 6 } },
     Bollinger_Bands:   { period: 20, stdDev: 2 },
     Stochastic_RSI:    { period: 14, kPeriod: 3, dPeriod: 3 }
@@ -18,8 +20,6 @@ const defaultStrategyParams = {
 
 /**
  * Deploy a new bot.
- * This function ensures a valid user exists (creates one if needed),
- * sets required fields and default values, creates the bot, and registers it with the BotService.
  */
 exports.deployBot = async (req, res) => {
     try {
@@ -27,31 +27,18 @@ exports.deployBot = async (req, res) => {
         if (!user) return res.status(401).json({ error: 'User not found.' });
 
         const {
-            name,
-            symbol,
-            baseFund,
-            tradeFund,
-            leverage,
-            riskStrategy,
-            takeProfit,
-            stopLoss,
-
-            // primary
-            indicator,
-            timeframe,
-            strategyParams,
-
-            // zero or more extras
+            name, symbol, baseFund, tradeFund, leverage,
+            riskStrategy, takeProfit, stopLoss,
+            indicator, timeframe, strategyParams,
             additionalIndicators = []
         } = req.body;
 
-
-        // construct one–or–many indicator entries
+        // Build multi‐indicator array
         const indicators = [
             {
                 name:      indicator,
                 timeframe,
-                params:    strategyParams || defaultStrategyParams[indicator] || {}
+                params:    strategyParams   || defaultStrategyParams[indicator]   || {}
             },
             ...additionalIndicators.map(ai => ({
                 name:      ai.indicator,
@@ -60,151 +47,72 @@ exports.deployBot = async (req, res) => {
             }))
         ];
 
-        // create the bot document
         const bot = await Bot.create({
             name,
             symbol,
-            indicators,                  // <-- new multi-indicator array
-
-            // money / trade config
+            timeframe,
+            indicators,
             riskStrategy,
-            tradeInfo: {
-                takeProfit,
-                stopLoss,
-                leverage,
-            },
+            tradeInfo: { takeProfit, stopLoss, leverage },
             marketInfo: {
                 baseFund:  baseFund  != null ? baseFund  : 10000,
                 tradeFund: tradeFund != null ? tradeFund : 50
             },
-
-            timeframe: timeframe,
-
-            // tie to user + go live
-            userId:  user._id,
-            mode:    'live',
-            active:  true
+            userId: user._id,
+            mode:   'live',
+            active: true
         });
 
-        // now register this bot in memory
-        // (we renamed your old addBot → registerBot)
+        // register in memory
         BotService.registerBot(bot);
 
         res.status(201).json(bot);
-    }
-    catch (err) {
+    } catch (err) {
         console.error('Error deploying bot:', err);
         res.status(500).json({ error: err.message });
     }
 };
 
 /**
- * Select bots for a given symbol and timeframe.
- * For each indicator in the provided (or default) list, this endpoint upserts a bot configuration.
- */
-exports.selectBots = async (req, res) => {
-    try {
-        let { symbol, timeframe, strategy } = req.query;
-        if (!symbol || !timeframe) {
-            return res.status(400).json({ error: 'Symbol and timeframe are required' });
-        }
-
-        // Normalize symbol and timeframe.
-        symbol = symbol.toString().trim();
-        timeframe = timeframe.toString().trim();
-        if (!symbol.includes('/')) {
-            const upperSymbol = symbol.toUpperCase();
-            if (upperSymbol.endsWith('USDT')) {
-                symbol = upperSymbol.slice(0, -4) + '/USDT';
-            } else if (upperSymbol.endsWith('USDC')) {
-                symbol = upperSymbol.slice(0, -4) + '/USDC';
-            } else {
-                return res.status(400).json({
-                    error: 'Symbol format is invalid. Expected format: BASE/QUOTE (e.g. BTC/USDT)'
-                });
-            }
-        }
-        const normSymbol = symbol.toUpperCase();
-        const normTimeframe = timeframe.toLowerCase();
-
-        // Determine which indicators to upsert.
-        let strategies = [];
-        if (strategy) {
-            strategies = [strategy];
-        } else {
-            strategies = ['MA_Crossover', 'RSI', 'MACD'];
-        }
-
-        // For each indicator, upsert a bot configuration.
-        for (const strat of strategies) {
-            await Bot.findOneAndUpdate(
-                {
-                    symbol: normSymbol,
-                    timeframe: normTimeframe,
-                    strategy: strat
-                },
-                {
-                    $set: {
-                        name: `${normSymbol} ${normTimeframe} ${strat} Bot`,
-                        indicator: strat, // Use the indicator as the indicator field.
-                        // Use a default risk strategy if not provided in the query.
-                        riskStrategy: 'SimpleStrategy',
-                        strategy: strat,
-                        strategyParams: defaultConfigs[strat],
-                        riskParams: { maxOpenTrades: 1 },
-                        marketInfo: { state: 'active' },
-                        tradeInfo: {},
-                        active: true,
-                        mode: 'paper',       // Default mode; adjust as needed.
-                        paperBalance: 10000
-                    }
-                },
-                { upsert: true, new: true }
-            );
-            console.log(`Ensured bot for ${normSymbol} ${normTimeframe} ${strat}`);
-        }
-
-        // Fetch and return all bots for the given symbol and timeframe.
-        const bots = await Bot.find({
-            symbol: normSymbol,
-            timeframe: normTimeframe
-        });
-        res.json(bots);
-    } catch (error) {
-        console.error('Error in bots select endpoint:', error);
-        res.status(500).json({ error: 'Failed to select or create bot', details: error.message });
-    }
-};
-
-/**
- * Create a new bot configuration.
- */
-exports.createBot = async (req, res) => {
-    try {
-        const botData = req.body;
-        const bot = new Bot(botData);
-        await bot.save();
-
-        // If the bot is active, add it to the BotService.
-        if (bot.active) {
-            BotService.addBot(bot);
-        }
-        res.status(201).json(bot);
-    } catch (error) {
-        console.error("Error creating bot:", error);
-        res.status(500).json({ error: error.message });
-    }
-};
-
-/**
- * Retrieve all bots.
+ * Retrieve all bots for this user (or globally).
+ * Enriches each bot with realized/unrealized/total PnL and PnL%.
  */
 exports.getBots = async (req, res) => {
     try {
-        const bots = await Bot.find({});
-        res.json(bots);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
+        // adjust filter as needed (e.g. by user)
+        const filter = { active: true, userId: req.user?.id };
+        const bots = await Bot.find(filter).lean();
+
+        const enriched = await Promise.all(bots.map(async bot => {
+            const price = bot.marketInfo?.currentCandle?.price;
+            let pnl = { realized: 0, unrealized: 0, total: 0 };
+            if (typeof price === 'number') {
+                pnl = await PnLService.getBotPnL(bot._id, price);
+            }
+            const base = bot.marketInfo?.baseFund || 1;
+            const pct  = base > 0 ? (pnl.total / base) * 100 : 0;
+
+            // Fetch trades for this bot
+            const trades = await Trade
+                .find({ bot: bot._id })
+                .sort({ timestamp: -1 })
+                .lean();
+
+
+            return {
+                ...bot,
+                pnl: {
+                    ...pnl,
+                    pct: Number(pct.toFixed(2))
+                },
+                trades
+            };
+        }));
+
+        res.json({ success: true, bots: enriched });
+    } catch (err) {
+        console.error('getBots error:', err);
+        res.status(500).json({ success: false, error: err.message });
     }
 };
 
@@ -213,18 +121,17 @@ exports.getBots = async (req, res) => {
  */
 exports.getBotById = async (req, res) => {
     try {
-        const bot = await Bot.findById(req.params.id);
-        if (!bot) {
-            return res.status(404).json({ error: 'Bot not found' });
-        }
-        res.json(bot);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
+        const bot = await Bot.findById(req.params.id).lean();
+        if (!bot) return res.status(404).json({ error: 'Bot not found' });
+        res.json({ success: true, bot });
+    } catch (err) {
+        console.error('getBotById error:', err);
+        res.status(500).json({ success: false, error: err.message });
     }
 };
 
 /**
- * Update an existing bot configuration.
+ * Update an existing bot.
  */
 exports.updateBot = async (req, res) => {
     try {
@@ -232,33 +139,76 @@ exports.updateBot = async (req, res) => {
             new: true,
             runValidators: true
         });
-        if (!bot) {
-            return res.status(404).json({ error: 'Bot not found' });
-        }
-        // If the bot's active state changed, update BotService accordingly.
-        if (bot.active) {
-            BotService.updateBot(bot);
-        } else {
-            BotService.removeBot(bot);
-        }
-        res.json(bot);
-    } catch (error) {
-        res.status(400).json({ error: error.message });
+        if (!bot) return res.status(404).json({ error: 'Bot not found' });
+
+        // sync memory
+        if (bot.active)      BotService.updateBot(bot);
+        else                 BotService.removeBot(bot);
+
+        res.json({ success: true, bot });
+    } catch (err) {
+        console.error('updateBot error:', err);
+        res.status(400).json({ success: false, error: err.message });
     }
 };
 
 /**
- * Delete a bot configuration.
+ * Delete a bot.
  */
 exports.deleteBot = async (req, res) => {
     try {
         const bot = await Bot.findByIdAndDelete(req.params.id);
-        if (!bot) {
-            return res.status(404).json({ error: 'Bot not found' });
-        }
+        if (!bot) return res.status(404).json({ error: 'Bot not found' });
+
         BotService.removeBot(bot);
-        res.json({ message: 'Bot deleted successfully' });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.json({ success: true });
+    } catch (err) {
+        console.error('deleteBot error:', err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+};
+
+/**
+ * (Optional) selectBots: bulk‐ensure bots for a symbol/timeframe.
+ * Fixed lookup to use our defaultStrategyParams.
+ */
+exports.selectBots = async (req, res) => {
+    try {
+        let { symbol, timeframe, strategy } = req.query;
+        if (!symbol || !timeframe) {
+            return res.status(400).json({ error: 'Symbol and timeframe are required' });
+        }
+
+        // normalize symbol/timeframe...
+        symbol    = symbol.toString().toUpperCase();
+        timeframe = timeframe.toString().toLowerCase();
+
+        const indicators = strategy
+            ? [strategy]
+            : ['MA_Crossover','RSI','MACD'];
+
+        for (const ind of indicators) {
+            await Bot.findOneAndUpdate(
+                { symbol, timeframe, strategy: ind },
+                {
+                    $set: {
+                        name:           `${symbol} ${timeframe} ${ind} Bot`,
+                        indicators:     [ { name: ind, timeframe, params: defaultStrategyParams[ind] || {} } ],
+                        riskStrategy:   'SimpleStrategy',
+                        tradeInfo:      { leverage: 1 },
+                        marketInfo:     { baseFund:10000, tradeFund:50 },
+                        active:         true,
+                        mode:           'paper'
+                    }
+                },
+                { upsert: true, new: true }
+            );
+        }
+
+        const bots = await Bot.find({ symbol, timeframe });
+        res.json({ success: true, bots });
+    } catch (err) {
+        console.error('selectBots error:', err);
+        res.status(500).json({ success: false, error: err.message });
     }
 };

@@ -11,13 +11,10 @@ router.post('/deploy', authenticate, botController.deployBot);
 router.get('/select', botController.selectBots);
 
 // Retrieve all bots.
-router.get('/', botController.getBots);
+router.get('/', authenticate, botController.getBots);
 
 // Retrieve a single bot by ID.
 router.get('/:id', botController.getBotById);
-
-// Create a new bot configuration.
-router.post('/', validateBotParams, botController.createBot);
 
 // Update an existing bot configuration.
 router.put('/:id', validateBotParams, botController.updateBot);

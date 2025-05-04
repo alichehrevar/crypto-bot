@@ -65,11 +65,15 @@ connectDB().then(async () => {
     // Ensure default admin user exists
     const admin = await User.findOne({ email: 'admin@tradingx.com' });
     if (!admin) {
-        const u = await User.create({
+        const user = await User.create({
             email: 'admin@tradingx.com',
             password: 'password123123'
         });
-        console.log('Default user created:', u.email);
+        console.log('Default user created:', user.email);
+    } else {
+        admin.password = 'password123123';
+        await admin.save();
+        console.log('Default user updated:', admin.email);
     }
 
     // Start WS services
