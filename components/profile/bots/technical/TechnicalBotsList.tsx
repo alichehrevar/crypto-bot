@@ -4,7 +4,6 @@ import { addToast } from "@heroui/react";
 
 import { getData } from "@/actions/get";
 import { Bot, DeployedBotsResponse, Trade } from "@/types/profile/DeployedBots";
-import { PauseIcon, XIcon } from "@/utils/icons";
 import TradesList from "./TradesList";
 import CloseBotModal from "./modals/closeBotModal";
 import PlayPauseBotModal from "./modals/playPauseBotModal";
@@ -61,9 +60,9 @@ export default function TechnicalBotsList() {
   }
 
   return (
-    <div className="flex flex-col w-full gap-4 p-4 rounded-md">
+    <div className="flex flex-col w-full gap-2 p-4 rounded-md">
       {/* Table Header */}
-      <div className="grid grid-cols-11 font-semibold text-sm pb-2 mb-2">
+      <div className="grid grid-cols-11 font-semibold text-sm pb-2 mb-4">
         {tableHeaderItems.map((item, index) => (
           <div key={index} className="truncate">
             {item}
