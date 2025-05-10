@@ -162,8 +162,20 @@ export default function BotConfigForm({ onDeploy }: BotConfigFormProps) {
     e.preventDefault();
     setError(''); setSuccess('');
 
-    if (!name.trim()) return setError('Bot name is required.');
-    if (!symbol.trim()) return setError('Symbol is required.');
+    if (!name.trim()) {
+      addToast({
+        title: 'Bot name is required',
+        color: "warning",
+      });
+      return setError('Bot name is required.')
+    };
+    if (!symbol.trim()) {
+      addToast({
+        title: 'Symbol is required',
+        color: "warning",
+      });
+      return setError('Symbol is required.')
+    };
 
     // format symbol
     let formatted = symbol.toUpperCase();
