@@ -6,7 +6,7 @@ import {Select, SelectItem} from "@heroui/react";
 import { AccountsResponse, ExchangeAccount } from "@/types/profile/AccountType";
 import { SymbolFilterResponse } from "@/types/profile/CurrencyType";
 import { addToast } from "@heroui/react";
-import { WalletBalance, WalletBalanceResponse } from "@/types/profile/WalletBalanceType";
+import { WalletBalance } from "@/types/profile/WalletBalanceType";
 import { DefaultBotConfigForm } from "@/types/profile/bots/defaultBotConfigForm";
 
 /**

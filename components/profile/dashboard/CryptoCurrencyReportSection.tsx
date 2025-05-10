@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react'
 import { getData } from "@/actions/get";
 import { TopMover, TopMoversResponse } from '@/types/TopMover';
-import { ChevronUpIcon, ChevronDownIcon } from "@/utils/icons";
+import { ChevronUpIcon } from "@/utils/icons";
 import { addToast } from "@heroui/react";
 
 export default function TopMovers() {
@@ -41,7 +41,7 @@ export default function TopMovers() {
   const maxPct = items.length ? Math.max(...items.map(i => Math.abs(i.changePct))) : 1
 
   return (
-    <div className="relative bg-black p-6 rounded-2xl">
+    <div className="relative p-6 rounded-2xl">
       {/* header + sort buttons */}
       <div className="flex justify-between items-center mb-6">
         <h3 className="text-white text-xl font-bold">Big Changes</h3>

@@ -1,5 +1,5 @@
 import React from "react";
-import { PauseIcon, XIcon } from "@/utils/icons";
+import { PauseIcon } from "@/utils/icons";
 import {
   Modal,
   ModalContent,
