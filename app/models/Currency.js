@@ -17,7 +17,8 @@ const CurrencySchema = new Schema({
     },
     minNotional: { type: Number },                                   // min cost
     exchange:    { type: String, default: 'binance' },               // so you know where it came from
-    active:      { type: Boolean, default: true }
+    active:      { type: Boolean, default: true },
+    imageUrl:    { type: String },
 }, { timestamps: true });
 
 module.exports = mongoose.model('Currency', CurrencySchema);

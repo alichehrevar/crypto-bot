@@ -3,7 +3,10 @@
 const Bot        = require('../../models/Bot');
 const User       = require('../../models/User');
 const Trade      = require('../../models/Trade');
-const Candle     = require('../../models/Candle');            // ← was missing
+const Candle     = require('../../models/Candle');
+const BinanceAccount = require('../../models/BinanceAccount')
+const OkxAccount     = require('../../models/OkxAccount')
+const BingxAccount   = require('../../models/BingxAccount')
 const BotService = require('../../services/botService/BotService');
 const PnLService = require('../../services/PnLService');      // for getBots enrichment
 
@@ -28,11 +31,28 @@ exports.deployBot = async (req, res) => {
         if (!user) return res.status(401).json({ error: 'User not found.' });
 
         const {
-            name, symbol, baseFund, tradeFund, leverage,
+            accountId, name, symbol, baseFund, tradeFund, leverage,
             riskStrategy, takeProfit, stopLoss,
             indicator, timeframe, strategyParams,
             additionalIndicators = []
         } = req.body;
+
+        // figure out which account collection to query
+        let account, accountType
+        account = await BinanceAccount.findById(accountId)
+        if (account) accountType = 'binance'
+        else {
+            account = await OkxAccount.findById(accountId)
+            if (account) accountType = 'okx'
+            else {
+                account = await BingxAccount.findById(accountId)
+                if (account) accountType = 'bingx'
+            }
+        }
+
+        if (!account || !accountType) {
+            return res.status(400).json({ error: 'Invalid account selected' })
+        }
 
         // Build multi-indicator array
         const indicators = [
@@ -59,6 +79,8 @@ exports.deployBot = async (req, res) => {
                 baseFund:  baseFund  != null ? baseFund  : 10000,
                 tradeFund: tradeFund != null ? tradeFund : 50
             },
+            accountType,        // ← store which broker
+            accountId: account._id, // ← store the account reference
             userId: user._id,
             mode:   'live',
             active: true

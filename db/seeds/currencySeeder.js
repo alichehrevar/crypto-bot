@@ -5,11 +5,17 @@ const Currency = require('../../app/models/Currency');
 async function seedSymbols() {
     const exchange = new ccxt.binance();
     await exchange.loadMarkets();
+
+    // this is the jsDelivr URL for the "color" set of 128px icons
+    const ICON_CDN = 'https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color';
+
     const ops = [];
 
     for (let market of Object.values(exchange.markets)) {
         // we only want to spot USDT/USDC markets, adjust as needed
         if (!market.active || !market.symbol.endsWith('/USDT')) continue;
+
+        const base = market.base.toLowerCase();
 
         ops.push({
             updateOne: {
@@ -29,7 +35,8 @@ async function seedSymbols() {
                     },
                     minNotional: market.limits.cost.min,
                     exchange:    'binance',
-                    active:      true
+                    active:      true,
+                    imageUrl:    `${ICON_CDN}/${base}.png`
                 },
                 upsert: true
             }

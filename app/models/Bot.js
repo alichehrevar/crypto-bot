@@ -130,7 +130,18 @@ const botSchema = new Schema({
     paperBalance:{ type: Number, default: 10000 },
     cumulativePnL:{ type: Number, default: 0 },
     botTP:      { type: Number, default: 0 },
-    botSL:      { type: Number, default: 0 }
+    botSL:      { type: Number, default: 0 },
+    accountType: {
+        type: String,
+        required: true,
+        enum: ['binance', 'okx', 'bingx']
+    },
+    // store the ObjectId of that account
+    accountId: {
+        type: Schema.Types.ObjectId,
+        required: true,
+        refPath: 'accountType'   // dynamic ref to the correct account collection
+    },
 }, { timestamps: true });
 
 // Prevent duplicate bots on same symbol/timeframe + exact indicator set if desired
