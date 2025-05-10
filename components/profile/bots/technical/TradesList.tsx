@@ -1,4 +1,4 @@
-import { Bot, Trade } from "@/types/profile/DeployedBots";
+import { Bot, Trade } from "@/types/profile/bots/DeployedBots";
 import React from "react";
 import CloseTradeModal from "@/components/profile/bots/technical/modals/closeTradeModal";
 

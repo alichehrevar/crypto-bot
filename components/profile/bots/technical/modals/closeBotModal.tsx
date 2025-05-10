@@ -10,7 +10,7 @@ import {
   useDisclosure,
   addToast,
 } from "@heroui/react";
-import { CloseTradeResponse } from "@/types/profile/DeployedBots";
+import { CloseTradeResponse } from "@/types/profile/bots/DeployedBots";
 import { deleteRequest } from "@/actions/delete";
 
 export default function CloseBotModal(props: {botId: string;}) {

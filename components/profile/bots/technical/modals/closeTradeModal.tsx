@@ -11,7 +11,7 @@ import {
   addToast,
 } from "@heroui/react";
 import { sendRequest } from "@/actions/post";
-import { CloseTradeResponse } from "@/types/profile/DeployedBots";
+import { CloseTradeResponse } from "@/types/profile/bots/DeployedBots";
 
 export default function CloseTradeModal(props: {botId: string; tradeId: string}) {
 

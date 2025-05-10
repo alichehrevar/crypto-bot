@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { addToast } from "@heroui/react";
 
 import { getData } from "@/actions/get";
-import { Bot, DeployedBotsResponse } from "@/types/profile/DeployedBots";
+import { Bot, DeployedBotsResponse } from "@/types/profile/bots/DeployedBots";
 import TradesList from "./TradesList";
 import CloseBotModal from "./modals/closeBotModal";
 import PlayPauseBotModal from "./modals/playPauseBotModal";
@@ -71,7 +71,7 @@ export default function TechnicalBotsList() {
       </div>
 
       {/* Table Rows */}
-      {deployedBots.map((bot: Bot, botIndex) => (
+      {deployedBots.length > 0 && deployedBots.map((bot: Bot, botIndex) => (
         <React.Fragment key={botIndex}>
           <div
             className="grid grid-cols-11 items-center text-[13px] dark:bg-[#1A1A1A] rounded-md px-4 py-3 cursor-pointer hover:shadow-lg transition-all duration-300"
@@ -108,6 +108,9 @@ export default function TechnicalBotsList() {
           </div>
         </React.Fragment>
       ))}
+      {deployedBots.length === 0 &&
+        <div className="flex items-center justify-center bg-default-100 rounded-2xl h-[70px]">No bots deployed yet.</div>
+      }
     </div>
   );
 }

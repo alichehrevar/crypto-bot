@@ -10,7 +10,7 @@ import {
   useDisclosure,
   addToast,
 } from "@heroui/react";
-import { CloseTradeResponse } from "@/types/profile/DeployedBots";
+import { CloseTradeResponse } from "@/types/profile/bots/DeployedBots";
 import { deleteRequest } from "@/actions/delete";
 
 export default function CloseBotModal(props: {botId: string;}) {
@@ -22,7 +22,7 @@ export default function CloseBotModal(props: {botId: string;}) {
       const response: CloseTradeResponse = await deleteRequest({}, `/bots/${props.botId}`)
       if (response.success) {
         addToast({
-          title: 'Bot closed successfully !',
+          title: 'Bot paused successfully !',
           color: "success",
         });
       } else {
