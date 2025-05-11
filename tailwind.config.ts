@@ -1,7 +1,7 @@
-import {heroui} from "@heroui/theme"
+import { heroui } from "@heroui/theme";
+import type { Config } from "tailwindcss";
 
-/** @type {import('tailwindcss').Config} */
-const config = {
+const config: Config = {
   content: [
     './components/**/*.{js,ts,jsx,tsx,mdx}',
     './app/**/*.{js,ts,jsx,tsx,mdx}',

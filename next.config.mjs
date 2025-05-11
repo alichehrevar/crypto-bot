@@ -1,9 +1,8 @@
-/** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true, // Enable React strict mode for improved error handling
   distDir: 'build',
   compiler: {
-    removeConsole: process.env.NODE_ENV !== "development", // Remove console.log in production
+    removeConsole: process.env.NODE_ENV !== "development",  // Remove console.log in production
   },
   env: {
     API_URL: process.env.API_URL,
@@ -18,6 +17,6 @@ const nextConfig = {
     ],
     unoptimized: true,
   },
-};
+}
 
 export default nextConfig;
