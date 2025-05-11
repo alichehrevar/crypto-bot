@@ -104,7 +104,7 @@ const indicatorConfigSchema = new Schema({
  */
 const botSchema = new Schema({
     name:       { type: String, required: true },
-    symbol:     { type: String, required: true, match: [/^[A-Z]+\/[A-Z]+$/, 'Use BASE/QUOTE'] },
+    symbol:     { type: String, required: true, match: [/^[A-Z0-9]+\/[A-Z0-9]+$/, 'Use format BASE/QUOTE (e.g. BTC/USDT)'] },
     timeframe:  { type: String, required: true, enum: ['1m','5m','15m','30m','1h','4h','1d','1w'] },
 
     // now an array of indicators instead of single indicator + params

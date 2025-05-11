@@ -30,36 +30,62 @@ exports.deployBot = async (req, res) => {
         const user = await User.findById(req.user?.id);
         if (!user) return res.status(401).json({ error: 'User not found.' });
 
+        // pull raw values out of the body
         const {
             accountId, name, symbol, baseFund, tradeFund, leverage,
             riskStrategy, takeProfit, stopLoss,
-            indicator, timeframe, strategyParams,
-            additionalIndicators = []
+            indicator, timeframe,
+            strategyParams: rawParams,
+            additionalIndicators: rawAddIns
         } = req.body;
 
-        // figure out which account collection to query
-        let account, accountType
-        account = await BinanceAccount.findById(accountId)
-        if (account) accountType = 'binance'
-        else {
-            account = await OkxAccount.findById(accountId)
-            if (account) accountType = 'okx'
-            else {
-                account = await BingxAccount.findById(accountId)
-                if (account) accountType = 'bingx'
+        // 1) parse strategyParams if it's a JSON string
+        let strategyParams;
+        if (typeof rawParams === 'string') {
+            try {
+                strategyParams = JSON.parse(rawParams);
+            } catch {
+                strategyParams = {};
+            }
+        } else {
+            strategyParams = rawParams || {};
+        }
+
+        // 2) coerce additionalIndicators into an array of objects
+        let additionalIndicators = [];
+        if (Array.isArray(rawAddIns)) {
+            additionalIndicators = rawAddIns;
+        } else if (typeof rawAddIns === 'string') {
+            try {
+                const parsed = JSON.parse(rawAddIns);
+                if (Array.isArray(parsed)) additionalIndicators = parsed;
+            } catch {
+                // ignore
             }
         }
 
+        // find the right account…
+        let account, accountType;
+        account = await BinanceAccount.findById(accountId);
+        if (account) accountType = 'binance';
+        else {
+            account = await OkxAccount.findById(accountId);
+            if (account) accountType = 'okx';
+            else {
+                account = await BingxAccount.findById(accountId);
+                if (account) accountType = 'bingx';
+            }
+        }
         if (!account || !accountType) {
-            return res.status(400).json({ error: 'Invalid account selected' })
+            return res.status(400).json({ error: 'Invalid account selected' });
         }
 
-        // Build multi-indicator array
+        // 3) build your indicators array
         const indicators = [
             {
                 name:      indicator,
                 timeframe,
-                params:    strategyParams   || defaultStrategyParams[indicator]   || {}
+                params:    strategyParams || defaultStrategyParams[indicator] || {}
             },
             ...additionalIndicators.map(ai => ({
                 name:      ai.indicator,
@@ -68,6 +94,7 @@ exports.deployBot = async (req, res) => {
             }))
         ];
 
+        // 4) finally create the bot
         const bot = await Bot.create({
             name,
             symbol,
@@ -79,19 +106,18 @@ exports.deployBot = async (req, res) => {
                 baseFund:  baseFund  != null ? baseFund  : 10000,
                 tradeFund: tradeFund != null ? tradeFund : 50
             },
-            accountType,        // ← store which broker
-            accountId: account._id, // ← store the account reference
-            userId: user._id,
-            mode:   'live',
-            active: true
+            accountType,
+            accountId: account._id,
+            userId:    user._id,
+            mode:      'live',
+            active:    true
         });
 
-        // register in memory
+        // register it in memory
         BotService.registerBot(bot);
 
         return res.status(201).json({ success: true, bot });
-    }
-    catch (err) {
+    } catch (err) {
         console.error('deployBot error:', err);
         return res.status(500).json({ success: false, error: err.message });
     }
