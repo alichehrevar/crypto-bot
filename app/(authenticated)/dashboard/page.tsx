@@ -38,7 +38,7 @@ export default function Dashboard() {
         </button>
 
         {/* New Bot button */}
-        <DeployBotModal children={
+        <DeployBotModal>
           <button
             className="inline-flex items-center justify-center w-[120px] h-[40px] bg-white hover:bg-gray-100 text-black rounded-full transition"
           >
@@ -49,7 +49,7 @@ export default function Dashboard() {
               New Bot
             </span>
           </button>
-        } />
+        </DeployBotModal>
       </div>
       <Divider className="my-10" />
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 min-h-[220px]">

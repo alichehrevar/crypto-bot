@@ -1,10 +1,11 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
+import { addToast } from "@heroui/react"
+
 import { getData } from "@/actions/get"
 import { TopMover, TopMoversResponse } from '@/types/TopMover'
 import { ChevronUpIcon } from "@/utils/icons"
-import { addToast } from "@heroui/react"
 
 export default function TopMovers() {
   const [items, setItems] = useState<TopMover[]>([])
@@ -47,16 +48,16 @@ export default function TopMovers() {
         <h3 className="text-white text-xl font-bold">Big Changes</h3>
         <div className="flex space-x-2">
           <button
-            onClick={() => setSortOrder('desc')}
             className={sortOrder === 'desc' ? 'text-white' : 'text-gray-500'}
             title="Show Top ↑"
+            onClick={() => setSortOrder('desc')}
           >
             <ChevronUpIcon className="w-5 h-5 transform -rotate-90" />
           </button>
           <button
-            onClick={() => setSortOrder('asc')}
             className={sortOrder === 'asc' ? 'text-white' : 'text-gray-500'}
             title="Show Bottom ↓"
+            onClick={() => setSortOrder('asc')}
           >
             <ChevronUpIcon className="w-5 h-5 rotate-90" />
           </button>
@@ -95,9 +96,9 @@ export default function TopMovers() {
 
               {/* icon */}
               <img
-                src={item.imageUrl}
                 alt={item.symbol}
                 className="w-6 h-6 mt-3"
+                src={item.imageUrl}
                 onError={e => {
                   ;(e.currentTarget as HTMLImageElement).src =
                     '/images/icons/default.svg'

@@ -1,7 +1,6 @@
 'use client';
 
 import React, { Key, useEffect, useState } from "react";
-import { getData } from "@/actions/get";
 import {
   Autocomplete,
   AutocompleteItem,
@@ -9,6 +8,8 @@ import {
   Input,
   Checkbox, Button
 } from "@heroui/react";
+
+import { getData } from "@/actions/get";
 import { AccountsResponse, ExchangeAccount } from "@/types/profile/AccountType";
 import { SymbolFilterResponse } from "@/types/profile/CurrencyType";
 import { WalletBalance } from "@/types/profile/WalletBalanceType";
@@ -78,6 +79,7 @@ export default function DefaultDeployBotForm(props: {onOpenChange: () => void}) 
     (async () => {
       try {
         const currenciesResponse: SymbolFilterResponse = await getData('/currencies')
+
         if (currenciesResponse.success) {
           setSymbols(currenciesResponse.data)
         } else {
@@ -95,6 +97,7 @@ export default function DefaultDeployBotForm(props: {onOpenChange: () => void}) 
 
       try {
         const accountsResponse: AccountsResponse = await getData('/accounts')
+
         if (accountsResponse.accounts) {
           // accountsResponse.accounts is a map: { exchangeName: accountObj, … }
           // turn it into an array, and carry exchange name too if you like
@@ -110,6 +113,7 @@ export default function DefaultDeployBotForm(props: {onOpenChange: () => void}) 
               __v: acc.__v ?? 0
             })
           );
+
           setAccounts(accsArray);
         } else {
           addToast({
@@ -138,6 +142,7 @@ export default function DefaultDeployBotForm(props: {onOpenChange: () => void}) 
         ])
       )
     };
+
     return await sendRequest(stringifierConfig, '/bots/deploy');
   };
 
@@ -147,9 +152,11 @@ export default function DefaultDeployBotForm(props: {onOpenChange: () => void}) 
     console.log(accountId)
     try {
       const getBalance = await getData(`/accounts/${accountId}/balance`);
+
       if (getBalance.balance) {
         const usdtBal: WalletBalance = getBalance.balance.find((b: WalletBalance) => b.asset === 'USDT');
         const free = usdtBal ? parseFloat(usdtBal.free) : 0;
+
         setAvailableBalance(free);
         setBaseFund(free);
       } else {
@@ -193,6 +200,7 @@ export default function DefaultDeployBotForm(props: {onOpenChange: () => void}) 
 
     // format symbol
     let formatted = symbol.toUpperCase();
+
     if (!formatted.includes('/')) {
       if (formatted.endsWith('USDT')) formatted = formatted.replace(/USDT$/, '/USDT');
       else if (formatted.endsWith('USDC')) formatted = formatted.replace(/USDC$/, '/USDC');
@@ -244,21 +252,21 @@ export default function DefaultDeployBotForm(props: {onOpenChange: () => void}) 
 
   return (
     <div className="py-4">
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form className="space-y-4" onSubmit={handleSubmit}>
         {/* Account */}
         <div>
           <Input
+            required
             className="mb-4"
             label="Bot Name"
             type="text"
-            required
             value={name}
             onChange={e => setName(e.target.value)}
           />
           <Autocomplete
-            label="Account"
             isClearable={false}
             items={accounts}
+            label="Account"
             placeholder="Select an account"
             onSelectionChange={(selectedKey: Key | null) => handleAccountChange(selectedKey)}
           >
@@ -281,9 +289,9 @@ export default function DefaultDeployBotForm(props: {onOpenChange: () => void}) 
         {/* Symbol & Balance */}
         <div>
           <Autocomplete
-            label="Symbol"
-            isClearable={false}
             defaultItems={symbols}
+            isClearable={false}
+            label="Symbol"
             placeholder="Select a symbol"
             onSelectionChange={(e) => e !== null ? setSymbol(e.toString()) : 'BTC/USDT'}
           >
@@ -309,11 +317,11 @@ export default function DefaultDeployBotForm(props: {onOpenChange: () => void}) 
         {/* Trade Fund */}
         <div>
           <Input
-            label="Trade Fund (%)"
-            minLength={1}
-            maxLength={100}
-            type="number"
             required
+            label="Trade Fund (%)"
+            maxLength={100}
+            minLength={1}
+            type="number"
             value={tradeFund}
             onChange={e => setTradeFund(e.target.value)}
           />
@@ -321,8 +329,8 @@ export default function DefaultDeployBotForm(props: {onOpenChange: () => void}) 
             {[25,50,75,100].map(p => (
               <button
                 key={p}
-                type="button"
                 className="w-1/4 py-2 rounded-2xl bg-default-100 text-[13px]"
+                type="button"
                 onClick={() => pickTradeFund(p)}
               >
                 {p}%
@@ -334,9 +342,9 @@ export default function DefaultDeployBotForm(props: {onOpenChange: () => void}) 
         {/* Leverage */}
         <div>
           <Autocomplete
-            label="Leverage"
-            isClearable={false}
             allowsEmptyCollection={false}
+            isClearable={false}
+            label="Leverage"
             onSelectionChange={e => e !== null ? setLeverage(Number(e.toString())) : 1}
           >
             {leverageOptions.map((lv) => {
@@ -352,8 +360,8 @@ export default function DefaultDeployBotForm(props: {onOpenChange: () => void}) 
         {/* Risk Strategy */}
         <div>
           <Autocomplete
-            label="Risk Strategy"
             isClearable={false}
+            label="Risk Strategy"
             onSelectionChange={e => e !== null ? setRiskStrategy(e.toString()) : 'KellyCriterionStrategy'}
           >
             {riskStrategyOptions.map((rs) => {
@@ -380,10 +388,10 @@ export default function DefaultDeployBotForm(props: {onOpenChange: () => void}) 
         {/* Take Profit */}
         <div>
           <Input
+            defaultValue={takeProfit.toString()}
             label="Take Profit"
             step={0.01}
             type="number"
-            defaultValue={takeProfit.toString()}
             onChange={e => setTakeProfit(Number(e.target.value))}
           />
         </div>
@@ -391,10 +399,10 @@ export default function DefaultDeployBotForm(props: {onOpenChange: () => void}) 
         {/* Stop Loss */}
         <div>
           <Input
+            defaultValue={stopLoss.toString()}
             label="Stop Loss"
             step={0.01}
             type="number"
-            defaultValue={stopLoss.toString()}
             onChange={e => setStopLoss(Number(e.target.value))}
           />
         </div>
@@ -403,8 +411,8 @@ export default function DefaultDeployBotForm(props: {onOpenChange: () => void}) 
         <div className="grid grid-cols-2 gap-4">
           <div>
             <Autocomplete
-              label="Indicator"
               isClearable={false}
+              label="Indicator"
               onSelectionChange={e => e !== null ? setIndicator(e.toString()) : 'RSI'}
             >
               {indicatorOptions.map((ind) => {
@@ -418,8 +426,8 @@ export default function DefaultDeployBotForm(props: {onOpenChange: () => void}) 
           </div>
           <div>
             <Autocomplete
-              label="Timeframe"
               isClearable={false}
+              label="Timeframe"
               onSelectionChange={e => e !== null ? setTimeframe(e.toString()) : '1h'}
             >
               {timeframeOptions.map((tf) => {
@@ -438,12 +446,14 @@ export default function DefaultDeployBotForm(props: {onOpenChange: () => void}) 
           {additionalIndicators.map((ai, i) => (
             <div key={i} className="grid grid-cols-2 gap-4 mb-4">
               <Autocomplete
-                label="Indicator"
                 isClearable={false}
+                label="Indicator"
                 onChange={e =>
                   setAdditionalIndicators(list => {
                     const nxt = [...list];
+
                     nxt[i].indicator = e.target.value;
+
                     return nxt;
                   })
                 }
@@ -457,12 +467,14 @@ export default function DefaultDeployBotForm(props: {onOpenChange: () => void}) 
                 })}
               </Autocomplete>
               <Autocomplete
-                label="Timeframe"
                 isClearable={false}
+                label="Timeframe"
                 onChange={e =>
                   setAdditionalIndicators(list => {
                     const nxt = [...list];
+
                     nxt[i].timeframe = e.target.value;
+
                     return nxt;
                   })
                 }
@@ -499,10 +511,10 @@ export default function DefaultDeployBotForm(props: {onOpenChange: () => void}) 
         {/* Deploy button */}
         <div>
           <Button
-            type="submit"
-            isLoading={loading}
-            disabled={loading}
             className="w-full px-4 dark:bg-white dark:hover:bg-gray-200 transition-all duration-300 dark:text-black font-semibold rounded-2xl text-[14px] py-3"
+            disabled={loading}
+            isLoading={loading}
+            type="submit"
           >
             Start a Bot
           </Button>

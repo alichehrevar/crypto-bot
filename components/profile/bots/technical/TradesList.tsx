@@ -1,5 +1,6 @@
-import { Bot, Trade } from "@/types/profile/bots/DeployedBots";
 import React from "react";
+
+import { Bot, Trade } from "@/types/profile/bots/DeployedBots";
 import CloseTradeModal from "@/components/profile/bots/technical/modals/closeTradeModal";
 
 export default function TradesList (props: {bot: Bot}) {
@@ -46,6 +47,7 @@ export default function TradesList (props: {bot: Bot}) {
 
         // formatted result
         let resultText = "—";
+
         if (isClosed) {
           resultText = profit >= 0
             ? `Win (+${pct.toFixed(2)}%)`

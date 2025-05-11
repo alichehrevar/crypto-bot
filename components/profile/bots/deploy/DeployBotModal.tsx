@@ -10,6 +10,7 @@ import {
   Tab
 } from "@heroui/react";
 import React from "react";
+
 import DefaultDeployBotForm from "@/components/profile/bots/deploy/DefaultDeployBotForm";
 
 
@@ -23,16 +24,21 @@ export default function DeployBotModal ({
 
   return (
     <>
-      <div onClick={onOpen}>
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={onOpen}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onOpen(); }}
+      >
         { children }
       </div>
       <Modal
-        isOpen={isOpen}
-        onOpenChange={onOpenChange}
-        scrollBehavior={'inside'}
         backdrop={'blur'}
         isDismissable={false}
         isKeyboardDismissDisabled={true}
+        isOpen={isOpen}
+        scrollBehavior={'inside'}
+        onOpenChange={onOpenChange}
       >
         <ModalContent>
           {() => (
@@ -43,23 +49,20 @@ export default function DeployBotModal ({
               <ModalBody>
                 <div className="flex w-full flex-col">
                   <Tabs
-                    aria-label="Options"
-                    radius={'full'}
                     fullWidth
+                    aria-label="Options"
                     classNames={{
                       cursor: "w-full bg-white dark:group-data-[selected=true]:bg-white",
                       tab: "h-10",
                       tabContent: "dark:group-data-[selected=true]:text-black",
                     }}
+                    radius={'full'}
                   >
                     <Tab key="default" title="Default">
                       <DefaultDeployBotForm onOpenChange={onOpenChange} />
                     </Tab>
-                    <Tab key="optimized" title="Optimized">
-
-                    </Tab>
-                    <Tab key="dynamic" title="dynamic">
-                    </Tab>
+                    <Tab key="optimized" title="Optimized" />
+                    <Tab key="dynamic" title="dynamic" />
                   </Tabs>
                 </div>
               </ModalBody>

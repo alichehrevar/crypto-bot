@@ -2,11 +2,12 @@ import React from "react";
 import { useEffect, useState } from "react";
 import { addToast } from "@heroui/react";
 
-import { getData } from "@/actions/get";
-import { Bot, DeployedBotsResponse } from "@/types/profile/bots/DeployedBots";
 import TradesList from "./TradesList";
 import CloseBotModal from "./modals/closeBotModal";
 import PlayPauseBotModal from "./modals/playPauseBotModal";
+
+import { Bot, DeployedBotsResponse } from "@/types/profile/bots/DeployedBots";
+import { getData } from "@/actions/get";
 
 export default function TechnicalBotsList() {
 
@@ -57,6 +58,7 @@ export default function TechnicalBotsList() {
 
   function handleClick(botIndex: number) {
     const botContent = document.getElementById(`bot-content-${botIndex}`);
+
     if (botContent && deployedBots[botIndex].trades.length > 0) {
       botContent.classList.toggle("max-h-0");
       botContent.classList.toggle("max-h-120");
@@ -107,8 +109,8 @@ export default function TechnicalBotsList() {
             </div>
           </div>
           <div
-            id={`bot-content-${botIndex}`}
             className="bot-content max-h-0 overflow-hidden transition-all duration-500 ease-in-out opacity-0"
+            id={`bot-content-${botIndex}`}
           >
             <TradesList bot={bot} />
           </div>

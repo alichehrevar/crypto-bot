@@ -1,5 +1,4 @@
 import React from "react";
-import { XIcon } from "@/utils/icons";
 import {
   Modal,
   ModalContent,
@@ -10,6 +9,8 @@ import {
   useDisclosure,
   addToast,
 } from "@heroui/react";
+
+import { XIcon } from "@/utils/icons";
 import { sendRequest } from "@/actions/post";
 import { CloseTradeResponse } from "@/types/profile/bots/DeployedBots";
 
@@ -20,6 +21,7 @@ export default function CloseTradeModal(props: {botId: string; tradeId: string})
   async function closeTrade () {
     try {
       const response: CloseTradeResponse = await sendRequest({}, `/bots/${props.botId}/trades/${props.tradeId}/close`)
+
       if (response.success) {
         addToast({
           title: 'Trade closed successfully !',
@@ -34,6 +36,7 @@ export default function CloseTradeModal(props: {botId: string; tradeId: string})
       }
     } catch (error) {
       let errorMessage = 'An unknown error occurred';
+
       if (error instanceof Error) {
         errorMessage = error.message;
       }
@@ -50,15 +53,15 @@ export default function CloseTradeModal(props: {botId: string; tradeId: string})
 
   return (
     <>
-      <button onClick={onOpen} className="px-3 py-1.5 bg-default flex items-center gap-1 text-white rounded text-xs">
+      <button className="px-3 py-1.5 bg-default flex items-center gap-1 text-white rounded text-xs" onClick={onOpen}>
         <XIcon />
         Close
       </button>
       <Modal
+        backdrop="opaque"
         isDismissable={false}
         isKeyboardDismissDisabled={true}
         isOpen={isOpen}
-        backdrop="opaque"
         onOpenChange={onOpenChange}
       >
         <ModalContent>

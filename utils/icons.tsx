@@ -25,46 +25,46 @@ export const XIcon = ({ className = 'size-4' }) => (
 );
 
 export const ChevronUpIcon = ({ className = 'size-4' }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor"
-       className={className}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 15.75 7.5-7.5 7.5 7.5" />
+  <svg className={className} fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"
+       xmlns="http://www.w3.org/2000/svg">
+    <path d="m4.5 15.75 7.5-7.5 7.5 7.5" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
 
 export const ChevronDownIcon = ({ className = 'size-4' }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor"
-       className={className}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+  <svg className={className} fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"
+       xmlns="http://www.w3.org/2000/svg">
+    <path d="m19.5 8.25-7.5 7.5-7.5-7.5" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
 
 export const BarsArrowDownIcon = ({ className = 'size-4' }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor"
-       className={className}>
-    <path strokeLinecap="round" strokeLinejoin="round"
-          d="M3 4.5h14.25M3 9h9.75M3 13.5h9.75m4.5-4.5v12m0 0-3.75-3.75M17.25 21 21 17.25" />
+  <svg className={className} fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"
+       xmlns="http://www.w3.org/2000/svg">
+    <path d="M3 4.5h14.25M3 9h9.75M3 13.5h9.75m4.5-4.5v12m0 0-3.75-3.75M17.25 21 21 17.25" strokeLinecap="round"
+          strokeLinejoin="round" />
   </svg>
 );
 
 export const BarsArrowUpIcon = ({ className = 'size-4' }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor"
-       className={className}>
-    <path strokeLinecap="round" strokeLinejoin="round"
-          d="M3 4.5h14.25M3 9h9.75M3 13.5h5.25m5.25-.75L17.25 9m0 0L21 12.75M17.25 9v12" />
+  <svg className={className} fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"
+       xmlns="http://www.w3.org/2000/svg">
+    <path d="M3 4.5h14.25M3 9h9.75M3 13.5h5.25m5.25-.75L17.25 9m0 0L21 12.75M17.25 9v12" strokeLinecap="round"
+          strokeLinejoin="round" />
   </svg>
 );
 
 export const ArrowDownIcon = ({ className = 'size-4' }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor"
-       className={className}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 13.5 12 21m0 0-7.5-7.5M12 21V3" />
+  <svg className={className} fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"
+       xmlns="http://www.w3.org/2000/svg">
+    <path d="M19.5 13.5 12 21m0 0-7.5-7.5M12 21V3" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
 
 export const PlusIcon = ({ className = "size-4", stroke = "currentColor", strokeWidth = "1.5" }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={strokeWidth} stroke={stroke}
-       className={className}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+  <svg className={className} fill="none" stroke={stroke} strokeWidth={strokeWidth} viewBox="0 0 24 24"
+       xmlns="http://www.w3.org/2000/svg">
+    <path d="M12 4.5v15m7.5-7.5h-15" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
 
@@ -72,12 +72,12 @@ export function FilterIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
       {...props}
-      viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth={2}
       strokeLinecap="round"
       strokeLinejoin="round"
+      strokeWidth={2}
+      viewBox="0 0 24 24"
     >
       <polygon points="3 4 21 4 14 11 14 19 10 16 10 11 3 4" />
     </svg>

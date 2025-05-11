@@ -1,5 +1,4 @@
 import React from "react";
-import { PauseIcon } from "@/utils/icons";
 import {
   Modal,
   ModalContent,
@@ -10,6 +9,8 @@ import {
   useDisclosure,
   addToast,
 } from "@heroui/react";
+
+import { PauseIcon } from "@/utils/icons";
 import { CloseTradeResponse } from "@/types/profile/bots/DeployedBots";
 import { deleteRequest } from "@/actions/delete";
 
@@ -20,6 +21,7 @@ export default function CloseBotModal(props: {botId: string;}) {
   async function closeTrade () {
     try {
       const response: CloseTradeResponse = await deleteRequest({}, `/bots/${props.botId}`)
+
       if (response.success) {
         addToast({
           title: 'Bot paused successfully !',
@@ -34,6 +36,7 @@ export default function CloseBotModal(props: {botId: string;}) {
       }
     } catch (error) {
       let errorMessage = 'An unknown error occurred';
+
       if (error instanceof Error) {
         errorMessage = error.message;
       }
@@ -50,14 +53,14 @@ export default function CloseBotModal(props: {botId: string;}) {
 
   return (
     <>
-      <button onClick={onOpen} className="bg-gray-800 hover:bg-gray-700 px-1.5 py-1.5 rounded text-sm">
+      <button className="bg-gray-800 hover:bg-gray-700 px-1.5 py-1.5 rounded text-sm" onClick={onOpen}>
         <PauseIcon className="size-4" />
       </button>
       <Modal
+        backdrop="opaque"
         isDismissable={false}
         isKeyboardDismissDisabled={true}
         isOpen={isOpen}
-        backdrop="opaque"
         onOpenChange={onOpenChange}
       >
         <ModalContent>
