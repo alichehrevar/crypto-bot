@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { SVGProps } from "react";
 
 export const PauseIcon = ({ className = 'size-4' }) => (
   <svg
@@ -67,3 +67,19 @@ export const PlusIcon = ({ className = "size-4", stroke = "currentColor" }) => (
     <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
   </svg>
 );
+
+export function FilterIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      {...props}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <polygon points="3 4 21 4 14 11 14 19 10 16 10 11 3 4" />
+    </svg>
+  )
+}
