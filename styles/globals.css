@@ -9,3 +9,28 @@
 label[data-slot="label"]:after {
     display: none;
 }
+
+/* Chrome, Safari, Edge, Opera */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+/* Firefox */
+input[type=number] {
+    -moz-appearance: textfield;
+}
+
+section[role="dialog"] .overflow-y-auto::-webkit-scrollbar {
+    width: 2px;
+    height: 2px;
+}
+
+section[role="dialog"] .overflow-y-auto::-webkit-scrollbar-thumb {
+    @apply bg-primary;
+}
+
+section[role="dialog"] .overflow-y-auto::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.1);
+}

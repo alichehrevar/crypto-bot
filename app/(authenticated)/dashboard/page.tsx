@@ -8,8 +8,8 @@ import PnLSection from "@/components/profile/dashboard/PnLSection";
 import AssetSection from "@/components/profile/dashboard/AssetSection";
 import CryptoCurrencyReportSection from "@/components/profile/dashboard/CryptoCurrencyReportSection";
 import TechnicalBotsList from "@/components/profile/bots/technical/TechnicalBotsList";
-import Link from "next/link";
 import { ArrowDownIcon, PlusIcon } from "@/utils/icons";
+import DeployBotModal from "@/components/profile/bots/deploy/DeployBotModal";
 
 export default function Dashboard() {
 
@@ -29,21 +29,27 @@ export default function Dashboard() {
       <div className="flex space-x-4">
         {/* Deposit button */}
         <button
-          className="inline-flex items-center px-4 h-[40px] dark:bg-[#161616] hover:bg-gray-700 text-white rounded-full transition"
+          className="inline-flex items-center justify-center w-[120px] h-[40px] dark:bg-[#161616] hover:bg-gray-700 text-white rounded-full transition"
         >
           <ArrowDownIcon className="mr-2 size-4" />
-          Deposit
+          <span className="text-[14px]">
+            Deposit
+          </span>
         </button>
 
         {/* New Bot button */}
-        <Link href={'/profile/bots/technical/deploy'}
-          className="inline-flex items-center px-4 h-[40px] bg-white hover:bg-gray-100 text-black rounded-full transition"
-        >
-          <div className="bg-black mr-2 h-6 w-6 rounded-full flex items-center justify-center">
-            <PlusIcon className="size-4" stroke="white" />
-          </div>
-          New Bot
-        </Link>
+        <DeployBotModal children={
+          <button
+            className="inline-flex items-center justify-center w-[120px] h-[40px] bg-white hover:bg-gray-100 text-black rounded-full transition"
+          >
+            <div className="bg-black mr-2 h-6 w-6 rounded-full flex items-center justify-center">
+              <PlusIcon className="size-4" stroke="white" />
+            </div>
+            <span className="text-[14px]">
+              New Bot
+            </span>
+          </button>
+        } />
       </div>
       <Divider className="my-10" />
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 min-h-[220px]">

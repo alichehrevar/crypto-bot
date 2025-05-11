@@ -1,0 +1,513 @@
+'use client';
+
+import React, { Key, useEffect, useState } from "react";
+import { getData } from "@/actions/get";
+import {
+  Autocomplete,
+  AutocompleteItem,
+  addToast,
+  Input,
+  Checkbox, Button
+} from "@heroui/react";
+import { AccountsResponse, ExchangeAccount } from "@/types/profile/AccountType";
+import { SymbolFilterResponse } from "@/types/profile/CurrencyType";
+import { WalletBalance } from "@/types/profile/WalletBalanceType";
+import { DefaultBotConfigForm } from "@/types/profile/bots/defaultBotConfigForm";
+import { PlusIcon } from "@/utils/icons";
+import { sendRequest } from "@/actions/post";
+
+/**
+ * Currency represents this symbol list struct
+ */
+interface Currency {
+  _id: string;
+  symbol: string;
+}
+
+export default function DefaultDeployBotForm(props: {onOpenChange: () => void}) {
+  // form state
+  const [name, setName] = useState('');
+  const [symbol, setSymbol] = useState('BTC/USDT');
+  const [accounts, setAccounts] = useState<ExchangeAccount[]>([]);
+  const [selectedAccountId, setSelectedAccountId] = useState<Key>();
+  const [availableBalance, setAvailableBalance] = useState<number>(0);
+
+  const [baseFund, setBaseFund] = useState(0);
+  const [tradeFund, setTradeFund] = useState<string>('');
+  const [leverage, setLeverage] = useState<number>(1);
+  const [riskStrategy, setRiskStrategy] = useState<string>('KellyCriterionStrategy');
+  const [compoundPositionSizing, setCompoundPositionSizing] = useState(true);
+  const [takeProfit, setTakeProfit] = useState(1.02);
+  const [stopLoss, setStopLoss] = useState(0.98);
+  const [indicator, setIndicator] = useState<string>('RSI');
+  const [timeframe, setTimeframe] = useState<string>('1h');
+  const [additionalIndicators, setAdditionalIndicators] = useState<
+    Array<{ indicator: string; timeframe: string }>
+  >([]);
+  const [symbols, setSymbols] = useState<Currency[]>([]);
+  const [loading, setLoading] = useState<boolean>(false)
+
+  // defaults & options
+  const riskStrategyOptions = [
+    'KellyCriterionStrategy',
+    'MartingaleStrategy',
+    'MirroredMartingaleStrategy',
+    'SimpleStrategy'
+  ];
+  const indicatorOptions = [
+    'RSI','MACD','MA_Crossover','Donchian','Volume',
+    'Heikin_Ashi','Combined_RSI_MACD','Bollinger_Bands','Stochastic_RSI'
+  ];
+  const timeframeOptions = ['1m','5m','15m','30m','1h','4h','1d','1w'];
+  const leverageOptions = Array.from({ length: 100 }, (_, i) => i + 1);
+
+  const defaultStrategyParams: Record<string, object> = {
+    RSI: { period: 14, overbought: 70, oversold: 30 },
+    MACD: { shortPeriod: 12, longPeriod: 26, signalPeriod: 9 },
+    MA_Crossover: { shortPeriod: 5, longPeriod: 20 },
+    Donchian: { period: 20 },
+    Volume: { period: 14 },
+    Heikin_Ashi: {},
+    Combined_RSI_MACD: { parameters: { confirmation_window: 6 } },
+    Bollinger_Bands: { period: 20, stdDev: 2 },
+    Stochastic_RSI: { period: 14, kPeriod: 3, dPeriod: 3 }
+  };
+
+  // fetch symbols & accounts on mount
+  useEffect(() => {
+    (async () => {
+      try {
+        const currenciesResponse: SymbolFilterResponse = await getData('/currencies')
+        if (currenciesResponse.success) {
+          setSymbols(currenciesResponse.data)
+        } else {
+          addToast({
+            title: 'Failed to fetch currencies',
+            color: "danger",
+          });
+        }
+      } catch {
+        addToast({
+          title: 'Error fetching currencies !',
+          color: "danger",
+        });
+      }
+
+      try {
+        const accountsResponse: AccountsResponse = await getData('/accounts')
+        if (accountsResponse.accounts) {
+          // accountsResponse.accounts is a map: { exchangeName: accountObj, … }
+          // turn it into an array, and carry exchange name too if you like
+          const accsArray: ExchangeAccount[] = Object.entries(accountsResponse.accounts).map(
+            ([exchange, acc]) => ({
+              ...acc,
+              _id:   acc._id!,
+              userId: acc.userId!,
+              apiKey: acc.apiKey!,
+              secretKey: acc.secretKey!,
+              name:  exchange,
+              createdAt: acc.createdAt ?? new Date().toISOString(),
+              __v: acc.__v ?? 0
+            })
+          );
+          setAccounts(accsArray);
+        } else {
+          addToast({
+            title: 'Failed to fetch currencies',
+            color: "danger",
+          });
+        }
+      } catch {
+        addToast({
+          title: 'Error fetching currencies !',
+          color: "danger",
+        });
+      }
+    })();
+  }, []);
+
+  // Handler for bot deployment.
+  const handleBotDeploy = async (config: DefaultBotConfigForm) => {
+
+    // Convert config to a valid `{ [key: string]: string | File }` object
+    const stringifierConfig: { [key: string]: string } = {
+      ...Object.fromEntries(
+        Object.entries(config).map(([key, value]) => [
+          key,
+          typeof value === 'object' ? JSON.stringify(value) : String(value)
+        ])
+      )
+    };
+    return await sendRequest(stringifierConfig, '/bots/deploy');
+  };
+
+  // fetch balance when account changes
+  async function handleAccountChange(accountId: Key | null) {
+    setSelectedAccountId(accountId || 0);
+    console.log(accountId)
+    try {
+      const getBalance = await getData(`/accounts/${accountId}/balance`);
+      if (getBalance.balance) {
+        const usdtBal: WalletBalance = getBalance.balance.find((b: WalletBalance) => b.asset === 'USDT');
+        const free = usdtBal ? parseFloat(usdtBal.free) : 0;
+        setAvailableBalance(free);
+        setBaseFund(free);
+      } else {
+        addToast({
+          title: getBalance.error,
+          color: "danger",
+        });
+        setAvailableBalance(0);
+        setBaseFund(0);
+      }
+    } catch {
+      addToast({
+        title: 'Failed to load balance',
+        color: "danger",
+      });
+      setAvailableBalance(0);
+      setBaseFund(0);
+    }
+  }
+
+  // quick-pick handlers for Trade Fund
+  const pickTradeFund = (pct: number) => {
+    setTradeFund(pct.toString());
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!name.trim()) {
+      addToast({
+        title: 'Bot name is required',
+        color: "warning",
+      });
+    }
+    if (!symbol.trim()) {
+      addToast({
+        title: 'Symbol is required',
+        color: "warning",
+      });
+    }
+
+    // format symbol
+    let formatted = symbol.toUpperCase();
+    if (!formatted.includes('/')) {
+      if (formatted.endsWith('USDT')) formatted = formatted.replace(/USDT$/, '/USDT');
+      else if (formatted.endsWith('USDC')) formatted = formatted.replace(/USDC$/, '/USDC');
+    }
+
+    setLoading(true)
+    handleBotDeploy({
+      name: name.trim(),
+      accountId: selectedAccountId?.toString() ?? '0',
+      symbol: formatted,
+      baseFund,
+      tradeFund: parseFloat(tradeFund),
+      leverage,
+      riskStrategy,
+      compoundPositionSizing,
+      takeProfit,
+      stopLoss,
+      indicator,
+      timeframe,
+      additionalIndicators,
+      strategy: indicator,
+      strategyParams: defaultStrategyParams[indicator] || {}
+    })
+      .then((response) => {
+        if (response.success) {
+          addToast({
+            title: "Bot deployed successfully",
+            color: "success",
+          });
+          props.onOpenChange()
+        } else {
+          addToast({
+            title: response.error || 'Failed to deploy bot',
+            description: 'Try again later !',
+            color: "danger",
+          });
+        }
+      }).catch(() => {
+        addToast({
+          title: "An unexpected error occurred while deploying the bot",
+          description: 'Try again later !',
+          color: "danger",
+        });
+      })
+      .finally(() => {
+        setLoading(false)
+      });
+  };
+
+  return (
+    <div className="py-4">
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Account */}
+        <div>
+          <Input
+            className="mb-4"
+            label="Bot Name"
+            type="text"
+            required
+            value={name}
+            onChange={e => setName(e.target.value)}
+          />
+          <Autocomplete
+            label="Account"
+            isClearable={false}
+            items={accounts}
+            placeholder="Select an account"
+            onSelectionChange={(selectedKey: Key | null) => handleAccountChange(selectedKey)}
+          >
+            {accounts.map((acc, index) => {
+              return (
+                <React.Fragment key={index}>
+                  {acc._id &&
+                    <AutocompleteItem key={acc._id} className="capitalize" textValue={acc.name}>
+                      <span className="capitalize">
+                        {acc.name}
+                      </span>
+                    </AutocompleteItem>
+                  }
+                </React.Fragment>
+              )
+            })}
+          </Autocomplete>
+        </div>
+
+        {/* Symbol & Balance */}
+        <div>
+          <Autocomplete
+            label="Symbol"
+            isClearable={false}
+            defaultItems={symbols}
+            placeholder="Select a symbol"
+            onSelectionChange={(e) => e !== null ? setSymbol(e.toString()) : 'BTC/USDT'}
+          >
+            {symbols.map((s, index) => {
+              return (
+                <React.Fragment key={index}>
+                  {s._id &&
+                    <AutocompleteItem key={s.symbol} className="capitalize" textValue={s.symbol}>
+                      <span className="capitalize">
+                        {s.symbol}
+                      </span>
+                    </AutocompleteItem>
+                  }
+                </React.Fragment>
+              )
+            })}
+          </Autocomplete>
+          <p className="mt-1 text-sm text-gray-600">
+            Available balance: <strong>{availableBalance.toFixed(2)} USDT</strong>
+          </p>
+        </div>
+
+        {/* Trade Fund */}
+        <div>
+          <Input
+            label="Trade Fund (%)"
+            minLength={1}
+            maxLength={100}
+            type="number"
+            required
+            value={tradeFund}
+            onChange={e => setTradeFund(e.target.value)}
+          />
+          <div className="flex items-center justify-between mt-2 gap-3">
+            {[25,50,75,100].map(p => (
+              <button
+                key={p}
+                type="button"
+                className="w-1/4 py-2 rounded-2xl bg-default-100 text-[13px]"
+                onClick={() => pickTradeFund(p)}
+              >
+                {p}%
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Leverage */}
+        <div>
+          <Autocomplete
+            label="Leverage"
+            isClearable={false}
+            allowsEmptyCollection={false}
+            onSelectionChange={e => e !== null ? setLeverage(Number(e.toString())) : 1}
+          >
+            {leverageOptions.map((lv) => {
+              return (
+                <AutocompleteItem key={lv} className="capitalize" textValue={lv.toString() + 'x'}>
+                  {lv}x
+                </AutocompleteItem>
+              )
+            })}
+          </Autocomplete>
+        </div>
+
+        {/* Risk Strategy */}
+        <div>
+          <Autocomplete
+            label="Risk Strategy"
+            isClearable={false}
+            onSelectionChange={e => e !== null ? setRiskStrategy(e.toString()) : 'KellyCriterionStrategy'}
+          >
+            {riskStrategyOptions.map((rs) => {
+              return (
+                <AutocompleteItem key={rs} className="capitalize" textValue={rs}>
+                  {rs}
+                </AutocompleteItem>
+              )
+            })}
+          </Autocomplete>
+        </div>
+
+        {/* Compound Toggle */}
+        <div className="flex items-center">
+          <Checkbox
+            defaultSelected
+            color="primary"
+            onChange={e => setCompoundPositionSizing(e.target.checked)}
+          >
+            Use compound position sizing
+          </Checkbox>
+        </div>
+
+        {/* Take Profit */}
+        <div>
+          <Input
+            label="Take Profit"
+            step={0.01}
+            type="number"
+            defaultValue={takeProfit.toString()}
+            onChange={e => setTakeProfit(Number(e.target.value))}
+          />
+        </div>
+
+        {/* Stop Loss */}
+        <div>
+          <Input
+            label="Stop Loss"
+            step={0.01}
+            type="number"
+            defaultValue={stopLoss.toString()}
+            onChange={e => setStopLoss(Number(e.target.value))}
+          />
+        </div>
+
+        {/* Primary Indicator & Timeframe */}
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Autocomplete
+              label="Indicator"
+              isClearable={false}
+              onSelectionChange={e => e !== null ? setIndicator(e.toString()) : 'RSI'}
+            >
+              {indicatorOptions.map((ind) => {
+                return (
+                  <AutocompleteItem key={ind} className="capitalize" textValue={ind}>
+                    {ind}
+                  </AutocompleteItem>
+                )
+              })}
+            </Autocomplete>
+          </div>
+          <div>
+            <Autocomplete
+              label="Timeframe"
+              isClearable={false}
+              onSelectionChange={e => e !== null ? setTimeframe(e.toString()) : '1h'}
+            >
+              {timeframeOptions.map((tf) => {
+                return (
+                  <AutocompleteItem key={tf} className="capitalize" textValue={tf}>
+                    {tf}
+                  </AutocompleteItem>
+                )
+              })}
+            </Autocomplete>
+          </div>
+        </div>
+
+        {/* Additional Indicators */}
+        <div>
+          {additionalIndicators.map((ai, i) => (
+            <div key={i} className="grid grid-cols-2 gap-4 mb-4">
+              <Autocomplete
+                label="Indicator"
+                isClearable={false}
+                onChange={e =>
+                  setAdditionalIndicators(list => {
+                    const nxt = [...list];
+                    nxt[i].indicator = e.target.value;
+                    return nxt;
+                  })
+                }
+              >
+                {indicatorOptions.map((ind) => {
+                  return (
+                    <AutocompleteItem key={ind} className="capitalize" textValue={ind}>
+                      {ind}
+                    </AutocompleteItem>
+                  )
+                })}
+              </Autocomplete>
+              <Autocomplete
+                label="Timeframe"
+                isClearable={false}
+                onChange={e =>
+                  setAdditionalIndicators(list => {
+                    const nxt = [...list];
+                    nxt[i].timeframe = e.target.value;
+                    return nxt;
+                  })
+                }
+              >
+                {timeframeOptions.map((tf) => {
+                  return (
+                    <AutocompleteItem key={tf} className="capitalize" textValue={tf}>
+                      {tf}
+                    </AutocompleteItem>
+                  )
+                })}
+              </Autocomplete>
+            </div>
+          ))}
+          <div className="flex justify-between items-center mb-2">
+            <button
+              className="flex items-center gap-3"
+              type="button"
+              onClick={() =>
+                setAdditionalIndicators([
+                  ...additionalIndicators,
+                  { indicator: 'RSI', timeframe: '1m' }
+                ])
+              }
+            >
+              <div className="rounded-full w-6 h-6 bg-default-100 flex items-center justify-center my-4">
+                <PlusIcon strokeWidth={'2.5'} />
+              </div>
+              <span className="text-[14px]">Add Indicator</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Deploy button */}
+        <div>
+          <Button
+            type="submit"
+            isLoading={loading}
+            disabled={loading}
+            className="w-full px-4 dark:bg-white dark:hover:bg-gray-200 transition-all duration-300 dark:text-black font-semibold rounded-2xl text-[14px] py-3"
+          >
+            Start a Bot
+          </Button>
+        </div>
+      </form>
+    </div>
+  );
+}

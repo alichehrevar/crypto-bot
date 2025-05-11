@@ -9,6 +9,8 @@ import CloseBotModal from "./modals/closeBotModal";
 import PlayPauseBotModal from "./modals/playPauseBotModal";
 
 export default function TechnicalBotsList() {
+
+  const [isLoading, setIsLoading] = useState<boolean>(true)
   const [deployedBots, setDeployedBots] = useState<Bot[]>([]);
 
   const tableHeaderItems = [
@@ -26,6 +28,7 @@ export default function TechnicalBotsList() {
   ];
 
   useEffect(() => {
+    setIsLoading(true)
     fetchDeployedBots()
       .then((response: DeployedBotsResponse) => {
         if (response.success) {
@@ -42,6 +45,9 @@ export default function TechnicalBotsList() {
           title: "Error getting deployed bots!",
           color: "danger"
         });
+      })
+      .finally(() => {
+        setIsLoading(false);
       });
   }, []);
 
@@ -108,7 +114,10 @@ export default function TechnicalBotsList() {
           </div>
         </React.Fragment>
       ))}
-      {deployedBots.length === 0 &&
+      {isLoading &&
+        <div className="flex items-center justify-center bg-default-100 rounded-2xl h-[70px]">Loading deployed bots ....</div>
+      }
+      {!isLoading && deployedBots.length === 0 &&
         <div className="flex items-center justify-center bg-default-100 rounded-2xl h-[70px]">No bots deployed yet.</div>
       }
     </div>

@@ -1,5 +1,6 @@
 export type DefaultBotConfigForm = {
   name: string;
+  accountId: string;
   symbol: string;
   baseFund: number;
   tradeFund: number;

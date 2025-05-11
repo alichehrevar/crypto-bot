@@ -61,8 +61,8 @@ export const ArrowDownIcon = ({ className = 'size-4' }) => (
   </svg>
 );
 
-export const PlusIcon = ({ className = "size-4", stroke = "currentColor" }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke={stroke}
+export const PlusIcon = ({ className = "size-4", stroke = "currentColor", strokeWidth = "1.5" }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={strokeWidth} stroke={stroke}
        className={className}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
   </svg>
