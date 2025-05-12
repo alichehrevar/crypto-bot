@@ -6,7 +6,7 @@ import { Divider } from "@heroui/react";
 
 import PnLSection from "@/components/profile/dashboard/PnLSection";
 import AssetSection from "@/components/profile/dashboard/AssetSection";
-import CryptoCurrencyReportSection from "@/components/profile/dashboard/CryptoCurrencyReportSection";
+import CryptoCurrencyReportSection from "@/components/profile/dashboard/TopMovers";
 import TechnicalBotsList from "@/components/profile/bots/technical/TechnicalBotsList";
 import { ArrowDownIcon, PlusIcon } from "@/utils/icons";
 import DeployBotModal from "@/components/profile/bots/deploy/DeployBotModal";
