@@ -16,6 +16,7 @@ import { WalletBalance } from "@/types/profile/WalletBalanceType";
 import { DefaultBotConfigForm } from "@/types/profile/bots/defaultBotConfigForm";
 import { PlusIcon } from "@/utils/icons";
 import { sendRequest } from "@/actions/post";
+import { BotProps } from "@/types/profile/bots/StrategyParams";
 
 /**
  * Currency represents this symbol list struct
@@ -26,6 +27,16 @@ interface Currency {
 }
 
 export default function DefaultDeployBotForm(props: {onOpenChange: () => void}) {
+
+  // strategy & indicator metadata
+  const [botProps, setBotProps] = useState<BotProps>({
+    riskStrategyOptions: [],
+    indicatorOptions: [],
+    OptMethod: [],
+    timeframeOptions: [],
+    defaultStrategyParams: {}
+  });
+
   // form state
   const [name, setName] = useState('');
   const [symbol, setSymbol] = useState('BTC/USDT');
@@ -36,6 +47,7 @@ export default function DefaultDeployBotForm(props: {onOpenChange: () => void}) 
   const [baseFund, setBaseFund] = useState(0);
   const [tradeFund, setTradeFund] = useState<string>('');
   const [leverage, setLeverage] = useState<number>(1);
+  const [leverageOptions, setLeverageOptions] = useState<number[]>([]);
   const [riskStrategy, setRiskStrategy] = useState<string>('KellyCriterionStrategy');
   const [compoundPositionSizing, setCompoundPositionSizing] = useState(true);
   const [takeProfit, setTakeProfit] = useState(1.02);
@@ -47,32 +59,6 @@ export default function DefaultDeployBotForm(props: {onOpenChange: () => void}) 
   >([]);
   const [symbols, setSymbols] = useState<Currency[]>([]);
   const [loading, setLoading] = useState<boolean>(false)
-
-  // defaults & options
-  const riskStrategyOptions = [
-    'KellyCriterionStrategy',
-    'MartingaleStrategy',
-    'MirroredMartingaleStrategy',
-    'SimpleStrategy'
-  ];
-  const indicatorOptions = [
-    'RSI','MACD','MA_Crossover','Donchian','Volume',
-    'Heikin_Ashi','Combined_RSI_MACD','Bollinger_Bands','Stochastic_RSI'
-  ];
-  const timeframeOptions = ['1m','5m','15m','30m','1h','4h','1d','1w'];
-  const leverageOptions = Array.from({ length: 100 }, (_, i) => i + 1);
-
-  const defaultStrategyParams: Record<string, object> = {
-    RSI: { period: 14, overbought: 70, oversold: 30 },
-    MACD: { shortPeriod: 12, longPeriod: 26, signalPeriod: 9 },
-    MA_Crossover: { shortPeriod: 5, longPeriod: 20 },
-    Donchian: { period: 20 },
-    Volume: { period: 14 },
-    Heikin_Ashi: {},
-    Combined_RSI_MACD: { parameters: { confirmation_window: 6 } },
-    Bollinger_Bands: { period: 20, stdDev: 2 },
-    Stochastic_RSI: { period: 14, kPeriod: 3, dPeriod: 3 }
-  };
 
   // fetch symbols & accounts on mount
   useEffect(() => {
@@ -128,7 +114,50 @@ export default function DefaultDeployBotForm(props: {onOpenChange: () => void}) 
         });
       }
     })();
+    (async () => {
+      try {
+        const botPropsResponse = await getData('/bots/botProps');
+        if (botPropsResponse.success) {
+          setBotProps(botPropsResponse.props);
+        } else {
+          addToast({
+            title: 'Failed to load bot properties',
+            color: "danger",
+          });
+        }
+      } catch {
+        addToast({
+          title: 'Error fetching bot properties',
+          color: "danger",
+        });
+      }
+    })()
   }, []);
+
+  // whenever account or symbol changes, fetch leverage‐options
+  useEffect(() => {
+    if (!selectedAccountId || !symbol) return;
+    (async () => {
+      try {
+        console.log(selectedAccountId)
+        const url = `/accounts/${selectedAccountId}/leverage-options?symbol=${encodeURIComponent(
+          symbol
+        )}`;
+        const { success, leverages } = await getData(url);
+        if (success) {
+          setLeverageOptions(leverages)
+        } else {
+          addToast({
+            title: "No Leverage",
+            color: "danger",
+          });
+        }
+      } catch {
+        // fallback 1–100
+        setLeverageOptions(Array.from({ length: 100 }, (_, i) => i + 1));
+      }
+    })();
+  }, [selectedAccountId, symbol]);
 
   // Handler for bot deployment.
   const handleBotDeploy = async (config: DefaultBotConfigForm) => {
@@ -222,7 +251,7 @@ export default function DefaultDeployBotForm(props: {onOpenChange: () => void}) 
       timeframe,
       additionalIndicators,
       strategy: indicator,
-      strategyParams: defaultStrategyParams[indicator] || {}
+      strategyParams: botProps.defaultStrategyParams[indicator] || {}
     })
       .then((response) => {
         if (response.success) {
@@ -364,7 +393,7 @@ export default function DefaultDeployBotForm(props: {onOpenChange: () => void}) 
             label="Risk Strategy"
             onSelectionChange={e => e !== null ? setRiskStrategy(e.toString()) : 'KellyCriterionStrategy'}
           >
-            {riskStrategyOptions.map((rs) => {
+            {botProps.riskStrategyOptions.map((rs: string) => {
               return (
                 <AutocompleteItem key={rs} className="capitalize" textValue={rs}>
                   {rs}
@@ -415,7 +444,7 @@ export default function DefaultDeployBotForm(props: {onOpenChange: () => void}) 
               label="Indicator"
               onSelectionChange={e => e !== null ? setIndicator(e.toString()) : 'RSI'}
             >
-              {indicatorOptions.map((ind) => {
+              {botProps.indicatorOptions.map((ind: string) => {
                 return (
                   <AutocompleteItem key={ind} className="capitalize" textValue={ind}>
                     {ind}
@@ -430,7 +459,7 @@ export default function DefaultDeployBotForm(props: {onOpenChange: () => void}) 
               label="Timeframe"
               onSelectionChange={e => e !== null ? setTimeframe(e.toString()) : '1h'}
             >
-              {timeframeOptions.map((tf) => {
+              {botProps.timeframeOptions.map((tf: string) => {
                 return (
                   <AutocompleteItem key={tf} className="capitalize" textValue={tf}>
                     {tf}
@@ -458,7 +487,7 @@ export default function DefaultDeployBotForm(props: {onOpenChange: () => void}) 
                   })
                 }
               >
-                {indicatorOptions.map((ind) => {
+                {botProps.indicatorOptions.map((ind: string) => {
                   return (
                     <AutocompleteItem key={ind} className="capitalize" textValue={ind}>
                       {ind}
@@ -479,7 +508,7 @@ export default function DefaultDeployBotForm(props: {onOpenChange: () => void}) 
                   })
                 }
               >
-                {timeframeOptions.map((tf) => {
+                {botProps.timeframeOptions.map((tf: string) => {
                   return (
                     <AutocompleteItem key={tf} className="capitalize" textValue={tf}>
                       {tf}

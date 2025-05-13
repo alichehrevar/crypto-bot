@@ -1,6 +1,6 @@
 import React from "react";
 import { useEffect, useState } from "react";
-import { addToast } from "@heroui/react";
+import { addToast, Spinner } from "@heroui/react";
 
 import TradesList from "./TradesList";
 import CloseBotModal from "./modals/closeBotModal";
@@ -117,7 +117,10 @@ export default function TechnicalBotsList() {
         </React.Fragment>
       ))}
       {isLoading &&
-        <div className="flex items-center justify-center bg-default-100 rounded-2xl h-[70px]">Loading deployed bots ....</div>
+        <div className="flex items-center justify-center bg-default-100 rounded-2xl h-[70px]">
+          <span>Loading deployed bots</span>
+          <Spinner color="primary" variant="wave" size={'sm'} className="ml-3 mb-2" />
+        </div>
       }
       {!isLoading && deployedBots.length === 0 &&
         <div className="flex items-center justify-center bg-default-100 rounded-2xl h-[70px]">No bots deployed yet.</div>
