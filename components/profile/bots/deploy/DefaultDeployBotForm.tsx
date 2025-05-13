@@ -139,7 +139,6 @@ export default function DefaultDeployBotForm(props: {onOpenChange: () => void}) 
     if (!selectedAccountId || !symbol) return;
     (async () => {
       try {
-        console.log(selectedAccountId)
         const url = `/accounts/${selectedAccountId}/leverage-options?symbol=${encodeURIComponent(
           symbol
         )}`;
@@ -147,6 +146,7 @@ export default function DefaultDeployBotForm(props: {onOpenChange: () => void}) 
         if (success) {
           setLeverageOptions(leverages)
         } else {
+          setLeverageOptions([])
           addToast({
             title: "No Leverage",
             color: "danger",
