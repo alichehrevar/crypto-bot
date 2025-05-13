@@ -11,7 +11,7 @@ export default function ProfileLayout ({
   return (
     <section className="w-screen h-screen">
       <div className="flex items-center justify-center w-full">
-        <div className="flex w-1/6 self-stretch">
+        <div className="hidden lg:flex lg:w-1/6 self-stretch">
           <Sidebar />
         </div>
         <div className="flex w-5/6 self-stretch overflow-y-auto scrollbar-hide">

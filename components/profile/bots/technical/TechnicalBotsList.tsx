@@ -9,7 +9,7 @@ import PlayPauseBotModal from "./modals/playPauseBotModal";
 import { Bot, DeployedBotsResponse } from "@/types/profile/bots/DeployedBots";
 import { getData } from "@/actions/get";
 
-export default function TechnicalBotsList() {
+export default function TechnicalBotsList(props: {refreshList: boolean}) {
 
   const [isLoading, setIsLoading] = useState<boolean>(true)
   const [deployedBots, setDeployedBots] = useState<Bot[]>([]);
@@ -28,29 +28,25 @@ export default function TechnicalBotsList() {
     ""
   ];
 
+  const loadBots = async () => {
+    return await fetchDeployedBots();
+  };
+
   useEffect(() => {
-    setIsLoading(true)
-    fetchDeployedBots()
-      .then((response: DeployedBotsResponse) => {
-        if (response.success) {
-          setDeployedBots(response.bots);
-        } else {
-          addToast({
-            title: response.error,
-            color: "danger"
-          });
-        }
+    setIsLoading(true);
+    loadBots()
+      .then((response) => {
+        if (response.success) setDeployedBots(response.bots);
+        else addToast({ title: response.error, color: "danger" });
       })
       .catch(() => {
-        addToast({
-          title: "Error getting deployed bots!",
-          color: "danger"
-        });
+        addToast({ title: "Error getting deployed bots!", color: "danger" });
       })
       .finally(() => {
         setIsLoading(false);
-      });
-  }, []);
+      })
+  }, [props.refreshList]);
+
 
   async function fetchDeployedBots() {
     return getData("/bots");

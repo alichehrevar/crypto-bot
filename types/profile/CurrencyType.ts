@@ -22,4 +22,5 @@ export type SymbolFilter = {
 export type SymbolFilterResponse = {
   success: boolean;
   data: SymbolFilter[];
+  message?: string
 };

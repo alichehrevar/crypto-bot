@@ -1,6 +1,6 @@
 'use client'
 
-import React from "react";
+import React, { useState } from "react";
 import Image from "next/image";
 import { Divider } from "@heroui/react";
 
@@ -12,6 +12,8 @@ import { ArrowDownIcon, PlusIcon } from "@/utils/icons";
 import DeployBotModal from "@/components/profile/bots/deploy/DeployBotModal";
 
 export default function Dashboard() {
+
+  const [refreshBotsList, setRefreshBotsList] = useState<boolean>(false)
 
   return (
     <section className="container px-2 lg:px-8 mt-16 mx-auto">
@@ -38,7 +40,7 @@ export default function Dashboard() {
         </button>
 
         {/* New Bot button */}
-        <DeployBotModal>
+        <DeployBotModal onSuccessAction={() => setRefreshBotsList(true)}>
           <button
             className="inline-flex items-center justify-center w-[120px] h-[40px] bg-white hover:bg-gray-100 text-black rounded-full transition"
           >
@@ -64,7 +66,7 @@ export default function Dashboard() {
         </div>
       </div>
       <div className="grid grid-cols-1 dark:bg-[#161616] bg-white mt-4 rounded-2xl py-6 px-3">
-        <TechnicalBotsList />
+        <TechnicalBotsList refreshList={refreshBotsList} />
       </div>
     </section>
   )

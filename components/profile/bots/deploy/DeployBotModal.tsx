@@ -16,11 +16,18 @@ import DefaultDeployBotForm from "@/components/profile/bots/deploy/DefaultDeploy
 
 export default function DeployBotModal ({
   children,
+  onSuccessAction
 }: {
   children: React.ReactNode;
+  onSuccessAction: () => void
 }) {
 
   const {isOpen, onOpen, onOpenChange} = useDisclosure();
+
+  function closeModal() {
+    onOpenChange()
+    onSuccessAction()
+  }
 
   return (
     <>
@@ -59,9 +66,11 @@ export default function DeployBotModal ({
                     radius={'full'}
                   >
                     <Tab key="default" title="Default">
-                      <DefaultDeployBotForm onOpenChange={onOpenChange} />
+                      <DefaultDeployBotForm mode="default" onCloseAction={closeModal} />
                     </Tab>
-                    <Tab key="optimized" title="Optimized" />
+                    <Tab key="optimized" title="Optimized">
+                      <DefaultDeployBotForm mode="optimized" onCloseAction={closeModal} />
+                    </Tab>
                     <Tab key="dynamic" title="dynamic" />
                   </Tabs>
                 </div>
