@@ -24,7 +24,7 @@ interface Currency {
 }
 
 export interface BotConfigFormProps {
-  mode: 'default' | 'optimized';          // will also add 'dynamic' later
+  mode: 'default' | 'optimized' | 'dynamic';
   onCloseAction: () => void;
 }
 
@@ -122,7 +122,6 @@ export default function BotConfigForm({ mode, onCloseAction }: BotConfigFormProp
   useEffect(() => {
     if (!selectedAccountId || !symbol) return;
     (async () => {
-      console.log('fwemk')
       try {
         const { success, leverages } = await getData(`/accounts/${selectedAccountId}/leverage-options?symbol=${encodeURIComponent(symbol)}`);
         if (success) {
@@ -139,6 +138,7 @@ export default function BotConfigForm({ mode, onCloseAction }: BotConfigFormProp
 
   // fetch balance when account changes
   async function handleAccountChange(accountId: Key | null) {
+    setSelectedAccountId(accountId?.toString())
     try {
       const getBalance = await getData(`/accounts/${accountId}/balance`);
 
