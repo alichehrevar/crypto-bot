@@ -6,7 +6,7 @@ import TradesList from "./TradesList";
 import CloseBotModal from "./modals/closeBotModal";
 import PlayPauseBotModal from "./modals/playPauseBotModal";
 
-import { Bot, DeployedBotsResponse } from "@/types/profile/bots/DeployedBots";
+import { Bot } from "@/types/profile/bots/DeployedBots";
 import { getData } from "@/actions/get";
 
 export default function TechnicalBotsList(props: {refreshList: boolean}) {
