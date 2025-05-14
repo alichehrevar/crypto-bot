@@ -58,8 +58,9 @@ export default function TechnicalBotsList({ refreshList }: { refreshList: boolea
             className="bg-[#1A1A1A] rounded-2xl overflow-hidden transition-shadow hover:shadow-xl"
           >
             {/* summary row */}
-            <div
+            <button
               className="flex items-center justify-between px-6 py-4 cursor-pointer"
+              type="button"
               onClick={() => toggleExpand(idx)}
             >
               <div className="space-y-1">
@@ -72,7 +73,7 @@ export default function TechnicalBotsList({ refreshList }: { refreshList: boolea
               <div className="text-gray-400 transform transition-transform" style={{ transform: isExpanded ? "rotate(180deg)" : "" }}>
                 <ChevronDownIcon />
               </div>
-            </div>
+            </button>
 
             {/* expanded details */}
             {isExpanded && (

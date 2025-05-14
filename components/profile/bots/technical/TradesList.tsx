@@ -1,4 +1,5 @@
 import React from "react";
+
 import { Bot } from "@/types/profile/bots/DeployedBots";
 import { ChevronUpIcon } from "@/utils/icons";
 
@@ -48,11 +49,11 @@ export default function TradesList({ bot, onCollapse }: TradesListProps) {
     <div className="bg-[#1A1A1A] rounded-b-2xl p-4 space-y-3">
       {/* collapse chevron */}
       <div className="flex justify-end">
-        <div onClick={onCollapse}>
+        <button type="button" onClick={onCollapse}>
           <ChevronUpIcon
             className="w-5 h-5 text-gray-400 cursor-pointer"
           />
-        </div>
+        </button>
       </div>
 
       <DetailRow label="POSITIONS" value={bot.accountType} />
