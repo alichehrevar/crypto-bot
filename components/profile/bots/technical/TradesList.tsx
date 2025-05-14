@@ -34,7 +34,7 @@ export default function TradesList({ bot, onCollapse }: TradesListProps) {
 
   // For simplicity, we only show the most recent trade
   const trade = bot.trades[0];
-  const asset = bot.symbol.split("/")[0];
+  // const asset = bot.symbol.split("/")[0];
   const entry = trade.entryPrice;
   const exit = trade.exitPrice;
   const isClosed = exit != null;
