@@ -76,7 +76,7 @@ export default function TopMovers() {
 
       {/* bars container with fixed height so percentages aren’t zero */}
       {!isLoading &&
-        <div className="grid grid-flow-col auto-cols-fr gap-4 items-end h-48">
+        <div className="grid grid-flow-col auto-cols-fr gap-4 items-end h-36">
           {items.map(item => {
             const pct = item.changePct
             const heightPct = (Math.abs(pct) / maxPct) * 100
@@ -94,7 +94,7 @@ export default function TopMovers() {
               </span>
 
                 {/* bar */}
-                <div className="w-8 h-28 flex items-end">
+                <div className="w-8 h-20 flex items-end">
                   <div
                     className={`w-full rounded-t shadow-lg ${
                       isUp

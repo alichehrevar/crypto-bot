@@ -53,8 +53,8 @@ export default function CloseBotModal(props: {botId: string;}) {
 
   return (
     <>
-      <button className="bg-gray-800 hover:bg-gray-700 px-1.5 py-1.5 rounded text-sm" onClick={onOpen}>
-        <PauseIcon className="size-4" />
+      <button className="bg-default-100 hover:bg-default-300 px-4 h-[40px] rounded-2xl text-[13px]" onClick={onOpen}>
+        Pause
       </button>
       <Modal
         backdrop="opaque"

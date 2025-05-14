@@ -3,12 +3,12 @@
 import React, { useState } from "react";
 import Image from "next/image";
 import { Divider } from "@heroui/react";
-
-import PnLSection from "@/components/profile/dashboard/PnLSection";
-import AssetSection from "@/components/profile/dashboard/AssetSection";
-import CryptoCurrencyReportSection from "@/components/profile/dashboard/TopMovers";
-import TechnicalBotsList from "@/components/profile/bots/technical/TechnicalBotsList";
 import { ArrowDownIcon, PlusIcon } from "@/utils/icons";
+
+import AssetSection from "@/components/profile/dashboard/AssetSection";
+import PnLSection from "@/components/profile/dashboard/PnLSection";
+import TopMovers from "@/components/profile/dashboard/TopMovers";
+import TechnicalBotsList from "@/components/profile/bots/technical/TechnicalBotsList";
 import DeployBotModal from "@/components/profile/bots/deploy/DeployBotModal";
 
 export default function Dashboard() {
@@ -54,7 +54,7 @@ export default function Dashboard() {
         </DeployBotModal>
       </div>
       <Divider className="my-10" />
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 min-h-[220px]">
+      <div className="flex flex-row items-center lg:grid overflow-x-auto lg:grid-cols-3 gap-4 min-h-[220px]">
         <div className="flex items-start justify-start flex-col dark:bg-[#161616] bg-white rounded-2xl p-6 gap-4">
           <AssetSection />
         </div>
@@ -62,7 +62,7 @@ export default function Dashboard() {
           <PnLSection />
         </div>
         <div className="flex items-center justify-start flex-col dark:bg-[#161616] bg-white rounded-2xl py-6 px-3 gap-4 h-full">
-          <CryptoCurrencyReportSection />
+          <TopMovers />
         </div>
       </div>
       <div className="grid grid-cols-1 dark:bg-[#161616] bg-white mt-4 rounded-2xl py-6 px-3">

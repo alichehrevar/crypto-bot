@@ -1,116 +1,88 @@
 import React from "react";
-
 import { Bot, Trade } from "@/types/profile/bots/DeployedBots";
-import CloseTradeModal from "@/components/profile/bots/technical/modals/closeTradeModal";
+import { ChevronUpIcon } from "@/utils/icons";
 
-export default function TradesList (props: {bot: Bot; refreshBotsList: () => void}) {
+interface DetailRowProps {
+  label: string;
+  value: string;
+  valueClass?: string;
+}
 
-  const tradeTableHeaderItems = [
-    "Positions",
-    "Date",
-    "Status",
-    "Amount",
-    "Side",
-    "Open Price",
-    "Close Price",
-    "Result"
-  ];
+function DetailRow({ label, value, valueClass }: DetailRowProps) {
+  return (
+    <div className="flex justify-between">
+      <span className="text-gray-400 uppercase text-xs font-semibold">{label}</span>
+      <span className={`text-white text-sm ${valueClass || ""}`}>{value}</span>
+    </div>
+  );
+}
+
+interface TradesListProps {
+  bot: Bot;
+  onCollapse: () => void;
+  refreshBotsList: () => void;
+}
+
+export default function TradesList({ bot, onCollapse }: TradesListProps) {
+  if (!bot.trades || bot.trades.length === 0) {
+    return (
+      <div className="rounded-b-2xl flex items-center justify-start w-full">
+        <p className="text-gray-500 text-center">No trades yet.</p>
+      </div>
+    );
+  }
+
+  // For simplicity, we only show the most recent trade
+  const trade = bot.trades[0];
+  const asset = bot.symbol.split("/")[0];
+  const entry = trade.entryPrice;
+  const exit = trade.exitPrice;
+  const isClosed = exit != null;
+  const current = bot.marketInfo.currentCandle?.price ?? entry;
+  const profit = isClosed
+    ? trade.profit
+    : (current - entry) * trade.quantity;
+  const pct = (((isClosed ? exit! : current) - entry) / entry) * 100;
 
   return (
-    <div className="flex flex-col w-full gap-4 p-4 dark:bg-black rounded-md">
-      <div className="grid grid-cols-9 font-semibold text-sm pb-2 mb-2">
-        {tradeTableHeaderItems.map((item, index) => (
-          <div key={index} className="truncate">
-            {item}
-          </div>
-        ))}
+    <div className="bg-[#1A1A1A] rounded-b-2xl p-4 space-y-3">
+      {/* collapse chevron */}
+      <div className="flex justify-end">
+        <div onClick={onCollapse}>
+          <ChevronUpIcon
+            className="w-5 h-5 text-gray-400 cursor-pointer"
+          />
+        </div>
       </div>
-      {props.bot.trades.map((trade: Trade, tradeIndex) => {
-        const asset = props.bot.symbol.split("/")[0];                         // e.g. "BTC"
-        const entryPrice = trade.entryPrice;
-        const exitPrice = trade.exitPrice;
-        const isClosed = exitPrice != null;
 
-        // current price for unrealized
-        const currentPrice = props.bot.marketInfo.currentCandle?.price ?? entryPrice;
+      <DetailRow label="POSITIONS" value={bot.accountType} />
+      <DetailRow label="DATE" value={new Date(trade.timestamp).toLocaleDateString()} />
+      <DetailRow label="STATUS" value={isClosed ? "Closed" : "Open"} />
 
-        // profit in quote‐currency (e.g. USDT)
-        const profit = isClosed
-          ? trade.profit
-          : (currentPrice - entryPrice) * trade.quantity;
+      <DetailRow
+        label="AMOUNT"
+        value={`${(trade.quantity / bot.marketInfo.baseFund * 100).toFixed(0)}% / ${(
+          (bot.marketInfo.baseFund - trade.quantity * entry) /
+          bot.marketInfo.baseFund *
+          100
+        ).toFixed(0)}%`}
+        valueClass="text-green-400"
+      />
 
-        // percent PnL relative to entry
-        const pct = (((isClosed ? exitPrice! : currentPrice) - entryPrice) / entryPrice) * 100;
+      <DetailRow
+        label="SIDE"
+        value={`${profit >= 0 ? "+" : ""}${pct.toFixed(2)}%`}
+        valueClass={profit >= 0 ? "text-green-400" : "text-red-400"}
+      />
 
-        // status text
-        const statusText = isClosed ? "Closed" : "Open";
+      <DetailRow label="OPEN PRICE" value={`x ${trade.quantity.toFixed(2)}`} />
+      <DetailRow label="CLOSE PRICE" value={isClosed ? `x ${trade.quantity.toFixed(2)}` : "—"} />
 
-        // formatted result
-        let resultText = "—";
-
-        if (isClosed) {
-          resultText = profit >= 0
-            ? `Win (+${pct.toFixed(2)}%)`
-            : `Loss (${pct.toFixed(2)}%)`;
-        }
-
-        return (
-          <div
-            key={tradeIndex}
-            className="grid grid-cols-9 text-[12px] text-sm pb-2 items-center"
-          >
-            <span>{`Position ${tradeIndex + 1}`}</span>
-            <span>
-              {new Date(trade.timestamp).toLocaleString("en-US", {
-                dateStyle: "short",
-                timeStyle: "short",
-                hour12: false
-              })}
-            </span>
-            <span>{statusText}</span>
-            <span
-              className={
-                profit > 0
-                  ? "text-green-500"
-                  : profit < 0
-                    ? "text-red-500"
-                    : ""
-              }
-            >
-              {profit >= 0 ? "+" : ""}
-              {profit.toFixed(2)} {asset}
-            </span>
-            <span className={trade.type === "BUY" ? "text-green-500" : "text-red-500"}>
-              {trade.type === "BUY" ? "Buy" : "Sell"}
-            </span>
-            <span>{entryPrice.toLocaleString(undefined, {
-              minimumFractionDigits: 2,
-              maximumFractionDigits: 2
-            })} USDT</span>
-            <span>
-              {isClosed
-                ? exitPrice!.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " USDT"
-                : "—"}
-            </span>
-            <span
-              className={
-                isClosed
-                  ? profit >= 0
-                    ? "text-green-500"
-                    : "text-red-500"
-                  : ""
-              }
-            >
-              {resultText}
-            </span>
-            <span>
-              {!isClosed && (
-                <CloseTradeModal botId={props.bot._id} tradeId={trade._id} refreshBotsList={() => props.refreshBotsList()} />
-              )}
-            </span>
-          </div>
-        );
-      })}
+      <DetailRow
+        label="RESULT"
+        value={isClosed ? (profit >= 0 ? `Win +${pct.toFixed(2)}%` : `Loss ${pct.toFixed(2)}%`) : "—"}
+        valueClass={isClosed ? (profit >= 0 ? "text-green-400" : "text-red-400") : ""}
+      />
     </div>
-  )
+  );
 }
