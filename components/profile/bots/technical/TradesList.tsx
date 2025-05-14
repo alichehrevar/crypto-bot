@@ -1,5 +1,5 @@
 import React from "react";
-import { Bot, Trade } from "@/types/profile/bots/DeployedBots";
+import { Bot } from "@/types/profile/bots/DeployedBots";
 import { ChevronUpIcon } from "@/utils/icons";
 
 interface DetailRowProps {
