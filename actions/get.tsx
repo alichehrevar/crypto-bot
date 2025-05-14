@@ -12,7 +12,7 @@ export async function getData (url: string) {
                 'Content-Type': 'application/json',
                 Authorization: `Bearer ${nextCookies?.get('token')?.value}`
             },
-            next: { revalidate: 60 }
+            // next: { revalidate: 2 }
         })
 
         return response.json()

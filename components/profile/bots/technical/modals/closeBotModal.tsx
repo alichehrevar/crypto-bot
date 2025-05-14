@@ -14,7 +14,7 @@ import { XIcon } from "@/utils/icons";
 import { CloseTradeResponse } from "@/types/profile/bots/DeployedBots";
 import { deleteRequest } from "@/actions/delete";
 
-export default function CloseBotModal(props: {botId: string;}) {
+export default function CloseBotModal(props: {botId: string; refreshBotsList: () => void}) {
 
   const {isOpen, onOpen, onOpenChange} = useDisclosure();
 
@@ -47,6 +47,7 @@ export default function CloseBotModal(props: {botId: string;}) {
       });
     }
     finally {
+      props.refreshBotsList()
       onOpenChange()
     }
   }

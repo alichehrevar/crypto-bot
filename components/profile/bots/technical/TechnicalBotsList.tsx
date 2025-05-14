@@ -29,12 +29,8 @@ export default function TechnicalBotsList(props: {refreshList: boolean}) {
   ];
 
   const loadBots = async () => {
-    return await fetchDeployedBots();
-  };
-
-  useEffect(() => {
     setIsLoading(true);
-    loadBots()
+    await fetchDeployedBots()
       .then((response) => {
         if (response.success) setDeployedBots(response.bots);
         else addToast({ title: response.error, color: "danger" });
@@ -45,6 +41,10 @@ export default function TechnicalBotsList(props: {refreshList: boolean}) {
       .finally(() => {
         setIsLoading(false);
       })
+  };
+
+  useEffect(() => {
+    loadBots()
   }, [props.refreshList]);
 
 
@@ -84,8 +84,8 @@ export default function TechnicalBotsList(props: {refreshList: boolean}) {
             onClick={() => handleClick(botIndex)}
           >
             <span>Indicator Bot</span>
-            <span>Default</span>
-            <span>BingX</span>
+            <span className="capitalize">{bot.strategy}</span>
+            <span className="capitalize">{bot.accountType}</span>
             <span>{bot.symbol}</span>
             <span>{bot.marketInfo.tradeFund}</span>
             <span>x{bot.tradeInfo.leverage}</span>
@@ -101,14 +101,14 @@ export default function TechnicalBotsList(props: {refreshList: boolean}) {
             </span>
             <div className="flex space-x-2">
               <PlayPauseBotModal botId={bot._id} />
-              <CloseBotModal botId={bot._id} />
+              <CloseBotModal botId={bot._id} refreshBotsList={() => loadBots()} />
             </div>
           </div>
           <div
             className="bot-content max-h-0 overflow-hidden transition-all duration-500 ease-in-out opacity-0"
             id={`bot-content-${botIndex}`}
           >
-            <TradesList bot={bot} />
+            <TradesList bot={bot} refreshBotsList={() => loadBots()} />
           </div>
         </React.Fragment>
       ))}

@@ -3,7 +3,7 @@ import React from "react";
 import { Bot, Trade } from "@/types/profile/bots/DeployedBots";
 import CloseTradeModal from "@/components/profile/bots/technical/modals/closeTradeModal";
 
-export default function TradesList (props: {bot: Bot}) {
+export default function TradesList (props: {bot: Bot; refreshBotsList: () => void}) {
 
   const tradeTableHeaderItems = [
     "Positions",
@@ -105,7 +105,7 @@ export default function TradesList (props: {bot: Bot}) {
             </span>
             <span>
               {!isClosed && (
-                <CloseTradeModal botId={props.bot._id} tradeId={trade._id} />
+                <CloseTradeModal botId={props.bot._id} tradeId={trade._id} refreshBotsList={() => props.refreshBotsList()} />
               )}
             </span>
           </div>

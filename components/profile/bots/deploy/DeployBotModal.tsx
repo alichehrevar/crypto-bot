@@ -11,7 +11,7 @@ import {
 } from "@heroui/react";
 import React from "react";
 
-import DefaultDeployBotForm from "@/components/profile/bots/deploy/DefaultDeployBotForm";
+import DefaultDeployBotForm from "@/components/profile/bots/deploy/BotConfigForm";
 
 
 export default function DeployBotModal ({
@@ -28,6 +28,12 @@ export default function DeployBotModal ({
     onOpenChange()
     onSuccessAction()
   }
+
+  const tabs = [
+    { key: "default",   title: "Default"   },
+    { key: "optimized", title: "Optimized" },
+    // later you can add { key: 'dynamic', title: 'Dynamic' }
+  ] as const;
 
   return (
     <>
@@ -65,12 +71,11 @@ export default function DeployBotModal ({
                     }}
                     radius={'full'}
                   >
-                    <Tab key="default" title="Default">
-                      <DefaultDeployBotForm mode="default" onCloseAction={closeModal} />
-                    </Tab>
-                    <Tab key="optimized" title="Optimized">
-                      <DefaultDeployBotForm mode="optimized" onCloseAction={closeModal} />
-                    </Tab>
+                    {tabs.map(({ key, title }) => (
+                      <Tab key={key} title={title}>
+                        <DefaultDeployBotForm mode={key} onCloseAction={closeModal} />
+                      </Tab>
+                    ))}
                     <Tab key="dynamic" title="dynamic" />
                   </Tabs>
                 </div>

@@ -170,6 +170,7 @@ export default function BotConfigForm({ mode, onCloseAction }: BotConfigFormProp
   const handleDeploy = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
+
     const payload: DefaultBotConfigForm = {
       name,
       accountId: selectedAccountId?.toString() || '',
@@ -184,7 +185,7 @@ export default function BotConfigForm({ mode, onCloseAction }: BotConfigFormProp
       indicator,
       timeframe,
       additionalIndicators: additional,
-      strategy: indicator,
+      strategy: mode,
       strategyParams: botProps.defaultStrategyParams[indicator] || {},
       // optimized extras:
       ...(mode === 'optimized' && {
@@ -199,22 +200,29 @@ export default function BotConfigForm({ mode, onCloseAction }: BotConfigFormProp
       Object.entries(payload).map(([k, v]) => [k, typeof v === 'object' ? JSON.stringify(v) : String(v)])
     );
 
-    const res = await sendRequest(body, '/bots/deploy');
-    setLoading(false);
+    try {
+      const res = await sendRequest(body, '/bots/deploy');
 
-    if (res.success) {
-      addToast({ title: 'Bot deployed!', color: 'success' });
-      onCloseAction();
-    } else {
-      addToast({ title: res.error || 'Deploy failed', color: 'danger' });
+      if (res.success) {
+        addToast({ title: 'Bot deployed!', color: 'success' });
+        onCloseAction();
+      } else {
+        addToast({ title: res.error || 'Deploy failed', color: 'danger' });
+      }
+    } catch {
+      addToast({ title: 'Error deploying bot !', color: 'danger' });
+    } finally {
+      setLoading(false);
+      onCloseAction()
     }
+
   };
 
   return (
     <div className="py-4">
       <form
         className="space-y-4"
-        onSubmit={e => handleDeploy(e)}
+        onSubmit={handleDeploy}
       >
         {/* Bot Name */}
         <Input
@@ -410,6 +418,7 @@ export default function BotConfigForm({ mode, onCloseAction }: BotConfigFormProp
             <Autocomplete
               label="Optimization Method"
               isClearable={false}
+              required
               onSelectionChange={k => k && setOptMethod(k.toString())}
             >
               {botProps.OptMethod.map(m => (
@@ -424,6 +433,7 @@ export default function BotConfigForm({ mode, onCloseAction }: BotConfigFormProp
               type="number"
               min={1}
               value={populationSize.toString()}
+              required
               onChange={e => setPopulationSize(Number(e.target.value))}
             />
 
@@ -432,6 +442,7 @@ export default function BotConfigForm({ mode, onCloseAction }: BotConfigFormProp
               type="number"
               min={1}
               value={generations.toString()}
+              required
               onChange={e => setGenerations(Number(e.target.value))}
             />
           </>

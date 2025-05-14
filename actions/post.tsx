@@ -9,7 +9,7 @@ export async function sendRequest(body: { [p: string]: File | string }, url: str
             method: 'POST',
             headers: {
                 Accept: 'application/json',
-                Authorization: `${nextCookies?.get('token')?.value}`,
+                Authorization: `Bearer ${nextCookies?.get('token')?.value}`,
                 ...(body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
             },
             body: JSON.stringify(body),

@@ -61,6 +61,8 @@ export type Bot = {
     unrealized: number;
     total: number;
   }
+  accountType: string;
+  strategy: string;
   riskStrategy: string;
   __v: number;
 };
