@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { addToast, Spinner, Button } from "@heroui/react";
+import { addToast, Spinner } from "@heroui/react";
 import TradesList from "./TradesList";
 import CloseBotModal from "./modals/closeBotModal";
 import PlayPauseBotModal from "./modals/playPauseBotModal";
