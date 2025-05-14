@@ -61,10 +61,13 @@ export default function BotConfigForm({ mode, onCloseAction }: BotConfigFormProp
   const [symbols, setSymbols] = useState<Currency[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // optimized-only state
+  // optimized-dynamic state
   const [optMethod, setOptMethod] = useState<string>('');
-  const [populationSize, setPopulationSize] = useState(50);
-  const [generations, setGenerations] = useState(20);
+  const [minOptAccuracy, setMinOptAccuracy] = useState(5);
+  const [minSimTrades, setMinSimTrades] = useState(5);
+
+  // dynamic‐only state
+  const [minBotAccuracy, setMinBotAccuracy] = useState(5);
 
   // fetch lookups on mount
   useEffect(() => {
@@ -188,10 +191,13 @@ export default function BotConfigForm({ mode, onCloseAction }: BotConfigFormProp
       strategy: mode,
       strategyParams: botProps.defaultStrategyParams[indicator] || {},
       // optimized extras:
-      ...(mode === 'optimized' && {
+      ...((mode === 'optimized' || mode === 'dynamic') && {
         optimizationMethod: optMethod,
-        populationSize,
-        generations,
+        minOptimizationAccuracy: minOptAccuracy,
+      }),
+      // dynamic extras:
+      ...(mode === 'dynamic' && {
+        minSimulatedTrades: minBotAccuracy,
       }),
     };
 
@@ -412,7 +418,7 @@ export default function BotConfigForm({ mode, onCloseAction }: BotConfigFormProp
         </button>
 
         {/* optimized-only fields */}
-        {mode === 'optimized' && (
+        {(mode === 'optimized' || mode === 'dynamic') && (
           <>
             <Autocomplete
               label="Optimization Method"
@@ -422,27 +428,42 @@ export default function BotConfigForm({ mode, onCloseAction }: BotConfigFormProp
             >
               {botProps.OptMethod.map(m => (
                 <AutocompleteItem key={m} textValue={m}>
-                  {m}
+                  <span className="capitalize">{m}</span>
                 </AutocompleteItem>
               ))}
             </Autocomplete>
 
             <Input
-              label="Population Size"
+              label="Minimum optimization accuracy (%)"
               type="number"
               min={1}
-              value={populationSize.toString()}
+              step={1}
+              value={minOptAccuracy.toString()}
               required
-              onChange={e => setPopulationSize(Number(e.target.value))}
+              onChange={(e) => setMinOptAccuracy(Number(e.target.value))}
             />
 
             <Input
-              label="Generations"
+              label="Minimum simulated trades"
               type="number"
               min={1}
-              value={generations.toString()}
+              value={minSimTrades.toString()}
               required
-              onChange={e => setGenerations(Number(e.target.value))}
+              onChange={(e) => setMinSimTrades(Number(e.target.value))}
+            />
+          </>
+        )}
+
+        {/* --- dynamic-only block --- */}
+        {mode === 'dynamic' && (
+          <>
+            <Input
+              label="Minimum bot accuracy (%)"
+              type="number"
+              min={1}
+              required
+              value={minBotAccuracy.toString()}
+              onChange={(e) => setMinBotAccuracy(Number(e.target.value))}
             />
           </>
         )}

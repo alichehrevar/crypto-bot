@@ -32,7 +32,7 @@ export default function DeployBotModal ({
   const tabs = [
     { key: "default",   title: "Default"   },
     { key: "optimized", title: "Optimized" },
-    // later you can add { key: 'dynamic', title: 'Dynamic' }
+    { key: 'dynamic', title: 'Dynamic' }
   ] as const;
 
   return (
@@ -76,7 +76,6 @@ export default function DeployBotModal ({
                         <DefaultDeployBotForm mode={key} onCloseAction={closeModal} />
                       </Tab>
                     ))}
-                    <Tab key="dynamic" title="dynamic" />
                   </Tabs>
                 </div>
               </ModalBody>
