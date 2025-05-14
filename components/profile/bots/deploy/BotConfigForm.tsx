@@ -205,7 +205,6 @@ export default function BotConfigForm({ mode, onCloseAction }: BotConfigFormProp
 
       if (res.success) {
         addToast({ title: 'Bot deployed!', color: 'success' });
-        onCloseAction();
       } else {
         addToast({ title: res.error || 'Deploy failed', color: 'danger' });
       }
