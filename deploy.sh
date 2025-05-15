@@ -15,3 +15,4 @@ npm run build -- --debug
 
 echo "🚀 Restarting PM2 process..."
 pm2 restart tradingx-front
+
