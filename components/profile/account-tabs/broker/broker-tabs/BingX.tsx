@@ -15,7 +15,7 @@ export default function BingXTab() {
           <Image fill alt="binance" className="object-cover" src="/images/profile/binance-list.png" />
         </div>
       </div>
-      <TokenForm type="okx" />
+      <TokenForm type="bingx" />
     </section>
   )
 }
