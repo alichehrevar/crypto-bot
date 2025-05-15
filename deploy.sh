@@ -1,5 +1,15 @@
 #!/bin/bash
+
+set -e  # Exit on any error
+
+echo "🔄 Pulling latest code..."
 git pull
-npm install
-npm run build
+
+echo "📦 Installing dependencies..."
+npm install --legacy-peer-deps --loglevel=info
+
+echo "🔨 Building the frontend..."
+npm run build -- --progress=true
+
+echo "🚀 Restarting PM2 process..."
 pm2 restart tradingx-front
