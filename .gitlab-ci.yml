@@ -9,5 +9,5 @@ deploy_production:
     - mkdir -p ~/.ssh
     - echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
     - chmod 600 ~/.ssh/id_ed25519
-    - ssh-keyscan -H 116.202.106.79 >> ~/.ssh/known_hosts
-    - ssh root@116.202.106.79 'bash /var/www/html/tradingx.alichv.com/frontend/deploy.sh'
+    - ssh-keyscan -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts
+    - ssh $DEPLOY_USER@$DEPLOY_HOST "bash $DEPLOY_PATH/deploy.sh
