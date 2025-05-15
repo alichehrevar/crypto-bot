@@ -104,17 +104,22 @@ export default function BotConfigForm({ mode, onCloseAction }: BotConfigFormProp
     (async () => {
       try {
         const res = await getData('/bots/botProps');
+        addToast({
+          title: res.toString(),
+          color: "danger",
+        });
         if (!res.success) {
           addToast({
             title: "Error getting bot parameters",
             color: "danger",
           });
+        } else {
+          setBotProps(res.props);
+          // seed defaults
+          setRiskStrategy(res.props.riskStrategyOptions[0] || '');
+          setIndicator(res.props.indicatorOptions[0] || '');
+          setTimeframe(res.props.timeframeOptions[0] || '');
         }
-        setBotProps(res.props);
-        // seed defaults
-        setRiskStrategy(res.props.riskStrategyOptions[0] || '');
-        setIndicator(res.props.indicatorOptions[0] || '');
-        setTimeframe(res.props.timeframeOptions[0] || '');
       } catch {
         addToast({ title: 'Failed to load bot parameters', color: 'danger' });
       }
