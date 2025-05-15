@@ -7,4 +7,7 @@ deploy_production:
     - front
   script:
     - mkdir -p ~/.ssh
+    - echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
+    - chmod 600 ~/.ssh/id_ed25519
+    - ssh-keyscan -H 116.202.106.79 >> ~/.ssh/known_hosts
     - ssh root@116.202.106.79 'bash ~/deploy.sh'
