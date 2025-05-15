@@ -2,6 +2,8 @@
 
 set -e  # Exit on any error
 
+cd "$DEPLOY_PATH"
+
 echo "🔄 Pulling latest code..."
 git pull
 
