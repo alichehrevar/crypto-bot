@@ -11,7 +11,7 @@ echo "📦 Installing dependencies..."
 npm install --legacy-peer-deps --loglevel=info
 
 echo "🔨 Building the frontend..."
-npm run build -- --progress=true
+npm run build -- --debug
 
 echo "🚀 Restarting PM2 process..."
 pm2 restart tradingx-front
