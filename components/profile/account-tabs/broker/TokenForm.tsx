@@ -1,14 +1,43 @@
 import { Accordion, AccordionItem, addToast, Checkbox, Input } from "@heroui/react";
 import { Button } from "@heroui/button";
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 
 import { ChevronLeftIcon } from "@/components/shared/icons";
 import { TokenFormType } from "@/types/profile/settings/tokenFormType";
 import { sendRequest } from "@/actions/post";
+import { getData } from "@/actions/get";
+import { AccountData, AccountResponse } from "@/types/profile/AccountType";
 
 export default function TokenForm(props: {type: 'binance' | 'okx' | 'bingx' | 'bybit'}) {
 
   const [formLoading, setFormLoading] = useState(false);
+  const [accountData, setAccountData] = useState<AccountData>()
+
+  useEffect(() => {
+    setAccountData({
+      _id: '',
+      userId: '',
+      apiKey: '',
+      secretKey: '',
+      createdAt: '',
+    })
+    getAccountData()
+      .then((accountData: AccountResponse) => {
+        if (accountData.account) {
+          setAccountData(accountData.account)
+        }
+      })
+      .catch(() => {
+        addToast({
+          title: "Error getting account info",
+          color: "danger",
+        });
+      })
+  }, [props.type]);
+
+  async function getAccountData () {
+    return await getData(`/accounts/${props.type}`)
+  }
 
   async function handleSubmit (event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -41,6 +70,7 @@ export default function TokenForm(props: {type: 'binance' | 'okx' | 'bingx' | 'b
         label="API Key"
         name="apiKey"
         type="text"
+        value={accountData?.apiKey}
         variant="bordered"
       />
       <Input
@@ -52,6 +82,7 @@ export default function TokenForm(props: {type: 'binance' | 'okx' | 'bingx' | 'b
         label="API Secret"
         name="secretKey"
         type="text"
+        value={accountData?.secretKey}
         variant="bordered"
       />
       {props.type === 'okx' &&
