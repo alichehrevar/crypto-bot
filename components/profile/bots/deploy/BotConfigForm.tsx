@@ -84,7 +84,10 @@ export default function BotConfigForm({ mode, onCloseAction }: BotConfigFormProp
     (async () => {
       try {
         const res: AccountsResponse = await getData('/accounts');
-        if (!res.accounts) throw new Error('no accounts');
+        if (!res.accounts) {
+          addToast({ title: 'No accounts found !', color: 'danger' });
+          return;
+        }
         const arr = Object.entries(res.accounts).map(([exchange, acc]) => ({
           ...acc,
           _id: acc._id!,
@@ -244,20 +247,26 @@ export default function BotConfigForm({ mode, onCloseAction }: BotConfigFormProp
 
         {/* Account */}
         <Autocomplete
+          id="Account"
           label="Account"
           isClearable={false}
           items={accounts}
           onSelectionChange={(k: Key | null) => handleAccountChange(k)}
         >
-          {accounts.map(acc => (
-            <AutocompleteItem key={acc._id} textValue={acc.name}>
-              {acc.name}
-            </AutocompleteItem>
+          {accounts.map((acc, index) => (
+            <React.Fragment key={index}>
+              {acc._id &&
+                <AutocompleteItem key={acc._id} textValue={acc.name}>
+                  {acc.name}
+                </AutocompleteItem>
+              }
+            </React.Fragment>
           ))}
         </Autocomplete>
 
         {/* Symbol */}
         <Autocomplete
+          id="Symbol"
           label="Symbol"
           isClearable={false}
           defaultItems={symbols}
@@ -298,6 +307,7 @@ export default function BotConfigForm({ mode, onCloseAction }: BotConfigFormProp
 
         {/* Leverage */}
         <Autocomplete
+          id="Leverage"
           label="Leverage"
           isClearable={false}
           allowsEmptyCollection={false}
@@ -312,6 +322,7 @@ export default function BotConfigForm({ mode, onCloseAction }: BotConfigFormProp
 
         {/* Risk Strategy */}
         <Autocomplete
+          id="RiskStrategy"
           label="Risk Strategy"
           isClearable={false}
           onSelectionChange={k => k && setRiskStrategy(k.toString())}
@@ -350,6 +361,7 @@ export default function BotConfigForm({ mode, onCloseAction }: BotConfigFormProp
         {/* Primary Indicator + Timeframe */}
         <div className="grid grid-cols-2 gap-4">
           <Autocomplete
+            id="Indicator"
             label="Indicator"
             isClearable={false}
             onSelectionChange={k => k && setIndicator(k.toString())}
@@ -361,6 +373,7 @@ export default function BotConfigForm({ mode, onCloseAction }: BotConfigFormProp
             ))}
           </Autocomplete>
           <Autocomplete
+            id="Timeframe"
             label="Timeframe"
             isClearable={false}
             onSelectionChange={k => k && setTimeframe(k.toString())}
@@ -377,6 +390,7 @@ export default function BotConfigForm({ mode, onCloseAction }: BotConfigFormProp
         {additional.map((ai, i) => (
           <div key={i} className="grid grid-cols-2 gap-4">
             <Autocomplete
+              id={`Indicator${i}`}
               label="Indicator"
               isClearable={false}
               onSelectionChange={k => {
@@ -392,6 +406,7 @@ export default function BotConfigForm({ mode, onCloseAction }: BotConfigFormProp
               ))}
             </Autocomplete>
             <Autocomplete
+              id="Timeframe"
               label="Timeframe"
               isClearable={false}
               onSelectionChange={k => {
@@ -426,6 +441,7 @@ export default function BotConfigForm({ mode, onCloseAction }: BotConfigFormProp
         {(mode === 'optimized' || mode === 'dynamic') && (
           <>
             <Autocomplete
+              id="Optimization Method"
               label="Optimization Method"
               isClearable={false}
               required

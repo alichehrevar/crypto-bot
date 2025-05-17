@@ -20,6 +20,7 @@ export default function Sidebar() {
           alt="tradingx"
           className="object-contain object-center"
           src="/images/logos/logo.png"
+          priority
         />
       </div>
       {Object.values(MenuItems).map((menuItem, index) => (

@@ -11,7 +11,7 @@ import {
 } from "@heroui/react";
 import React from "react";
 
-import DefaultDeployBotForm from "@/components/profile/bots/deploy/BotConfigForm";
+import BotConfigForm from "@/components/profile/bots/deploy/BotConfigForm";
 
 
 export default function DeployBotModal ({
@@ -73,7 +73,7 @@ export default function DeployBotModal ({
                   >
                     {tabs.map(({ key, title }) => (
                       <Tab key={key} title={title}>
-                        <DefaultDeployBotForm mode={key} onCloseAction={closeModal} />
+                        <BotConfigForm mode={key} onCloseAction={closeModal} />
                       </Tab>
                     ))}
                   </Tabs>

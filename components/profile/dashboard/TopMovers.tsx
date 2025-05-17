@@ -50,7 +50,7 @@ export default function TopMovers() {
   return (
     <div className="relative rounded-2xl w-full ">
       {/* header + sort buttons */}
-      <div className="flex justify-between items-center mb-6">
+      <div className={`flex justify-between items-center ${isLoading ? '' : 'mb-6'}`}>
         <h3 className="text-white text-xl font-bold">Big Changes</h3>
         <div className="flex space-x-2">
           <button
