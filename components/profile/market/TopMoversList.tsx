@@ -3,10 +3,10 @@
 import React, { useEffect, useState } from 'react'
 import Image from 'next/image'
 import { addToast } from '@heroui/react'
+import { ChevronUpIcon } from '@heroui/shared-icons'
 
 import { getData } from '@/actions/get'
 import { TopMover, TopMoversResponse } from '@/types/TopMover'
-import { ChevronUpIcon } from '@heroui/shared-icons'
 import { BarsArrowUpIcon } from "@/utils/icons";
 
 export default function TopMovers() {
@@ -60,6 +60,7 @@ export default function TopMovers() {
       <ul className="space-y-4">
         {items.map((item, index) => {
           const isUp = item.changePct >= 0
+
           return (
             <li
               key={index}
@@ -69,10 +70,10 @@ export default function TopMovers() {
               <div className="flex items-center space-x-3">
                 <div className="w-8 h-8 relative">
                   <Image
+                    fill
                     alt={item.symbol}
                     className="w-8 h-8"
                     src={item.imageUrl}
-                    fill
                     onError={(e) => {
                       e.currentTarget.src = '/images/icons/default.svg';
                     }}

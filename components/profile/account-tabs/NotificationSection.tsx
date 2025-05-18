@@ -104,8 +104,8 @@ export default function NotificationSettings() {
             <div className="space-y-4 flex flex-col items-center justify-center">
               <div className="flex justify-center w-48 h-48 relative items-center">
                 <Image
-                  alt="Subscribe QR"
                   fill
+                  alt="Subscribe QR"
                   src="/images/profile/Qrcode.png"
                 />
               </div>
