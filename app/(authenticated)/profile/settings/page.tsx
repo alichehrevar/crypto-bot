@@ -1,5 +1,7 @@
 'use client'
 
+import React, { useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { Tab, Tabs } from "@heroui/react";
 
 import AccountSettingsTab from "@/components/profile/account-tabs/AccountSettings";
@@ -9,18 +11,34 @@ import Subscriptions from "@/components/profile/account-tabs/subscriptions/Subsc
 import NotificationSection from "@/components/profile/account-tabs/NotificationSection";
 
 export default function SettingsPage () {
+
+  const searchParams = useSearchParams()
+
+  const [selected, setSelected] = React.useState("account-settings");
+
+  useEffect(() => {
+    if (searchParams.has('tab')) {
+      setSelected(searchParams.get('tab') ?? 'account-settings')
+    }
+  }, []);
+
   return (
     <div className="container mt-10 relative">
-      <Tabs aria-label="Options" classNames={{
-        base: 'w-full px-4',
-        tabList: 'w-3/5 mx-auto',
-        tab: 'h-10',
-        panel: "w-full flex items-center justify-center mt-4"
-      }}>
+      <Tabs
+        aria-label="Options"
+        classNames={{
+          base: 'w-full px-4',
+          tabList: 'w-3/5 mx-auto',
+          tab: 'h-10',
+          panel: "w-full flex items-center justify-center mt-4"
+        }}
+        selectedKey={selected}
+        onSelectionChange={(e) => setSelected(e.toString())}
+      >
         <Tab key="account-settings" title="Account Settings">
           <AccountSettingsTab />
         </Tab>
-        <Tab key="connect-broker" title="Connect Broker">
+        <Tab key="connect-broker" title="My Brokers">
           <ConnectBrokerTab />
         </Tab>
         <Tab key="io-panel" title="IO Panel">

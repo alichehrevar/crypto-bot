@@ -39,7 +39,7 @@ export const MenuItems = [
   },
   {
     name: 'My Brokers',
-    link: '/profile/brokers',
+    link: '/profile/settings?tab=connect-broker',
     children: []
   },
   {
