@@ -23,8 +23,28 @@ export const MenuItems = [
     ]
   },
   {
-    name: 'Settings',
-    link: '/profile/settings',
+    name: 'Manual Trading',
+    link: '/profile/manual-trading',
     children: []
   },
+  {
+    name: 'Strategy Tester',
+    link: '/profile/strategy-tester',
+    children: []
+  },
+  {
+    name: 'Market Watch',
+    link: '/profile/market',
+    children: []
+  },
+  {
+    name: 'My Brokers',
+    link: '/profile/brokers',
+    children: []
+  },
+  {
+    name: 'Academy',
+    link: '/profile/academy',
+    children: []
+  }
 ]

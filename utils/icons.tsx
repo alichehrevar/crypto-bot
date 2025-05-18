@@ -38,7 +38,21 @@ export const ChevronDownIcon = ({ className = 'size-4' }) => (
   </svg>
 );
 
-export const BarsArrowDownIcon = ({ className = 'size-4' }) => (
+export const ChevronLeftIcon = ({ className = 'size-4' }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor"
+       className={className}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
+  </svg>
+);
+
+export const ChevronRightIcon = ({ className = 'size-4' }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor"
+       className={className}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+  </svg>
+);
+
+export const BarsArrowDownIcon = ({ className = "size-4" }) => (
   <svg className={className} fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"
        xmlns="http://www.w3.org/2000/svg">
     <path d="M3 4.5h14.25M3 9h9.75M3 13.5h9.75m4.5-4.5v12m0 0-3.75-3.75M17.25 21 21 17.25" strokeLinecap="round"
@@ -68,6 +82,24 @@ export const PlusIcon = ({ className = "size-4", stroke = "currentColor", stroke
   </svg>
 );
 
+
+export const Cog8ToothIcon = ({ className = "size-4"}) => (
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor"
+       className={className}>
+    <path strokeLinecap="round" strokeLinejoin="round"
+          d="M10.343 3.94c.09-.542.56-.94 1.11-.94h1.093c.55 0 1.02.398 1.11.94l.149.894c.07.424.384.764.78.93.398.164.855.142 1.205-.108l.737-.527a1.125 1.125 0 0 1 1.45.12l.773.774c.39.389.44 1.002.12 1.45l-.527.737c-.25.35-.272.806-.107 1.204.165.397.505.71.93.78l.893.15c.543.09.94.559.94 1.109v1.094c0 .55-.397 1.02-.94 1.11l-.894.149c-.424.07-.764.383-.929.78-.165.398-.143.854.107 1.204l.527.738c.32.447.269 1.06-.12 1.45l-.774.773a1.125 1.125 0 0 1-1.449.12l-.738-.527c-.35-.25-.806-.272-1.203-.107-.398.165-.71.505-.781.929l-.149.894c-.09.542-.56.94-1.11.94h-1.094c-.55 0-1.019-.398-1.11-.94l-.148-.894c-.071-.424-.384-.764-.781-.93-.398-.164-.854-.142-1.204.108l-.738.527c-.447.32-1.06.269-1.45-.12l-.773-.774a1.125 1.125 0 0 1-.12-1.45l.527-.737c.25-.35.272-.806.108-1.204-.165-.397-.506-.71-.93-.78l-.894-.15c-.542-.09-.94-.56-.94-1.109v-1.094c0-.55.398-1.02.94-1.11l.894-.149c.424-.07.765-.383.93-.78.165-.398.143-.854-.108-1.204l-.526-.738a1.125 1.125 0 0 1 .12-1.45l.773-.773a1.125 1.125 0 0 1 1.45-.12l.737.527c.35.25.807.272 1.204.107.397-.165.71-.505.78-.929l.15-.894Z" />
+    <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+  </svg>
+);
+
+export const ArrowLeftStartOnRectangle = ({ className = "size-4"}) => (
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor"
+       className={className}>
+    <path strokeLinecap="round" strokeLinejoin="round"
+          d="M8.25 9V5.25A2.25 2.25 0 0 1 10.5 3h6a2.25 2.25 0 0 1 2.25 2.25v13.5A2.25 2.25 0 0 1 16.5 21h-6a2.25 2.25 0 0 1-2.25-2.25V15m-3 0-3-3m0 0 3-3m-3 3H15" />
+  </svg>
+);
+
 export function FilterIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
@@ -81,21 +113,25 @@ export function FilterIcon(props: SVGProps<SVGSVGElement>) {
     >
       <polygon points="3 4 21 4 14 11 14 19 10 16 10 11 3 4" />
     </svg>
-  )
+  );
 }
 
 export const GmailIcon = () => (
   <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
     <g clipPath="url(#clip0_5_11420)">
-      <path d="M3.27273 42.009H10.9091V23.4636L0 15.2817V38.7363C0 40.5472 1.46727 42.009 3.27273 42.009Z" fill="#4285F4"/>
-      <path d="M37.0918 42.009H44.7282C46.5391 42.009 48.0009 40.5417 48.0009 38.7363V15.2817L37.0918 23.4636" fill="#34A853"/>
-      <path d="M37.0918 9.28201V23.4638L48.0009 15.282V10.9184C48.0009 6.8711 43.3809 4.56383 40.1463 6.9911" fill="#FBBC04"/>
-      <path d="M10.9082 23.4636V9.28174L23.9991 19.0999L37.09 9.28174V23.4636L23.9991 33.2817" fill="#EA4335"/>
-      <path d="M0 10.9184V15.282L10.9091 23.4638V9.28201L7.85455 6.9911C4.61455 4.56383 0 6.8711 0 10.9184Z" fill="#C5221F"/>
+      <path d="M3.27273 42.009H10.9091V23.4636L0 15.2817V38.7363C0 40.5472 1.46727 42.009 3.27273 42.009Z"
+            fill="#4285F4" />
+      <path d="M37.0918 42.009H44.7282C46.5391 42.009 48.0009 40.5417 48.0009 38.7363V15.2817L37.0918 23.4636"
+            fill="#34A853" />
+      <path d="M37.0918 9.28201V23.4638L48.0009 15.282V10.9184C48.0009 6.8711 43.3809 4.56383 40.1463 6.9911"
+            fill="#FBBC04" />
+      <path d="M10.9082 23.4636V9.28174L23.9991 19.0999L37.09 9.28174V23.4636L23.9991 33.2817" fill="#EA4335" />
+      <path d="M0 10.9184V15.282L10.9091 23.4638V9.28201L7.85455 6.9911C4.61455 4.56383 0 6.8711 0 10.9184Z"
+            fill="#C5221F" />
     </g>
     <defs>
       <clipPath id="clip0_5_11420">
-        <rect width="48" height="48" fill="white"/>
+        <rect width="48" height="48" fill="white" />
       </clipPath>
     </defs>
   </svg>
