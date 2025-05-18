@@ -20,7 +20,7 @@ function DetailRow({ label, value, valueClass }: DetailRowProps) {
 
 interface TradesListProps {
   bot: Bot;
-  onCollapse: () => void;
+  onCollapse?: () => void;
   refreshBotsList: () => void;
 }
 

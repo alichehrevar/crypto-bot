@@ -21,7 +21,7 @@ export default function TopMovers() {
         if (response.success) {
           setItems(response.data)
         } else {
-          throw new Error(response.error || 'Unknown error')
+          addToast({ title: response.error || 'Unknown error', color: "danger" });
         }
       })
       .catch(err => {

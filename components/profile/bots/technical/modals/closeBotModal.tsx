@@ -54,8 +54,9 @@ export default function CloseBotModal(props: {botId: string; refreshBotsList: ()
 
   return (
     <>
-      <button className="bg-default-100 hover:bg-default-300 px-4 h-[40px] rounded-2xl text-[13px]" onClick={onOpen}>
-        Close
+      <button className="bg-default-100 hover:bg-default-300 px-4 lg:px-3 h-[40px] rounded-2xl text-[13px]" onClick={onOpen}>
+        <XIcon className="size-4 hidden lg:flex" />
+        <span className="flex lg:hidden">Close</span>
       </button>
       <Modal
         backdrop="opaque"

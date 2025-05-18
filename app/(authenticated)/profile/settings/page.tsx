@@ -5,6 +5,7 @@ import { Card, CardBody, Tab, Tabs } from "@heroui/react";
 import AccountSettingsTab from "@/components/profile/account-tabs/AccountSettings";
 import ConnectBrokerTab from "@/components/profile/account-tabs/broker/ConnectBroker";
 import IOPanel from "@/components/profile/account-tabs/IOPanel/IOPanel";
+import Subscriptions from "@/components/profile/account-tabs/subscriptions/Subscriptions";
 
 export default function SettingsPage () {
   return (
@@ -25,12 +26,7 @@ export default function SettingsPage () {
           <IOPanel />
         </Tab>
         <Tab key="subscription" title="Subscription">
-          <Card>
-            <CardBody>
-              Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt
-              mollit anim id est laborum.
-            </CardBody>
-          </Card>
+          <Subscriptions />
         </Tab>
         <Tab key="notification" title="Notification">
           <Card>

@@ -74,7 +74,7 @@ export default function BotConfigForm({ mode, onCloseAction }: BotConfigFormProp
     (async () => {
       try {
         const res: SymbolFilterResponse = await getData('/currencies');
-        if (!res.success) throw new Error(res.message || 'no data');
+        if (!res.success) addToast({ title: res.message || 'no data', color: "danger" });
         setSymbols(res.data);
       } catch {
         addToast({ title: 'Failed to load symbols', color: 'danger' });
