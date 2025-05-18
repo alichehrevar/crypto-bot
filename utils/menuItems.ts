@@ -33,7 +33,7 @@ export const MenuItems = [
     children: []
   },
   {
-    name: 'Market Watch',
+    name: 'Market',
     link: '/profile/market',
     children: []
   },

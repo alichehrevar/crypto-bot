@@ -1,9 +1,8 @@
-// components/TradingViewWidget.tsx
 'use client'
 
 import React, { useEffect, useRef, memo } from 'react';
 
-const TradingViewWidget: React.FC = () => {
+const MarketWatchChart: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -47,4 +46,4 @@ const TradingViewWidget: React.FC = () => {
   );
 };
 
-export default memo(TradingViewWidget);
+export default memo(MarketWatchChart);
