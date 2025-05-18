@@ -14,13 +14,43 @@ export default function SettingsPage () {
 
   const searchParams = useSearchParams()
 
-  const [selected, setSelected] = React.useState("account-settings");
+  const tabsList = [
+    {
+      key: 'account-settings',
+      title: 'Account Settings',
+      component: <AccountSettingsTab />
+    },
+    {
+      key: 'connect-broker',
+      title: 'My Brokers',
+      component: <ConnectBrokerTab />
+    },
+    {
+      key: 'io-panel',
+      title: 'IO Panel',
+      component: <IOPanel />
+    },
+    {
+      key: 'subscription',
+      title: 'Subscription',
+      component: <Subscriptions />
+    },
+    {
+      key: 'notification',
+      title: 'Notification',
+      component: <NotificationSection />
+    }
+  ]
+
+  const [selected, setSelected] = React.useState(tabsList[0].key);
 
   useEffect(() => {
-    if (searchParams.has('tab')) {
-      setSelected(searchParams.get('tab') ?? 'account-settings')
+    if (searchParams.has('tab') && tabsList.some(t => t.key === searchParams.get('tab'))) {
+      setSelected(searchParams.get('tab') ?? tabsList[0].key)
+    } else {
+      setSelected(tabsList[0].key)
     }
-  }, []);
+  }, [searchParams]);
 
   return (
     <div className="container mt-10 relative">
@@ -35,21 +65,13 @@ export default function SettingsPage () {
         selectedKey={selected}
         onSelectionChange={(e) => setSelected(e.toString())}
       >
-        <Tab key="account-settings" title="Account Settings">
-          <AccountSettingsTab />
-        </Tab>
-        <Tab key="connect-broker" title="My Brokers">
-          <ConnectBrokerTab />
-        </Tab>
-        <Tab key="io-panel" title="IO Panel">
-          <IOPanel />
-        </Tab>
-        <Tab key="subscription" title="Subscription">
-          <Subscriptions />
-        </Tab>
-        <Tab key="notification" title="Notification">
-          <NotificationSection />
-        </Tab>
+        {tabsList.map((tab) => {
+          return (
+            <Tab key={tab.key} title={tab.title}>
+              {tab.component}
+            </Tab>
+          )
+        })}
       </Tabs>
     </div>
   )
