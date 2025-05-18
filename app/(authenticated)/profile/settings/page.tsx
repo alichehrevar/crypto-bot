@@ -1,6 +1,6 @@
 'use client'
 
-import { Card, CardBody, Tab, Tabs } from "@heroui/react";
+import { Tab, Tabs } from "@heroui/react";
 
 import AccountSettingsTab from "@/components/profile/account-tabs/AccountSettings";
 import ConnectBrokerTab from "@/components/profile/account-tabs/broker/ConnectBroker";
