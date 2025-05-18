@@ -61,7 +61,7 @@ export default function PnLSection() {
           </Tabs>
         </div>
       </div>
-      <div className="h-[160px] w-full">
+      <div className={`h-[160px] w-full ${selectedTab === 'unrealized-pnl' ? 'ml-[-35px] overflow-x-hidden' : ''}`}>
         {selectedTab === 'realized-pnl' && <BarChart />}
         {selectedTab === 'unrealized-pnl' && <RadialBarChart />}
       </div>

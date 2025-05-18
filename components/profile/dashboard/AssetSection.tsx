@@ -6,7 +6,7 @@ export default function AssetSection() {
   return (
     <>
       <h4 className="font-bold text-[16px]">Assets</h4>
-      <div className="h-[160px] w-full">
+      <div className="h-[160px] w-full ml-[-35px] overflow-x-hidden">
         <AssetsPieChart />
       </div>
     </>
