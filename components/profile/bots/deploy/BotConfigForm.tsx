@@ -9,6 +9,7 @@ import {
   Checkbox,
   Button,
 } from '@heroui/react';
+
 import { getData } from '@/actions/get';
 import { ExchangeAccount, AccountsResponse } from '@/types/profile/AccountType';
 import { SymbolFilterResponse } from '@/types/profile/CurrencyType';
@@ -74,6 +75,7 @@ export default function BotConfigForm({ mode, onCloseAction }: BotConfigFormProp
     (async () => {
       try {
         const res: SymbolFilterResponse = await getData('/currencies');
+
         if (!res.success) addToast({ title: res.message || 'no data', color: "danger" });
         setSymbols(res.data);
       } catch {
@@ -84,8 +86,10 @@ export default function BotConfigForm({ mode, onCloseAction }: BotConfigFormProp
     (async () => {
       try {
         const res: AccountsResponse = await getData('/accounts');
+
         if (!res.accounts) {
           addToast({ title: 'No accounts found !', color: 'danger' });
+
           return;
         }
         const arr = Object.entries(res.accounts).map(([exchange, acc]) => ({
@@ -98,6 +102,7 @@ export default function BotConfigForm({ mode, onCloseAction }: BotConfigFormProp
           createdAt: acc.createdAt ?? new Date().toISOString(),
           __v: acc.__v ?? 0,
         }));
+
         setAccounts(arr);
       } catch {
         addToast({ title: 'Failed to load accounts', color: 'danger' });
@@ -107,6 +112,7 @@ export default function BotConfigForm({ mode, onCloseAction }: BotConfigFormProp
     (async () => {
       try {
         const res = await getData('/bots/botProps');
+
         addToast({
           title: res.toString(),
           color: "danger",
@@ -135,6 +141,7 @@ export default function BotConfigForm({ mode, onCloseAction }: BotConfigFormProp
     (async () => {
       try {
         const { success, leverages } = await getData(`/accounts/${selectedAccountId}/leverage-options?symbol=${encodeURIComponent(symbol)}`);
+
         if (success) {
           setLeverageOptions(leverages);
         } else {
@@ -239,8 +246,8 @@ export default function BotConfigForm({ mode, onCloseAction }: BotConfigFormProp
       >
         {/* Bot Name */}
         <Input
-          label="Bot Name"
           required
+          label="Bot Name"
           value={name}
           onChange={e => setName(e.target.value)}
         />
@@ -248,9 +255,9 @@ export default function BotConfigForm({ mode, onCloseAction }: BotConfigFormProp
         {/* Account */}
         <Autocomplete
           id="Account"
-          label="Account"
           isClearable={false}
           items={accounts}
+          label="Account"
           onSelectionChange={(k: Key | null) => handleAccountChange(k)}
         >
           {accounts.map((acc, index) => (
@@ -266,10 +273,10 @@ export default function BotConfigForm({ mode, onCloseAction }: BotConfigFormProp
 
         {/* Symbol */}
         <Autocomplete
-          id="Symbol"
-          label="Symbol"
-          isClearable={false}
           defaultItems={symbols}
+          id="Symbol"
+          isClearable={false}
+          label="Symbol"
           onSelectionChange={k => k && setSymbol(k.toString())}
         >
           {symbols.map(s => (
@@ -284,11 +291,11 @@ export default function BotConfigForm({ mode, onCloseAction }: BotConfigFormProp
 
         {/* Trade Fund % */}
         <Input
-          label="Trade Fund (%)"
-          type="number"
           required
-          min={1}
+          label="Trade Fund (%)"
           max={100}
+          min={1}
+          type="number"
           value={tradeFund}
           onChange={e => setTradeFund(e.target.value)}
         />
@@ -296,8 +303,8 @@ export default function BotConfigForm({ mode, onCloseAction }: BotConfigFormProp
           {[25, 50, 75, 100].map(p => (
             <button
               key={p}
-              type="button"
               className="w-1/4 py-1.5 bg-default-100 text-[14px] rounded-2xl"
+              type="button"
               onClick={() => setTradeFund(String(p))}
             >
               {p}%
@@ -307,10 +314,10 @@ export default function BotConfigForm({ mode, onCloseAction }: BotConfigFormProp
 
         {/* Leverage */}
         <Autocomplete
-          id="Leverage"
-          label="Leverage"
-          isClearable={false}
           allowsEmptyCollection={false}
+          id="Leverage"
+          isClearable={false}
+          label="Leverage"
           onSelectionChange={k => k && setLeverage(Number(k.toString()))}
         >
           {leverageOptions.map(lv => (
@@ -323,8 +330,8 @@ export default function BotConfigForm({ mode, onCloseAction }: BotConfigFormProp
         {/* Risk Strategy */}
         <Autocomplete
           id="RiskStrategy"
-          label="Risk Strategy"
           isClearable={false}
+          label="Risk Strategy"
           onSelectionChange={k => k && setRiskStrategy(k.toString())}
         >
           {botProps.riskStrategyOptions.map(rs => (
@@ -345,15 +352,15 @@ export default function BotConfigForm({ mode, onCloseAction }: BotConfigFormProp
         {/* TP/SL */}
         <Input
           label="Take Profit"
-          type="number"
           step="0.01"
+          type="number"
           value={takeProfit.toString()}
           onChange={e => setTakeProfit(Number(e.target.value))}
         />
         <Input
           label="Stop Loss"
-          type="number"
           step="0.01"
+          type="number"
           value={stopLoss.toString()}
           onChange={e => setStopLoss(Number(e.target.value))}
         />
@@ -362,8 +369,8 @@ export default function BotConfigForm({ mode, onCloseAction }: BotConfigFormProp
         <div className="grid grid-cols-2 gap-4">
           <Autocomplete
             id="Indicator"
-            label="Indicator"
             isClearable={false}
+            label="Indicator"
             onSelectionChange={k => k && setIndicator(k.toString())}
           >
             {botProps.indicatorOptions.map(ind => (
@@ -374,8 +381,8 @@ export default function BotConfigForm({ mode, onCloseAction }: BotConfigFormProp
           </Autocomplete>
           <Autocomplete
             id="Timeframe"
-            label="Timeframe"
             isClearable={false}
+            label="Timeframe"
             onSelectionChange={k => k && setTimeframe(k.toString())}
           >
             {botProps.timeframeOptions.map(tf => (
@@ -391,10 +398,11 @@ export default function BotConfigForm({ mode, onCloseAction }: BotConfigFormProp
           <div key={i} className="grid grid-cols-2 gap-4">
             <Autocomplete
               id={`Indicator${i}`}
-              label="Indicator"
               isClearable={false}
+              label="Indicator"
               onSelectionChange={k => {
                 const nxt = [...additional];
+
                 nxt[i].indicator = k!.toString();
                 setAdditional(nxt);
               }}
@@ -407,10 +415,11 @@ export default function BotConfigForm({ mode, onCloseAction }: BotConfigFormProp
             </Autocomplete>
             <Autocomplete
               id="Timeframe"
-              label="Timeframe"
               isClearable={false}
+              label="Timeframe"
               onSelectionChange={k => {
                 const nxt = [...additional];
+
                 nxt[i].timeframe = k!.toString();
                 setAdditional(nxt);
               }}
@@ -441,10 +450,10 @@ export default function BotConfigForm({ mode, onCloseAction }: BotConfigFormProp
         {(mode === 'optimized' || mode === 'dynamic') && (
           <>
             <Autocomplete
-              id="Optimization Method"
-              label="Optimization Method"
-              isClearable={false}
               required
+              id="Optimization Method"
+              isClearable={false}
+              label="Optimization Method"
               onSelectionChange={k => k && setOptMethod(k.toString())}
             >
               {botProps.OptMethod.map(m => (
@@ -455,21 +464,21 @@ export default function BotConfigForm({ mode, onCloseAction }: BotConfigFormProp
             </Autocomplete>
 
             <Input
+              required
               label="Minimum optimization accuracy (%)"
-              type="number"
               min={1}
               step={1}
+              type="number"
               value={minOptAccuracy.toString()}
-              required
               onChange={(e) => setMinOptAccuracy(Number(e.target.value))}
             />
 
             <Input
-              label="Minimum simulated trades"
-              type="number"
-              min={1}
-              value={minSimTrades.toString()}
               required
+              label="Minimum simulated trades"
+              min={1}
+              type="number"
+              value={minSimTrades.toString()}
               onChange={(e) => setMinSimTrades(Number(e.target.value))}
             />
           </>
@@ -479,10 +488,10 @@ export default function BotConfigForm({ mode, onCloseAction }: BotConfigFormProp
         {mode === 'dynamic' && (
           <>
             <Input
-              label="Minimum bot accuracy (%)"
-              type="number"
-              min={1}
               required
+              label="Minimum bot accuracy (%)"
+              min={1}
+              type="number"
               value={minBotAccuracy.toString()}
               onChange={(e) => setMinBotAccuracy(Number(e.target.value))}
             />

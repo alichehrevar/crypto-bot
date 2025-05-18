@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { addToast, Spinner } from "@heroui/react";
+
 import TradesList from "./TradesList";
 import CloseBotModal from "./modals/closeBotModal";
 import PlayPauseBotModal from "./modals/playPauseBotModal";
+
 import { Bot } from "@/types/profile/bots/DeployedBots";
 import { getData } from "@/actions/get";
 import { ChevronDownIcon } from "@/utils/icons";
@@ -17,6 +19,7 @@ export default function TechnicalBotsList({ refreshList }: { refreshList: boolea
     setIsLoading(true);
     try {
       const resp = await getData("/bots");
+
       if (resp.success) setDeployedBots(resp.bots);
       else addToast({ title: resp.error || "Unknown error", color: "danger" })
     } catch (err: any) {
@@ -33,6 +36,7 @@ export default function TechnicalBotsList({ refreshList }: { refreshList: boolea
   // Desktop toggle
   function handleDesktopClick(botIndex: number) {
     const botContent = document.getElementById(`bot-content-${botIndex}`);
+
     if (botContent && deployedBots[botIndex].trades.length > 0) {
       botContent.classList.toggle("max-h-0");
       botContent.classList.toggle("max-h-120");
@@ -67,7 +71,7 @@ export default function TechnicalBotsList({ refreshList }: { refreshList: boolea
       <div className="space-y-4 lg:hidden">
         {isLoading && (
           <div className="flex items-center justify-center h-24 bg-[#1A1A1A] rounded-2xl">
-            <Spinner variant="wave" color="primary" size="sm" className="mr-2" />
+            <Spinner className="mr-2" color="primary" size="sm" variant="wave" />
             Loading bots…
           </div>
         )}
@@ -148,8 +152,8 @@ export default function TechnicalBotsList({ refreshList }: { refreshList: boolea
                     {/* you could swap this for a "View Trades" button if desired */}
                     <TradesList
                       bot={bot}
-                      onCollapse={() => setExpandedIndex(null)}
                       refreshBotsList={loadBots}
+                      onCollapse={() => setExpandedIndex(null)}
                     />
                     <PlayPauseBotModal botId={bot._id} />
                     <CloseBotModal botId={bot._id} refreshBotsList={loadBots} />
@@ -177,8 +181,17 @@ export default function TechnicalBotsList({ refreshList }: { refreshList: boolea
           deployedBots.map((bot, botIndex) => (
             <React.Fragment key={botIndex}>
               <div
+                aria-controls={`bot-content-${botIndex}`}
                 className="grid grid-cols-11 items-center text-[13px] dark:bg-[#1A1A1A] rounded-md px-4 py-3 cursor-pointer hover:shadow-lg transition-all duration-300"
+                role="button"
+                tabIndex={0}
                 onClick={() => handleDesktopClick(botIndex)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    handleDesktopClick(botIndex);
+                  }
+                }}
               >
                 <span>Indicator Bot</span>
                 <span className="capitalize">{bot.strategy}</span>
@@ -203,8 +216,8 @@ export default function TechnicalBotsList({ refreshList }: { refreshList: boolea
               </div>
 
               <div
-                id={`bot-content-${botIndex}`}
                 className="bot-content max-h-0 overflow-hidden transition-all duration-500 ease-in-out opacity-0"
+                id={`bot-content-${botIndex}`}
               >
                 <TradesList
                   bot={bot}
@@ -218,7 +231,7 @@ export default function TechnicalBotsList({ refreshList }: { refreshList: boolea
         {isLoading && (
           <div className="flex items-center justify-center bg-default-100 rounded-2xl h-[70px]">
             <span>Loading deployed bots</span>
-            <Spinner color="primary" variant="wave" size={'sm'} className="ml-3 mb-2" />
+            <Spinner className="ml-3 mb-2" color="primary" size={'sm'} variant="wave" />
           </div>
         )}
         {!isLoading && deployedBots.length === 0 && (

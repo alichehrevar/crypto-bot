@@ -3,8 +3,8 @@
 import React, { useState } from "react";
 import Image from "next/image";
 import { Divider } from "@heroui/react";
-import { ArrowDownIcon, PlusIcon } from "@/utils/icons";
 
+import { ArrowDownIcon, PlusIcon } from "@/utils/icons";
 import AssetSection from "@/components/profile/dashboard/AssetSection";
 import PnLSection from "@/components/profile/dashboard/PnLSection";
 import TopMovers from "@/components/profile/dashboard/TopMovers";

@@ -60,6 +60,7 @@ const chartData = [
 // mimics your “Balance 60% $94,475” popup
 function BalanceTooltip({ active, payload }: any) {
   if (!active || !payload?.length) return null
+
   return (
     <div className="bg-white/10 backdrop-blur-md rounded p-2 text-white text-xs">
       <div className="font-semibold leading-tight">Balance</div>
@@ -84,16 +85,16 @@ export default function BotSelectionComponent() {
 
         {/* Tabs */}
         <Tabs
-          selectedKey={tab}
-          onSelectionChange={(k) => setTab(k as any)}
           classNames={{
             tabList: 'rounded-full',
             tab: 'px-6 py-3 text-sm font-medium',
           }}
+          selectedKey={tab}
+          onSelectionChange={(k) => setTab(k as any)}
         >
-          <Tab key="technical" value="technical" title="Technical Bot" />
-          <Tab key="dca"       value="dca"       title="DCA Bot"       />
-          <Tab key="grid"      value="grid"      title="Grid"          />
+          <Tab key="technical" title="Technical Bot" value="technical" />
+          <Tab key="dca"       title="DCA Bot"       value="dca"       />
+          <Tab key="grid"      title="Grid"      value="grid"          />
         </Tabs>
       </div>
 
@@ -104,10 +105,10 @@ export default function BotSelectionComponent() {
           <div className="space-y-6 w-2/5">
             {technicalBots.map((bot) => {
               const active = bot.id === selectedBot
+
               return (
-                <div
+                <button
                   key={bot.id}
-                  onClick={() => setSelectedBot(bot.id)}
                   className={`
                     flex justify-between items-center px-6 py-4 rounded-2xl 
                     ${active
@@ -115,6 +116,7 @@ export default function BotSelectionComponent() {
                     : 'border border-white/20'}
                     bg-white/10 backdrop-blur-md cursor-pointer
                   `}
+                  onClick={() => setSelectedBot(bot.id)}
                 >
                   <div className="space-y-1">
                     {/* title + users */}
@@ -149,34 +151,34 @@ export default function BotSelectionComponent() {
                     </div>
                   </div>
                   <bot.Icon />
-                </div>
+                </button>
               )
             })}
           </div>
 
           {/* Right: Chart only as tall as one card */}
           <div className="h-[220px] w-3/5 relative">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer height="100%" width="100%">
               <LineChart data={chartData}>
                 <XAxis
                   dataKey="date"
+                  dy={10}
+                  height={20}
                   stroke="#555"
                   tick={{ fill: '#888', fontSize: 12 }}
-                  height={20}
-                  dy={10}
                 />
                 <Tooltip content={<BalanceTooltip />} cursor={false} />
                 <Line
-                  type="monotone"
                   dataKey="value"
-                  stroke="#4ade80"
-                  strokeWidth={2}
                   dot={{
                     r: 4,
                     fill: '#4ade80',
                     stroke: '#fff',
                     strokeWidth: 2
                   }}
+                  stroke="#4ade80"
+                  strokeWidth={2}
+                  type="monotone"
                 />
               </LineChart>
             </ResponsiveContainer>

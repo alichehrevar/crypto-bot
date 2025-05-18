@@ -2,6 +2,8 @@
 
 import React, { useState } from 'react'
 import { Button, Input } from '@heroui/react'
+import Image from "next/image";
+
 import {
   GmailIcon,
   SmsIcon,
@@ -56,7 +58,9 @@ export default function NotificationSettings() {
   const toggleEvent = (evt: string) => {
     setChosenEvents(prev => {
       const next = new Set(prev)
+
       next.has(evt) ? next.delete(evt) : next.add(evt)
+
       return next
     })
   }
@@ -69,10 +73,10 @@ export default function NotificationSettings() {
         <div className="flex-1 lg:w-96 space-y-4">
           {notificationCards.map((card, i) => {
             const active = i === selectedCard
+
             return (
-              <div
+              <button
                 key={card.title}
-                onClick={() => setSelectedCard(i)}
                 className={`
                   cursor-pointer rounded-lg p-4 transition-all duration-300
                   ${active
@@ -80,6 +84,7 @@ export default function NotificationSettings() {
                   : 'border border-white/20 bg-white/10 backdrop-blur-md'
                 }
                 `}
+                onClick={() => setSelectedCard(i)}
               >
                 <h3 className="text-white text-lg font-medium">
                   {card.title}
@@ -87,7 +92,7 @@ export default function NotificationSettings() {
                 <p className="text-gray-400 mt-1 text-sm line-clamp-1">
                   {card.description}
                 </p>
-              </div>
+              </button>
             )
           })}
         </div>
@@ -98,20 +103,20 @@ export default function NotificationSettings() {
           {selectedCard === -1 && (
             <div className="space-y-4">
               <div className="flex justify-center">
-                <img
-                  src="/images/profile/Qrcode.png"
+                <Image
                   alt="Subscribe QR"
                   className="w-48 h-48"
+                  src="/images/profile/Qrcode.png"
                 />
               </div>
               <p className="text-center text-white">Subscribe to latest news!</p>
               <Input
+                className="max-w-md mx-auto"
                 label="Email"
                 value={newsletterEmail}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                   setNewsletterEmail(e.target.value)
                 }
-                className="max-w-md mx-auto"
               />
             </div>
           )}
@@ -134,13 +139,13 @@ export default function NotificationSettings() {
                 </div>
               </div>
               <Button
-                variant={method.connected ? 'solid' : 'bordered'}
-                size="sm"
                 className={
                   method.connected
                     ? 'bg-white text-black hover:bg-gray-100'
                     : 'border border-white text-white hover:bg-white hover:text-black'
                 }
+                size="sm"
+                variant={method.connected ? 'solid' : 'bordered'}
               >
                 {method.connected ? 'connected' : 'connect'}
               </Button>
@@ -150,6 +155,7 @@ export default function NotificationSettings() {
           {/* “Notification bot” */}
           {selectedCard === 1 && notificationEvents.map(evt => {
             const added = chosenEvents.has(evt)
+
             return (
               <div
                 key={evt}
@@ -157,14 +163,14 @@ export default function NotificationSettings() {
               >
                 <span className="text-white">{evt}</span>
                 <Button
-                  variant={added ? 'solid' : 'bordered'}
-                  size="sm"
-                  onPress={() => toggleEvent(evt)}
                   className={
                     added
                       ? 'bg-white text-black hover:bg-gray-100'
                       : 'border border-white text-white hover:bg-white hover:text-black'
                   }
+                  size="sm"
+                  variant={added ? 'solid' : 'bordered'}
+                  onPress={() => toggleEvent(evt)}
                 >
                   {added ? 'Remove' : 'Add'}
                 </Button>

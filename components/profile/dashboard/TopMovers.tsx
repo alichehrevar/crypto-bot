@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
+import Image from "next/image";
 import { addToast } from "@heroui/react"
 
 import { getData } from "@/actions/get"
@@ -106,13 +107,14 @@ export default function TopMovers() {
                 </div>
 
                 {/* icon */}
-                <img
+                <Image
                   alt={item.symbol}
                   className="w-6 h-6 mt-3"
+                  height={24}
                   src={item.imageUrl}
-                  onError={e => {
-                    ;(e.currentTarget as HTMLImageElement).src =
-                      '/images/icons/default.svg'
+                  width={24}
+                  onError={(e) => {
+                    e.currentTarget.src = '/images/icons/default.svg';
                   }}
                 />
 

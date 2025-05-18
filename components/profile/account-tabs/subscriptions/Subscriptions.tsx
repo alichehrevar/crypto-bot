@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+
 import PricingPlansSection from "@/components/profile/account-tabs/subscriptions/PricingPlansSection";
 import CompareFeatures from "@/components/profile/account-tabs/subscriptions/CompareFeatures";
 
@@ -14,11 +15,11 @@ export default function PricingPage() {
           {['monthly','annually'].map(p => (
             <button
               key={p}
-              onClick={()=>setPeriod(p as any)}
               className={`
                 px-4 py-1 rounded-full text-[14px]
                 ${period===p ? 'bg-white text-black' : 'text-gray-400'}
               `}
+              onClick={()=>setPeriod(p as any)}
             >
               {p[0].toUpperCase()+p.slice(1)}
             </button>

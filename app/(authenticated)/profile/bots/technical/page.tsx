@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState } from "react";
+
 import TechnicalBotsList from "@/components/profile/bots/technical/TechnicalBotsList";
 import DeployBotModal from "@/components/profile/bots/deploy/DeployBotModal";
 import { PlusIcon } from "@/utils/icons";
