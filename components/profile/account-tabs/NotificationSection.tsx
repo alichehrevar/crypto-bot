@@ -1,8 +1,8 @@
 'use client'
 
 import React, { useState } from 'react'
-import { Button, Input } from '@heroui/react'
 import Image from "next/image";
+import { Button, Input } from '@heroui/react'
 
 import {
   GmailIcon,
@@ -78,7 +78,7 @@ export default function NotificationSettings() {
               <button
                 key={card.title}
                 className={`
-                  cursor-pointer rounded-lg p-4 transition-all duration-300
+                  cursor-pointer rounded-lg p-4 transition-all duration-300 w-full flex flex-col items-start
                   ${active
                   ? 'border-1 border-primary bg-transparent'
                   : 'border border-white/20 bg-white/10 backdrop-blur-md'
@@ -89,7 +89,7 @@ export default function NotificationSettings() {
                 <h3 className="text-white text-lg font-medium">
                   {card.title}
                 </h3>
-                <p className="text-gray-400 mt-1 text-sm line-clamp-1">
+                <p className="text-gray-400 mt-1 text-sm line-clamp-1 text-start">
                   {card.description}
                 </p>
               </button>
@@ -101,11 +101,11 @@ export default function NotificationSettings() {
         <div className="flex-1 space-y-4">
           {/* none selected => show QR + newsletter */}
           {selectedCard === -1 && (
-            <div className="space-y-4">
-              <div className="flex justify-center">
+            <div className="space-y-4 flex flex-col items-center justify-center">
+              <div className="flex justify-center w-48 h-48 relative items-center">
                 <Image
                   alt="Subscribe QR"
-                  className="w-48 h-48"
+                  fill
                   src="/images/profile/Qrcode.png"
                 />
               </div>
