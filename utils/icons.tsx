@@ -157,3 +157,206 @@ export const WhatsappIcon = () => (
     <path fillRule="evenodd" clipRule="evenodd" d="M32.4 15.45C30.15 13.2 27.15 12 24 12C17.4 12 12 17.4 12 24C12 26.1 12.6 28.2 13.65 30L12 36L18.3 34.35C20.1 35.25 22.05 35.85 24 35.85C30.6 35.85 36 30.45 36 23.85C36 20.7 34.65 17.7 32.4 15.45ZM24 33.9C22.2 33.9 20.4 33.45 18.9 32.55L18.6 32.4L14.85 33.45L15.9 29.85L15.6 29.4C14.55 27.75 14.1 25.95 14.1 24.15C14.1 18.75 18.6 14.25 24 14.25C26.7 14.25 29.1 15.3 31.05 17.1C33 19.05 33.9 21.45 33.9 24.15C33.9 29.4 29.55 33.9 24 33.9ZM29.4 26.4C29.1 26.25 27.6 25.5 27.3 25.5C27 25.35 26.85 25.35 26.7 25.65C26.55 25.95 25.95 26.55 25.8 26.85C25.65 27 25.5 27 25.2 27C24.9 26.85 24 26.55 22.8 25.5C21.9 24.75 21.3 23.7 21.15 23.4C21 23.1 21.15 22.95 21.3 22.8C21.45 22.65 21.6 22.5 21.75 22.35C21.9 22.2 21.9 22.05 22.05 21.9C22.2 21.75 22.05 21.6 22.05 21.45C22.05 21.3 21.45 19.8 21.15 19.2C21 18.75 20.7 18.75 20.55 18.75C20.4 18.75 20.25 18.75 19.95 18.75C19.8 18.75 19.5 18.75 19.2 19.05C18.9 19.35 18.15 20.1 18.15 21.6C18.15 23.1 19.2 24.45 19.35 24.75C19.5 24.9 21.45 28.05 24.45 29.25C27 30.3 27.45 30 28.05 30C28.65 30 29.85 29.25 30 28.65C30.3 27.9 30.3 27.3 30.15 27.3C30 26.55 29.7 26.55 29.4 26.4Z" fill="white"/>
   </svg>
 );
+
+export const TechnicalChartIcon = () => (
+  <svg width="98" height="98" viewBox="0 0 98 98" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M96.358 96.358H1V1" stroke="#616161" strokeWidth="1.99172" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M13.2471 92.2074V24.7295H26.5706V92.2074" stroke="#616161" strokeWidth="1.99172" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M36.5093 92.2083V41.8135H49.8328V92.2083" stroke="#616161" strokeWidth="1.99172" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M59.772 92.2079V13.3418H73.0955V92.2079" stroke="#616161" strokeWidth="1.99172" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M83.0347 92.2077V57.7568H96.3582V92.2077" stroke="#616161" strokeWidth="1.99172" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M4.78711 24.7295H26.5702" stroke="#616161" strokeWidth="1.99172" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M49.8332 41.8135H26.5703" stroke="#616161" strokeWidth="1.99172" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M73.0951 13.3418H4.78711" stroke="#616161" strokeWidth="1.99172" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M96.358 57.7568H73.0952" stroke="#616161" strokeWidth="1.99172" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
+export const DcaChartIcon = () => (
+  <svg width="82" height="83" viewBox="0 0 82 83" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M55.2305 17.612L68.0505 4.79199H81.2909" stroke="#616161" strokeWidth="1.54384" strokeMiterlimit="10"/>
+    <path d="M36.0673 1C28.0514 1 20.649 3.58661 14.6338 7.96179L36.0673 37.4624V1Z" stroke="#616161" strokeWidth="1.54384" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M61.2445 11.2675C55.2293 6.89228 47.8269 4.30566 39.811 4.30566V40.7681L74.4935 29.499C72.0951 22.1003 67.4003 15.7447 61.2445 11.2675Z" stroke="#616161" strokeWidth="1.54384" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M72.1453 34.2686L37.4629 45.5377L58.8964 75.0384C65.0522 70.5605 69.7469 64.2055 72.1453 56.8068C73.296 53.2578 73.9253 49.4729 73.9253 45.5377C73.9253 41.6025 73.296 37.8176 72.1453 34.2686Z" stroke="#616161" strokeWidth="1.54384" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M37.4631 45.5378L16.0296 16.0371C9.87378 20.5149 5.17903 26.8699 2.78001 34.2686C1.62939 37.8177 1 41.6026 1 45.5378C1 49.473 1.62939 53.2579 2.78001 56.8069C5.17903 64.2056 9.87378 70.5606 16.0296 75.0384C22.0448 79.4142 29.4472 82.0002 37.4631 82.0002C45.4789 82.0002 52.8813 79.4136 58.8965 75.0384L37.4631 45.5378Z" stroke="#616161" strokeWidth="1.54384" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
+export const GridChartIcon = () => (
+  <svg
+    width="86"
+    height="84"
+    viewBox="0 0 86 84"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <path
+      d="M83.4316 77.9067H6.5249V1"
+      stroke="#616161"
+      strokeWidth="1.58789"
+      strokeMiterlimit="10"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M1.43164 6.0933L6.52494 1L11.6182 6.0933"
+      stroke="#616161"
+      strokeWidth="1.58789"
+      strokeMiterlimit="10"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M79.1899 72.8135L84.2832 77.9068L79.1899 83.0001"
+      stroke="#616161"
+      strokeWidth="1.58789"
+      strokeMiterlimit="10"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M27.3827 51.4353C29.128 51.4353 30.5428 50.0206 30.5428 48.2753C30.5428 46.5301 29.128 45.1152 27.3827 45.1152C25.6375 45.1152 24.2227 46.5301 24.2227 48.2753C24.2227 50.0206 25.6375 51.4353 27.3827 51.4353Z"
+      stroke="#616161"
+      strokeWidth="1.58789"
+      strokeMiterlimit="10"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M41.0346 60.116C42.7798 60.116 44.1946 58.7012 44.1946 56.956C44.1946 55.2107 42.7798 53.7959 41.0346 53.7959C39.2893 53.7959 37.8745 55.2107 37.8745 56.956C37.8745 58.7012 39.2893 60.116 41.0346 60.116Z"
+      stroke="#616161"
+      strokeWidth="1.58789"
+      strokeMiterlimit="10"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M52.3222 32.3846C54.0674 32.3846 55.4822 30.9698 55.4822 29.2245C55.4822 27.4792 54.0674 26.0645 52.3222 26.0645C50.5769 26.0645 49.1621 27.4792 49.1621 29.2245C49.1621 30.9698 50.5769 32.3846 52.3222 32.3846Z"
+      stroke="#616161"
+      strokeWidth="1.58789"
+      strokeMiterlimit="10"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M70.3985 39.2776C70.3985 41.0229 68.9837 42.4377 67.239 42.4377C65.4937 42.4377 64.0796 41.0229 64.0796 39.2776C64.0796 37.5323 65.4943 36.1182 67.239 36.1182C68.9837 36.1182 70.3985 37.5329 70.3985 39.2776Z"
+      stroke="#616161"
+      strokeWidth="1.58789"
+      strokeMiterlimit="10"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M69.791 36.7455L81.7367 16.8701"
+      stroke="#616161"
+      strokeWidth="1.58789"
+      strokeMiterlimit="10"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M55.752 30.2637L63.7539 38.4611"
+      stroke="#616161"
+      strokeWidth="1.58789"
+      strokeMiterlimit="10"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M42.2451 53.7601L50.9126 32.3926"
+      stroke="#616161"
+      strokeWidth="1.58789"
+      strokeMiterlimit="10"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M30.2949 50.082L38.1775 54.9717"
+      stroke="#616161"
+      strokeWidth="1.58789"
+      strokeMiterlimit="10"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M11.6182 70.1527L25.3086 51.1533"
+      stroke="#616161"
+      strokeWidth="1.58789"
+      strokeMiterlimit="10"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M21.9921 32.1873C23.7373 32.1873 25.1521 30.7725 25.1521 29.0272C25.1521 27.282 23.7373 25.8672 21.9921 25.8672C20.2468 25.8672 18.832 27.282 18.832 29.0272C18.832 30.7725 20.2468 32.1873 21.9921 32.1873Z"
+      stroke="#616161"
+      strokeWidth="1.58789"
+      strokeMiterlimit="10"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M41.9792 37.1799C41.9792 38.9253 40.5644 40.3394 38.8197 40.3394C37.075 40.3394 35.6597 38.9246 35.6597 37.1799C35.6597 35.4346 37.0744 34.0205 38.8197 34.0205C40.5651 34.0205 41.9792 35.4346 41.9792 37.1799Z"
+      stroke="#616161"
+      strokeWidth="1.58789"
+      strokeMiterlimit="10"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M52.2244 9.96045C53.9693 9.96045 55.3838 8.54592 55.3838 6.80102C55.3838 5.05611 53.9693 3.6416 52.2244 3.6416C50.4795 3.6416 49.0649 5.05611 49.0649 6.80102C49.0649 8.54592 50.4795 9.96045 52.2244 9.96045Z"
+      stroke="#616161"
+      strokeWidth="1.58789"
+      strokeMiterlimit="10"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M75.3805 13.1575C75.3805 14.9028 73.9658 16.3169 72.2211 16.3169C70.4758 16.3169 69.061 14.9022 69.061 13.1575C69.061 11.4122 70.4758 9.99805 72.2211 9.99805C73.9664 9.99805 75.3805 11.4128 75.3805 13.1575Z"
+      stroke="#616161"
+      strokeWidth="1.58789"
+      strokeMiterlimit="10"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M55.7515 7.56445L68.7361 12.3422"
+      stroke="#616161"
+      strokeWidth="1.58789"
+      strokeMiterlimit="10"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M40.0298 33.9828L50.8147 9.96875"
+      stroke="#616161"
+      strokeWidth="1.58789"
+      strokeMiterlimit="10"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M24.9033 30.834L35.9617 35.1945"
+      stroke="#616161"
+      strokeWidth="1.58789"
+      strokeMiterlimit="10"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M11.52 40.8484L19.9173 31.9062"
+      stroke="#616161"
+      strokeWidth="1.58789"
+      strokeMiterlimit="10"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M11.6182 51.4349L37.8753 71.8936L63.0206 51.1533L81.2425 58.31"
+      stroke="#616161"
+      strokeWidth="1.58789"
+      strokeMiterlimit="10"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
