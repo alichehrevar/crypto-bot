@@ -5,6 +5,7 @@ import TechnicalBotsList from "@/components/profile/bots/technical/TechnicalBots
 import DeployBotModal from "@/components/profile/bots/deploy/DeployBotModal";
 import { PlusIcon } from "@/utils/icons";
 import BotSelectionComponent from "@/components/profile/bots/BotSelectionComponent";
+import MarketWatchChart from "@/components/shared/charts/MarketWatchChart";
 
 export default function TechnicalBotsPage() {
 
@@ -12,6 +13,9 @@ export default function TechnicalBotsPage() {
 
   return (
     <div className="container mt-4 relative px-5">
+      <div className="h-[600px]">
+        <MarketWatchChart />
+      </div>
       <BotSelectionComponent />
       <div className="grid grid-cols-1 dark:bg-[#161616] bg-white mt-4 rounded-2xl py-6 px-3">
         <div className="flex items-center justify-between">
