@@ -57,9 +57,9 @@ export default function AccountSettingsTab() {
               placeholder="Select language"
               variant="bordered"
             >
-              <SelectItem key="1">English</SelectItem>
-              <SelectItem key="2">Spanish</SelectItem>
-              <SelectItem key="3">Persian</SelectItem>
+              <SelectItem key="1" textValue={'English'}>English</SelectItem>
+              <SelectItem key="2" textValue={'Spanish'}>Spanish</SelectItem>
+              <SelectItem key="3" textValue={'Persian'}>Persian</SelectItem>
             </Select>
           </li>
           <li className="flex items-center justify-center">
@@ -73,8 +73,8 @@ export default function AccountSettingsTab() {
               placeholder="Select currency"
               variant="bordered"
             >
-              <SelectItem key="1">Dollar</SelectItem>
-              <SelectItem key="2">Euro</SelectItem>
+              <SelectItem key="1" textValue={'Dollar'}>Dollar</SelectItem>
+              <SelectItem key="2" textValue={'Euro'}>Euro</SelectItem>
             </Select>
           </li>
           <li className="flex items-center justify-center">
@@ -88,9 +88,9 @@ export default function AccountSettingsTab() {
               placeholder="Select appearance"
               variant="bordered"
             >
-              <SelectItem key="1">System</SelectItem>
-              <SelectItem key="2">Dark</SelectItem>
-              <SelectItem key="3">Light</SelectItem>
+              <SelectItem key="1" textValue={'System'}>System</SelectItem>
+              <SelectItem key="2" textValue={'Dark'}>Dark</SelectItem>
+              <SelectItem key="3" textValue={'Light'}>Light</SelectItem>
             </Select>
           </li>
           <li className="flex items-center justify-center">
@@ -104,7 +104,7 @@ export default function AccountSettingsTab() {
               placeholder="Select timezone"
               variant="bordered"
             >
-              <SelectItem key="1">UTC</SelectItem>
+              <SelectItem key="1" textValue={'UTC'}>UTC</SelectItem>
             </Select>
           </li>
           <li className="flex items-center justify-center">
@@ -118,7 +118,7 @@ export default function AccountSettingsTab() {
               placeholder="Select indicator"
               variant="bordered"
             >
-              <SelectItem key="1">TURNOVER</SelectItem>
+              <SelectItem key="1" textValue={'TURNOVER'}>TURNOVER</SelectItem>
             </Select>
           </li>
           <li className="flex items-center justify-center">
@@ -132,7 +132,7 @@ export default function AccountSettingsTab() {
               placeholder="Select chat preference"
               variant="bordered"
             >
-              <SelectItem key="1">TURNOVER</SelectItem>
+              <SelectItem key="1" textValue={'TURNOVER'}>TURNOVER</SelectItem>
             </Select>
           </li>
         </ul>
