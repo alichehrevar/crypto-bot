@@ -6,6 +6,7 @@ import AccountSettingsTab from "@/components/profile/account-tabs/AccountSetting
 import ConnectBrokerTab from "@/components/profile/account-tabs/broker/ConnectBroker";
 import IOPanel from "@/components/profile/account-tabs/IOPanel/IOPanel";
 import Subscriptions from "@/components/profile/account-tabs/subscriptions/Subscriptions";
+import NotificationSection from "@/components/profile/account-tabs/NotificationSection";
 
 export default function SettingsPage () {
   return (
@@ -29,12 +30,7 @@ export default function SettingsPage () {
           <Subscriptions />
         </Tab>
         <Tab key="notification" title="Notification">
-          <Card>
-            <CardBody>
-              Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt
-              mollit anim id est laborum.
-            </CardBody>
-          </Card>
+          <NotificationSection />
         </Tab>
       </Tabs>
     </div>
