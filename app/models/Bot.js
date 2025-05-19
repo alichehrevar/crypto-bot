@@ -131,6 +131,12 @@ const botSchema = new Schema({
     cumulativePnL:{ type: Number, default: 0 },
     botTP:      { type: Number, default: 0 },
     botSL:      { type: Number, default: 0 },
+    strategy: {
+        type: String,
+        required: true,
+        enum: ['default', 'optimized', 'dynamic'],
+        default: 'default'
+    },
     accountType: {
         type: String,
         required: true,

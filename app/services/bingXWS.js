@@ -2,6 +2,7 @@ const WebSocket = require('ws');
 const crypto = require('crypto');
 const zlib = require('zlib');
 const Candle = require('../models/Candle');
+const axios = require("axios");
 
 // For Node 18+ the global fetch API is available. If not, you may need to require node-fetch.
 // const fetch = require('node-fetch');
@@ -496,6 +497,16 @@ class BingXWS {
             console.error('[BingXWS] Error executing order:', error);
             throw error;
         }
+    }
+
+    async fetchSymbolInfo(symbol, apiKey) {
+        const resp = await axios.get('https://api.bingx.com/api/v1/common/symbols', {
+            params: { symbol: symbol.replace('/', '') },
+            headers: {
+                'X-API-KEY': apiKey
+            }
+        });
+        return resp.data;
     }
 }
 

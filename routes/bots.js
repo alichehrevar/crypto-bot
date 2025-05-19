@@ -4,6 +4,8 @@ const { validateBotParams } = require('../app/http/middleware/validation');
 const botController = require('../app/http/controllers/botController');
 const authenticate = require('../app/http/middleware/auth'); // Authentication middleware
 
+router.get('/botProps', authenticate, botController.botProps);
+
 // Deploy a new bot.
 router.post('/deploy', authenticate, botController.deployBot);
 

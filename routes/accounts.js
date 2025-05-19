@@ -14,7 +14,9 @@ router.get('/okx', authenticate, accountController.getOkxAccount);
 router.post('/okx', authenticate, accountController.linkOkxAccount);
 
 router.get('/bingx', authenticate, accountController.getBingxAccount);
-router.post('/bingx', authenticate, accountController.addBingxAccount);
+router.post('/bingx', authenticate, accountController.linkBingxAccount);
+
+router.get('/:accountId/leverage-options', authenticate, accountController.getLeverageOptions);
 
 router.get('/:accountId/balance', authenticate, accountController.getAccountBalance);
 

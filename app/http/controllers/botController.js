@@ -36,7 +36,8 @@ exports.deployBot = async (req, res) => {
             riskStrategy, takeProfit, stopLoss,
             indicator, timeframe,
             strategyParams: rawParams,
-            additionalIndicators: rawAddIns
+            additionalIndicators: rawAddIns,
+            strategy
         } = req.body;
 
         // 1) parse strategyParams if it's a JSON string
@@ -106,6 +107,7 @@ exports.deployBot = async (req, res) => {
                 baseFund:  baseFund  != null ? baseFund  : 10000,
                 tradeFund: tradeFund != null ? tradeFund : 50
             },
+            strategy,
             accountType,
             accountId: account._id,
             userId:    user._id,
@@ -389,3 +391,33 @@ exports.closeTrade = async (req, res) => {
         return res.status(500).json({ success: false, error: err.message });
     }
 };
+
+exports.botProps = async (_, res) => {
+
+    const props = {
+        riskStrategyOptions: [
+            'KellyCriterionStrategy',
+            'MartingaleStrategy',
+            'MirroredMartingaleStrategy',
+            'SimpleStrategy'
+        ],
+        indicatorOptions: [
+            'RSI','MACD','MA_Crossover','Donchian','Volume',
+            'Heikin_Ashi','Combined_RSI_MACD','Bollinger_Bands','Stochastic_RSI'
+        ],
+        OptMethod: ['grid', 'bayesian', 'ann'],
+        timeframeOptions: ['1m','5m','15m','30m','1h','4h','1d','1w'],
+        defaultStrategyParams: {
+            RSI: { period: 14, overbought: 70, oversold: 30 },
+            MACD: { shortPeriod: 12, longPeriod: 26, signalPeriod: 9 },
+            MA_Crossover: { shortPeriod: 5, longPeriod: 20 },
+            Donchian: { period: 20 },
+            Volume: { period: 14 },
+            Heikin_Ashi: {},
+            Combined_RSI_MACD: { parameters: { confirmation_window: 6 } },
+            Bollinger_Bands: { period: 20, stdDev: 2 },
+            Stochastic_RSI: { period: 14, kPeriod: 3, dPeriod: 3 }
+        }
+    }
+    return res.json({ success: true, props });
+}

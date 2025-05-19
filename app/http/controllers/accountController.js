@@ -1,3 +1,5 @@
+const axios = require("axios");
+
 // app/http/controllers/accountController.js
 const BinanceAccount = require('../../models/BinanceAccount');
 const OkxAccount = require('../../models/OkxAccount');
@@ -129,7 +131,7 @@ exports.getBingxAccount = async (req, res) => {
 /**
  * Link or update a user's bingX account.
  */
-exports.addBingxAccount = async (req, res) => {
+exports.linkBingxAccount = async (req, res) => {
     try {
         const {apiKey, secretKey} = req.body;
         let bingxAccount = await BingxAccount.findOne({userId: req.user.id})
@@ -206,5 +208,84 @@ exports.getAccountBalance = async (req, res) => {
     } catch (error) {
         console.error('Error fetching account balance:', error.message);
         return res.status(500).json({error: 'Error fetching account balance'});
+    }
+};
+
+exports.getLeverageOptions = async (req, res) => {
+    const { accountId } = req.params;
+    const { symbol }    = req.query;
+
+
+    // 1) find which account
+    let account, type;
+    account = await BinanceAccount.findById(accountId);
+    if (account) type = 'binance';
+    else {
+        account = await OkxAccount.findById(accountId);
+        if (account) type = 'okx';
+        else {
+            account = await BingxAccount.findById(accountId);
+            if (account) type = 'bingx';
+        }
+    }
+    if (!account) return res.status(404).json({ error: 'Account not found' });
+
+    try {
+        let leverages = [];
+        switch (type) {
+            case 'binance':
+                // Binance FUTURES exchangeInfo
+            {
+                const resp = await axios.get('https://fapi.binance.com/fapi/v1/exchangeInfo');
+                const s = resp.data.symbols.find(s => s.symbol === symbol.replace('/',''));
+                if (s) {
+                    const filt = s.filters.find(f=>f.filterType==='LEVERAGE_BRACKET');
+                    // filterType may be different; you may need LEVERAGE or MARKET_LOT_SIZE
+                    const maxLev = +s.marginAsset === 1 ? 125 : 20; // example
+                    for (let l = 1; l <= (filt?.brackets?.[0]?.initialLeverage || maxLev); l++) {
+                        leverages.push(l);
+                    }
+                }
+            }
+                break;
+
+            case 'okx':
+                // OKX API
+                {
+                    const resp = await axios.get('https://www.okx.com/api/v5/public/instruments', {
+                        params: { instType:'SWAP', uly: symbol.replace('/USDT','') }
+                    });
+                    const inst = resp.data.data[0];
+                    const maxLev = +inst.maxLvg;
+                    leverages = Array.from({length: maxLev}, (_,i)=>i+1);
+                }
+                break;
+
+            case 'bingx':
+                // BingX – your own wrapper
+                // 1) fetch all perpetual symbols
+                const resp = await axios.get('https://api.bingx.com/api/v1/market/symbols');
+                // 2) unwrap to the array
+                const all = resp.data?.data?.result || [];
+                // 3) ticker_id is like "BTC-USDT", so convert from "BTC/USDT"
+                const tickerId = symbol.replace('/', '-');
+                const info     = all.find(t => t.ticker_id === tickerId);
+                if (!info) {
+                    return res.status(404).json({ error: `Symbol ${symbol} not found on BingX` });
+                }
+
+                // 4) BingX doesn't explicitly return maxLeverage here,
+                //    so you’ll need to pick a sensible default or call a different endpoint.
+                //    For example, you might assume 50× by default:
+                const maxLev = info.max_leverage ?? 50;
+
+                leverages = Array.from({ length: maxLev }, (_, i) => i + 1);
+                break;
+        }
+
+        return res.json({ success: true, leverages });
+    } catch (err) {
+        console.error('getLeverageOptions error', err);
+        return res.status(500).json({ success: false, error: err.message });
     }
 };
