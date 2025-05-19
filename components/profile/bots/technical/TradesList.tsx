@@ -2,11 +2,9 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import Image from 'next/image'
 import CloseTradeModal from '@/components/profile/bots/technical/modals/closeTradeModal'
 import { Bot, Trade } from '@/types/profile/bots/DeployedBots'
 import { ChevronUpIcon } from '@/utils/icons'
-import { Button } from '@heroui/react'
 
 interface TradesListProps {
   bot: Bot
