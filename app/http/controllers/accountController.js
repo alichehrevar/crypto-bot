@@ -289,3 +289,84 @@ exports.getLeverageOptions = async (req, res) => {
         return res.status(500).json({ success: false, error: err.message });
     }
 };
+
+/**
+ * GET /accounts/assets
+ * Returns [{ exchange, totalBalance, pct }, …]
+ */
+exports.getAssetsDistribution = async (req, res) => {
+    const userId = req.user.id;
+
+    try {
+        // 1) Load all accounts, grouped by exchange type
+        const [binanceAccounts, okxAccounts, bingxAccounts] = await Promise.all([
+            BinanceAccount.find({ userId }).lean(),
+            OkxAccount.find({ userId }).lean(),
+            BingxAccount.find({ userId }).lean(),
+        ]);
+
+        // helper to sum USDT balance for a list of accounts via a fetchBalance service
+        async function sumUsdt(accounts, service) {
+            let total = 0;
+
+            for (const acct of accounts) {
+                // call the service
+                const resp = await service.getBalance(acct);
+
+                // normalize to an Array< { asset, free, locked } >
+                let balanceArr;
+                if (Array.isArray(resp)) {
+                    // e.g. BingxService returns plain array
+                    balanceArr = resp;
+                } else if (Array.isArray(resp.balance)) {
+                    // BinanceService.getBalance → { balance: [...] }
+                    balanceArr = resp.balance;
+                } else if (Array.isArray(resp.data?.balance)) {
+                    // OKXService.getBalance → { data: { balance: [...] } }
+                    balanceArr = resp.data.balance;
+                } else if (Array.isArray(resp.data?.result?.balance)) {
+                    // some other shape
+                    balanceArr = resp.data.result.balance;
+                } else {
+                    balanceArr = [];
+                }
+
+                // pick out USDT
+                const usdt = balanceArr.find(b => b.asset === 'USDT');
+                if (usdt) {
+                    total += parseFloat(usdt.free) || 0;
+                }
+            }
+
+            return total;
+        }
+
+        // 2) Fetch & sum balances in parallel
+        const [binanceSum, okxSum, bingxSum] = await Promise.all([
+            sumUsdt(binanceAccounts, BinanceService),
+            sumUsdt(okxAccounts, OkxService),
+            sumUsdt(bingxAccounts, BingxService),
+        ]);
+
+        // 3) Build distribution array
+        const raw = [
+            { exchange: 'Binance', total: binanceSum },
+            { exchange: 'OKX',     total: okxSum     },
+            { exchange: 'BingX',   total: bingxSum   },
+        ];
+
+        // 4) Compute percentages
+        const grandTotal = raw.reduce((acc, r) => acc + r.total, 0) || 1;
+        const distribution = raw.map(r => ({
+            exchange:     r.exchange,
+            totalBalance: r.total,
+            pct:          parseFloat(((r.total / grandTotal) * 100).toFixed(2)),
+        }));
+
+        return res.json({ success: true, distribution });
+
+    } catch (err) {
+        console.error('getAssetsDistribution error', err);
+        return res.status(500).json({ success: false, error: err.message });
+    }
+};
