@@ -110,7 +110,7 @@ export default function BotSelectionComponent() {
                 <button
                   key={bot.id}
                   className={`
-                    flex justify-between items-center px-6 py-4 rounded-2xl 
+                    flex justify-between items-center px-6 py-4 rounded-2xl w-full
                     ${active
                     ? 'border-1 border-primary'
                     : 'border border-white/20'}
