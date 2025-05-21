@@ -366,11 +366,12 @@ export default function BotConfigForm({ mode, onCloseAction }: BotConfigFormProp
         />
 
         {/* Primary Indicator + Timeframe */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="flex items-center gap-4">
           <Autocomplete
             id="Indicator"
             isClearable={false}
             label="Indicator"
+            className="w-2/3"
             onSelectionChange={k => k && setIndicator(k.toString())}
           >
             {botProps.indicatorOptions.map(ind => (
@@ -383,6 +384,7 @@ export default function BotConfigForm({ mode, onCloseAction }: BotConfigFormProp
             id="Timeframe"
             isClearable={false}
             label="Timeframe"
+            className="w-1/3"
             onSelectionChange={k => k && setTimeframe(k.toString())}
           >
             {botProps.timeframeOptions.map(tf => (
@@ -395,11 +397,12 @@ export default function BotConfigForm({ mode, onCloseAction }: BotConfigFormProp
 
         {/* Additional Indicators */}
         {additional.map((ai, i) => (
-          <div key={i} className="grid grid-cols-2 gap-4">
+          <div key={i} className="flex items-center gap-4">
             <Autocomplete
               id={`Indicator${i}`}
               isClearable={false}
               label="Indicator"
+              className="w-2/3"
               onSelectionChange={k => {
                 const nxt = [...additional];
 
@@ -417,6 +420,7 @@ export default function BotConfigForm({ mode, onCloseAction }: BotConfigFormProp
               id="Timeframe"
               isClearable={false}
               label="Timeframe"
+              className="w-1/3"
               onSelectionChange={k => {
                 const nxt = [...additional];
 
