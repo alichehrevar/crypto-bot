@@ -1,94 +1,59 @@
-import { RadialBarDatum, RadialBarSerie, ResponsiveRadialBar } from "@nivo/radial-bar";
+'use client';
 
-const data: RadialBarSerie<RadialBarDatum>[] = [
-  {
-    "id": "line1",
-    "data": [
-      {
-        "x": "Position 1",
-        "y": 15
-      },
-    ]
-  },
-  {
-    "id": "line2",
-    "data": [
-      {
-        "x": "Position 2",
-        "y": 35
-      },
-    ]
-  },
-  {
-    "id": "line3",
-    "data": [
-      {
-        "x": "Position 3",
-        "y": 23
-      },
-    ]
-  },
-  {
-    "id": "line4",
-    "data": [
-      {
-        "x": "Position 4",
-        "y": 33
-      },
-    ]
-  }
-];
+import React from 'react';
+import { ResponsiveRadialBar, RadialBarSerie, RadialBarDatum } from '@nivo/radial-bar';
 
-// make sure parent container have a defined height when using
-// responsive component, otherwise height will be 0 and
-// no chart will be rendered.
-const RadialBarChart = () => (
-  <ResponsiveRadialBar
-    borderColor={{
-      from: 'color',
-      modifiers: [
-        [
-          'darker',
-          1.2
-        ]
-      ]
-    }}
-    circularAxisOuter={null}
-    colors={{ scheme: 'accent' }}
-    cornerRadius={32}
-    data={data}
-    enableCircularGrid={false}
-    enableRadialGrid={false}
-    endAngle={360}
-    innerRadius={0.35}
-    legends={[
-      {
-        anchor: 'right',
-        direction: 'column',
-        justify: false,
-        translateX: 10,
-        translateY: 0,
-        itemsSpacing: 6,
-        itemDirection: 'left-to-right',
-        itemWidth: 100,
-        itemHeight: 18,
-        itemTextColor: '#999',
-        symbolSize: 18,
-        symbolShape: 'circle',
-        effects: [
-          {
-            on: 'hover',
-            style: {
-              itemTextColor: '#000'
-            }
-          }
-        ]
-      }
-    ]}
-    margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
-    padding={0.45}
-    radialAxisStart={null}
-  />
-)
+export interface RadialPoint {
+  x: string;
+  y: number;
+}
 
-export default RadialBarChart;
+interface RadialBarChartProps {
+  data: RadialPoint[];
+}
+
+export default function RadialBarChart({ data }: RadialBarChartProps) {
+  // Nivo RadialBar can accept an array of series; here we turn each point into its own series
+  const series: RadialBarSerie<RadialBarDatum>[] = data.map(point => ({
+    id: point.x,
+    data: [{ x: point.x, y: point.y }],
+  }));
+
+  return (
+    <ResponsiveRadialBar
+      data={series}
+      innerRadius={0.35}
+      cornerRadius={32}
+      padding={0.45}
+      colors={{ scheme: 'accent' }}
+      borderColor={{
+        from: 'color',
+        modifiers: [['darker', 1.2]],
+      }}
+      enableCircularGrid={false}
+      enableRadialGrid={false}
+      radialAxisStart={null}
+      circularAxisOuter={null}
+      margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
+      legends={[
+        {
+          anchor: 'right',
+          direction: 'column',
+          translateX: 10,
+          translateY: 0,
+          itemWidth: 100,
+          itemHeight: 18,
+          symbolSize: 18,
+          symbolShape: 'circle',
+          itemTextColor: '#999',
+          effects: [
+            {
+              on: 'hover',
+              style: { itemTextColor: '#000' },
+            },
+          ],
+        },
+      ]}
+    />
+  );
+}
