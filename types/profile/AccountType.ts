@@ -21,6 +21,7 @@ export type AccountData = {
   apiKey: string;
   secretKey: string;
   createdAt: string;
+  permissions: []
 }
 
 export type AccountResponse = {

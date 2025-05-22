@@ -1,30 +1,33 @@
+import React, { FormEvent, useEffect, useState } from "react";
 import { Accordion, AccordionItem, addToast, Checkbox, Input } from "@heroui/react";
 import { Button } from "@heroui/button";
-import { FormEvent, useEffect, useState } from "react";
 
 import { ChevronLeftIcon } from "@/components/shared/icons";
 import { TokenFormType } from "@/types/profile/settings/tokenFormType";
 import { sendRequest } from "@/actions/post";
 import { getData } from "@/actions/get";
-import { AccountData, AccountResponse } from "@/types/profile/AccountType";
+import { AccountResponse } from "@/types/profile/AccountType";
 
 export default function TokenForm(props: {type: 'binance' | 'okx' | 'bingx' | 'bybit'}) {
 
+  const [form, setForm] = useState({
+    apiKey: "",
+    secretKey: "",
+    passphrase: "",
+    permissions: [] as string[],
+  });
   const [formLoading, setFormLoading] = useState(false);
-  const [accountData, setAccountData] = useState<AccountData>()
 
   useEffect(() => {
-    setAccountData({
-      _id: '',
-      userId: '',
-      apiKey: '',
-      secretKey: '',
-      createdAt: '',
-    })
     getAccountData()
       .then((accountData: AccountResponse) => {
         if (accountData.account) {
-          setAccountData(accountData.account)
+          setForm({
+            apiKey: accountData.account.apiKey || "",
+            secretKey: accountData.account.secretKey || "",
+            passphrase: (accountData.account as any).passphrase || "",
+            permissions: accountData.account.permissions || [],
+          });
         }
       })
       .catch(() => {
@@ -39,11 +42,34 @@ export default function TokenForm(props: {type: 'binance' | 'okx' | 'bingx' | 'b
     return await getData(`/accounts/${props.type}`)
   }
 
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const { name, value, type, checked } = e.target;
+    if (type === "checkbox") {
+      setForm((f) => ({
+        ...f,
+        permissions: checked
+          ? [...f.permissions, value]
+          : f.permissions.filter((p) => p !== value),
+      }));
+    } else {
+      setForm((f) => ({ ...f, [name]: value }));
+    }
+  };
+
   async function handleSubmit (event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setFormLoading(true);
-    const formData = Object.fromEntries(new FormData(event.currentTarget));
-    const response: TokenFormType = await sendRequest(formData, `/accounts/${props.type}`)
+    const payload: Record<string, string | File> = {
+      apiKey:  form.apiKey,
+      secretKey: form.secretKey,
+      // if OKX:
+      passphrase: form.passphrase,
+      // flatten the array
+      permissions: JSON.stringify(form.permissions),
+    };
+    const response: TokenFormType = await sendRequest(payload, `/accounts/${props.type}`)
 
     if (response.error) {
       addToast({
@@ -70,7 +96,8 @@ export default function TokenForm(props: {type: 'binance' | 'okx' | 'bingx' | 'b
         label="API Key"
         name="apiKey"
         type="text"
-        value={accountData?.apiKey}
+        value={form.apiKey}
+        onChange={handleChange}
         variant="bordered"
       />
       <Input
@@ -82,7 +109,8 @@ export default function TokenForm(props: {type: 'binance' | 'okx' | 'bingx' | 'b
         label="API Secret"
         name="secretKey"
         type="text"
-        value={accountData?.secretKey}
+        value={form.secretKey}
+        onChange={handleChange}
         variant="bordered"
       />
       {props.type === 'okx' &&
@@ -92,6 +120,8 @@ export default function TokenForm(props: {type: 'binance' | 'okx' | 'bingx' | 'b
           classNames={{
             inputWrapper: 'dark:border-white border-[0.5px] backdrop-blur-sm'
           }}
+          value={form.passphrase}
+          onChange={handleChange}
           label="Passphrase"
           name="passphrase"
           type="text"
@@ -112,12 +142,25 @@ export default function TokenForm(props: {type: 'binance' | 'okx' | 'bingx' | 'b
             <span className="font-bold">Permissions</span>
           }
         >
-          <div className="flex items-center justify-between gap-5 flex-wrap">
-            <Checkbox color="secondary" value="buenos-aires">Spot Trading</Checkbox>
-            <Checkbox color="secondary" value="sydney">Perpetual Futures Trading</Checkbox>
-            <Checkbox color="secondary" value="san-francisco">Universal Transfer</Checkbox>
-            <Checkbox color="secondary" value="london">Manage Subaccounts </Checkbox>
-            <Checkbox color="secondary" value="tokyo">P2P Trading</Checkbox>
+          <div className="flex flex-wrap gap-5">
+            {[
+              ["buenos-aires", "Spot Trading"],
+              ["sydney", "Perpetual Futures Trading"],
+              ["san-francisco", "Universal Transfer"],
+              ["london", "Manage Subaccounts"],
+              ["tokyo", "P2P Trading"],
+            ].map(([value, label]) => (
+              <Checkbox
+                key={value}
+                color="secondary"
+                name="permissions"
+                value={value}
+                checked={form.permissions.includes(value)}
+                onChange={handleChange}
+              >
+                {label}
+              </Checkbox>
+            ))}
           </div>
         </AccordionItem>
       </Accordion>
