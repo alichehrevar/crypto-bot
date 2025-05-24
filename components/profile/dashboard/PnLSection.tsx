@@ -35,7 +35,7 @@ export default function PnLSection() {
       try {
         if (tab === 'realized-pnl') {
           const res: RealizedPnLResponse = await getData(`/pnl/realized?period=${period}`);
-          console.log(res)
+          console.log('realized-pnl' ,res)
           if (!res.success) {
             addToast({
               title: 'Error loading PnL data !',
@@ -46,6 +46,7 @@ export default function PnLSection() {
           setRealizedData(res.data);
         } else {
           const res: UnrealizedPnLResponse = await getData(`/pnl/unrealized?period=${period}`);
+          console.log('unrealized-pnl' ,res)
           if (!res.success) {
             addToast({
               title: 'Error loading PnL data !',
@@ -90,8 +91,8 @@ export default function PnLSection() {
         <Tabs
           aria-label="PnL Type"
           classNames={{
-            tabList: 'h-7 rounded-lg px-0.5',
-            tab: 'py-0 px-1 h-6 rounded-lg',
+            tabList: 'h-6 rounded-lg px-0.5 ml-3',
+            tab: 'py-0 px-1 h-5 rounded-lg',
           }}
           selectedKey={tab}
           onSelectionChange={(k) => setTab(k as any)}
