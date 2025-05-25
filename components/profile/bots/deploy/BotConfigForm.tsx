@@ -76,8 +76,11 @@ export default function BotConfigForm({ mode, onCloseAction }: BotConfigFormProp
       try {
         const res: SymbolFilterResponse = await getData('/currencies');
 
-        if (!res.success) addToast({ title: res.message || 'no data', color: "danger" });
-        setSymbols(res.data);
+        if (!res.success) {
+          addToast({ title: res.message || 'No currency symbols found !', color: "danger" })
+        } else {
+          setSymbols(res.data);
+        }
       } catch {
         addToast({ title: 'Failed to load symbols', color: 'danger' });
       }
@@ -89,7 +92,6 @@ export default function BotConfigForm({ mode, onCloseAction }: BotConfigFormProp
 
         if (!res.accounts) {
           addToast({ title: 'No accounts found !', color: 'danger' });
-
           return;
         }
         const arr = Object.entries(res.accounts).map(([exchange, acc]) => ({
@@ -113,10 +115,6 @@ export default function BotConfigForm({ mode, onCloseAction }: BotConfigFormProp
       try {
         const res = await getData('/bots/botProps');
 
-        addToast({
-          title: res.toString(),
-          color: "danger",
-        });
         if (!res.success) {
           addToast({
             title: "Error getting bot parameters",
