@@ -1,15 +1,10 @@
 'use client'
 
+import React from "react";
 import {
-  Modal,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  useDisclosure,
   Tabs,
   Tab
 } from "@heroui/react";
-import React from "react";
 
 import BotConfigForm from "@/components/profile/bots/deploy/BotConfigForm";
 

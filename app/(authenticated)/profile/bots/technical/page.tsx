@@ -4,10 +4,8 @@ import React, { useState } from "react";
 
 import TechnicalBotsList from "@/components/profile/bots/technical/TechnicalBotsList";
 import DeployBotSection from "@/components/profile/bots/deploy/DeployBotSection";
-import { PlusIcon } from "@/utils/icons";
 import BotSelectionComponent from "@/components/profile/bots/BotSelectionComponent";
 import MarketWatchChart from "@/components/shared/charts/MarketWatchChart";
-import LiveCandlestickChart from "@/components/shared/charts/LiveCandlestickChart";
 
 export default function TechnicalBotsPage() {
 

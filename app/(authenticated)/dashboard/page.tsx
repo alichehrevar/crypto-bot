@@ -9,7 +9,6 @@ import AssetSection from "@/components/profile/dashboard/AssetSection";
 import PnLSection from "@/components/profile/dashboard/PnLSection";
 import TopMovers from "@/components/profile/dashboard/TopMovers";
 import TechnicalBotsList from "@/components/profile/bots/technical/TechnicalBotsList";
-import DeployBotSection from "@/components/profile/bots/deploy/DeployBotSection";
 import BotTypeSelectionModal from "@/components/profile/bots/BotTypeSelectionModal";
 
 export default function Dashboard() {

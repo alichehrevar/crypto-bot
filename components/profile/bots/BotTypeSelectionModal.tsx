@@ -7,7 +7,7 @@ import {
   ModalBody,
   useDisclosure,
 } from "@heroui/react";
-import { DcaChartIcon, GridChartIcon, TechnicalChartIcon, XIcon } from "@/utils/icons";
+import { DcaChartIcon, GridChartIcon, TechnicalChartIcon } from "@/utils/icons";
 
 const technicalBots = [
   {
@@ -65,7 +65,7 @@ export default function BotTypeSelectionModal ({
         onOpenChange={onOpenChange}
       >
         <ModalContent>
-          {(onClose) => (
+          {() => (
             <>
               <ModalHeader className="flex flex-col gap-1">Select Bot Type</ModalHeader>
               <ModalBody className="pb-5">
