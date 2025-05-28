@@ -3,10 +3,11 @@
 import React, { useState } from "react";
 
 import TechnicalBotsList from "@/components/profile/bots/technical/TechnicalBotsList";
-import DeployBotModal from "@/components/profile/bots/deploy/DeployBotModal";
+import DeployBotSection from "@/components/profile/bots/deploy/DeployBotSection";
 import { PlusIcon } from "@/utils/icons";
 import BotSelectionComponent from "@/components/profile/bots/BotSelectionComponent";
 import MarketWatchChart from "@/components/shared/charts/MarketWatchChart";
+import LiveCandlestickChart from "@/components/shared/charts/LiveCandlestickChart";
 
 export default function TechnicalBotsPage() {
 
@@ -14,26 +15,20 @@ export default function TechnicalBotsPage() {
 
   return (
     <div className="container mt-4 relative px-5">
-      <div className="h-[600px]">
-        <MarketWatchChart />
+      <div className=" w-full flex items-start justify-center gap-6">
+        <div className="w-full lg:w-[65%] h-[600px]">
+          <MarketWatchChart />
+        </div>
+        <div className="w-full lg:w-[35%]">
+          {/* New Bot button */}
+          <DeployBotSection onSuccessAction={() => setRefreshBotsList(true)} />
+        </div>
+        {/*<LiveCandlestickChart symbol="BTCUSDT" interval="1m" height={350} />*/}
       </div>
       <BotSelectionComponent />
       <div className="grid grid-cols-1 dark:bg-[#161616] bg-white mt-4 rounded-2xl py-6 px-3">
         <div className="flex items-center justify-between">
           <h3 className="text-xl font-bold ml-4 mb-4">Bots List</h3>
-          {/* New Bot button */}
-          <DeployBotModal onSuccessAction={() => setRefreshBotsList(true)}>
-            <button
-              className="inline-flex items-center justify-center w-[120px] h-[40px] bg-white hover:bg-gray-100 text-black rounded-full transition"
-            >
-              <div className="bg-black mr-2 h-6 w-6 rounded-full flex items-center justify-center">
-                <PlusIcon className="size-4" stroke="white" />
-              </div>
-              <span className="text-[14px]">
-              New Bot
-            </span>
-            </button>
-          </DeployBotModal>
         </div>
         <TechnicalBotsList refreshList={refreshBotsList} />
       </div>

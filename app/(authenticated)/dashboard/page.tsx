@@ -9,7 +9,8 @@ import AssetSection from "@/components/profile/dashboard/AssetSection";
 import PnLSection from "@/components/profile/dashboard/PnLSection";
 import TopMovers from "@/components/profile/dashboard/TopMovers";
 import TechnicalBotsList from "@/components/profile/bots/technical/TechnicalBotsList";
-import DeployBotModal from "@/components/profile/bots/deploy/DeployBotModal";
+import DeployBotSection from "@/components/profile/bots/deploy/DeployBotSection";
+import BotTypeSelectionModal from "@/components/profile/bots/BotTypeSelectionModal";
 
 export default function Dashboard() {
 
@@ -40,7 +41,7 @@ export default function Dashboard() {
         </button>
 
         {/* New Bot button */}
-        <DeployBotModal onSuccessAction={() => setRefreshBotsList(true)}>
+        <BotTypeSelectionModal>
           <button
             className="inline-flex items-center justify-center w-[120px] h-[40px] bg-white hover:bg-gray-100 text-black rounded-full transition"
           >
@@ -51,7 +52,7 @@ export default function Dashboard() {
               New Bot
             </span>
           </button>
-        </DeployBotModal>
+        </BotTypeSelectionModal>
       </div>
       <Divider className="my-10" />
       <div className="flex flex-row items-center lg:grid overflow-x-auto lg:grid-cols-3 gap-4 min-h-[220px]">
