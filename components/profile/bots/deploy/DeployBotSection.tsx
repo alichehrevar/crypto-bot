@@ -21,7 +21,7 @@ export default function DeployBotSection ({
   ] as const;
 
   return (
-    <div className="flex w-full flex-col">
+    <div className="flex w-full flex-col bg-white/10 backdrop-blur-md pt-4 px-4 rounded-2xl">
       <Tabs
         fullWidth
         aria-label="Options"
