@@ -6,6 +6,7 @@ import TechnicalBotsList from "@/components/profile/bots/technical/TechnicalBots
 import DeployBotSection from "@/components/profile/bots/deploy/DeployBotSection";
 import BotSelectionComponent from "@/components/profile/bots/BotSelectionComponent";
 import MarketWatchChart from "@/components/shared/charts/MarketWatchChart";
+import LiveCandlestickChart from "@/components/shared/charts/LiveCandlestickChart";
 
 export default function TechnicalBotsPage() {
 
@@ -14,10 +15,11 @@ export default function TechnicalBotsPage() {
   return (
     <div className="container mt-4 relative px-5">
       <div className=" w-full flex items-start justify-center gap-6">
-        <div className="w-full lg:w-[65%] h-[600px]">
+        <div className="w-full lg:w-[72%] h-[600px]">
           <MarketWatchChart />
+          {/*<LiveCandlestickChart symbol="BTCUSDT" interval="1m" height={600} />*/}
         </div>
-        <div className="w-full lg:w-[35%]">
+        <div className="w-full lg:w-[28%]">
           {/* New Bot button */}
           <DeployBotSection onSuccessAction={() => setRefreshBotsList(true)} />
         </div>

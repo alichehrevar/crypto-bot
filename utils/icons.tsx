@@ -17,21 +17,30 @@ export const PauseIcon = ({ className = 'size-4' }) => (
   </svg>
 );
 
-export const XIcon = ({ className = 'size-4' }) => (
+export const CopyIcon = ({ className = 'size-4' }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor"
+       className={className}>
+    <path strokeLinecap="round" strokeLinejoin="round"
+          d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 0 1-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 0 1 1.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 0 0-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 0 1-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 0 0-3.375-3.375h-1.5a1.125 1.125 0 0 1-1.125-1.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H9.75" />
+  </svg>
+
+);
+
+export const XIcon = ({ className = "size-4" }) => (
   <svg className={className} fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"
        xmlns="http://www.w3.org/2000/svg">
     <path d="M6 18 18 6M6 6l12 12" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
 
-export const ChevronUpIcon = ({ className = 'size-4' }) => (
+export const ChevronUpIcon = ({ className = "size-4" }) => (
   <svg className={className} fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"
        xmlns="http://www.w3.org/2000/svg">
     <path d="m4.5 15.75 7.5-7.5 7.5 7.5" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
 
-export const ChevronDownIcon = ({ className = 'size-4' }) => (
+export const ChevronDownIcon = ({ className = "size-4" }) => (
   <svg className={className} fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"
        xmlns="http://www.w3.org/2000/svg">
     <path d="m19.5 8.25-7.5 7.5-7.5-7.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -92,10 +101,19 @@ export const Cog8ToothIcon = ({ className = "size-4"}) => (
   </svg>
 );
 
-export const ArrowLeftStartOnRectangle = ({ className = "size-4"}) => (
+export const FullscreenIcon = ({ className = "size-4"}) => (
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor"
+       className={className}>
+    <path strokeLinecap="round" strokeLinejoin="round"
+          d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" />
+  </svg>
+);
+
+export const ArrowLeftStartOnRectangle = ({ className = "size-4" }) => (
   <svg className={className} fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"
        xmlns="http://www.w3.org/2000/svg">
-    <path d="M8.25 9V5.25A2.25 2.25 0 0 1 10.5 3h6a2.25 2.25 0 0 1 2.25 2.25v13.5A2.25 2.25 0 0 1 16.5 21h-6a2.25 2.25 0 0 1-2.25-2.25V15m-3 0-3-3m0 0 3-3m-3 3H15" strokeLinecap="round"
+    <path
+      d="M8.25 9V5.25A2.25 2.25 0 0 1 10.5 3h6a2.25 2.25 0 0 1 2.25 2.25v13.5A2.25 2.25 0 0 1 16.5 21h-6a2.25 2.25 0 0 1-2.25-2.25V15m-3 0-3-3m0 0 3-3m-3 3H15" strokeLinecap="round"
           strokeLinejoin="round" />
   </svg>
 );
