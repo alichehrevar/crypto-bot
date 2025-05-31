@@ -34,3 +34,15 @@ section[role="dialog"] .overflow-y-auto::-webkit-scrollbar-thumb {
 section[role="dialog"] .overflow-y-auto::-webkit-scrollbar-track {
     background: rgba(0, 0, 0, 0.1);
 }
+
+.bot-config-form__tabs-screen-height {
+    height: calc(100svh - 130px);
+}
+
+.thin-scrollbar::-webkit-scrollbar {
+    width: 1px;
+}
+
+.thin-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-primary;
+}

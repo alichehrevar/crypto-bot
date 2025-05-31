@@ -21,7 +21,7 @@ export default function DeployBotSection ({
   ] as const;
 
   return (
-    <div className="flex w-full flex-col bg-white/10 backdrop-blur-md pt-4 px-4 rounded-2xl">
+    <div className="flex w-full flex-col bg-white/10 backdrop-blur-md pt-4 px-4 rounded-2xl bot-config-form__tabs-screen-height">
       <Tabs
         fullWidth
         aria-label="Options"
@@ -29,6 +29,7 @@ export default function DeployBotSection ({
           cursor: "w-full bg-white dark:group-data-[selected=true]:bg-white",
           tab: "h-10",
           tabContent: "dark:group-data-[selected=true]:text-black",
+          panel: "h-full overflow-y-auto over-flow-x-hidden bot-config-form thin-scrollbar"
         }}
         radius={'full'}
       >

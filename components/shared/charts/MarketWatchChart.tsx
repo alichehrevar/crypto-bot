@@ -14,13 +14,11 @@ import {
 interface RealTimeCandlestickChartProps {
   symbol?: string;      // e.g. "BTCUSDT"
   interval?: string;    // e.g. "1m", "5m", "1h"
-  height?: number;
 }
 
 export default function RealTimeCandlestickChart({
                                                    symbol = 'BTCUSDT',
                                                    interval = '1m',
-                                                   height = 400,
                                                  }: RealTimeCandlestickChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef     = useRef<IChartApi>();
@@ -72,7 +70,7 @@ export default function RealTimeCandlestickChart({
 
       const chart = createChart(containerRef.current, {
         width:  containerRef.current.clientWidth,
-        height,
+        height: containerRef.current.clientHeight || 300,
         // Apply initial theme based on currentTheme state
         layout: themes[currentTheme].chart,
         grid: themes[currentTheme].grid,
@@ -148,8 +146,8 @@ export default function RealTimeCandlestickChart({
 
     init();
 
-    // Re-run init if symbol, interval, height, or currentTheme changes
-  }, [symbol, interval, height, currentTheme]); // Add currentTheme to dependency array
+    // Re-run init if symbol, interval, or currentTheme changes
+  }, [symbol, interval, currentTheme]); // Add currentTheme to dependency array
 
   // Effect to apply theme changes when currentTheme state updates
   useEffect(() => {
@@ -176,8 +174,7 @@ export default function RealTimeCandlestickChart({
       </div>
       <div
         ref={containerRef}
-        className="live-candlestick-chart w-full flex-grow" // Use flex-grow to fill remaining height
-        style={{ height }} // This height will be the minimum, flex-grow will stretch it
+        className="live-candlestick-chart w-full flex-grow h-[50svh]"
       />
     </div>
   );

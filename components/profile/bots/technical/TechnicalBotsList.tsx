@@ -166,7 +166,7 @@ export default function TechnicalBotsList({ refreshList }: { refreshList: boolea
       </div>
 
       {/* ========== DESKTOP (lg+) ========== */}
-      <div className="hidden lg:flex flex-col w-full gap-2 p-4 rounded-md">
+      <div className="hidden lg:flex flex-col w-full gap-2 p-4 rounded-md overflow-y-auto thin-scrollbar">
         {/* header row */}
         <div className="grid grid-cols-11 font-semibold text-sm pb-2 mb-4">
           {tableHeaderItems.map((item, ix) => (

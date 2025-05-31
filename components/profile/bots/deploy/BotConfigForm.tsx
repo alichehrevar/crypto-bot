@@ -239,7 +239,7 @@ export default function BotConfigForm({ mode, onCloseAction }: BotConfigFormProp
   return (
     <div className="py-4">
       <form
-        className="space-y-4"
+        className="space-y-4 overflow-x-hidden"
         onSubmit={handleDeploy}
       >
         {/* Bot Name */}
