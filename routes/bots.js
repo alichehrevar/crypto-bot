@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { validateBotParams } = require('../app/http/middleware/validation');
 const botController = require('../app/http/controllers/botController');
+const gridBotController = require('../app/http/controllers/gridBotController');
 const authenticate = require('../app/http/middleware/auth'); // Authentication middleware
 
 router.get('/botProps', authenticate, botController.botProps);
@@ -29,5 +30,10 @@ router.post('/:id/resume', authenticate, botController.resumeBot);
 router.delete('/:id', authenticate, botController.deleteBot);
 
 router.post('/:botId/trades/:tradeId/close', authenticate, botController.closeTrade);
+
+// Grid endpoints:
+router.post('/:botId/grid/start', authenticate, gridBotController.startGrid);
+router.post('/:botId/grid/stop',  authenticate, gridBotController.stopGrid);
+router.get('/:botId/grid/status', authenticate, gridBotController.getGridStatus);
 
 module.exports = router;
