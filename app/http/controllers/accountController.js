@@ -204,10 +204,10 @@ exports.getAccountBalance = async (req, res) => {
             default:
                 return res.status(400).json({error: 'Unsupported account type'});
         }
-        return res.json({balance});
+        return res.json({ success: true, balance});
     } catch (error) {
         console.error('Error fetching account balance:', error.message);
-        return res.status(500).json({error: 'Error fetching account balance'});
+        return res.status(500).json({error: 'Error fetching account balance', success: false});
     }
 };
 
