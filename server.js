@@ -135,7 +135,7 @@ app.use('/api/pnl', pnlRoutes);
 app.use('/logs', logsRouter);
 
 // Error handler
-app.use((err, req, res, next) => {
+app.use((err, req, res, _) => {
     console.error(err.stack);
     res.status(500).json({
         success: false,
