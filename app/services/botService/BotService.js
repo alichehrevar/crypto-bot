@@ -105,7 +105,7 @@ class BotService {
 
         for (const bot of bots) {
             const botId = bot._id.toString();
-            const prev  = this._locks.get(botId) || await Promise.resolve();
+            const prev  = this._locks.get(botId) || Promise.resolve();
 
             const next = prev
                 .catch(() => {})          // ignore prior errors
