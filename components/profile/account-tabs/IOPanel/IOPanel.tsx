@@ -48,6 +48,7 @@ export default function IOPanel() {
             }}
             indicator={<ChevronLeftIcon />}
             title={<span className="font-bold">Indicators</span>}
+            textValue="Indicators"
           >
             {indicators.length !== 0
               ? <Tabs
@@ -87,6 +88,7 @@ export default function IOPanel() {
             }}
             indicator={<ChevronLeftIcon />}
             title={<span className="font-bold">Strategies</span>}
+            textValue="Strategies"
           >
             {'defaultContent'}
           </AccordionItem>
@@ -109,6 +111,7 @@ export default function IOPanel() {
             }}
             indicator={<ChevronLeftIcon />}
             title={<span className="font-bold">Risk Strategies</span>}
+            textValue="Risk Strategies"
           >
             {'defaultContent'}
           </AccordionItem>

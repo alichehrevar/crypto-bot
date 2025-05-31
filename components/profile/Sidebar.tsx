@@ -73,6 +73,7 @@ export default function Sidebar() {
                       {!collapsed && <span className="flex-1 font-medium text-[14px]">{menuItem.name}</span>}
                     </div>
                   }
+                  textValue={menuItem.name}
                 >
                   <ul className="flex flex-col space-y-1">
                     {menuItem.children.map((child, j) => {

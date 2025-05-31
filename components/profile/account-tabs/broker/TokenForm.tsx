@@ -141,6 +141,7 @@ export default function TokenForm(props: {type: 'binance' | 'okx' | 'bingx' | 'b
           title={
             <span className="font-bold">Permissions</span>
           }
+          textValue="Permissions"
         >
           <div className="flex flex-wrap gap-5">
             {[
