@@ -164,7 +164,7 @@ exports.deployBot = async (req, res) => {
             }
 
             // i) Parse strategyParams JSON if provided as string
-            let strategyParams = {};
+            let strategyParams;
             if (typeof rawParams === 'string') {
                 try {
                     strategyParams = JSON.parse(rawParams);

@@ -62,7 +62,7 @@ class BinanceWS {
                         }
 
                         // Normalize the symbol from ticker.
-                        let symbol = '';
+                        let symbol;
                         const upperTickerSymbol = ticker.s.toUpperCase();
                         if (upperTickerSymbol.endsWith('USDT')) {
                             symbol = upperTickerSymbol.slice(0, -4) + '/USDT';
