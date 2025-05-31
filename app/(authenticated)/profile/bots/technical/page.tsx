@@ -6,7 +6,6 @@ import TechnicalBotsList from "@/components/profile/bots/technical/TechnicalBots
 import DeployBotSection from "@/components/profile/bots/deploy/DeployBotSection";
 import BotSelectionComponent from "@/components/profile/bots/BotSelectionComponent";
 import MarketWatchChart from "@/components/shared/charts/MarketWatchChart";
-import LiveCandlestickChart from "@/components/shared/charts/LiveCandlestickChart";
 
 export default function TechnicalBotsPage() {
 
@@ -29,7 +28,6 @@ export default function TechnicalBotsPage() {
           {/* New Bot button */}
           <DeployBotSection onSuccessAction={() => setRefreshBotsList(true)} />
         </div>
-        {/*<LiveCandlestickChart symbol="BTCUSDT" interval="1m" height={350} />*/}
       </div>
       <BotSelectionComponent />
     </div>
