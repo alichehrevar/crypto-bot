@@ -3,7 +3,7 @@ const sinon = require('sinon');
 // Import the service, models, technical, and test utilities
 const botService = require('../app/services/botService/BotService');
 const Trade = require('../app/models/Trade');
-const Bot = require('../app/models/Bot');
+const Bot = require('../app/models/BotBase');
 const { RSI, MACrossover, MACD } = require('../app/strategies/technical');
 const { generateTestData } = require('./testUtils');
 

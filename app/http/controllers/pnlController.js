@@ -1,5 +1,5 @@
 // controllers/pnlController.js
-const Bot = require('../../models/Bot');
+const Bot = require('../../models/BotBase');
 const Trade = require('../../models/Trade');
 const moment = require('moment');
 

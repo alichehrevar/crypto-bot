@@ -1,37 +1,30 @@
+// app/models/BotBase.js
+
 const mongoose = require('mongoose');
 const { Schema } = mongoose;
 
 /**
- * strategyParamsSchema:
- * Parameters for technical indicators (e.g., RSI, MACD, etc.).
+ * Shared sub‐schemas (reused by IndicatorBot and, optionally, others)
  */
 const strategyParamsSchema = new Schema({
-    shortPeriod: { type: Number, min: 1 },   // For MA_Crossover, MACD
-    longPeriod:  { type: Number, min: 1 },   // For MA_Crossover, MACD
-    period:      { type: Number, min: 1 },   // For RSI, Bollinger Bands, etc.
-    overbought:  { type: Number },           // For RSI
-    oversold:    { type: Number }            // For RSI
+    shortPeriod: { type: Number, min: 1 },
+    longPeriod:  { type: Number, min: 1 },
+    period:      { type: Number, min: 1 },
+    overbought:  { type: Number },
+    oversold:    { type: Number }
 }, { _id: false });
 
-/**
- * riskParamsSchema:
- * Money management parameters.
- */
 const riskParamsSchema = new Schema({
     maxDrawdown:          { type: Number },
     dailyLossLimit:       { type: Number },
     positionSizingMethod: { type: String, enum: ['compound','simple'] },
-    riskFraction:         { type: Number },  // for compound sizing
+    riskFraction:         { type: Number },
     stopLossDistance:     { type: Number },
     positionSizeType:     { type: String, enum: ['percentage','fixed'] },
     positionSizeValue:    { type: Number },
     maxOpenTrades:        { type: Number }
 }, { _id: false });
 
-/**
- * marketInfoSchema:
- * Tracks last and current candle data plus base/trade funds.
- */
 const marketInfoSchema = new Schema({
     state:      { type: String, default: 'inactive' },
     baseFund:   { type: Number, default: 10000 },
@@ -50,10 +43,6 @@ const marketInfoSchema = new Schema({
     lastSignal: { type: String, default: 'HOLD' }
 }, { _id: false });
 
-/**
- * tradeInfoSchema:
- * Configuration for each trade.
- */
 const tradeInfoSchema = new Schema({
     takeProfit:            { type: Number },
     stopLoss:              { type: Number },
@@ -73,10 +62,6 @@ const tradeInfoSchema = new Schema({
     signalProcessingMethod:{ type: String, enum: ['weighted','consensus'] }
 }, { _id: false });
 
-/**
- * indicatorConfigSchema:
- * Defines one technical indicator configuration for a bot.
- */
 const indicatorConfigSchema = new Schema({
     name: {
         type: String,
@@ -99,29 +84,35 @@ const indicatorConfigSchema = new Schema({
 }, { _id: false });
 
 /**
- * botSchema:
- * Main Bot document.
+ * Base schema for all bots (Indicator, Grid, etc.)
+ *   - discriminatorKey: 'botType' lets Mongoose pick the correct subtype
  */
-const botSchema = new Schema({
-    name:       { type: String, required: true },
-    symbol:     { type: String, required: true, match: [/^[A-Z0-9]+\/[A-Z0-9]+$/, 'Use format BASE/QUOTE (e.g. BTC/USDT)'] },
-    timeframe:  { type: String, required: true, enum: ['1m','5m','15m','30m','1h','4h','1d','1w'] },
-
-    // now an array of indicators instead of single indicator + params
-    indicators: {
-        type: [indicatorConfigSchema],
+const baseBotSchema = new Schema({
+    name:      { type: String, required: true },
+    symbol:    {
+        type: String,
         required: true,
-        validate: v => Array.isArray(v) && v.length > 0
+        match: [/^[A-Z0-9]+\/[A-Z0-9]+$/, 'Use format BASE/QUOTE (e.g. BTC/USDT)']
+    },
+    timeframe: {
+        type: String,
+        required: true,
+        enum: ['1m','5m','15m','30m','1h','4h','1d','1w']
     },
 
+    // Who owns this bot?
+    userId:    { type: Schema.Types.ObjectId, ref: 'User' },
+
+    // Will be set to 'indicator' or 'grid'
+    botType:   { type: String, required: true, enum: ['indicator','grid'] },
+
+    // Shared fields for both Indicator and Grid:
     riskStrategy: { type: String, required: true },
     riskParams:   riskParamsSchema,
 
-    marketInfo: marketInfoSchema,
-    tradeInfo:  tradeInfoSchema,
+    marketInfo:   marketInfoSchema,
+    tradeInfo:    tradeInfoSchema,
 
-    userId:     { type: Schema.Types.ObjectId, ref: 'User' },
-    botType:    { type: String, enum: ['indicator','grid','DCA'] },
     positionMode:{ type: String, enum: ['hedge','single'] },
     fundMode:   { type: String, enum: ['isolated','cross'] },
     userLevel:  { type: Number, default: 1 },
@@ -131,26 +122,20 @@ const botSchema = new Schema({
     cumulativePnL:{ type: Number, default: 0 },
     botTP:      { type: Number, default: 0 },
     botSL:      { type: Number, default: 0 },
-    strategy: {
-        type: String,
-        required: true,
-        enum: ['default', 'optimized', 'dynamic'],
-        default: 'default'
-    },
-    accountType: {
-        type: String,
-        required: true,
-        enum: ['binance', 'okx', 'bingx']
-    },
-    // store the ObjectId of that account
-    accountId: {
+
+    accountType:{ type: String, required: true, enum: ['binance','okx','bingx'] },
+    accountId:  {
         type: Schema.Types.ObjectId,
         required: true,
-        refPath: 'accountType'   // dynamic ref to the correct account collection
-    },
-}, { timestamps: true });
+        refPath: 'accountType'
+    }
 
-// Prevent duplicate bots on same symbol/timeframe + exact indicator set if desired
-botSchema.index({ symbol: 1, timeframe: 1 }, { unique: false });
+}, {
+    discriminatorKey: 'botType',
+    timestamps: true
+});
 
-module.exports = mongoose.model('Bot', botSchema);
+// Index on (symbol, timeframe) - not unique, but helpful for queries
+baseBotSchema.index({ symbol: 1, timeframe: 1 });
+
+module.exports = mongoose.model('BotBase', baseBotSchema);

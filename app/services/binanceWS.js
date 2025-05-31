@@ -2,7 +2,7 @@ const WebSocket = require('ws');
 const axios = require('axios');
 const crypto = require('crypto'); // Import crypto for signature generation.
 const Candle = require('../models/Candle');
-const Bot = require('../../app/models/Bot'); // Import Bot model to check active deployed bots.
+const BotBase = require('../../app/models/BotBase'); // Import Bot model to check active deployed bots.
 const wsServer = require('./WebSocketServer');
 const BotService = require('./botService/BotService');
 // Uncomment the next line if you wish to use TradingViewWS instead for broadcasting updates.
@@ -39,7 +39,7 @@ class BinanceWS {
         try {
             // Fetch active bots from the database and create a set of symbols in normalized format.
             // We assume that in your database, bots store the symbol in the format "BASE/QUOTE" (e.g., "BTC/USDT")
-            const activeBots = await Bot.find({ active: true }).select('symbol');
+            const activeBots = await BotBase.find({ active: true }).select('symbol');
             const activeSymbolsSet = new Set(
                 activeBots.map(bot => bot.symbol.toUpperCase())
             );

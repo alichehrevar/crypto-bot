@@ -1,7 +1,7 @@
 // app/services/botService/BotService.js
 
 const axios  = require('axios');
-const Bot    = require('../../models/Bot');
+const BotBase    = require('../../models/BotBase');
 const Indicators = require('../../strategies/technical');
 const candleStore = require('../../../utils/candleStore');
 const wsServer     = require('../WebSocketServer');
@@ -18,7 +18,7 @@ class BotService {
 
     /** Load all active bots at startup */
     async initialize() {
-        const bots = await Bot.find({ active: true });
+        const bots = await BotBase.find({ active: true });
         for (const bot of bots) this.registerBot(bot);
     }
 
@@ -105,7 +105,7 @@ class BotService {
 
         for (const bot of bots) {
             const botId = bot._id.toString();
-            const prev  = this._locks.get(botId) || Promise.resolve();
+            const prev  = this._locks.get(botId) || await Promise.resolve();
 
             const next = prev
                 .catch(() => {})          // ignore prior errors

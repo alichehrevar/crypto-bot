@@ -1,4 +1,4 @@
-const Bot = require('../models/Bot');
+const Bot = require('../models/BotBase');
 const Trade = require('../models/Trade');
 
 class PaperTradingService {

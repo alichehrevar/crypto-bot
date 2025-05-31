@@ -9,7 +9,7 @@ before(async () => {
 
 
 // Import the Bot model (adjust the path according to your project structure)
-const Bot = require('../app/models/Bot');
+const Bot = require('../app/models/BotBase');
 
 describe('Bot Model Test', function () {
     let mongoServer;
