@@ -28,6 +28,7 @@ const indicatorsRoutes   = require('./routes/indicators');
 const logsRouter         = require('./routes/logs');
 const marketRoutes = require('./routes/market')
 const pnlRoutes = require('./routes/pnl');
+const ordersRouter = require("./routes/orders");
 
 const app = express();
 
@@ -129,7 +130,7 @@ app.use('/api/currencies', currencyRoutes);
 app.use('/api/indicators', indicatorsRoutes);
 app.use('/api/market', marketRoutes)
 app.use('/api/pnl', pnlRoutes);
-
+app.use("/orders", ordersRouter);
 
 // Logs REST endpoint (historical fetch)
 app.use('/logs', logsRouter);
