@@ -1,33 +1,106 @@
 // app/http/controllers/orderController.js
 
-const axios           = require('axios');
-const crypto          = require('crypto');
-const User            = require('../../models/User');
-const BinanceAccount  = require('../../models/BinanceAccount');
-const OkxAccount      = require('../../models/OkxAccount');
-const BingxAccount    = require('../../models/BingxAccount');
-const { Decimal128 }  = require('mongoose').Types;
+const axios         = require('axios');
+const crypto        = require('crypto');
+const User          = require('../../models/User');
+const BinanceAccount = require('../../models/BinanceAccount');
+const OkxAccount     = require('../../models/OkxAccount');
+const BingxAccount   = require('../../models/BingxAccount');
+
+/**
+ * Helper: Fetch free USDT balance for the given account.
+ * Supports Binance; for OKX and BingX, you can fill in their respective REST calls.
+ *
+ * @param {Object} account        Mongoose doc for BinanceAccount / OkxAccount / BingxAccount
+ * @param {String} accountType    'binance' | 'okx' | 'bingx'
+ * @returns {Promise<number>}     Free USDT balance (0 if not found)
+ */
+async function fetchFreeUsdt(account, accountType) {
+    if (accountType === 'binance') {
+        // Binance: GET /api/v3/account with signature
+        const timestamp = Date.now();
+        const query = `timestamp=${timestamp}`;
+        const signature = crypto
+            .createHmac('sha256', account.secretKey)
+            .update(query)
+            .digest('hex');
+
+        const url = `https://api.binance.com/api/v3/account?${query}&signature=${signature}`;
+        const headers = { 'X-MBX-APIKEY': account.apiKey };
+
+        const resp = await axios.get(url, { headers });
+        const balances = resp.data.balances || [];
+        const usdtObj = balances.find(b => b.asset === 'USDT');
+        return usdtObj ? parseFloat(usdtObj.free) : 0;
+    }
+    else if (accountType === 'okx') {
+        // OKX: GET /api/v5/account/balance
+        // Replace with actual base URL and endpoints as needed
+        const timestamp = Date.now().toString();
+        const method = 'GET';
+        const requestPath = '/api/v5/account/balance';
+        const body = '';
+        // Create prehash = timestamp + method + requestPath + body
+        const prehash = timestamp + method + requestPath + body;
+        const signature = crypto
+            .createHmac('sha256', account.secretKey)
+            .update(prehash)
+            .digest('base64');
+
+        const headers = {
+            'OK-ACCESS-KEY': account.apiKey,
+            'OK-ACCESS-SIGN': signature,
+            'OK-ACCESS-TIMESTAMP': timestamp,
+            'OK-ACCESS-PASSPHRASE': account.passphrase || '',
+            'Content-Type': 'application/json'
+        };
+
+        const url = `https://www.okx.com${requestPath}`;
+        const resp = await axios.get(url, { headers });
+        const data = resp.data.data || [];
+        // Find USDT entry under “currency”: “USDT”
+        let free = 0;
+        for (const entry of data) {
+            if (entry.ccy === 'USDT') {
+                free = parseFloat(entry.avl) || 0;
+                break;
+            }
+        }
+        return free;
+    }
+    else if (accountType === 'bingx') {
+        // BingX: replace with actual REST call to fetch account balances
+        // This is a placeholder; you must fill in your own API endpoint, signature, and parsing.
+        // E.g. GET https://api.bingx.com/api/v1/account/balance
+        // After retrieving, find { asset: 'USDT' } and return its free amount.
+        return 0; // Stub: implement BingX balance fetch here
+    }
+    else {
+        return 0;
+    }
+}
 
 /**
  * POST /orders/place
  *
- * Expected body (JSON):
+ * Body:
  * {
  *   accountId: <ObjectId string>,
- *   symbol: "BTC/USDT",            // trading pair
+ *   symbol: "BTC/USDT",
  *   orderType: "market" | "limit",
- *   side:      "buy" | "sell",
- *   quantity:  <number>,
- *   price?:    <number>,           // required if orderType === "limit"
- *   takeProfitPct: <number>,       // optional, e.g. 5 for +5%
- *   stopLossPct:   <number>        // optional, e.g. 5 for –5%
+ *   side: "buy" | "sell",
+ *   quantity: <number>,
+ *   price?: <number>, // required if orderType === "limit"
+ *   takeProfitPct?: <number>, // optional
+ *   stopLossPct?: <number> // optional
  * }
  *
- * (For now, this “step 1” stub will only validate and return success.  You can later wire in actual REST calls.)
+ * This endpoint validates inputs, ensures sufficient USDT for limit orders;
+ * then (stub) echoes back the would‐be order.
  */
 exports.placeOrder = async (req, res) => {
     try {
-        // 1) Check authentication
+        // 1) Authenticate the user
         const user = await User.findById(req.user?.id);
         if (!user) {
             return res.status(401).json({ success: false, error: "User not found." });
@@ -80,43 +153,54 @@ exports.placeOrder = async (req, res) => {
         // 3) Find the user’s chosen exchange account
         let account, accountType;
         account = await BinanceAccount.findById(accountId);
-        if (account) accountType = "binance";
-        else {
+        if (account) {
+            accountType = "binance";
+        } else {
             account = await OkxAccount.findById(accountId);
-            if (account) accountType = "okx";
-            else {
+            if (account) {
+                accountType = "okx";
+            } else {
                 account = await BingxAccount.findById(accountId);
-                if (account) accountType = "bingx";
+                if (account) {
+                    accountType = "bingx";
+                }
             }
         }
 
         if (!account || !accountType) {
-            return res.status(400).json({ success: false, error: "Invalid account selected." });
+            return res
+                .status(400)
+                .json({ success: false, error: "Invalid account selected." });
         }
 
-        // 4) (Stub) – In a real implementation, you would now:
-        //    • Use account.apiKey & account.secretKey
-        //    • Detect which exchange you’re talking to (accountType)
-        //    • Format `symbol` (“BTC/USDT” → “BTCUSDT” for Binance, etc.)
-        //    • Build the proper REST URL and signature per exchange docs
-        //    • POST the order to the exchange
-        //    • If takeProfitPct/stopLossPct are present, optionally place OCO or OTO orders
-        //
-        //    For this “step 1” stub, we will simply return success and echo back “what would have been sent.”
+        // 4) Fetch free USDT from the exchange for cost validation
+        const freeUsdt = await fetchFreeUsdt(account, accountType);
+
+        if (orderType === "limit") {
+            const totalCost = Number(quantity) * Number(price);
+            if (totalCost > freeUsdt) {
+                return res
+                    .status(400)
+                    .json({ success: false, error: "Insufficient USDT balance for this limit order." });
+            }
+        }
+
+        // 5) (Stub) – In a real implementation, we would now place the order on the exchange.
+        // For this version, we simply echo back the “would-be” order details.
 
         const stubResult = {
             placedOrder: {
-                exchange: accountType,
-                accountId: accountId,
+                exchange:       accountType,
+                accountId:      accountId,
                 symbol,
                 orderType,
                 side,
                 quantity,
-                price: orderType === "limit" ? price : null,
-                takeProfitPct: takeProfitPct != null ? takeProfitPct : 0,
-                stopLossPct: stopLossPct != null ? stopLossPct : 0,
+                price:          orderType === "limit" ? price : null,
+                takeProfitPct:  takeProfitPct != null ? takeProfitPct : 0,
+                stopLossPct:    stopLossPct != null ? stopLossPct : 0,
             },
-            message: "Order stub – you can wire in real REST calls next.",
+            message: "Order stub – integrate real REST calls here.",
         };
 
         return res.status(200).json({ success: true, data: stubResult });
