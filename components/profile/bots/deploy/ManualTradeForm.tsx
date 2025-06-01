@@ -265,7 +265,7 @@ export default function ManualTradeForm({
   // ─── RENDER FORM ──────────────────────────────────────────────────────────
   //
   return (
-    <div className="py-4 px-2">
+    <div className="py-4 px-2 h-[100%]">
       {/* ── MARKET / LIMIT TAB SWITCH ──────────────────────────────────────── */}
       <div className="flex justify-start mb-4 gap-4">
         <button
@@ -288,7 +288,7 @@ export default function ManualTradeForm({
         </button>
       </div>
 
-      <form className="space-y-4" onSubmit={handleSubmit}>
+      <form className="space-y-4 overflow-y-auto h-full" onSubmit={handleSubmit}>
         {/* — Account Dropdown — */}
         <Autocomplete
           id="Account"
