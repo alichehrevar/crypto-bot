@@ -2,6 +2,10 @@
 
 set -e  # Exit on any error
 
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+nvm use default
+
 cd "$DEPLOY_PATH"
 
 echo "🔄 Git stash..."
