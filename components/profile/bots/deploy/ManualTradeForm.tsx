@@ -13,12 +13,6 @@ import { getData } from "@/actions/get";
 import { sendRequest } from "@/actions/post";
 import { ExchangeAccount } from "@/types/profile/AccountType";
 import { WalletBalance } from "@/types/profile/WalletBalanceType";
-import { SymbolFilterResponse } from "@/types/profile/CurrencyType";
-
-interface Currency {
-  _id: string;
-  symbol: string;
-}
 
 // Props (if you need to pass down any callbacks, etc.)
 export interface ManualTradeFormProps {
