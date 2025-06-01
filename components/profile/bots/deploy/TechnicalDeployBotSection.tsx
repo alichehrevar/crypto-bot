@@ -8,7 +8,7 @@ import {
 
 import BotConfigForm from "@/components/profile/bots/deploy/BotConfigForm";
 
-export default function DeployBotSection ({
+export default function TechnicalDeployBotSection ({
   onSuccessAction
 }: {
   onSuccessAction: () => void
