@@ -1,3 +1,5 @@
+// app/components/ManualTradeForm.tsx
+
 "use client";
 
 import React, { FormEvent, Key, useEffect, useState } from "react";
@@ -13,10 +15,14 @@ import { getData } from "@/actions/get";
 import { sendRequest } from "@/actions/post";
 import { ExchangeAccount } from "@/types/profile/AccountType";
 import { WalletBalance } from "@/types/profile/WalletBalanceType";
+import { SymbolFilterResponse } from "@/types/profile/CurrencyType";
 
-// Props (if you need to pass down any callbacks, etc.)
+interface Currency {
+  _id: string;
+  symbol: string;
+}
+
 export interface ManualTradeFormProps {
-  // e.g. callback once the user submits a trade
   onTradeExecuted?: () => void;
 }
 
@@ -30,32 +36,37 @@ export default function ManualTradeForm({
   const [selectedAccountId, setSelectedAccountId] = useState<Key>();
   const [availableBalance, setAvailableBalance] = useState<number>(0);
 
-  // “currentPrice” would normally be fetched from some price feed.
-  // For now, we’ll keep it as a placeholder state that you can update later.
+  // Symbols list for dropdown
+  const [symbols, setSymbols] = useState<Currency[]>([]);
+  const [selectedSymbol, setSelectedSymbol] = useState<string>("BTC/USDT");
+
+  // Placeholder for live price; wire this up later to your WebSocket/REST feed
   const [currentPrice, setCurrentPrice] = useState<number>(0);
 
   // Mode toggle: "market" or "limit"
   const [mode, setMode] = useState<"market" | "limit">("market");
 
-  // Common order fields
-  const [quantity, setQuantity] = useState<string>(""); // user input
+  // Order fields
+  const [quantity, setQuantity] = useState<string>("");
   const [percentQuickQty, setPercentQuickQty] = useState<number | null>(null);
-
-  // If limit, we need a "price" field
   const [limitPrice, setLimitPrice] = useState<string>("");
 
-  // TP/SL toggles + values
-  // ← DEFAULT IS NOW true (switch starts ON)
+  // TP/SL toggles + values (default ON)
   const [enableTPSL, setEnableTPSL] = useState<boolean>(true);
-  const [takeProfitPct, setTakeProfitPct] = useState<string>("5"); // “5” means 5%
+  const [takeProfitPct, setTakeProfitPct] = useState<string>("5");
   const [stopLossPct, setStopLossPct] = useState<string>("5");
 
-  // Calculated TP & SL prices
+  // Computed TP/SL prices
   const [estTPPrice, setEstTPPrice] = useState<number | null>(null);
   const [estSLPrice, setEstSLPrice] = useState<number | null>(null);
 
+  // Validation error for Limit cost
+  const [costError, setCostError] = useState<string>("");
+
+  const [loading, setLoading] = useState<boolean>(false);
+
   //
-  // ─── EFFECT: FETCH ACCOUNTS & BALANCE ─────────────────────────────────
+  // ─── EFFECT TO LOAD ACCOUNTS & SYMBOLS ─────────────────────────────────
   //
   useEffect(() => {
     // 1) Load user’s exchange accounts
@@ -81,6 +92,20 @@ export default function ManualTradeForm({
         setAccounts(arr);
       } catch {
         addToast({ title: "Failed to load accounts", color: "danger" });
+      }
+    })();
+
+    // 2) Load available currency symbols
+    (async () => {
+      try {
+        const res: SymbolFilterResponse = await getData("/currencies");
+        if (!res.success) {
+          addToast({ title: res.message || "No symbols found!", color: "danger" });
+        } else {
+          setSymbols(res.data);
+        }
+      } catch {
+        addToast({ title: "Failed to load symbols", color: "danger" });
       }
     })();
   }, []);
@@ -113,18 +138,18 @@ export default function ManualTradeForm({
   }
 
   //
-  // ─── WHEN QUANTITY CHANGES VIA QUICK‐SELECT ───────────────────────────────
+  // ─── QUICK‐SELECT QUANTITY HANDLER ────────────────────────────────────────
   //
   function handleQuickQty(percent: number) {
     if (!availableBalance || !currentPrice) return;
-    // Quantity = (percent% of availableBalance) / currentPrice
+    // quantity = (percent% of availableBalance) / currentPrice
     const qty = (availableBalance * (percent / 100)) / currentPrice;
-    setQuantity(qty.toFixed(6)); // adjust decimals as needed
+    setQuantity(qty.toFixed(6));
     setPercentQuickQty(percent);
   }
 
   //
-  // ─── CALCULATE ESTIMATED TP/SL PRICES ────────────────────────────────────
+  // ─── COMPUTE ESTIMATED TP/SL PRICES ─────────────────────────────────────
   //
   useEffect(() => {
     if (!enableTPSL || !currentPrice) {
@@ -134,17 +159,42 @@ export default function ManualTradeForm({
     }
     const tpNum = parseFloat(takeProfitPct);
     const slNum = parseFloat(stopLossPct);
+
     if (!isNaN(tpNum)) {
       setEstTPPrice(Number((currentPrice * (1 + tpNum / 100)).toFixed(2)));
     } else {
       setEstTPPrice(null);
     }
+
     if (!isNaN(slNum)) {
       setEstSLPrice(Number((currentPrice * (1 - slNum / 100)).toFixed(2)));
     } else {
       setEstSLPrice(null);
     }
   }, [enableTPSL, takeProfitPct, stopLossPct, currentPrice]);
+
+  //
+  // ─── VALIDATE LIMIT ORDER COST AGAINST AVAILABLE BALANCE ────────────────
+  //
+  useEffect(() => {
+    if (mode !== "limit") {
+      setCostError("");
+      return;
+    }
+    // Only validate if both quantity and limitPrice are valid numbers
+    const qtyNum = parseFloat(quantity);
+    const priceNum = parseFloat(limitPrice);
+    if (isNaN(qtyNum) || isNaN(priceNum) || qtyNum <= 0 || priceNum <= 0) {
+      setCostError("");
+      return;
+    }
+    const totalCost = qtyNum * priceNum;
+    if (totalCost > availableBalance) {
+      setCostError("Insufficient USDT balance for this limit order.");
+    } else {
+      setCostError("");
+    }
+  }, [mode, quantity, limitPrice, availableBalance]);
 
   //
   // ─── FORM SUBMISSION ─────────────────────────────────────────────────────
@@ -156,6 +206,10 @@ export default function ManualTradeForm({
       addToast({ title: "Please select an account", color: "danger" });
       return;
     }
+    if (!selectedSymbol) {
+      addToast({ title: "Please select a symbol", color: "danger" });
+      return;
+    }
     if (!quantity || isNaN(Number(quantity)) || Number(quantity) <= 0) {
       addToast({ title: "Please enter a valid quantity", color: "danger" });
       return;
@@ -165,16 +219,23 @@ export default function ManualTradeForm({
         addToast({ title: "Please enter a valid limit price", color: "danger" });
         return;
       }
+      if (costError) {
+        addToast({ title: costError, color: "danger" });
+        return;
+      }
     }
 
-    // Build payload
-    const side = (e.nativeEvent as any).submitter.value || "buy";
+    setLoading(true);
 
+    // Determine side from clicked button ("buy" or "sell")
+    const side = ((e.nativeEvent as any).submitter?.value as string) || "buy";
+
+    // Build payload to send to /orders/place
     const payload: any = {
       accountId: selectedAccountId.toString(),
-      symbol: "BTC/USDT", // Adjust if you want to let user pick a symbol
-      orderType: mode,    // "market" or "limit"
-      side,               // "buy" or "sell"
+      symbol: selectedSymbol,
+      orderType: mode,         // "market" or "limit"
+      side,                    // "buy" or "sell"
       quantity: Number(quantity),
       ...(mode === "limit" && { price: Number(limitPrice) }),
       takeProfitPct: enableTPSL ? parseFloat(takeProfitPct) : 0,
@@ -182,12 +243,11 @@ export default function ManualTradeForm({
     };
 
     try {
-      // e.g. POST to /orders/place
       const res = await sendRequest(payload, "/orders/place");
       if (res.success) {
         addToast({ title: "Order placed!", color: "success" });
         if (onTradeExecuted) onTradeExecuted();
-        // Optionally reset form:
+        // Reset
         setQuantity("");
         setLimitPrice("");
         setPercentQuickQty(null);
@@ -196,6 +256,8 @@ export default function ManualTradeForm({
       }
     } catch {
       addToast({ title: "Error placing order!", color: "danger" });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -204,12 +266,12 @@ export default function ManualTradeForm({
   //
   return (
     <div className="py-4 px-2">
-      {/* ── TAB SWITCH ───────────────────────────────────────────────────────── */}
-      <div className="flex justify-start mb-4">
+      {/* ── MARKET / LIMIT TAB SWITCH ──────────────────────────────────────── */}
+      <div className="flex justify-start mb-4 gap-4">
         <button
           type="button"
-          className={`px-4 py-2 rounded‐t-xl ${
-            mode === "market" ? "dark:text-white font-semibold" : " text-gray-300"
+          className={`py-2 rounded-t-xl ${
+            mode === "market" ? "text-white font-semibold" : " text-gray-300"
           }`}
           onClick={() => setMode("market")}
         >
@@ -217,8 +279,8 @@ export default function ManualTradeForm({
         </button>
         <button
           type="button"
-          className={`px-4 py-2 rounded‐t-xl ${
-            mode === "limit" ? "dark:text-white font-semibold" : "text-gray-300"
+          className={`py-2 rounded-t-xl ${
+            mode === "limit" ? "text-white font-semibold" : " text-gray-300"
           }`}
           onClick={() => setMode("limit")}
         >
@@ -248,21 +310,41 @@ export default function ManualTradeForm({
           Available balance: <b>{availableBalance.toFixed(2)} USDT</b>
         </p>
 
-        {/* ── If “Limit” mode, show Price input ────────────────────────────────── */}
+        {/* — Symbol Dropdown — */}
+        <Autocomplete
+          defaultItems={symbols}
+          id="Symbol"
+          isClearable={false}
+          label="Symbol"
+          onSelectionChange={(k) => k && setSelectedSymbol(k.toString())}
+        >
+          {symbols.map((s) => (
+            <AutocompleteItem key={s.symbol} textValue={s.symbol}>
+              {s.symbol}
+            </AutocompleteItem>
+          ))}
+        </Autocomplete>
+
+        {/* ── LIMIT PRICE (only if mode="limit") ─────────────────────────────── */}
         {mode === "limit" && (
-          <Input
-            required
-            label="Price (USDT)"
-            type="number"
-            min={0.0001}
-            step="0.01"
-            placeholder="e.g. 30,000"
-            value={limitPrice}
-            onChange={(e) => setLimitPrice(e.target.value)}
-          />
+          <div>
+            <Input
+              required
+              label="Price (USDT)"
+              type="number"
+              min={0.0001}
+              step="0.01"
+              placeholder="e.g. 30,000"
+              value={limitPrice}
+              onChange={(e) => setLimitPrice(e.target.value)}
+            />
+            {costError && (
+              <p className="text-red-500 text-sm">{costError}</p>
+            )}
+          </div>
         )}
 
-        {/* ── Quantity Input ─────────────────────────────────────────────────── */}
+        {/* ── QUANTITY INPUT ─────────────────────────────────────────────────── */}
         <Input
           required
           label="Quantity"
@@ -277,7 +359,7 @@ export default function ManualTradeForm({
           }}
         />
 
-        {/* ── Quick‐Select Percentage Buttons (qty) ───────────────────────────── */}
+        {/* ── QUICK‐SELECT PERCENTAGE BUTTONS ────────────────────────────────── */}
         <div className="flex items-center gap-2">
           {[10, 25, 50, 75, 100].map((p) => (
             <button
@@ -295,8 +377,8 @@ export default function ManualTradeForm({
           ))}
         </div>
 
-        {/* ── TP/SL Toggle ────────────────────────────────────────────────────── */}
-        <div className="flex items-center justify-between">
+        {/* ── TP/SL SWITCH ───────────────────────────────────────────────────── */}
+        <div className="flex items-center justify-between flex-row-reverse">
           <Switch
             color="success"
             size="sm"
@@ -306,8 +388,9 @@ export default function ManualTradeForm({
           <span className="text-sm text-gray-700">TP/SL</span>
         </div>
 
-        {/* ── TP / SL Inputs & Quick‐Select Buttons ───────────────────────────── */}
+        {/* ── TP & SL INPUTS + QUICK‐SELECT BUTTONS ──────────────────────────── */}
         <div className="space-y-2">
+          {/* Take Profit */}
           <Input
             label="Take Profit (%)"
             type="number"
@@ -343,6 +426,7 @@ export default function ManualTradeForm({
             </p>
           )}
 
+          {/* Stop Loss */}
           <Input
             label="Stop Loss (%)"
             type="number"
@@ -379,12 +463,14 @@ export default function ManualTradeForm({
           )}
         </div>
 
-        {/* ── SUBMIT BUTTONS ───────────────────────────────────────────────────── */}
+        {/* ── BUY / SELL BUTTONS ─────────────────────────────────────────────── */}
         <div className="flex gap-4 mt-4">
           <Button
             className="flex-1 bg-green-600 hover:bg-green-700 text-white rounded-2xl py-3"
             type="submit"
             value="buy"
+            isLoading={loading}
+            disabled={loading || Boolean(costError)}
           >
             Buy
           </Button>
@@ -392,6 +478,8 @@ export default function ManualTradeForm({
             className="flex-1 bg-red-600 hover:bg-red-700 text-white rounded-2xl py-3"
             type="submit"
             value="sell"
+            isLoading={loading}
+            disabled={loading || Boolean(costError)}
           >
             Sell
           </Button>
