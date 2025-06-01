@@ -1,16 +1,16 @@
 // app/http/controllers/botController.js
 
-const BotBase      = require('../../models/BotBase');
-const IndicatorBot = require('../../models/IndicatorBot');
-const GridBotModel = require('../../models/GridBotModel');
-const User         = require('../../models/User');
-const Trade        = require('../../models/Trade');
-const Candle       = require('../../models/Candle');
+const BotBase        = require('../../models/BotBase');
+const IndicatorBot   = require('../../models/IndicatorBot');
+const GridBotModel   = require('../../models/GridBotModel');
+const User           = require('../../models/User');
+const Trade          = require('../../models/Trade');
+const Candle         = require('../../models/Candle');
 const BinanceAccount = require('../../models/BinanceAccount');
 const OkxAccount     = require('../../models/OkxAccount');
 const BingxAccount   = require('../../models/BingxAccount');
-const BotService   = require('../../services/botService/BotService');
-const PnLService   = require('../../services/PnLService'); // for getBots enrichment
+const BotService     = require('../../services/botService/BotService');
+const PnLService     = require('../../services/PnLService'); // for getBots enrichment
 
 // Default indicator parameters (unchanged)
 const defaultStrategyParams = {
@@ -27,68 +27,6 @@ const defaultStrategyParams = {
 
 /**
  * Deploy a new bot (either an indicator bot or a grid bot).
- *
- * Expected request body for indicator bots (botType === 'indicator'):
- * {
- *   botType: 'indicator',           // optional (defaults to 'indicator' if omitted)
- *   accountId: <ObjectId>,
- *   name: <string>,
- *   symbol: <string>,
- *   timeframe: <string>,
- *   riskStrategy: <string>,
- *   takeProfit: <number>,
- *   stopLoss: <number>,
- *   leverage: <number>,            // optional (goes into tradeInfo)
- *
- *   // For indicator bots:
- *   indicator: <string>,           // e.g. 'RSI'
- *   timeframe: <string>,           // e.g. '1h'
- *   strategyParams: <object> or JSON string,
- *   additionalIndicators: [ { indicator: <string>, timeframe: <string> }, … ],
- *   strategy: <'default'|'optimized'|'dynamic'>,
- *
- *   // …common fields:
- *   baseFund: <number>,            // optional (goes into marketInfo.baseFund)
- *   tradeFund: <number>,           // optional (goes into marketInfo.tradeFund)
- *   mode:     <'live'|'paper'>,     // will always be 'live' here, we hardcoded it
- *   // userId is gleaned from req.user.id
- * }
- *
- * Expected request body for grid bots (botType === 'grid'):
- * {
- *   botType: 'grid',
- *   accountId: <ObjectId>,
- *   name: <string>,
- *   symbol: <string>,
- *   timeframe: <string>,
- *   riskStrategy: <string>,
- *
- *   // gridConfig must be present (see models/GridBotModel.js)
- *   gridConfig: {
- *     lowerPrice: <number>,
- *     upperPrice: <number>,
- *     gridCount:  <number>,
- *     gridType:  <'fixed'|'percentage'|'infinite'>,      // optional (defaults to 'fixed')
- *     gridStepPercentage: <number>,                      // required if gridType='percentage'
- *     takeProfitPct: <number>,
- *     stopLossPct: <number>,
- *     volatilityBasedSL: <boolean>,
- *     trailingStop: <boolean>,
- *     ATRMultiplier: <number>
- *   },
- *
- *   // And (optionally) tradeInfo/riskParams/marketInfo if you want to override defaults.
- *   // For now, we’ll just fill in tradeInfo.takeProfit and stopLoss from the top‐level payload.
- *
- *   takeProfit: <number>,
- *   stopLoss:  <number>,
- *   leverage:  <number>,
- *
- *   baseFund:  <number>,
- *   tradeFund: <number>,
- *
- *   mode:      'live'   // we still force paper vs. live in code below
- * }
  */
 exports.deployBot = async (req, res) => {
     try {
@@ -116,7 +54,8 @@ exports.deployBot = async (req, res) => {
         }
 
         // 2) Extract common fields
-        const {
+        //    Note: front end no longer sends timeframe for grid → we default it to "1m"
+        let {
             botType          = 'indicator',  // default to 'indicator' if not provided
             name,
             symbol,
@@ -127,43 +66,50 @@ exports.deployBot = async (req, res) => {
             leverage,
             baseFund,
             tradeFund,
-            strategy  // indicator‐strategy (default/optimized/dynamic) or ignored for grid
+            strategy         // indicator‐strategy ("default"|"optimized"|"dynamic") or ignored for grid
         } = req.body;
 
-        // Capitalize symbol & normalize timeframe
-        const normalizedSymbol = (typeof symbol === 'string') ? symbol.toUpperCase() : symbol;
-        const normalizedTF     = (typeof timeframe === 'string') ? timeframe.toLowerCase() : timeframe;
+        // If no timeframe was provided (e.g. grid), default to 1m
+        let normalizedTF = typeof timeframe === 'string'
+            ? timeframe.toLowerCase()
+            : '1m';
 
-        // 3) Build “marketInfo” and “tradeInfo” sub‐objects
-        //    If the caller did not explicitly send baseFund/tradeFund, fall back to defaults
+        const normalizedSymbol = typeof symbol === 'string'
+            ? symbol.toUpperCase()
+            : symbol;
+
+        // 3) Build “marketInfo” and “tradeInfo”
         const marketInfo = {
-            baseFund:  baseFund  != null ? baseFund  : 10000,
-            tradeFund: tradeFund != null ? tradeFund : 50
+            baseFund:  baseFund  != null ? Number(baseFund)  : 10000,
+            tradeFund: tradeFund != null ? Number(tradeFund) : 50
         };
         const tradeInfo = {
-            takeProfit,
-            stopLoss,
-            leverage: leverage != null ? leverage : 1
+            takeProfit:  takeProfit != null ? Number(takeProfit) : undefined,
+            stopLoss:    stopLoss   != null ? Number(stopLoss)   : undefined,
+            leverage:    leverage   != null ? Number(leverage)   : 1
         };
 
         // 4) Branch on botType
         let bot;
+
         if (botType === 'indicator') {
             //
-            // ── I N D I C A T O R   B O T ─────────────────────────────────────────────────
+            // ── I N D I C A T O R   B O T ─────────────────────────────────────────
             //
-            // a) Parse out “indicator” + “strategyParams” + “additionalIndicators”
             const {
-                indicator,            // e.g. 'RSI'
+                indicator,
+                timeframe: indTF,
                 strategyParams: rawParams,
                 additionalIndicators: rawAddIns
             } = req.body;
 
-            if (!indicator || !normalizedTF) {
+            if (!indicator || !indTF) {
                 return res.status(400).json({ error: 'Indicator name and timeframe are required.' });
             }
 
-            // i) Parse strategyParams JSON if provided as string
+            const normalizedIndTF = indTF.toString().toLowerCase();
+
+            // i) Parse strategyParams (JSON string → object)
             let strategyParams;
             if (typeof rawParams === 'string') {
                 try {
@@ -175,7 +121,7 @@ exports.deployBot = async (req, res) => {
                 strategyParams = rawParams || {};
             }
 
-            // ii) Build the “indicators” array
+            // ii) Parse additionalIndicators (JSON string → array)
             let additionalIndicators = [];
             if (Array.isArray(rawAddIns)) {
                 additionalIndicators = rawAddIns;
@@ -184,43 +130,44 @@ exports.deployBot = async (req, res) => {
                     const parsed = JSON.parse(rawAddIns);
                     if (Array.isArray(parsed)) additionalIndicators = parsed;
                 } catch {
-                    // ignore
+                    additionalIndicators = [];
                 }
             }
 
+            // iii) Build the “indicators” array
             const indicators = [
                 {
                     name:      indicator,
-                    timeframe: normalizedTF,
+                    timeframe: normalizedIndTF,
                     params:    strategyParams || defaultStrategyParams[indicator] || {}
                 },
                 ...additionalIndicators.map(ai => ({
                     name:      ai.indicator,
-                    timeframe: ai.timeframe.toLowerCase(),
+                    timeframe: ai.timeframe.toString().toLowerCase(),
                     params:    defaultStrategyParams[ai.indicator] || {}
                 }))
             ];
 
-            // iii) Create new IndicatorBot document
+            // iv) Create new IndicatorBot document
             bot = await IndicatorBot.create({
-                botType:       'indicator',   // discriminatorKey – Mongoose will verify it
+                botType:       'indicator',
                 name,
                 symbol:        normalizedSymbol,
-                timeframe:     normalizedTF,
+                timeframe:     normalizedIndTF,
                 userId:        user._id,
                 accountType,
                 accountId:     account._id,
 
                 riskStrategy,
-                riskParams:    {},            // you can fill defaults or allow caller to pass
+                riskParams:    {},            // placeholders (caller could pass more if needed)
                 marketInfo,
                 tradeInfo,
 
                 indicators,
                 strategy:      strategy || 'default',
 
-                positionMode:  'single',      // or allow caller to override
-                fundMode:      'cross',       // or allow caller to override
+                positionMode:  'single',
+                fundMode:      'cross',
                 active:        true,
                 mode:          'live'
             });
@@ -229,21 +176,34 @@ exports.deployBot = async (req, res) => {
             //
             // ── G R I D   B O T ─────────────────────────────────────────────────────────
             //
-            // The caller must supply a valid “gridConfig” object in the request body
-            const { gridConfig } = req.body;
-            if (!gridConfig) {
-                return res.status(400).json({ error: 'gridConfig is required for botType=grid.' });
+            // Front end sends gridConfig as a JSON string, so parse it here
+            let rawGridConfig = req.body.gridConfig;
+            let gridConfig;
+            if (typeof rawGridConfig === 'string') {
+                try {
+                    gridConfig = JSON.parse(rawGridConfig);
+                } catch {
+                    return res.status(400).json({ error: 'gridConfig must be valid JSON.' });
+                }
+            } else {
+                gridConfig = rawGridConfig;
             }
 
-            // Validate minimal required fields in gridConfig
-            const { lowerPrice, upperPrice, gridCount } = gridConfig;
-            if (
-                typeof lowerPrice !== 'number' ||
-                typeof upperPrice !== 'number' ||
-                typeof gridCount  !== 'number'
+            // Validate minimal fields
+            if (!gridConfig
+                || typeof gridConfig.lowerPrice !== 'number'
+                || typeof gridConfig.upperPrice !== 'number'
+                || typeof gridConfig.gridCount !== 'number'
             ) {
                 return res.status(400).json({
                     error: 'gridConfig must contain numeric lowerPrice, upperPrice, and gridCount.'
+                });
+            }
+
+            // Friendly check: lower < upper
+            if (gridConfig.lowerPrice >= gridConfig.upperPrice) {
+                return res.status(400).json({
+                    error: 'gridConfig.lowerPrice must be less than gridConfig.upperPrice'
                 });
             }
 
@@ -258,27 +218,27 @@ exports.deployBot = async (req, res) => {
                 accountId:     account._id,
 
                 riskStrategy,
-                riskParams:    {},        // fill in or allow caller override
+                riskParams:    {},        // placeholders
                 marketInfo,
                 tradeInfo,
 
-                gridConfig:    {
-                    lowerPrice:        gridConfig.lowerPrice,
-                    upperPrice:        gridConfig.upperPrice,
-                    gridCount:         gridConfig.gridCount,
-                    gridType:          gridConfig.gridType || 'fixed',
+                gridConfig: {
+                    lowerPrice:         gridConfig.lowerPrice,
+                    upperPrice:         gridConfig.upperPrice,
+                    gridCount:          gridConfig.gridCount,
+                    gridType:           gridConfig.gridType  || 'fixed',
                     gridStepPercentage: gridConfig.gridStepPercentage != null
                         ? gridConfig.gridStepPercentage
                         : 0.01,
-                    takeProfitPct:     gridConfig.takeProfitPct != null
+                    takeProfitPct:      gridConfig.takeProfitPct != null
                         ? gridConfig.takeProfitPct
                         : 2,
-                    stopLossPct:       gridConfig.stopLossPct != null
+                    stopLossPct:        gridConfig.stopLossPct != null
                         ? gridConfig.stopLossPct
                         : 2,
-                    volatilityBasedSL: gridConfig.volatilityBasedSL === true,
-                    trailingStop:      gridConfig.trailingStop !== false,
-                    ATRMultiplier:     gridConfig.ATRMultiplier != null
+                    volatilityBasedSL:  gridConfig.volatilityBasedSL === true,
+                    trailingStop:       gridConfig.trailingStop !== false,
+                    ATRMultiplier:      gridConfig.ATRMultiplier != null
                         ? gridConfig.ATRMultiplier
                         : 3
                 },
@@ -310,11 +270,9 @@ exports.deployBot = async (req, res) => {
 exports.getBots = async (req, res) => {
     try {
         const filter = { active: true, userId: req.user?.id };
-        // Use BotBase.find() so Mongoose will cast discriminator‐docs automatically
         const bots = await BotBase.find(filter).lean();
 
         const enriched = await Promise.all(bots.map(async bot => {
-            // current price for unrealized PnL
             const price = bot.marketInfo?.currentCandle?.price;
             let pnl = { realized: 0, unrealized: 0, total: 0 };
             if (typeof price === 'number') {
@@ -323,7 +281,6 @@ exports.getBots = async (req, res) => {
             const base = bot.marketInfo?.baseFund || 1;
             const pct  = base > 0 ? (pnl.total / base * 100) : 0;
 
-            // fetch all trades for this bot
             const trades = await Trade
                 .find({ bot: bot._id })
                 .sort({ timestamp: -1 })
@@ -365,15 +322,31 @@ exports.getBotById = async (req, res) => {
 };
 
 /**
- * Update a bot’s settings (works for both indicator and grid, as long as req.body matches the discriminator schema).
+ * Update a bot’s settings (works for both indicator and grid).
  */
 exports.updateBot = async (req, res) => {
     try {
-        // We use BotBase.findById to fetch the existing document (with its discriminator).
-        // Then we call .set() + .save() to ensure proper validation on the discriminated model.
         const existing = await BotBase.findById(req.params.id);
         if (!existing) {
             return res.status(404).json({ success: false, error: 'Bot not found' });
+        }
+
+        // If updating gridConfig, parse nested JSON if it arrives as a string
+        if (req.body.gridConfig && typeof req.body.gridConfig === 'string') {
+            try {
+                req.body.gridConfig = JSON.parse(req.body.gridConfig);
+            } catch {
+                return res.status(400).json({ error: 'Invalid JSON for gridConfig' });
+            }
+        }
+
+        // If updating strategyParams for an indicator bot, parse JSON
+        if (req.body.strategyParams && typeof req.body.strategyParams === 'string') {
+            try {
+                req.body.strategyParams = JSON.parse(req.body.strategyParams);
+            } catch {
+                return res.status(400).json({ error: 'Invalid JSON for strategyParams' });
+            }
         }
 
         // Merge req.body onto the existing Mongoose document
@@ -381,10 +354,9 @@ exports.updateBot = async (req, res) => {
             existing[key] = req.body[key];
         });
 
-        // Save will run the correct discriminator‐level validators
+        // Save will run proper discriminator‐level validators
         const updated = await existing.save();
 
-        // Sync in‐memory registration
         if (updated.active) {
             BotService.updateBot(updated);
         } else {
@@ -419,7 +391,7 @@ exports.deleteBot = async (req, res) => {
 };
 
 /**
- * Ensure bots for a symbol/timeframe (upsert). This only creates/upserts indicator‐type bots.
+ * Ensure bots for a symbol/timeframe (upsert). only indicator bots.
  */
 exports.selectBots = async (req, res) => {
     try {
@@ -430,20 +402,14 @@ exports.selectBots = async (req, res) => {
         symbol    = symbol.toString().toUpperCase();
         timeframe = timeframe.toString().toLowerCase();
 
-        // If caller passed a specific indicator name in `strategy`, use it; otherwise, default list:
-        const list = strategy
-            ? [ strategy ]
-            : ['MA_Crossover','RSI','MACD'];
+        const list = strategy ? [strategy] : ['MA_Crossover','RSI','MACD'];
 
-        // Upsert indicator‐type bots for each name in `list`
         for (const ind of list) {
-            const indicatorsArray = [
-                {
-                    name:      ind,
-                    timeframe,
-                    params:    defaultStrategyParams[ind] || {}
-                }
-            ];
+            const indicatorsArray = [{
+                name:      ind,
+                timeframe,
+                params:    defaultStrategyParams[ind] || {}
+            }];
 
             await IndicatorBot.findOneAndUpdate(
                 {
@@ -467,7 +433,6 @@ exports.selectBots = async (req, res) => {
             );
         }
 
-        // Return all bots (indicator OR grid) for symbol/timeframe
         const bots = await BotBase.find({ symbol, timeframe }).lean();
         return res.json({ success: true, bots });
     }
@@ -594,7 +559,7 @@ exports.closeTrade = async (req, res) => {
 };
 
 /**
- * Provide front‐end with various dropdown properties (unchanged).
+ * Provide front‐end with various dropdown properties.
  */
 exports.botProps = async (_, res) => {
     const props = {

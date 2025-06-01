@@ -17,7 +17,14 @@ const gridConfigSchema = new Schema({
     volatilityBasedSL:   { type: Boolean, default: false },
     trailingStop:        { type: Boolean, default: true },
     ATRMultiplier:       { type: Number, default: 3 }
-}, { _id: false });
+}, {
+    _id: false,
+    // ensure lower < upper
+    validate: [
+        v => v.lowerPrice < v.upperPrice,
+        "lowerPrice must be less than upperPrice"
+    ]
+});
 
 const gridBotSchema = new Schema({
     gridConfig: {

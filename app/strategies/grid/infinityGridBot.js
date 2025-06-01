@@ -67,7 +67,7 @@ class InfinityGridBot extends GridBot {
         // For example:
         // const recent = candleStore.getLatestCandles(this.symbol, this.timeframe, 20).map(c => c.close);
         // But since we don’t have candleStore here, we use an empty array placeholder.
-        const prices = []; // Replace with real price history
+        const prices = [];
 
         if (!prices.length) {
             // If no data, return existing bounds
