@@ -57,9 +57,14 @@ export default function GridConfigForm({
   // ─── GRID‐SPECIFIC STATE ───────────────────────────────────────────────
   //
 
+  // Lower and Upper Price (required for Standard & Dynamic)
+  const [lowerPrice, setLowerPrice] = useState<string>("");
+  const [upperPrice, setUpperPrice] = useState<string>("");
+  const [priceRangeError, setPriceRangeError] = useState<string>("");
+
   // Base Fund (USDT) — must not exceed availableBalance
   const [baseFund, setBaseFund] = useState<string>("");
-  const [baseFundError, setBaseFundError] = useState<string>(""); // for validation
+  const [baseFundError, setBaseFundError] = useState<string>("");
 
   const [gridCount, setGridCount] = useState<string>("10"); // number of grid lines
 
@@ -69,17 +74,17 @@ export default function GridConfigForm({
 
   // TP/SL toggles + values (common to all modes)
   const [enableTPSL, setEnableTPSL] = useState<boolean>(true);
-  const [takeProfitPct, setTakeProfitPct] = useState<string>("5"); // e.g. “5” means 5%
-  const [stopLossPct, setStopLossPct] = useState<string>("5"); // e.g. 5%
+  const [takeProfitPct, setTakeProfitPct] = useState<string>("5");
+  const [stopLossPct, setStopLossPct] = useState<string>("5");
 
-  // Trailing TP/SL toggle (common to all) – default true
+  // Trailing TP/SL toggle
   const [enableTrailing, setEnableTrailing] = useState<boolean>(true);
 
-  // For “Infinity” mode only: Bollinger toggle (default true)
+  // For “Infinity” mode only: Bollinger toggle
   const [useBollinger, setUseBollinger] = useState<boolean>(true);
 
-  // “Dynamic” (AI‐driven) only: modelPath and retrain frequency
-  const [retrainInterval, setRetrainInterval] = useState<string>("3600000"); // ms
+  // “Dynamic” (AI‐driven) only: retrain frequency
+  const [retrainInterval, setRetrainInterval] = useState<string>("3600000");
 
   const [loading, setLoading] = useState<boolean>(false);
 
@@ -127,7 +132,7 @@ export default function GridConfigForm({
       }
     })();
 
-    // 3) Load risk strategies (so user can choose)
+    // 3) Load risk strategies (bots/botProps)
     (async () => {
       try {
         const res = await getData("/bots/botProps");
@@ -135,7 +140,6 @@ export default function GridConfigForm({
           addToast({ title: "Error getting bot parameters", color: "danger" });
         } else {
           setBotProps(res.props);
-          // Pick a default risk strategy
           setRiskStrategy(res.props.riskStrategyOptions[0] || "");
         }
       } catch {
@@ -180,12 +184,34 @@ export default function GridConfigForm({
   }
 
   //
+  // ─── VALIDATE LOWER/UPPER PRICE ─────────────────────────────────────────
+  //
+  function onPriceRangeChange(
+    newLower: string,
+    newUpper: string
+  ) {
+    setLowerPrice(newLower);
+    setUpperPrice(newUpper);
+
+    const low = parseFloat(newLower);
+    const high = parseFloat(newUpper);
+    if (isNaN(low) || isNaN(high)) {
+      setPriceRangeError("Both prices must be valid numbers");
+    } else if (low <= 0 || high <= 0) {
+      setPriceRangeError("Prices must be positive");
+    } else if (low >= high) {
+      setPriceRangeError("Lower Price must be less than Upper Price");
+    } else {
+      setPriceRangeError("");
+    }
+  }
+
+  //
   // ─── VALIDATE BASE FUND INPUT ────────────────────────────────────────────
   //
   function onBaseFundChange(val: string) {
     setBaseFund(val);
 
-    // Validate: must be ≤ availableBalance
     const num = parseFloat(val);
     if (isNaN(num) || num < 0) {
       setBaseFundError("Base Fund must be a positive number");
@@ -202,7 +228,11 @@ export default function GridConfigForm({
   const handleDeploy = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    // Prevent submission if validation error
+    // Validate errors
+    if ((mode === "standard" || mode === "dynamic") && priceRangeError) {
+      addToast({ title: priceRangeError, color: "danger" });
+      return;
+    }
     if (baseFundError) {
       addToast({ title: baseFundError, color: "danger" });
       return;
@@ -210,26 +240,18 @@ export default function GridConfigForm({
 
     setLoading(true);
 
-    // Build payload matching backend BotModel for a grid bot
-    //
     const payload: any = {
       name: name.trim() || `${selectedSymbol} Grid Bot`,
       accountId: selectedAccountId?.toString() || "",
       symbol: selectedSymbol,
 
-      // Set marketInfo.baseFund based on Base Fund input
+      // marketInfo.baseFund
       baseFund: parseFloat(baseFund) || 0,
 
-      // tradeFund can default to 0 or be omitted
       tradeFund: 0,
-
       riskStrategy,
       botType: "grid",
 
-      // Bot “strategy” maps to:
-      //  - standard → "default"
-      //  - infinity → "dynamic"
-      //  - dynamic  → "optimized"
       strategy:
         mode === "standard"
           ? "default"
@@ -237,10 +259,16 @@ export default function GridConfigForm({
             ? "dynamic"
             : "optimized",
 
-      // For grid, send “gridConfig”
       gridConfig: {
-        lowerPrice: null,
-        upperPrice: null,
+        // Only send LP/UP in Standard & Dynamic
+        lowerPrice:
+          mode === "standard" || mode === "dynamic"
+            ? parseFloat(lowerPrice) || 0
+            : null,
+        upperPrice:
+          mode === "standard" || mode === "dynamic"
+            ? parseFloat(upperPrice) || 0
+            : null,
 
         gridCount: parseInt(gridCount, 10) || 0,
 
@@ -258,23 +286,18 @@ export default function GridConfigForm({
         takeProfitPct: enableTPSL ? parseFloat(takeProfitPct) : 0,
         stopLossPct: enableTPSL ? parseFloat(stopLossPct) : 0,
 
-        // In “standard” mode: volatilityBasedSL = false
-        // In infinity/dynamic: volatilityBasedSL = true
         volatilityBasedSL: mode !== "standard",
-
         trailingStop: enableTrailing,
         ATRMultiplier: 3,
       },
     };
 
-    // If Dynamic (AI) mode, attach AI model parameters
     if (mode === "dynamic") {
       payload.aiModel = {
         retrainInterval: parseInt(retrainInterval, 10) || 3600000,
       };
     }
 
-    // Stringify nested objects
     const body = Object.fromEntries(
       Object.entries(payload).map(([k, v]) => [
         k,
@@ -377,6 +400,35 @@ export default function GridConfigForm({
 
         {/* ── GRID CONFIGURATION SECTION ── */}
         <div className="border-t border-default-100 pt-4 space-y-4">
+          {/* — Lower & Upper Price (Standard & Dynamic) — */}
+          {(mode === "standard" || mode === "dynamic") && (
+            <>
+              <Input
+                required
+                label="Lower Price (USDT)"
+                type="number"
+                step="0.01"
+                value={lowerPrice}
+                onChange={(e) =>
+                  onPriceRangeChange(e.target.value, upperPrice)
+                }
+              />
+              <Input
+                required
+                label="Upper Price (USDT)"
+                type="number"
+                step="0.01"
+                value={upperPrice}
+                onChange={(e) =>
+                  onPriceRangeChange(lowerPrice, e.target.value)
+                }
+              />
+              {priceRangeError && (
+                <p className="text-[12px] text-red-500">{priceRangeError}</p>
+              )}
+            </>
+          )}
+
           {/* — Number of Grids — */}
           <Input
             required
@@ -505,19 +557,17 @@ export default function GridConfigForm({
             </div>
           )}
 
-          {/* — Dynamic‐Only: AI Model Path & Retrain Frequency — */}
+          {/* — Dynamic‐Only: Retrain Interval — */}
           {mode === "dynamic" && (
-            <>
-              <Input
-                required
-                label="Retrain Interval (ms)"
-                type="number"
-                min={60000}
-                step={60000}
-                value={retrainInterval}
-                onChange={(e) => setRetrainInterval(e.target.value)}
-              />
-            </>
+            <Input
+              required
+              label="Retrain Interval (ms)"
+              type="number"
+              min={60000}
+              step={60000}
+              value={retrainInterval}
+              onChange={(e) => setRetrainInterval(e.target.value)}
+            />
           )}
         </div>
 
@@ -526,8 +576,9 @@ export default function GridConfigForm({
           className="w-full px-4 dark:bg-white dark:hover:bg-gray-200 transition-all duration-300 dark:text-black font-semibold rounded-2xl text-[14px] py-3"
           disabled={
             loading ||
-            !!baseFundError || // disable if baseFund is invalid
-            parseFloat(baseFund) <= 0 // require a positive baseFund
+            (mode !== "infinity" && priceRangeError !== "") || // require valid LP/UP
+            !!baseFundError ||
+            parseFloat(baseFund) <= 0
           }
           isLoading={loading}
           type="submit"
