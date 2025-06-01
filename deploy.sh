@@ -4,6 +4,10 @@ set -e  # Exit on any error
 
 cd "$DEPLOY_PATH"
 
+echo "🔄 Git reset hard..."
+git add .
+git reset --hard
+
 echo "🔄 Pulling latest code..."
 git pull
 
