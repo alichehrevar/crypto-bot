@@ -1,6 +1,6 @@
 // controllers/marketController.js
 
-const MarketService = require('../../services/MarketService');
+const MarketService = require('../../services/marketService');
 const Currency      = require('../../models/Currency');
 const logger = require("../../../logs/logger");
 
