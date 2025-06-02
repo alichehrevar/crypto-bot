@@ -10,4 +10,4 @@ deploy_production:
     - echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
     - chmod 600 ~/.ssh/id_ed25519
     - ssh-keyscan -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts
-    - ssh $DEPLOY_USER@$DEPLOY_HOST "cd $DEPLOY_PATH && ./deploy.sh"
+    - ssh $DEPLOY_USER@$DEPLOY_HOST "cd $DEPLOY_PATH && ./deployTradingXFront.sh"
