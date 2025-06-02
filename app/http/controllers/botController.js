@@ -10,7 +10,8 @@ const BinanceAccount = require('../../models/BinanceAccount');
 const OkxAccount     = require('../../models/OkxAccount');
 const BingxAccount   = require('../../models/BingxAccount');
 const BotService     = require('../../services/botService/BotService');
-const PnLService     = require('../../services/PnLService'); // for getBots enrichment
+const PnLService     = require('../../services/PnLService');
+const logger = require("../../../logs/logger"); // for getBots enrichment
 
 // Default indicator parameters (unchanged)
 const defaultStrategyParams = {
@@ -260,6 +261,7 @@ exports.deployBot = async (req, res) => {
     }
     catch (err) {
         console.error('deployBot error:', err);
+        logger.error(`deployBot error: ${err.message}`, { stack: err.stack });
         return res.status(500).json({ success: false, error: err.message });
     }
 };
@@ -300,6 +302,7 @@ exports.getBots = async (req, res) => {
     }
     catch (err) {
         console.error('getBots error:', err);
+        logger.error(`getBots error: ${err.message}`, { stack: err.stack });
         return res.status(500).json({ success: false, error: err.message });
     }
 };
@@ -317,6 +320,7 @@ exports.getBotById = async (req, res) => {
     }
     catch (err) {
         console.error('getBotById error:', err);
+        logger.error(`getBotById error: ${err.message}`, { stack: err.stack });
         return res.status(500).json({ success: false, error: err.message });
     }
 };
@@ -367,6 +371,7 @@ exports.updateBot = async (req, res) => {
     }
     catch (err) {
         console.error('updateBot error:', err);
+        logger.error(`updateBot error: ${err.message}`, { stack: err.stack });
         return res.status(400).json({ success: false, error: err.message });
     }
 };
@@ -386,6 +391,7 @@ exports.deleteBot = async (req, res) => {
     }
     catch (err) {
         console.error('deleteBot error:', err);
+        logger.error(`deleteBot error: ${err.message}`, { stack: err.stack });
         return res.status(500).json({ success: false, error: err.message });
     }
 };
@@ -438,6 +444,7 @@ exports.selectBots = async (req, res) => {
     }
     catch (err) {
         console.error('selectBots error:', err);
+        logger.error(`selectBots error: ${err.message}`, { stack: err.stack });
         return res.status(500).json({ success: false, error: err.message });
     }
 };
@@ -460,6 +467,7 @@ exports.pauseBot = async (req, res) => {
     }
     catch (err) {
         console.error('pauseBot error:', err);
+        logger.error(`pauseBot error: ${err.message}`, { stack: err.stack });
         return res.status(500).json({ success: false, error: err.message });
     }
 };
@@ -482,6 +490,7 @@ exports.resumeBot = async (req, res) => {
     }
     catch (err) {
         console.error('resumeBot error:', err);
+        logger.error(`resumeBot error: ${err.message}`, { stack: err.stack });
         return res.status(500).json({ success: false, error: err.message });
     }
 };
@@ -554,6 +563,7 @@ exports.closeTrade = async (req, res) => {
     }
     catch (err) {
         console.error('closeTrade error:', err);
+        logger.error(`closeTrade error: ${err.message}`, { stack: err.stack });
         return res.status(500).json({ success: false, error: err.message });
     }
 };

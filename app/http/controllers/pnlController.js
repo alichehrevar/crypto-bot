@@ -2,6 +2,7 @@
 const Bot = require('../../models/BotBase');
 const Trade = require('../../models/Trade');
 const moment = require('moment');
+const logger = require("../../../logs/logger");
 
 const FORMAT_MAP = {
     '1D': 'HH:mm',   // show time
@@ -45,6 +46,7 @@ exports.getRealizedPnL = async (req, res) => {
 
     } catch (err) {
         console.error('getRealizedPnL error', err);
+        logger.error(`getRealizedPnL error: ${err.message}`, { stack: err.stack });
         return res.status(500).json({ success: false, error: err.message });
     }
 };
@@ -96,6 +98,7 @@ exports.getUnrealizedPnL = async (req, res) => {
 
     } catch (err) {
         console.error('getUnrealizedPnL error', err);
+        logger.error(`getUnrealizedPnL error: ${err.message}`, { stack: err.stack });
         return res.status(500).json({ success: false, error: err.message });
     }
 };

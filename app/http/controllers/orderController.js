@@ -6,6 +6,7 @@ const User          = require('../../models/User');
 const BinanceAccount = require('../../models/BinanceAccount');
 const OkxAccount     = require('../../models/OkxAccount');
 const BingxAccount   = require('../../models/BingxAccount');
+const logger = require("../../../logs/logger");
 
 /**
  * Helper: Fetch free USDT balance for the given account.
@@ -206,6 +207,7 @@ exports.placeOrder = async (req, res) => {
         return res.status(200).json({ success: true, data: stubResult });
     } catch (err) {
         console.error("placeOrder error:", err);
+        logger.error(`placeOrder error: ${err.message}`, { stack: err.stack });
         return res.status(500).json({ success: false, error: err.message });
     }
 };

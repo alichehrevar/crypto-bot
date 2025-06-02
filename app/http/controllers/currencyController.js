@@ -1,6 +1,7 @@
 // app/http/controllers/currenciesController.js
 
 const Currency = require('../../models/Currency');
+const logger = require("../../../logs/logger");
 
 /**
  * getCurrencies
@@ -22,6 +23,7 @@ exports.getCurrencies = async (req, res) => {
         });
     } catch (error) {
         console.error('Error fetching currencies:', error);
+        logger.error(`Error fetching currencies: ${error.message}`, { stack: error.stack });
         res.status(500).json({
             success: false,
             error: 'Failed to fetch currencies'

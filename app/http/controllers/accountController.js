@@ -10,6 +10,8 @@ const BinanceService = require('../../services/binanceWS');
 const OkxService = require('../../services/okxWS'); // Ensure you have this or adjust accordingly.
 const BingxService = require('../../services/bingXWS');
 
+const logger = require('../../../logs/logger')
+
 /**
  * Get all accounts.
  */
@@ -33,6 +35,7 @@ exports.getAllAccountsData = async (req, res) => {
         });
     } catch (error) {
         console.error("Error fetching accounts:", error);
+        logger.error(`Error fetching accounts: ${error.message}`, { stack: error.stack });
         res.status(500).json({ error: error.message });
     }
 };
@@ -48,6 +51,7 @@ exports.getBinanceAccount = async (req, res) => {
         res.status(201).json({message: '', account: account});
     } catch (error) {
         console.error("Error finding Binance account:", error);
+        logger.error(`Error finding Binance account: ${error.message}`, { stack: error.stack });
         res.status(500).json({error: error.message});
     }
 };
@@ -73,6 +77,7 @@ exports.linkBinanceAccount = async (req, res) => {
         res.json(account);
     } catch (error) {
         console.error("Error linking Binance account:", error);
+        logger.error(`Error linking Binance account: ${error.message}`, { stack: error.stack });
         res.status(500).json({error: error.message});
     }
 };
@@ -88,6 +93,7 @@ exports.getOkxAccount = async (req, res) => {
         res.status(201).json({message: '', account: account});
     } catch (error) {
         console.error("Error finding OKX account:", error);
+        logger.error(`Error finding OKX account: ${error.message}`, { stack: error.stack });
         res.status(500).json({error: error.message});
     }
 };
@@ -112,6 +118,7 @@ exports.linkOkxAccount = async (req, res) => {
         res.json(account);
     } catch (error) {
         console.error("Error linking OKX account:", error);
+        logger.error(`Error finding OKX account: ${error.message}`, { stack: error.stack });
         res.status(500).json({error: error.message});
     }
 };
@@ -124,6 +131,7 @@ exports.getBingxAccount = async (req, res) => {
         const bingxAccount = await BingxAccount.findOne({userId: req.user.id})
         res.status(201).json({message: '', account: bingxAccount});
     } catch (error) {
+        logger.error(`Error finding BingX account: ${error.message}`, { stack: error.stack });
         res.status(500).json({message: 'Error finding BingX account', error: error.message});
     }
 };
@@ -157,6 +165,7 @@ exports.linkBingxAccount = async (req, res) => {
 
         res.status(201).json({message: 'BingX account added successfully', account: bingxAccount});
     } catch (error) {
+        logger.error(`Error adding BingX account: ${error.message}`, { stack: error.stack });
         res.status(500).json({message: 'Error adding BingX account', error: error.message});
     }
 };
@@ -207,6 +216,7 @@ exports.getAccountBalance = async (req, res) => {
         return res.json({ success: true, balance});
     } catch (error) {
         console.error('Error fetching account balance:', error.message);
+        logger.error(`Error fetching account balance: ${error.message}`, { stack: error.stack });
         return res.status(500).json({error: 'Error fetching account balance', success: false});
     }
 };
@@ -286,6 +296,7 @@ exports.getLeverageOptions = async (req, res) => {
         return res.json({ success: true, leverages });
     } catch (err) {
         console.error('getLeverageOptions error', err);
+        logger.error(`getLeverageOptions error: ${err.message}`, { stack: err.stack });
         return res.status(500).json({ success: false, error: err.message });
     }
 };
@@ -367,6 +378,7 @@ exports.getAssetsDistribution = async (req, res) => {
 
     } catch (err) {
         console.error('getAssetsDistribution error', err);
+        logger.error(`getAssetsDistribution error: ${err.message}`, { stack: err.stack });
         return res.status(500).json({ success: false, error: err.message });
     }
 };

@@ -9,3 +9,7 @@
 
 #node files
 node_modules
+
+# log files
+/logs
+!/logs/*.js

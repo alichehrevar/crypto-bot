@@ -1,5 +1,6 @@
 const axios = require('axios');
 const Candle = require('../../models/Candle');
+const logger = require("../../../logs/logger");
 
 async function fetchHistoricalData(req, res) {
     try {
@@ -44,6 +45,7 @@ async function fetchHistoricalData(req, res) {
 
     } catch (error) {
         console.error('Binance API error:', error.response?.data || error.message);
+        logger.error(`Binance API error: ${error.message}`, { stack: error.stack });
         res.status(500).json({
             success: false,
             error: 'Failed to fetch historical data',
@@ -123,7 +125,7 @@ async function updateCandlesIfNeeded(symbol, timeframe) {
             console.log(`Upserted candle for ${symbol} ${timeframe}`);
         } catch (error) {
             console.error('Error fetching live candle data:', error.message);
-            // Optionally re-throw or handle the error.
+            logger.error(`Error fetching live candle data: ${error.message}`, { stack: error.stack });
         }
     }
 }
@@ -149,6 +151,7 @@ async function getData(req, res) {
         });
     } catch (error) {
         console.error('Get candles error:', error);
+        logger.error(`Get candles error: ${error.message}`, { stack: error.stack });
         res.status(500).json({
             success: false,
             error: 'Failed to fetch candles'

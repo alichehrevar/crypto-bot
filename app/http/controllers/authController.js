@@ -1,6 +1,7 @@
 const bcrypt = require('bcryptjs');
 const jwt    = require('jsonwebtoken');
 const User   = require('../../models/User');
+const logger = require("../../../logs/logger");
 
 
 exports.login = async (req, res) => {
@@ -46,6 +47,7 @@ exports.login = async (req, res) => {
         return res.json({ token });
     } catch (err) {
         console.error('Error in login:', err);
+        logger.error(`getAssetsDistribution error: ${err.message}`, { stack: err.stack });
         return res.status(500).json({ error: 'Internal server error.' });
     }
 };
@@ -75,6 +77,7 @@ exports.register = async (req, res) => {
         // Return the token to the client.
         res.json({ token });
     } catch (error) {
+        logger.error(`getAssetsDistribution error: ${error.message}`, { stack: error.stack });
         res.status(500).json({ error: error.message });
     }
 }

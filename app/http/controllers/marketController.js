@@ -2,6 +2,7 @@
 
 const MarketService = require('../../services/MarketService');
 const Currency      = require('../../models/Currency');
+const logger = require("../../../logs/logger");
 
 /**
  * GET /api/market/top-movers
@@ -41,6 +42,7 @@ exports.getTopMovers = async (req, res) => {
         res.json({ success: true, data: enriched });
     } catch (err) {
         console.error('getTopMovers error:', err);
+        logger.error(`getTopMovers error: ${err.message}`, { stack: err.stack });
         res.status(500).json({ success: false, error: err.message });
     }
 };
