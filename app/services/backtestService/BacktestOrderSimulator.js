@@ -1,54 +1,77 @@
+// app/services/backtestService/BacktestOrderSimulator.js
+
 /**
- * BacktestOrderSimulator
- *
- * Simulates order execution during a backtest.
- * It opens trades on BUY signals and closes them on SELL signals, updating the balance.
- *
- * @param {Object} options - Contains current balance, currentPrice, currentTime, signal,
- *                             positionSize (calculated externally), and the current openPosition (if any).
- * @returns {Object} - Updated openPosition (or null if closed), updated balance, and optionally a trade record.
+ * simulateOrder
  */
-function simulateOrder({ balance, currentPrice, currentTime, signal, openPosition, calculatePositionSize, calculateTPSL }) {
+async function simulateOrder({
+                                 balance,
+                                 currentPrice,
+                                 currentTime,
+                                 signal,
+                                 openPosition,
+                                 calculatePositionSize,
+                                 calculateTPSL
+                             }) {
     let tradeRecord = null;
 
-    // If signal is BUY and no open position exists.
+    // BUY → open a new position
     if (signal === 'BUY' && !openPosition) {
-        // Calculate position size using the provided function.
         const quantity = calculatePositionSize(balance, currentPrice);
-        // Compute TP/SL levels using the provided function.
         const { TP, SL } = calculateTPSL(currentPrice);
-        // Create a new open position.
         openPosition = {
-            entryPrice: currentPrice,
-            sizeInBase: quantity,
-            costInQuote: quantity * currentPrice,
-            entryTime: currentTime,
+            entryPrice:   currentPrice,
+            sizeInBase:   quantity,
+            costInQuote:  quantity * currentPrice,
+            entryTime:    currentTime,
             TP,
             SL
         };
-        balance -= openPosition.costInQuote; // Deduct investment from balance.
+        balance -= openPosition.costInQuote;
     }
-    // If signal is SELL and an open position exists.
+    // SELL → close existing position
     else if (signal === 'SELL' && openPosition) {
         const exitPrice = currentPrice;
-        const positionValue = openPosition.sizeInBase * exitPrice;
-        const profit = positionValue - openPosition.costInQuote;
-        balance += positionValue; // Add proceeds to balance.
-        // Create a trade record.
+        const value     = openPosition.sizeInBase * exitPrice;
+        const profit    = value - openPosition.costInQuote;
+        balance += value;
         tradeRecord = {
-            entry: openPosition.entryPrice,
-            exit: exitPrice,
+            entry:     openPosition.entryPrice,
+            exit:      exitPrice,
             profit,
             entryTime: openPosition.entryTime,
-            exitTime: currentTime,
-            duration: currentTime - openPosition.entryTime,
-            closedBy: 'SELL signal'
+            exitTime:  currentTime,
+            duration:  currentTime - openPosition.entryTime,
+            closedBy:  'SELL'
         };
-        // Close the open position.
         openPosition = null;
     }
-    // Otherwise, nothing happens.
+
     return { openPosition, balance, tradeRecord };
 }
 
-module.exports = { simulateOrder };
+/**
+ * closeFinal
+ *
+ * Final mark-to-market close if still open at end of backtest.
+ */
+function closeFinal(openPosition, lastPrice, lastTime) {
+    let tradeRecord = null;
+    let balance     = 0;
+    if (openPosition) {
+        const value  = openPosition.sizeInBase * lastPrice;
+        const profit = value - openPosition.costInQuote;
+        balance = value; // add to whatever remains
+        tradeRecord = {
+            entry:     openPosition.entryPrice,
+            exit:      lastPrice,
+            profit,
+            entryTime: openPosition.entryTime,
+            exitTime:  lastTime,
+            duration:  lastTime - openPosition.entryTime,
+            closedBy:  'END'
+        };
+    }
+    return { newBalance: balance, tradeRecord };
+}
+
+module.exports = { simulateOrder, closeFinal };

@@ -4,6 +4,7 @@ const Candle = require('../models/Candle');
 const Hurst = require('../metrics/Hurst'); // Assuming Hurst has been moved to strategies.
 const BacktestService = require('../services/backtestService/BacktestService');
 const OptimizationManager = require('./optimization/OptimizationManager');
+const defaultParams = require('../../config/defaultStrategyParams');
 
 /**
  * DynamicStrategy wraps a base indicator strategy to enable dynamic parameter optimization.
@@ -163,12 +164,6 @@ class DynamicStrategy {
      * @returns {object} Default parameters for the indicator.
      */
     getCandidateParams(indicator) {
-        const defaultParams = {
-            RSI: { period: 14, overbought: 70, oversold: 30 },
-            MACD: { fastPeriod: 12, slowPeriod: 26, signalPeriod: 9 },
-            MA_Crossover: { shortPeriod: 5, longPeriod: 20 },
-            // Extend with other indicator defaults as needed.
-        };
         return defaultParams[indicator] || {};
     }
 }

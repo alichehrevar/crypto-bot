@@ -1,4 +1,5 @@
-// Import indicator classes from the technical index.
+// app/services/backtestService/BacktestSignalProcessor.js
+
 const {
     RSI,
     MACD,
@@ -11,39 +12,37 @@ const {
     StochasticRSI
 } = require('../../strategies/technical');
 
+// Default indicator params (fallbacks)
+const defaultParams = require('../../../config/defaultStrategyParams');
+
 /**
  * processSignal
- *
- * Processes historical candle data to generate a trading signal using the specified indicator.
- *
- * @param {Array<Object>} candles - Array of historical candle objects, sorted in ascending order.
- * @param {String} indicator - The name of the indicator to use.
- *        Supported values: 'RSI', 'MACD', 'MA_Crossover', 'Donchian', 'Volume',
- *                          'Heikin_Ashi', 'Combined_RSI_MACD', 'Bollinger_Bands', 'Stochastic_RSI'
- * @param {Object} strategyParams - Configuration parameters for the chosen indicator.
- * @returns {String} - The generated trading signal ('BUY', 'SELL', or 'HOLD').
  */
-function processSignal(candles, indicator, strategyParams) {
+function processSignal(candles, indicator, strategyParams = {}) {
     let signal = 'HOLD';
+    // Merge passed params on top of defaults
+    const params = Object.keys(strategyParams).length
+        ? strategyParams
+        : defaultParams[indicator] || {};
+
     try {
         switch (indicator) {
             case 'RSI': {
-                const rsiInstance = new RSI(strategyParams);
-                signal = rsiInstance.calculateSignal(candles);
+                const inst = new RSI(params);
+                signal = inst.calculateSignal(candles);
                 break;
             }
             case 'MACD': {
-                const macdInstance = new MACD(strategyParams);
-                signal = macdInstance.calculateSignal(candles);
+                const inst = new MACD(params);
+                signal = inst.calculateSignal(candles);
                 break;
             }
             case 'MA_Crossover': {
-                const maCrossoverInstance = new MACrossover(strategyParams);
-                signal = maCrossoverInstance.calculateSignal(candles);
+                const inst = new MACrossover(params);
+                signal = inst.calculateSignal(candles);
                 break;
             }
             case 'Donchian': {
-                // For functions implemented as standalone functions, wrap them in an object with a calculateSignal method.
                 signal = Donchian.calculateDonchianSignal(candles, 'donchian');
                 break;
             }
@@ -56,8 +55,12 @@ function processSignal(candles, indicator, strategyParams) {
                 break;
             }
             case 'Combined_RSI_MACD': {
-                // Here, we pass a configuration object with a confirmation window.
-                signal = CombinedRsiMacd.calculateCombinedRsiMacdSignal(candles, 'combined', { parameters: { confirmation_window: 6 } });
+                const win = params.parameters?.confirmation_window ?? 6;
+                signal = CombinedRsiMacd.calculateCombinedRsiMacdSignal(
+                    candles,
+                    'combined',
+                    { parameters: { confirmation_window: win } }
+                );
                 break;
             }
             case 'Bollinger_Bands': {
@@ -65,18 +68,18 @@ function processSignal(candles, indicator, strategyParams) {
                 break;
             }
             case 'Stochastic_RSI': {
-                // Assuming StochasticRSI is implemented as a class.
-                const stochRsiInstance = new StochasticRSI(strategyParams);
-                signal = stochRsiInstance.calculateSignal(candles);
+                const inst = new StochasticRSI(params);
+                signal = inst.calculateSignal(candles);
                 break;
             }
             default:
                 console.error(`Unknown indicator: ${indicator}`);
         }
-    } catch (error) {
-        console.error(`Error processing signal: ${error.message}`);
+    } catch (err) {
+        console.error(`Signal error for ${indicator}:`, err.message);
         signal = 'HOLD';
     }
+
     return signal;
 }
 

@@ -13,18 +13,8 @@ const BotService     = require('../../services/botService/BotService');
 const PnLService     = require('../../services/PnLService');
 const logger = require("../../../logs/logger"); // for getBots enrichment
 
-// Default indicator parameters (unchanged)
-const defaultStrategyParams = {
-    RSI:               { period: 14, overbought: 70, oversold: 30 },
-    MACD:              { shortPeriod: 12, longPeriod: 26, signalPeriod: 9 },
-    MA_Crossover:      { shortPeriod: 5,  longPeriod: 20 },
-    Donchian:          { period: 20 },
-    Volume:            { period: 14 },
-    Heikin_Ashi:       {},
-    Combined_RSI_MACD: { parameters: { confirmation_window: 6 } },
-    Bollinger_Bands:   { period: 20, stdDev: 2 },
-    Stochastic_RSI:    { period: 14, kPeriod: 3, dPeriod: 3 },
-};
+// Default indicator parameters
+const defaultStrategyParams = require('../../../config/defaultStrategyParams');
 
 /**
  * Deploy a new bot (either an indicator bot or a grid bot).

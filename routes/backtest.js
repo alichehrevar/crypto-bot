@@ -1,14 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const backtestService = require('../app/services/backtestService/BacktestService');
+const authenticate     = require('../app/http/middleware/auth');
+const backtestController = require('../app/http/controllers/backtestController');
 
-router.post('/run', async (req, res) => {
-    try {
-        const result = await backtestService.run(req.body);
-        res.json(result);
-    } catch (error) {
-        res.status(400).json({ error: error.message });
-    }
-});
+router.post('/run', authenticate, backtestController.run);
 
 module.exports = router;
