@@ -40,7 +40,7 @@ exports.getLogFile = (req, res) => {
     res.setHeader('Content-Type', 'text/plain; charset=utf-8');
     // Stream the file back (so large logs don’t blow memory)
     const stream = fs.createReadStream(fullPath);
-    stream.on('error', err => {
+    stream.on('error', _ => {
         return res.status(500).end('Could not read log file');
     });
     stream.pipe(res);
