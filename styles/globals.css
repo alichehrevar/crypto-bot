@@ -46,3 +46,7 @@ section[role="dialog"] .overflow-y-auto::-webkit-scrollbar-track {
 .thin-scrollbar::-webkit-scrollbar-thumb {
     @apply bg-primary;
 }
+
+.backtester-page div[data-slot=input-wrapper] {
+    border: unset !important;
+}

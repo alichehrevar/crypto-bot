@@ -35,14 +35,15 @@ export default function TechnicalBotsList({ refreshList }: { refreshList: boolea
 
   // Desktop toggle
   function handleDesktopClick(botIndex: number) {
-    const botContent = document.getElementById(`bot-content-${botIndex}`);
-
-    if (botContent && deployedBots[botIndex].trades.length > 0) {
-      botContent.classList.toggle("max-h-0");
-      botContent.classList.toggle("max-h-120");
-      botContent.classList.toggle("opacity-0");
-      botContent.classList.toggle("opacity-100");
-    }
+    setExpandedIndex(expandedIndex === botIndex ? null : botIndex);
+    // const botContent = document.getElementById(`bot-content-${botIndex}`);
+    //
+    // if (botContent && deployedBots[botIndex].trades.length > 0) {
+    //   botContent.classList.toggle("max-h-0");
+    //   botContent.classList.toggle("max-h-120");
+    //   botContent.classList.toggle("opacity-0");
+    //   botContent.classList.toggle("opacity-100");
+    // }
   }
 
   // Mobile toggle
@@ -216,7 +217,7 @@ export default function TechnicalBotsList({ refreshList }: { refreshList: boolea
               </div>
 
               <div
-                className="bot-content max-h-0 overflow-hidden transition-all duration-500 ease-in-out opacity-0"
+                className={`bot-content overflow-hidden transition-all duration-500 ease-in-out ${expandedIndex === botIndex ? 'max-h-[120px] opacity-100' : 'max-h-0 opacity-0'}`}
                 id={`bot-content-${botIndex}`}
               >
                 <TradesList

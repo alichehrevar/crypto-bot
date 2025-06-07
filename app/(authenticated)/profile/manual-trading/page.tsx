@@ -5,6 +5,7 @@ import React, { useState } from "react";
 import TechnicalBotsList from "@/components/profile/bots/technical/TechnicalBotsList";
 import MarketWatchChart from "@/components/shared/charts/MarketWatchChart";
 import ManualTradeSection from "@/components/profile/bots/deploy/ManualTradeSection";
+import LiveCandlestickChart from "@/components/shared/charts/LiveCandlestickChart";
 
 export default function TechnicalBotsPage() {
 
@@ -14,7 +15,8 @@ export default function TechnicalBotsPage() {
     <div className="container mt-4 relative px-5">
       <div className=" w-full flex items-start justify-center gap-6">
         <div className="w-full lg:w-[72%] h-[50svh]">
-          <MarketWatchChart />
+          {/*<MarketWatchChart />*/}
+          <LiveCandlestickChart symbol="BTCUSDT" interval="1m" />
           <div className="grid grid-cols-1 dark:bg-[#161616] bg-white mt-4 rounded-2xl py-6 px-3 h-[32.2svh]">
             <div className="flex items-center justify-between">
               <h3 className="text-xl font-bold ml-4 mb-4">Bots List</h3>
