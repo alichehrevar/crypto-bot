@@ -4,6 +4,7 @@ const router = express.Router();
 const logController = require('../app/http/controllers/logController');
 
 // Define GET /logs endpoint to retrieve logs.
-router.get('/', logController.getLogs);
+router.get('/files', logController.getLogsFiles);
+router.get('/file/:filename', logController.getLogFile);
 
 module.exports = router;

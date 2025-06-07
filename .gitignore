@@ -11,5 +11,4 @@
 node_modules
 
 # log files
-/logs
-!/logs/*.js
+/logs/reports/*

@@ -130,10 +130,10 @@ app.use('/api/currencies', currencyRoutes);
 app.use('/api/indicators', indicatorsRoutes);
 app.use('/api/market', marketRoutes)
 app.use('/api/pnl', pnlRoutes);
-app.use("/orders", ordersRouter);
+app.use('/orders', ordersRouter);
 
-// Logs REST endpoint (historical fetch)
-app.use('/logs', logsRouter);
+// Logs REST endpoint
+app.use('/api/logs', logsRouter);
 
 // Error handler
 app.use((err, req, res, _) => {

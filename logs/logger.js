@@ -7,7 +7,7 @@ const path = require('path');
 // 1) Define a daily‐rotate transport.
 //    This will create one log file per day under "logs/" named "app-YYYY-MM-DD.log".
 const rotateTransport = new transports.DailyRotateFile({
-    filename: path.join(__dirname, '..', 'logs', 'app-%DATE%.log'),
+    filename: path.join(__dirname, '..', 'logs/reports', 'app-%DATE%.log'),
     datePattern: 'YYYY-MM-DD',
     zippedArchive: true,
     maxSize: '20m',            // optional: rotate if file > 20MB
@@ -48,7 +48,7 @@ const logger = createLogger({
     // 3) Also catch any uncaught exceptions and send them to file:
     exceptionHandlers: [
         new transports.DailyRotateFile({
-            filename: path.join(__dirname, '..', 'logs', 'exceptions-%DATE%.log'),
+            filename: path.join(__dirname, '..', 'logs/reports', 'exceptions-%DATE%.log'),
             datePattern: 'YYYY-MM-DD',
             zippedArchive: true,
             maxSize: '20m',
