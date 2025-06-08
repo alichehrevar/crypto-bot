@@ -1,38 +1,16 @@
 // app/services/backtestService/BacktestService.js
 
-const axios = require('axios');
-const {
-    processSignal
-} = require('./BacktestSignalProcessor');
-const riskManager = require('./BacktestRiskManager');
-const {
-    simulateOrder,
-    closeFinal
-} = require('./BacktestOrderSimulator');
-const {
-    calculateMetrics
-} = require('./BacktestMetricsCalculator');
+const axios         = require('axios');
+const BacktestRun   = require('../../models/BacktestRun');
+const { processSignal } = require('./BacktestSignalProcessor');
+const riskManager   = require('./BacktestRiskManager');
+const { simulateOrder, closeFinal } = require('./BacktestOrderSimulator');
+const { calculateMetrics } = require('./BacktestMetricsCalculator');
 
 class BacktestService {
-    /**
-     * Runs a live-sourced backtest.
-     *
-     * @param {Object} opts
-     * @param {String} opts.symbol           e.g. "BTC/USDT"
-     * @param {String} opts.mode             "recent" or "range"
-     * @param {Number} [opts.recentCount]    # of bars if mode="recent"
-     * @param {Date|string} [opts.startDate] only if mode="range"
-     * @param {Date|string} [opts.endDate]
-     * @param {Array<{indicator, timeframe, params}>} opts.indicators
-     * @param {Boolean} opts.optimize
-     * @param {"grid"|"bayesian"|"ann"} [opts.optimizationMethod]
-     * @param {Number} [opts.minAccuracy]    % minimum win‐rate to run optimization
-     * @param {Number} [opts.minTrades]      minimum closed trades to optimize
-     * @param {Object} [opts.risk]           { investment, leverage, takeProfitPct, stopLossPct }
-     * @param {Number} [opts.initialBalance=10000]
-     */
     async run(opts) {
         const {
+            userId,
             symbol,
             mode,
             recentCount,
@@ -48,7 +26,7 @@ class BacktestService {
         } = opts;
 
         // 1) Fetch candles from Binance
-        const pair = symbol.replace('/','').toUpperCase();
+        const pair = symbol.replace('/', '').toUpperCase();
         let candles = [];
 
         if (mode === 'recent') {
@@ -57,7 +35,11 @@ class BacktestService {
             });
             candles = resp.data.map(k => ({
                 timestamp: new Date(k[0]),
-                open: +k[1], high: +k[2], low: +k[3], close: +k[4], volume: +k[5]
+                open:   +k[1],
+                high:   +k[2],
+                low:    +k[3],
+                close:  +k[4],
+                volume: +k[5],
             }));
         } else {
             const startMs = new Date(startDate).getTime();
@@ -66,8 +48,8 @@ class BacktestService {
             do {
                 const resp = await axios.get('https://api.binance.com/api/v3/klines', {
                     params: {
-                        symbol:    pair,
-                        interval:  indicators[0].timeframe,
+                        symbol:   pair,
+                        interval: indicators[0].timeframe,
                         startTime: from,
                         endTime:   endMs,
                         limit:     1000
@@ -75,11 +57,15 @@ class BacktestService {
                 });
                 const batch = resp.data.map(k => ({
                     timestamp: new Date(k[0]),
-                    open: +k[1], high:+k[2], low:+k[3], close:+k[4], volume:+k[5]
+                    open:   +k[1],
+                    high:   +k[2],
+                    low:    +k[3],
+                    close:  +k[4],
+                    volume: +k[5],
                 }));
                 if (!batch.length) break;
                 candles.push(...batch);
-                from = batch[batch.length-1].timestamp.getTime() + 1;
+                from = batch[batch.length - 1].timestamp.getTime() + 1;
             } while (from < endMs);
         }
 
@@ -87,81 +73,144 @@ class BacktestService {
             throw new Error('No candle data fetched for backtest');
         }
 
-        // 2) Simulation loop
+        // 2) Determine warm-up period for the first indicator
+        const { indicator: firstInd, params: firstParams = {} } = indicators[0];
+        let minRequired = 1;
+        switch (firstInd) {
+            case 'RSI': {
+                const period = firstParams.period || 14;
+                minRequired = period + 1;
+                break;
+            }
+            case 'MACD': {
+                const sp = firstParams.shortPeriod  || 12;
+                const lp = firstParams.longPeriod   || 26;
+                const sig= firstParams.signalPeriod || 9;
+                minRequired = sp + lp + sig;
+                break;
+            }
+            // you can add other indicators here if they need special warm-up
+        }
+
+        // 3) Simulation loop (skipping until warm-up)
         let balance      = initialBalance;
         let openPosition = null;
         const trades     = [];
 
         for (let i = 0; i < candles.length; i++) {
-            const slice = candles.slice(0, i+1);
+            const slice = candles.slice(0, i + 1);
+
+            // Skip until we've loaded enough history
+            if (slice.length < minRequired) {
+                if (i === minRequired - 1) {
+                    console.warn(
+                        `Backtest warm-up: fetched ${slice.length} candles, need ${minRequired} for ${firstInd}`
+                    );
+                }
+                continue;
+            }
+
             const now   = candles[i].timestamp;
             const price = candles[i].close;
 
             // risk guard
-            if (!riskManager.enforceRiskLimits(trades, risk, balance)) break;
+            if (!riskManager.enforceRiskLimits(trades, risk, balance)) {
+                console.warn('Risk limits hit—stopping backtest');
+                break;
+            }
 
-            // generate signal from first indicator only (could extend to multiple)
-            const { indicator, params: indParams } = indicators[0];
-            const signal = processSignal(slice, indicator, indParams);
+            // signal
+            const signal = processSignal(slice, firstInd, firstParams);
+            console.log(
+                `⏱ [${now.toISOString()}] ${firstInd} → ${signal}  |  last 3 close prices:`,
+                slice.slice(-3).map(c=>c.close)
+            );
 
-            // prepare position-sizing and TP/SL
+            // sizing
             const calcSize = risk
-                ? () => (risk.investment * (risk.leverage||1)) / price
-                : (bal, pr) => riskManager.calculatePositionSize(indParams.riskParams, bal, pr);
+                ? () => (risk.investment * (risk.leverage || 1)) / price
+                : (bal, pr) => {
+                    // ask riskManager, but if it comes back zero or invalid, default to using entire balance
+                    const size = riskManager.calculatePositionSize(firstParams.riskParams || {}, bal, pr);
+                    return size > 0
+                        ? size
+                        : Math.floor((bal / pr) * 1e8) / 1e8;  // use full balance, round to 8 decimals
+                };
 
+            // TP/SL
             const calcTPSL = risk
                 ? () => ({
-                    TP: price * (1 + (risk.takeProfitPct||2)/100),
-                    SL: price * (1 - (risk.stopLossPct||2)/100)
+                    TP: price * (1 + (risk.takeProfitPct || 0) / 100),
+                    SL: price * (1 - (risk.stopLossPct  || 0) / 100)
                 })
-                : ep => riskManager.calculateTPSL(indParams, ep);
+                : ep => riskManager.calculateTPSL(firstParams, ep);
 
-            // simulate
-            const { openPosition: np, balance: nb, tradeRecord } =
-                simulateOrder({
-                    balance,
-                    currentPrice: price,
-                    currentTime:  now,
-                    signal,
-                    openPosition,
-                    calculatePositionSize: calcSize,
-                    calculateTPSL:          calcTPSL
-                });
+            const { openPosition: np, balance: nb, tradeRecord } = await simulateOrder({
+                balance,
+                currentPrice:          price,
+                currentTime:           now,
+                signal,
+                openPosition,
+                calculatePositionSize: calcSize,
+                calculateTPSL:         calcTPSL
+            });
 
             openPosition = np;
             balance      = nb;
             if (tradeRecord) trades.push(tradeRecord);
         }
 
-        // finalize any open position
-        const last = candles[candles.length-1];
-        const { newBalance: closeBal, tradeRecord: finalTrade } =
-            closeFinal(openPosition, last.close, last.timestamp);
+        // 4) Close any open position
+        const last = candles[candles.length - 1];
+        const { newBalance: closeBal, tradeRecord: finalTrade } = closeFinal(openPosition, last.close, last.timestamp);
         if (finalTrade) {
             trades.push(finalTrade);
             balance += closeBal;
         }
 
-        // 3) metrics
+        // 5) Metrics
         const metrics = calculateMetrics(trades, balance);
 
-        // 4) conditional optimization
+        // 6) Optional optimization
         let optimizedParams = null;
         if (optimize) {
             const closedTrades = trades.filter(t => t.closedBy);
-            const winRatePct   = metrics.winRate * 100;
-            if (closedTrades.length >= minTrades && winRatePct >= minAccuracy) {
+            const winPct       = metrics.winRate * 100;
+            if (closedTrades.length >= minTrades && winPct >= minAccuracy) {
                 optimizedParams = await riskManager.optimizeParameters(
                     symbol, indicators, optimizationMethod, candles
                 );
             } else {
                 optimizedParams = {
-                    reason: `Skipped: only ${closedTrades.length} trades and ${winRatePct.toFixed(2)}% win-rate`
+                    reason: `Skipped optimize: ${closedTrades.length} trades, ${winPct.toFixed(2)}% win-rate`
                 };
             }
         }
 
+        // 7) Persist
+        const record = await BacktestRun.create({
+            userId,
+            symbol,
+            mode,
+            recentCount:  mode === 'recent' ? recentCount : undefined,
+            startDate:    mode === 'range'  ? new Date(startDate) : undefined,
+            endDate:      mode === 'range'  ? new Date(endDate)   : undefined,
+            indicators,
+            optimize,
+            optimizationMethod,
+            minAccuracy,
+            minTrades,
+            useRisk:     !!risk,
+            riskOptions: risk,
+            initialBalance,
+            finalBalance: balance,
+            metrics,
+            trades
+        });
+
+        // 8) Return
         return {
+            runId: record._id,
             summary: {
                 initialBalance,
                 finalBalance: balance,

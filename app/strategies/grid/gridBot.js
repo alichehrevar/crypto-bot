@@ -329,7 +329,6 @@ class GridBot {
         });
 
         // 2) Record the trade in MongoDB
-        //    We assume the Trade model has fields: { bot: ObjectId, symbol, side, price, quantity, profit? }
         let profit = null;
         if (filledOrder.side === 'sell') {
             profit = filledOrder.quantity * filledOrder.price - filledOrder.cost;

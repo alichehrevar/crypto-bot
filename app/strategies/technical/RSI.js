@@ -144,7 +144,6 @@ class RSI extends BaseIndicator {
             // Calculate RSI based on all candles and then without the most recent update.
             const rsi = this.calculateRSI(candles);
             const prevRSI = this.calculateRSI(candles.slice(0, -1));
-            console.log('Calculated RSI:', [rsi, prevRSI]);
 
             // Determine if a crossover has occurred.
             if (rsi < this.oversold && prevRSI >= this.oversold) {

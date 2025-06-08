@@ -1,20 +1,28 @@
 // app/services/backtestService/BacktestMetricsCalculator.js
 
-function calculateMetrics(trades = [], finalBalance = 0) {
-    const closed = trades.filter(t => !t.unrealized);
-    if (!closed.length) {
-        return { totalPnL: 0, winRate: 0, avgProfit: 0, maxDrawdown: 0, finalBalance };
-    }
-
-    const totalPnL  = closed.reduce((sum, t) => sum + t.profit, 0);
-    const wins      = closed.filter(t => t.profit > 0).length;
-    const winRate   = wins / closed.length;
-    const avgProfit = totalPnL / closed.length;
-
-    // placeholder for drawdown
+/**
+ * calculateMetrics
+ *
+ * @param {Array<Object>} trades
+ * @param {Number} endingBalance
+ * @returns {Object} metrics including finalBalance
+ */
+function calculateMetrics(trades, endingBalance) {
+    const realTrades = trades.filter(t => !t.unrealized);
+    const totalPnL    = realTrades.reduce((sum,t) => sum + t.profit, 0);
+    const wins        = realTrades.filter(t => t.profit > 0).length;
+    const winRate     = realTrades.length ? wins / realTrades.length : 0;
+    const avgProfit   = realTrades.length ? totalPnL / realTrades.length : 0;
+    // you can fill in a real max‐drawdown calc here; 0 as a placeholder
     const maxDrawdown = 0;
 
-    return { totalPnL, winRate, avgProfit, maxDrawdown, finalBalance };
+    return {
+        totalPnL,
+        winRate,
+        avgProfit,
+        maxDrawdown,
+        finalBalance: endingBalance
+    };
 }
 
 module.exports = { calculateMetrics };
