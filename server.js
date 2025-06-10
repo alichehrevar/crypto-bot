@@ -202,11 +202,6 @@ server.on('upgrade', (request, socket, head) => {
     }
 });
 
-// Simulate periodic log entries
-setInterval(() => {
-    console.log('Simulated log entry at', new Date().toLocaleTimeString());
-}, 5000);
-
 // Start server
 const PORT = process.env.PORT || 8000;
 server.listen(PORT, () => {
