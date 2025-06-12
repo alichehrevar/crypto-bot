@@ -2,6 +2,7 @@
 
 const BacktestService  = require('../../services/backtestService/BacktestService');
 const BacktestRun = require('../../models/BacktestRun');
+const paramBounds = require('../../../config/indicatorParamBounds');
 const User             = require('../../models/User');
 
 exports.run = async (req, res) => {
@@ -29,6 +30,11 @@ exports.run = async (req, res) => {
         let indicators;
         try {
             indicators = JSON.parse(req.body.indicators);
+            indicators = indicators.map(ind => ({
+                ...ind,
+                // attach search space for this indicator, if defined
+                paramSpace: paramBounds[ind.indicator] || {}
+            }));
         } catch {
             return res.status(400).json({ success: false, error: 'Invalid indicators payload.' });
         }

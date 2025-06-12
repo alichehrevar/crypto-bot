@@ -1,8 +1,8 @@
 // strategies/optimization/OptimizationManager.js
 
 // Import the individual optimization methods.
-const { optimizeGrid } = require('./OptimizeGrid');
-const { optimizeBayesian } = require('./OptimizeBayesian');
+const {optimizeGrid} = require('./OptimizeGrid');
+const {optimizeBayesian} = require('./OptimizeBayesian');
 
 // Import the lookup table for recommended indicators.
 // (Make sure the BestIndicatorsTable file is now located in your utils folder.)
@@ -29,20 +29,22 @@ class OptimizationManager {
      * optimize
      *
      * Runs the specified optimization method on historical candle data to tune strategy parameters.
-     *
-     * @param {string} symbol - Trading symbol (e.g., "BTC/USDT").
-     * @param {string} timeframe - Trading timeframe (e.g., "1h").
-     * @param {string} optimizationMethod - The optimization method to use (e.g., "grid" or "bayesian").
-     * @param {Array<Object>} historicalCandles - Historical candle data.
-     * @returns {Promise<Object>} A promise that resolves to an object containing the optimized parameters.
      */
-    async optimize(symbol, timeframe, optimizationMethod, historicalCandles) {
-        if (this.methods[optimizationMethod]) {
-            // For methods like Bayesian optimization, the function returns a promise.
-            return await this.methods[optimizationMethod](symbol, timeframe, historicalCandles);
-        }
-        console.warn(`Unknown optimization method "${optimizationMethod}", defaulting to grid`);
-        return this.methods.grid(symbol, timeframe, historicalCandles);
+    /**
+     * @param {String} symbol
+     * @param {Array} indicators        ← now correctly named
+     * @param {String} optimizationMethod
+     * @param {Array} historicalCandles
+     */
+    async optimize(symbol, indicators, optimizationMethod, historicalCandles) {
+        // normalize to lowercase so "Bayesian" or "grid" both work
+        const key = (optimizationMethod || '')
+            .toString()
+            .trim()
+            .toLowerCase();
+        const fn = this.methods[key] || this.methods.grid;
+        // pass along the real `indicators` array, not a bogus timeframe
+        return fn(symbol, indicators, historicalCandles);
     }
 
     /**

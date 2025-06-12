@@ -104,8 +104,8 @@ function calculateTPSL(params = {}, entryPrice) {
 /**
  * optimizeParameters
  */
-function optimizeParameters(symbol, indicators, method, historicalCandles) {
-    return OptimizationManager.optimize(symbol, indicators, method, historicalCandles);
+function optimizeParameters(symbol, cfg, method, historicalCandles) {
+    return OptimizationManager.optimize(symbol, [cfg], method, historicalCandles);
 }
 
 module.exports = {
