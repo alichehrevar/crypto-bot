@@ -8,7 +8,7 @@
  * 2) Else if you have an open position and price >= TP or <= SL, close it (auto‐exit).
  * 3) Else if signal is BUY and you are flat, open a new position.
  */
-async function simulateOrder({
+function simulateOrder({
                                  balance,
                                  currentPrice,
                                  currentTime,

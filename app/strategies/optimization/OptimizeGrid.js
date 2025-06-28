@@ -27,20 +27,22 @@ function cartesian(paramSpace) {
  * @param {String} symbol
  * @param {Array} indicators  Array of length-1: [ { indicator, timeframe, params, paramSpace } ]
  * @param {Array<Object>} historicalCandles
+ * @param options
  * @returns {Object} The best parameter combination, e.g. { period: 14, oversold: 30, overbought: 70 }
  */
-function optimizeGrid(symbol, [indicatorCfg], historicalCandles) {
-    const { params, paramSpace } = indicatorCfg;
+function optimizeGrid(symbol, [indicatorCfg], historicalCandles, options) {
+    const { indicator, params, paramSpace } = indicatorCfg;
     const combos = cartesian(paramSpace);
     let best = { score: -Infinity, params: params };
 
     combos.forEach(combo => {
-        // merge this combo over the default params
         const trialParams = { ...params, ...combo };
-        // simulate the end-to-end strategy (signals + orders) and return total PnL
-        const pnl = simulateWholeStrategy(symbol, trialParams, historicalCandles);
-        if (pnl > best.score) {
-            best = { score: pnl, params: combo };
+
+        // Pass the 'options' object to the simulation function
+        const result = simulateWholeStrategy(indicator, trialParams, historicalCandles, options);
+
+        if (result.totalPnL > best.score) {
+            best = { score: result.totalPnL, params: combo };
         }
     });
 

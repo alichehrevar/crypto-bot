@@ -1,46 +1,50 @@
-// strategies/optimization/OptimizeBayesian.js
+// TEMPORARY DEBUGGING FILE for: app/strategies/optimization/OptimizeBayesian.js
 
 const { BayesianOptimizer } = require('bayesian-optimizer');
-const { simulateWholeStrategy } = require('./sharedSimulation');
 
-/**
- * optimizeBayesian
- *
- * Performs Bayesian optimization over the full indicator parameter space.
- *
- * @param {String} symbol
- * @param {Array}  indicators        Array of length-1: [ { indicator, timeframe, params, paramSpace } ]
- * @param {Array}  historicalCandles Array of candle objects.
- * @returns {Promise<Object>}        Resolves to the best parameter combo, e.g. { period: 14, oversold: 30, overbought: 70 }
- */
-async function optimizeBayesian(symbol, [indicatorCfg], historicalCandles) {
-    const { params, paramSpace } = indicatorCfg;
+async function optimizeBayesian(symbol, [indicatorCfg], historicalCandles, options) {
+    console.log('--- !!! RUNNING BAYESIAN IN DEBUG MODE !!! ---');
 
-    console.log(`Running Bayesian optimization for ${symbol} ${indicatorCfg.timeframe}`);
-    console.log('Parameter bounds:', paramSpace);
-
-    // Objective: given a trialParams object (subset of params), return total PnL
-    const simulatePerf = (trialParams) => {
-        // merge trial parameters into base params
-        const fullParams = { ...params, ...trialParams };
-        return simulateWholeStrategy(symbol, fullParams, historicalCandles);
+    // 1. Create a simple, synchronous math function for the optimizer to solve.
+    // This function does NOT call any other part of our application.
+    const dummyObjectiveFunction = (params) => {
+        // This is a simple parabola. The optimizer should find that the best
+        // score is 0, which happens when params.period is exactly 10.
+        const score = -Math.pow(params.period - 10, 2);
+        console.log(`  [Debug] Testing params: ${JSON.stringify(params)}, Score: ${score}`);
+        return score;
     };
 
-    // Configure the optimizer with your bounds, initial points, and iterations
-    const optimizer = new BayesianOptimizer({
-        f: simulatePerf,
-        bounds:       paramSpace,
-        initPoints:   5,   // number of random starts
-        nIter:        20,  // Bayesian iterations
-        exploration:  0.01 // EI trade-off
-    });
+    // 2. Define a very simple parameter space for the test.
+    const debugParamSpace = {
+        period: [5, 25] // A simple range for the 'period' parameter.
+    };
 
-    // Run optimization
-    const result = await optimizer.optimize();
-    console.log('Bayesian result:', result);
+    console.log('Using simple debug parameter space:', debugParamSpace);
 
-    // result.best is an object with the selected combo
-    return result.best;
+    try {
+        // 3. Configure the optimizer with our simple test case.
+        const optimizer = new BayesianOptimizer({
+            objectiveFunction: dummyObjectiveFunction,
+            bounds: debugParamSpace,
+            initPoints: 2,
+            nIter: 5,
+        });
+
+        // 4. Run the optimizer.
+        console.log('Attempting to run the optimizer...');
+        const result = await optimizer.optimize();
+
+        console.log('--- ✅ DEBUG OPTIMIZER FINISHED SUCCESSFULLY ---');
+        console.log('Debug result:', result);
+
+        // Return the best params found so the rest of the app doesn't crash.
+        return result.best.params;
+
+    } catch (e) {
+        console.error('--- ❌ DEBUG OPTIMIZER FAILED ---', e);
+        throw e; // Re-throw the error to see it in the console.
+    }
 }
 
 module.exports = { optimizeBayesian };
