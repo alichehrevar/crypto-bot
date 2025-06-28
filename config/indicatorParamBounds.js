@@ -8,9 +8,9 @@
 
 module.exports = {
     RSI: {
-        period:     [5, 10, 14, 20, 30],
-        oversold:   [20, 30, 40],
-        overbought: [60, 70, 80]
+        period:     [10, 12, 14, 16, 18, 20],
+        oversold:   [30],
+        overbought: [70]
     },
     MACD: {
         shortPeriod:  [5, 8, 12, 18],
