@@ -1,7 +1,6 @@
 import React from "react";
 
 import Sidebar from "@/components/profile/Sidebar";
-import ProfileHeader from "@/components/profile/ProfileHeader";
 
 export default function ProfileLayout ({
  children,
@@ -16,7 +15,6 @@ export default function ProfileLayout ({
         </div>
         <div className="flex w-5/6 self-stretch overflow-y-auto scrollbar-hide">
           <div className="flex items-start justify-start h-screen w-full flex-col gap-4 relative">
-            <ProfileHeader />
             {children}
           </div>
         </div>
