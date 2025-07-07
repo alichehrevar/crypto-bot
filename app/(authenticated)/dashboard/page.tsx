@@ -35,7 +35,7 @@ export default function Dashboard() {
         >
           <ArrowDownIcon className="mr-2 size-4" />
           <span className="text-[14px]">
-            Deposit
+            Backtest
           </span>
         </button>
 
