@@ -12,7 +12,6 @@ import {
   ChevronRightIcon, Cog8ToothIcon
 } from "@/utils/icons";
 import { MenuItems } from "@/utils/menuItems";
-import { random } from "nanoid";
 
 export default function Sidebar() {
   const pathname = usePathname();
