@@ -412,16 +412,12 @@ class BingXWS {
         };
 
         try {
-            console.log('[BingXWS] Making balance request to:', endpoint);
-            console.log('[BingXWS] Headers:', JSON.stringify(headers, null, 2));
-
             const res = await fetch(endpoint, {
                 method: "GET",
                 headers
             });
 
             const responseText = await res.text();
-            console.log('[BingXWS] Raw response:', responseText);
 
             let data;
             try {
@@ -507,6 +503,10 @@ class BingXWS {
             }
         });
         return resp.data;
+    }
+
+    async getHistoricalBalance(account, timestamp) {
+        return this.getBalance(account);
     }
 }
 

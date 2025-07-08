@@ -122,6 +122,10 @@ class OKXWS {
             throw error;
         }
     }
+
+    async getHistoricalBalance(account, timestamp) {
+        return this.getBalance(account);
+    }
 }
 
 module.exports = new OKXWS();

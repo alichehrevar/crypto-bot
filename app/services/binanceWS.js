@@ -13,7 +13,15 @@ const BotService = require('./botService/BotService');
 class BinanceWS {
     constructor() {
         this.ws = null;
+        this.base = 'https://api.binance.com';
     }
+
+    _sign(params, secret) {
+        const query = new URLSearchParams(params).toString();
+        const signature = crypto.createHmac('sha256', secret).update(query).digest('hex');
+        return query + '&signature=' + signature;
+    }
+
 
     connect() {
         // Connect to Binance's miniTicker stream (all-symbol 1m updates).
@@ -188,6 +196,32 @@ class BinanceWS {
             this.ws.close();
             this.ws = null;
         }
+    }
+
+    async getHistoricalBalance(account, timestamp) {
+        // snapshots are in millis, we ask for SPOT snapshot nearest that time:
+        const { apiKey, secretKey } = account;
+        const params = {
+            type: 'SPOT',
+            startTime: timestamp,
+            endTime:   timestamp,
+            limit:     1,
+            recvWindow: 60000,
+            timestamp: Date.now()
+        };
+        const qs = this._sign(params, secretKey);
+        const resp = await axios.get(
+            `${this.base}/sapi/v1/accountSnapshot?${qs}`,
+            { headers: { 'X-MBX-APIKEY': apiKey } }
+        );
+        // pick the first snapshotVos entry
+        const snap = resp.data.snapshotVos?.[0]?.data?.balances || [];
+        // normalize to { asset, free, locked }
+        return snap.map(b => ({
+            asset:  b.asset,
+            free:   parseFloat(b.free),
+            locked: parseFloat(b.locked)
+        }));
     }
 }
 

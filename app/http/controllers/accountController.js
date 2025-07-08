@@ -382,3 +382,80 @@ exports.getAssetsDistribution = async (req, res) => {
         return res.status(500).json({ success: false, error: err.message });
     }
 };
+
+/**
+ * GET /api/accounts/summary
+ *
+ * Returns:
+ * {
+ *   success: true,
+ *   summary: {
+ *     totalBalance: number,
+ *     availableFunds: number,
+ *     pctChange: number
+ *   }
+ * }
+ */
+exports.getSummary = async (req, res) => {
+    try {
+        const userId = req.user.id;
+
+        // 1) Load all accounts
+        const [binanceAccounts, okxAccounts, bingxAccounts] = await Promise.all([
+            BinanceAccount.find({ userId }).lean(),
+            OkxAccount.find({ userId }).lean(),
+            BingxAccount.find({ userId }).lean(),
+        ]);
+
+        // helper to sum USDT-equivalent at a given timestamp
+        async function sumUsdtAt(accounts, service, timestamp) {
+            let total = 0;
+            for (const acct of accounts) {
+                // service.getBalance(acct, timestamp) -> array of { asset, free, locked }
+                const resp = await service.getBalance(acct, timestamp);
+                const balances = Array.isArray(resp)
+                    ? resp
+                    : resp.balance || resp.data?.balance || resp.data?.result?.balance || [];
+                // find USDT
+                const usdt = balances.find(b => b.asset === 'USDT');
+                total += usdt
+                    ? parseFloat(usdt.free) + parseFloat(usdt.locked || 0)
+                    : 0;
+            }
+            return total;
+        }
+
+        const nowTs       = Date.now();
+        const yesterdayTs = nowTs - 24 * 60 * 60 * 1000;
+
+        // 2) Fetch in parallel
+        const [
+            nowBinance, nowOkx, nowBingx,
+            thenBinance, thenOkx, thenBingx
+        ] = await Promise.all([
+            sumUsdtAt(binanceAccounts, BinanceService, nowTs),
+            sumUsdtAt(okxAccounts,     OkxService,     nowTs),
+            sumUsdtAt(bingxAccounts,   BingxService,   nowTs),
+            sumUsdtAt(binanceAccounts, BinanceService, yesterdayTs),
+            sumUsdtAt(okxAccounts,     OkxService,     yesterdayTs),
+            sumUsdtAt(bingxAccounts,   BingxService,   yesterdayTs),
+        ]);
+
+        const totalNow  = nowBinance  + nowOkx  + nowBingx;
+        const totalThen = thenBinance + thenOkx + thenBingx || 1;  // avoid div by zero
+        const pctChange = ((totalNow - totalThen) / totalThen) * 100;
+
+        // 3) send back
+        return res.json({
+            success: true,
+            summary: {
+                totalBalance:   parseFloat(totalNow.toFixed(2)),
+                availableFunds: parseFloat(totalNow.toFixed(2)),  // or split free vs locked if you like
+                pctChange:      parseFloat(pctChange.toFixed(2)),
+            }
+        });
+    } catch (err) {
+        console.error('accountsController.getSummary', err);
+        return res.status(500).json({ success: false, error: err.message });
+    }
+};
