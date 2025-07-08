@@ -12,6 +12,7 @@ import {
   ChevronRightIcon, Cog8ToothIcon
 } from "@/utils/icons";
 import { MenuItems } from "@/utils/menuItems";
+import { random } from "nanoid";
 
 export default function Sidebar() {
   const pathname = usePathname();
@@ -76,6 +77,18 @@ export default function Sidebar() {
                   textValue={menuItem.name}
                 >
                   <ul className="flex flex-col space-y-1">
+                    <li key={i * 10}>
+                      <Link
+                        className={`
+                              flex items-center space-x-3 px-4 py-2 rounded-full
+                              ${pathname === menuItem.link ? "text-primary" : "hover:bg-white/10"}
+                            `}
+                        href={menuItem.link}
+                      >
+                        {/*<child.Icon className="w-4 h-4" />*/}
+                        {!collapsed && <span className="text-[14px]">All {menuItem.name}</span>}
+                      </Link>
+                    </li>
                     {menuItem.children.map((child, j) => {
                       const childActive = pathname === child.link;
 

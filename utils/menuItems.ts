@@ -6,7 +6,7 @@ export const MenuItems = [
   },
   {
     name: 'Bots',
-    link: '/',
+    link: '/profile/bots',
     children: [
       {
         name: 'Technical Bots',
