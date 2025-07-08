@@ -5,6 +5,7 @@ const cors = require('cors');
 const mongoose = require('mongoose');
 const http = require('http');
 const { WebSocketServer } = require('ws');
+const cron = require('node-cron');
 
 const connectDB = require('./config/db');
 const User = require('./app/models/User');
@@ -13,6 +14,7 @@ const tradingViewWS = require('./app/services/TradingViewWS');
 const bingXWS = require('./app/services/bingXWS');
 const botService = require('./app/services/botService/BotService');
 const wsServer = require('./app/services/WebSocketServer');
+const { takeSnapshotAllUsers } = require('./app/services/AssetSnapshotService');
 const seedSymbols = require('./db/seeds/currencySeeder');
 const { logEmitter, originalConsoleLog } = require('./logs/logEmitter');
 
@@ -131,7 +133,8 @@ app.use('/api/currencies', currencyRoutes);
 app.use('/api/indicators', indicatorsRoutes);
 app.use('/api/market', marketRoutes)
 app.use('/api/pnl', pnlRoutes);
-app.use('/orders', ordersRouter);
+app.use('/api/orders', ordersRouter);
+app.use('/api/asset', ordersRouter);
 
 // Logs REST endpoint
 app.use('/api/logs', logsRouter);
@@ -201,6 +204,13 @@ server.on('upgrade', (request, socket, head) => {
     } else {
         socket.destroy();
     }
+});
+
+cron.schedule('0 * * * *', () => {
+    console.log('[AssetSnapshot] running hourly snapshot…');
+    takeSnapshotAllUsers().catch(err => {
+        console.error('[AssetSnapshot] failed:', err);
+    });
 });
 
 // Start server
