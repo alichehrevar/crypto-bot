@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import Image from "next/image";
 import { AssetSummaryResponse, Summary } from "@/types/profile/AssetSummary";
 import { getData } from "@/actions/get";
+import { Skeleton } from "@heroui/react";
 
 export default function AssetSummary() {
 
@@ -32,10 +33,18 @@ export default function AssetSummary() {
           <h4 className="font-bold text-[24px]">Welcome back !</h4>
           <h6 className="font-semibold text-[16px]">Total Balance</h6>
           <div className="flex items-center gap-5">
-            <p className="font-extrabold text-[28px]">{`$ ${assetData?.totalBalance}`}</p>
-            <span className={`text-[14px] font-bold mt-2.5 ${assetData && assetData.pctChange < 0 ? 'text-red-500' : 'text-success-500'}`}>
-              {`${assetData?.pctChange}%`}
-            </span>
+            {loading
+              ? <div className="h-[40px] w-full flex items-center justify-between gap-4">
+                  <Skeleton className="h-3 w-[90px] rounded-lg" />
+                  <Skeleton className="h-1 w-[20px] rounded-lg" />
+                </div>
+              : <>
+                  <p className="font-extrabold text-[28px]">{`$ ${assetData?.totalBalance}`}</p>
+                  <span className={`text-[14px] font-bold mt-2.5 ${assetData && assetData.pctChange < 0 ? 'text-red-500' : 'text-success-500'}`}>
+                    {`${assetData?.pctChange}%`}
+                  </span>
+                </>
+            }
           </div>
         </div>
         <Image alt="Overview" className="object-cover" height={120} src="/images/profile/overview.png" width={500} />
@@ -45,17 +54,23 @@ export default function AssetSummary() {
           <span className="text-[13px]">
             Portfolio Balance
           </span>
-          <span className="dark:text-white text-black font-semibold text-[14px]">
-            {`$ ${assetData?.totalBalance}`}
-          </span>
+          {loading
+            ? <Skeleton className="h-1.5 w-[40px] mt-2.5 rounded-lg" />
+            : <span className="dark:text-white text-black font-semibold text-[14px]">
+              {`$ ${assetData?.totalBalance}`}
+            </span>
+          }
         </div>
         <div className="flex items-start justify-center flex-col gap-1 text-gray-400">
           <span className="text-[13px]">
             Available Funds
           </span>
-          <span className="dark:text-white text-black font-semibold text-[14px]">
-            {`$ ${assetData?.availableFunds}`}
-          </span>
+          {loading
+            ? <Skeleton className="h-1.5 w-[40px] mt-2.5 rounded-lg" />
+            : <span className="dark:text-white text-black font-semibold text-[14px]">
+              {`$ ${assetData?.availableFunds}`}
+            </span>
+          }
         </div>
       </div>
     </>
