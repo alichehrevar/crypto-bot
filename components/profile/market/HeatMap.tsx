@@ -50,15 +50,6 @@ function HeatMapWidget() {
       style={{ width: '100%', height: '100%' }}
     >
       <div className="tradingview-widget-container__widget" />
-      <div className="tradingview-widget-copyright">
-        <a
-          href="https://www.tradingview.com/"
-          rel="noreferrer"
-          target="_blank"
-        >
-          <span className="blue-text">Track all markets on TradingView</span>
-        </a>
-      </div>
     </div>
   );
 }

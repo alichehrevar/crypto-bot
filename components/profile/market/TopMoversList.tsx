@@ -38,7 +38,7 @@ export default function TopMovers() {
   return (
     <div>
       {/* header + sort buttons */}
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex justify-between items-center mb-6 mt-10">
         <h2 className="font-bold text-xl">Big Moves</h2>
         <div className="flex space-x-2">
           <button
