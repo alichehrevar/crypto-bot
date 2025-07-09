@@ -4,7 +4,6 @@ import React, { useState } from "react";
 
 import TechnicalBotsList from "@/components/profile/bots/technical/TechnicalBotsList";
 import GridDeployBotSection from "@/components/profile/bots/deploy/GridDeployBotSection";
-import BotSelectionComponent from "@/components/profile/bots/BotSelectionComponent";
 import TradingViewAdvancedChart from "@/components/shared/charts/TradingViewAdvancedChart";
 
 
