@@ -96,3 +96,6 @@ section[role="dialog"] .overflow-y-auto::-webkit-scrollbar-track {
 }
 /******************** End: Recent Bots Swiper Styles *********************/
 
+.tradingview-widget-container iframe {
+    height: 100% !important;
+}
