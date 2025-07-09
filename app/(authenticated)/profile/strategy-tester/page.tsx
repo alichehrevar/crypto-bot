@@ -1,405 +1,379 @@
 'use client';
 
-import React, { FormEvent, useEffect, useState } from 'react';
+import React, { FormEvent, useEffect, useState } from "react";
 import {
   Autocomplete,
   AutocompleteItem,
   Input,
   Button,
-  Switch, RadioGroup, Radio, DateRangePicker, RangeValue, DateValue
+  Switch,
+  RadioGroup,
+  Radio,
+  DateRangePicker,
+  RangeValue,
+  DateValue,
+  addToast
 } from "@heroui/react";
-import { getData } from '@/actions/get';
-import { sendRequest } from '@/actions/post';
-import type { BotProps } from '@/types/profile/bots/StrategyParams';
+import copy from "copy-to-clipboard";
+import { getData } from "@/actions/get";
+import { sendRequest } from "@/actions/post";
+import type { BotProps } from "@/types/profile/bots/StrategyParams";
 import { parseDate } from "@internationalized/date";
 import { XIcon } from "@/utils/icons";
-import LiveCandlestickChart from "@/components/shared/charts/LiveCandlestickChart";
+import BacktestResultChart from "@/components/shared/charts/BacktestResultChart";
+import TradingViewAdvancedChart from "@/components/shared/charts/TradingViewAdvancedChart";
 
+// Helper functions
+function formatDuration(mins: number) {
+  if (!mins || mins < 0) return "0m";
+  const h = Math.floor(mins / 60);
+  const m = Math.round(mins % 60);
+  return [h ? `${h}h` : null, m ? `${m}m` : null]
+    .filter(Boolean)
+    .join(" ") || "0m";
+}
+
+function formatParams(params: Record<string, any>) {
+  return Object.entries(params)
+    .map(([k, v]) => `${k}: ${v}`)
+    .join(", ");
+}
+
+// Type definitions
 interface IndicatorPair {
   indicator: string;
   timeframe: string;
 }
 
-export default function StrategyTesterPage() {
-  //
-  // ─── LOOKUPS & STATE ──────────────────────────────────────────────────────
-  //
-  const [symbols, setSymbols] = useState<string[]>([]);
-  const [selectedSymbol, setSelectedSymbol] = useState<string>('BTC/USDT');
+interface OptimizedRow {
+  indicator: string;
+  timeframe: string;
+  bestParam: Record<string, any>;
+  simulatedTrades: number;
+  avgTradeDuration: number;
+  winRate: number;
+  pnlUsd: number;
+}
 
+interface ChartData {
+  candles: any[];
+  trades: any[];
+}
+
+export default function StrategyTesterPage() {
+  // State variables
+  const [symbols, setSymbols] = useState<string[]>([]);
+  const [selectedSymbol, setSelectedSymbol] = useState<string>("BTC/USDT");
   const [botProps, setBotProps] = useState<BotProps>({
     riskStrategyOptions: [],
     indicatorOptions: [],
     OptMethod: [],
     timeframeOptions: [],
-    defaultStrategyParams: {},
+    defaultStrategyParams: {}
   });
-
-  // Date selection
-  const [useRecent, setUseRecent] = useState<string>('recent-candles');
-  const [recentCount, setRecentCount] = useState('');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
-  const [dateRangeValue, setDateRangeValue] = React.useState<RangeValue<DateValue> | null>({
+  const [useRecent, setUseRecent] = useState<string>("recent-candles");
+  const [recentCount, setRecentCount] = useState("1000");
+  const [dateRangeValue, setDateRangeValue] = useState<RangeValue<DateValue> | null>({
     start: parseDate("2024-04-01"),
-    end: parseDate("2024-04-08"),
+    end: parseDate("2024-04-08")
   });
-
-  // Indicators / timeframes
+  const [startDate, setStartDate] = useState<string>("");
+  const [endDate, setEndDate] = useState<string>("");
   const [indicators, setIndicators] = useState<IndicatorPair[]>([
-    { indicator: '', timeframe: '' },
+    { indicator: "RSI", timeframe: "30m" }
   ]);
-
-  // Optimize toggle + fields
-  const [optimize, setOptimize] = useState(false);
-  const [optMethod, setOptMethod] = useState<'grid'|'bayesian'|'ann'>('grid');
-  const [minAccuracy, setMinAccuracy] = useState('5');
-  const [minTrades, setMinTrades] = useState('10');
-
-  // Risk toggle + fields
+  const [optimize, setOptimize] = useState(true);
+  const [optMethod, setOptMethod] = useState<"grid" | "bayesian" | "ann">("grid");
+  const [minAccuracy, setMinAccuracy] = useState("1");
+  const [minTrades, setMinTrades] = useState("1");
   const [useRisk, setUseRisk] = useState(false);
-  const [investment, setInvestment] = useState('1000');
-  const [leverage, setLeverage] = useState('1');
-  const [takeProfit, setTakeProfit] = useState('5');
-  const [stopLoss, setStopLoss] = useState('5');
-
+  const [investment, setInvestment] = useState("100");
+  const [leverage, setLeverage] = useState("1");
+  const [takeProfit, setTakeProfit] = useState("2");
+  const [stopLoss, setStopLoss] = useState("2");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [result, setResult] = useState<any>(null);
+  const [chartData, setChartData] = useState<ChartData | null>(null);
 
-  //
-  // ─── FETCH SYMBOLS & BOT PROPS ────────────────────────────────────────────
-  //
+  // Handlers & Effects
+  const onCopySetting = (row: OptimizedRow) => {
+    const payload = {
+      indicators: [{
+        indicator: row.indicator,
+        timeframe: row.timeframe,
+        params: row.bestParam
+      }]
+    };
+    copy(JSON.stringify(payload, null, 2));
+    addToast({ title: "Settings copied to clipboard!", color: "success" });
+  };
+
   useEffect(() => {
-    getData('/currencies')
-      .then(res => {
-        if (res.success) setSymbols(res.data.map((c:any)=>c.symbol));
-      })
-      .catch(()=>{});
-    getData('/bots/botProps')
-      .then(res => {
-        if (res.success) setBotProps(res.props);
-      })
-      .catch(()=>{});
+    getData("/currencies").then(res => {
+      if (res.success) setSymbols(res.data.map((c: any) => c.symbol));
+    });
+    getData("/bots/botProps").then(res => {
+      if (res.success) setBotProps(res.props);
+    });
   }, []);
 
-  //
-  // ─── HANDLERS ──────────────────────────────────────────────────────────────
-  //
-  const addIndicatorRow = () => {
-    setIndicators(prev => [...prev, { indicator: '', timeframe: '' }]);
+  useEffect(() => {
+    if (dateRangeValue?.start) setStartDate(dateRangeValue.start.toString());
+    if (dateRangeValue?.end) setEndDate(dateRangeValue.end.toString());
+  }, [dateRangeValue]);
+
+  const addIndicatorRow = () => setIndicators(prev => [...prev, { indicator: "", timeframe: "" }]);
+  const removeIndicatorRow = (i: number) => {
+    if (indicators.length > 1) setIndicators(prev => prev.filter((_, idx) => idx !== i));
   };
-  const removeIndicatorRow = (i:number) => {
-    if (indicators.length>1) {
-      setIndicators(prev=>prev.filter((_,idx)=>idx!==i));
-    }
+  const updateIndicator = (i: number, v: string) => {
+    setIndicators(prev => { const c = [...prev]; c[i].indicator = v; return c; });
   };
-  const updateIndicator = (i:number,val:string) => {
-    setIndicators(prev=>{
-      const c=[...prev]; c[i].indicator=val; return c;
-    });
-  };
-  const updateTimeframe = (i:number,val:string) => {
-    setIndicators(prev=>{
-      const c=[...prev]; c[i].timeframe=val; return c;
-    });
+  const updateTimeframe = (i: number, v: string) => {
+    setIndicators(prev => { const c = [...prev]; c[i].timeframe = v; return c; });
   };
 
-  const handleSubmit = async (e:FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    setError('');
-    // basic validations...
-    if (!selectedSymbol) return setError('Symbol required');
-    for (let i=0;i<indicators.length;i++){
-      if (!indicators[i].indicator||!indicators[i].timeframe){
-        return setError(`Indicator #${i+1} and timeframe required`);
-      }
-    }
-    if (useRecent){
-      if (isNaN(+recentCount)||+recentCount<1) return setError('Recent candles must be ≥1');
-    } else {
-      if (!startDate||!endDate) return setError('Start and end date required');
-      if (new Date(startDate)>=new Date(endDate)) return setError('Start must be before end');
-    }
-    if (optimize){
-      if (isNaN(+minAccuracy)||+minAccuracy<0) return setError('Min accuracy ≥0');
-      if (isNaN(+minTrades)||+minTrades<1) return setError('Min trades ≥1');
-    }
-    if (useRisk){
-      if (isNaN(+investment)||+investment<=0) return setError('Investment >0');
-      if (isNaN(+leverage)||+leverage<1) return setError('Leverage ≥1');
-      if (isNaN(+takeProfit)||+takeProfit<0) return setError('TP ≥0');
-      if (isNaN(+stopLoss)||+stopLoss<0) return setError('SL ≥0');
-    }
+    setResult(null);
+    setChartData(null);
 
-    const payload:any = {
+    const payload: any = {
       symbol: selectedSymbol,
-      mode: useRecent?'recent':'range',
-      recentCount: useRecent?+recentCount:undefined,
-      startDate: useRecent?undefined:startDate,
-      endDate:   useRecent?undefined:endDate,
-      indicators,
+      mode: useRecent === "recent-candles" ? "recent" : "range",
+      recentCount: useRecent === "recent-candles" ? +recentCount : undefined,
+      startDate: useRecent === "time-range" ? startDate : undefined,
+      endDate: useRecent === "time-range" ? endDate : undefined,
+      indicators: indicators.map(i => ({
+        indicator: i.indicator,
+        timeframe: i.timeframe,
+        params: botProps.defaultStrategyParams[i.indicator] || {}
+      })),
       optimize,
-      optimizationMethod: optimize?optMethod:undefined,
-      minAccuracy: optimize?+minAccuracy:undefined,
-      minTrades: optimize?+minTrades:undefined,
-      risk: useRisk?{
-        investment:+investment,
-        leverage:+leverage,
-        takeProfitPct:+takeProfit,
-        stopLossPct:+stopLoss
-      }:undefined
+      optimizationMethod: optimize ? optMethod : undefined,
+      minAccuracy: optimize ? +minAccuracy : undefined,
+      minTrades: optimize ? +minTrades : undefined,
+      risk: useRisk ? { investment: +investment, leverage: +leverage, takeProfitPct: +takeProfit, stopLossPct: +stopLoss } : undefined
     };
 
     setLoading(true);
     try {
-      const body = Object.fromEntries(Object.entries(payload).map(
-        ([k,v])=>[k,typeof v==='object'?JSON.stringify(v):String(v||'')]
-      ));
-      const res = await sendRequest(body,'/backtest/run');
-      if (!res.success) setError(res.error||'Backtest failed');
-      else console.log('backtest result',res.data);
-    } catch {
-      setError('Error running backtest');
+      const body = Object.fromEntries(
+        Object.entries(payload)
+          .filter(([_, v]) => v !== undefined)
+          .map(([k, v]) => [k, (k === 'indicators' || k === 'risk') ? JSON.stringify(v) : String(v)])
+      );
+      const res = await sendRequest(body, "/backtest/run");
+
+      if (!res.success) {
+        addToast({ title: res.error || "Backtest failed", color: "danger" });
+      } else {
+        setResult(res.result);
+        addToast({ title: "Backtest complete!", color: "success" });
+
+        if (res.backtestId) {
+          const fullRunData = await getData(`/backtest/runs/${res.backtestId}`);
+          if (fullRunData.success && fullRunData.run) {
+            const formattedCandles = fullRunData.run.candles.map((c: any) => ({
+              time: c.timestamp / 1000,
+              open: c.open, high: c.high, low: c.low, close: c.close,
+            }));
+            const formattedTrades = fullRunData.run.trades.map((t: any) => ({
+              ...t,
+              entryTime: new Date(t.entryTime).getTime() / 1000,
+              exitTime: new Date(t.exitTime).getTime() / 1000,
+            }));
+            setChartData({ candles: formattedCandles, trades: formattedTrades });
+          }
+        }
+      }
+    } catch (err: any) {
+      addToast({ title: err.message || "Error running backtest", color: "danger" });
     } finally {
       setLoading(false);
     }
   };
 
-  //
-  // ─── RENDER ────────────────────────────────────────────────────────────────
-  //
+  // --- RENDER ---
   return (
     <div className="container mt-4 relative px-5 backtester-page">
-      <div className="w-full flex items-start justify-center flex-col gap-6">
-        <div className="flex items-center justify-between w-full border-b-1 border-default-200 pb-4">
+      <div className="w-full flex flex-col gap-6">
+
+        {/* Top Bar: Symbol and Date Selection */}
+        <div className="flex items-center justify-between w-full border-b border-default-200 pb-4">
           <Autocomplete
-            id="symbol"
+            label="Symbol"
             variant="underlined"
-            labelPlacement="outside-left"
-            isClearable={false}
-            onSelectionChange={v=>v&&setSelectedSymbol(v.toString())}
+            defaultItems={symbols.map(s => ({ label: s, value: s }))}
             selectedKey={selectedSymbol}
-            className="w-auto"
+            onSelectionChange={(key) => setSelectedSymbol(key as string)}
+            className="w-48"
           >
-            {symbols.map(s=>(
-              <AutocompleteItem key={s} textValue={s}>{s}</AutocompleteItem>
-            ))}
+            {(item: any) => <AutocompleteItem key={item.value}>{item.label}</AutocompleteItem>}
           </Autocomplete>
-          {/* Data Range */}
-          <fieldset className="space-y-2 w-[30%]">
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-start">
-                <RadioGroup
-                  size="sm"
-                  color="default"
-                  value={useRecent}
-                  onValueChange={setUseRecent}
-                  classNames={{
-                    wrapper: 'flex flex-col gap-8'
-                  }}
-                >
-                  <Radio value="recent-candles" className="text-nowrap">Recent candles</Radio>
-                  <Radio value="time-range">Time Range</Radio>
-                </RadioGroup>
-              </div>
-
-              <div className="flex items-start justify-center flex-col space-y-2">
-                <Input
-                  className="w-full"
-                  type="number"
-                  min={1}
-                  step={1}
-                  value={recentCount}
-                  onChange={(e) => setRecentCount(e.target.value)}
-                  disabled={useRecent !== 'recent-candles'}
-                  label={null}
-                  placeholder="Candles Count"
-                />
-                <DateRangePicker
-                  color="default"
-                  size="md"
-                  isDisabled={useRecent === 'recent-candles'}
-                  label=""
-                  value={dateRangeValue} onChange={setDateRangeValue}
-                />
-              </div>
-            </div>
-          </fieldset>
+          <div className="flex items-center gap-4">
+            <RadioGroup value={useRecent} onValueChange={setUseRecent} orientation="horizontal">
+              <Radio value="recent-candles">Recent Candles</Radio>
+              <Radio value="time-range">Time Range</Radio>
+            </RadioGroup>
+            {useRecent === "recent-candles" ? (
+              <Input
+                type="number"
+                min={1}
+                value={recentCount}
+                onChange={e => setRecentCount(e.target.value)}
+                className="w-28"
+                placeholder="e.g., 1000"
+              />
+            ) : (
+              <DateRangePicker value={dateRangeValue} onChange={setDateRangeValue} />
+            )}
+          </div>
         </div>
-        <div className="w-full flex items-start justify-center gap-6">
-          {/* ── LEFT: Chart + Symbol Selector ───────────────────── */}
-          <div className="w-[70%] p-4">
 
-            <div className="mt-4 h-[calc(100%-4rem)] bg-black rounded">
-              <LiveCandlestickChart symbol="BTCUSDT" interval="1m" />
+        {/* Main Content: Chart (Left) and Form (Right) */}
+        <div className="w-full flex flex-col lg:flex-row items-start gap-6">
+
+          {/* Left Column: Chart */}
+          <div className="w-full lg:w-[65%] flex-shrink-0">
+            <div className="bg-default-50 rounded-2xl p-2">
+              {chartData ? (
+                <BacktestResultChart candles={chartData.candles} trades={chartData.trades} height={550} />
+              ) : (
+                <div className="h-[480px]">
+                  <TradingViewAdvancedChart />
+                </div>
+              )}
             </div>
           </div>
 
-          {/* ── RIGHT: Form ────────────────────────────────────────── */}
-          <div className="w-[30%] p-4 bg-default-50 rounded-2xl text-white overflow-auto h-full">
-            {error && <p className="mb-4 text-red-400">{error}</p>}
+          {/* Right Column: Form */}
+          <div className="w-full lg:w-[35%] p-6 bg-default-50 rounded-2xl text-white">
             <form className="space-y-6" onSubmit={handleSubmit}>
 
-              {/* Indicators */}
-              <div className="space-y-2">
-                <p className="font-medium">Indicators</p>
-                {indicators.map((row,i)=>(
-                  <div key={i} className="flex items-center space-x-2">
-                    <Autocomplete
-                      id={`ind-${i}`}
-                      label="Indicator"
-                      selectedKey={row.indicator}
-                      onSelectionChange={v=>updateIndicator(i, v as string)}
-                      className="flex-1"
-                    >
-                      {botProps.indicatorOptions.map(ind=>(
-                        <AutocompleteItem key={ind} textValue={ind}>{ind}</AutocompleteItem>
-                      ))}
+              <div className="space-y-4">
+                <p className="font-medium text-lg">Indicators</p>
+                {indicators.map((row, i) => (
+                  <div key={i} className="flex items-center gap-2">
+                    <Autocomplete label="Indicator" selectedKey={row.indicator} onSelectionChange={v => updateIndicator(i, v as string)} className="flex-1">
+                      {botProps.indicatorOptions.map(ind => <AutocompleteItem key={ind} textValue={ind}>{ind}</AutocompleteItem>)}
                     </Autocomplete>
-                    <Autocomplete
-                      id={`tf-${i}`}
-                      label="Timeframe"
-                      isClearable={false}
-                      selectedKey={row.timeframe}
-                      onSelectionChange={v=>updateTimeframe(i, v as string)}
-                      className="w-24"
-                    >
-                      {botProps.timeframeOptions.map(tf=>(
-                        <AutocompleteItem key={tf} textValue={tf}>{tf}</AutocompleteItem>
-                      ))}
+                    <Autocomplete label="Timeframe" selectedKey={row.timeframe} onSelectionChange={v => updateTimeframe(i, v as string)} className="w-28">
+                      {botProps.timeframeOptions.map(tf => <AutocompleteItem key={tf} textValue={tf}>{tf}</AutocompleteItem>)}
                     </Autocomplete>
                     {indicators.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={()=>removeIndicatorRow(i)}
-                        className="text-red-500 text-sm"
-                      >
+                      <Button isIconOnly variant="light" color="danger" size="sm" onPress={() => removeIndicatorRow(i)}>
                         <XIcon />
-                      </button>
+                      </Button>
                     )}
                   </div>
                 ))}
-                <button
-                  type="button"
-                  onClick={addIndicatorRow}
-                  className="text-blue-400 text-sm"
-                >
+                <Button size="sm" color="primary" variant="light" onPress={addIndicatorRow}>
                   + Add Indicator
-                </button>
+                </Button>
               </div>
 
-              {/* Optimize */}
-              <div>
+              <div className="space-y-4">
                 <div className="flex justify-between items-center">
-                  <p className="font-medium">Optimize parameters</p>
-                  <Switch
-                    isSelected={optimize}
-                    onValueChange={setOptimize}
-                    color="success"
-                    size="sm"
-                  />
+                  <p className="font-medium text-lg">Optimize Parameters</p>
+                  <Switch isSelected={optimize} onValueChange={setOptimize} color="success" />
                 </div>
-                <div className="flex items-center justify-between space-x-2 mt-4">
-                  {['grid','bayesian','ann'].map(m=>(
-                    <button
-                      key={m}
-                      type="button"
-                      disabled={!optimize}
-                      onClick={()=>setOptMethod(m as any)}
-                      className={`px-3 py-3 w-[33%] text-[13px] font-bold rounded-xl border-1 bg-default-100 text-white ${
-                        optMethod === m ? 'border-primary' : 'border-default-100'
-                      }`}
-                    >
-                      {m.charAt(0).toUpperCase()+m.slice(1)}
-                    </button>
-                  ))}
-                </div>
-                <div className="flex space-x-2 mt-2">
-                  <Input
-                    label="Min Accuracy (%)"
-                    type="number"
-                    min={0}
-                    step={0.1}
-                    disabled={!optimize}
-                    value={minAccuracy}
-                    onChange={e=>setMinAccuracy(e.target.value)}
-                    required
-                  />
-                  <Input
-                    label="Min Trades"
-                    type="number"
-                    min={1}
-                    step={1}
-                    disabled={!optimize}
-                    value={minTrades}
-                    onChange={e=>setMinTrades(e.target.value)}
-                    required
-                  />
-                </div>
+                {optimize && (
+                  <>
+                    <RadioGroup value={optMethod} onValueChange={(v) => setOptMethod(v as any)} orientation="horizontal" className="justify-between">
+                      <Radio value="grid">Grid</Radio>
+                      <Radio value="bayesian">Bayesian</Radio>
+                      <Radio value="ann">ANN</Radio>
+                    </RadioGroup>
+                    <div className="flex gap-4 mt-2">
+                      <Input label="Min Accuracy (%)" type="number" min={0} value={minAccuracy} onChange={e => setMinAccuracy(e.target.value)} />
+                      <Input label="Min Trades" type="number" min={1} value={minTrades} onChange={e => setMinTrades(e.target.value)} />
+                    </div>
+                  </>
+                )}
               </div>
 
-              {/* Risk */}
-              <div>
+              <div className="space-y-4">
                 <div className="flex justify-between items-center">
-                  <p className="font-medium">Risk parameters</p>
-                  <Switch
-                    isSelected={useRisk}
-                    onValueChange={setUseRisk}
-                    color="success"
-                    size="sm"
-                  />
+                  <p className="font-medium text-lg">Risk Parameters</p>
+                  <Switch isSelected={useRisk} onValueChange={setUseRisk} color="success" />
                 </div>
-                <div className="grid grid-cols-2 gap-2 mt-4">
-                  <Input
-                    label="Investment"
-                    type="number"
-                    min={0.01}
-                    step={0.01}
-                    disabled={!useRisk}
-                    value={investment}
-                    onChange={e=>setInvestment(e.target.value)}
-                  />
-                  <Input
-                    label="Leverage"
-                    type="number"
-                    min={1}
-                    step={1}
-                    disabled={!useRisk}
-                    value={leverage}
-                    onChange={e=>setLeverage(e.target.value)}
-                  />
-                  <Input
-                    label="Take Profit (%)"
-                    type="number"
-                    min={0}
-                    step={0.1}
-                    disabled={!useRisk}
-                    value={takeProfit}
-                    onChange={e=>setTakeProfit(e.target.value)}
-                  />
-                  <Input
-                    label="Stop Loss (%)"
-                    type="number"
-                    min={0}
-                    step={0.1}
-                    disabled={!useRisk}
-                    value={stopLoss}
-                    onChange={e=> setStopLoss(e.target.value)}
-                  />
-                </div>
+                {useRisk && (
+                  <div className="grid grid-cols-2 gap-4 mt-2">
+                    <Input label="Investment" type="number" min={0.01} value={investment} onChange={e => setInvestment(e.target.value)} />
+                    <Input label="Leverage" type="number" min={1} value={leverage} onChange={e => setLeverage(e.target.value)} />
+                    <Input label="Take Profit (%)" type="number" min={0} value={takeProfit} onChange={e => setTakeProfit(e.target.value)} />
+                    <Input label="Stop Loss (%)" type="number" min={0} value={stopLoss} onChange={e => setStopLoss(e.target.value)} />
+                  </div>
+                )}
               </div>
 
-              <Button
-                className="w-full bg-white text-black font-bold rounded-xl h-[45px]"
-                type="submit"
-                isLoading={loading}
-                disabled={loading}
-              >
+              <Button fullWidth color="primary" type="submit" isLoading={loading} disabled={loading} size="lg">
                 Start Backtester
               </Button>
             </form>
           </div>
         </div>
+
+        {/* Results Table Section */}
+        {result && (
+          <div className="overflow-x-auto bg-default-50 p-4 rounded-2xl my-4 w-full">
+            {optimize && result.optimizedParams?.length > 0 && (
+              <table className="min-w-full text-sm text-left">
+                <thead>
+                <tr className="border-b border-default-200">
+                  {["Indicator", "Time frame", "Best parameter", "Simulated Trades", "Avg. Trade Duration", "Win ratio", "PnL", ""].map(h =>
+                    <th key={h} className="py-3 px-4 font-medium text-default-600">{h}</th>)}
+                </tr>
+                </thead>
+                <tbody>
+                {result.optimizedParams.map((row: OptimizedRow, i: number) => (
+                  <tr key={i} className="border-b border-default-100 hover:bg-default-100">
+                    <td className="py-3 px-4">{row.indicator}</td>
+                    <td className="py-3 px-4">{row.timeframe}</td>
+                    <td className="py-3 px-4">{formatParams(row.bestParam)}</td>
+                    <td className="py-3 px-4">{row.simulatedTrades}</td>
+                    <td className="py-3 px-4">{formatDuration(row.avgTradeDuration)}</td>
+                    <td className="py-3 px-4">
+                        <span className={row.winRate >= 0.5 ? "text-success" : "text-danger"}>
+                          {(row.winRate * 100).toFixed(2)}%
+                        </span>
+                    </td>
+                    <td className="py-3 px-4">
+                        <span className={row.pnlUsd >= 0 ? "text-success" : "text-danger"}>
+                          {row.pnlUsd >= 0 ? "+" : ""}{row.pnlUsd.toFixed(4)} $
+                        </span>
+                    </td>
+                    <td className="py-3 px-4">
+                      <Button size="sm" variant="bordered" onPress={() => onCopySetting(row)}>Copy Setting</Button>
+                    </td>
+                  </tr>
+                ))}
+                </tbody>
+              </table>
+            )}
+            {!optimize && result.summary && (
+              <table className="min-w-full text-sm text-center">
+                <thead>
+                <tr className="border-b border-default-200">
+                  {["Initial", "Final", "Trades", "Win rate", "PnL"].map((h) => (
+                    <th key={h} className="px-4 py-3 font-medium text-default-600">{h}</th>
+                  ))}
+                </tr>
+                </thead>
+                <tbody>
+                <tr>
+                  <td className="px-4 py-3">${result.summary.initialBalance.toFixed(2)}</td>
+                  <td className="px-4 py-3">${result.summary.finalBalance.toFixed(2)}</td>
+                  <td className="px-4 py-3">{result.summary.totalTrades}</td>
+                  <td className="px-4 py-3">{(result.summary.metrics.winRate * 100).toFixed(2)}%</td>
+                  <td className="px-4 py-3">${result.summary.metrics.totalPnL.toFixed(2)}</td>
+                </tr>
+                </tbody>
+              </table>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
