@@ -38,11 +38,6 @@ export const MenuItems = [
     children: []
   },
   {
-    name: 'My Brokers',
-    link: '/profile/settings?tab=connect-broker',
-    children: []
-  },
-  {
     name: 'Academy',
     link: '/profile/academy',
     children: []

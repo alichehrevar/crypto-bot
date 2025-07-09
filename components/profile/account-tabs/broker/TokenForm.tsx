@@ -1,8 +1,7 @@
 import React, { FormEvent, useEffect, useState } from "react";
-import { Accordion, AccordionItem, addToast, Checkbox, Input } from "@heroui/react";
+import { addToast, Input } from "@heroui/react";
 import { Button } from "@heroui/button";
 
-import { ChevronLeftIcon } from "@/components/shared/icons";
 import { TokenFormType } from "@/types/profile/settings/tokenFormType";
 import { sendRequest } from "@/actions/post";
 import { getData } from "@/actions/get";
@@ -128,43 +127,6 @@ export default function TokenForm(props: {type: 'binance' | 'okx' | 'bingx' | 'b
           variant="bordered"
         />
       }
-      <Accordion
-        defaultExpandedKeys={['permissions']}
-      >
-        <AccordionItem
-          key="permissions"
-          aria-label="Permissions"
-          classNames={{
-            trigger: 'w-auto'
-          }}
-          indicator={<ChevronLeftIcon />}
-          title={
-            <span className="font-bold">Permissions</span>
-          }
-          textValue="Permissions"
-        >
-          <div className="flex flex-wrap gap-5">
-            {[
-              ["buenos-aires", "Spot Trading"],
-              ["sydney", "Perpetual Futures Trading"],
-              ["san-francisco", "Universal Transfer"],
-              ["london", "Manage Subaccounts"],
-              ["tokyo", "P2P Trading"],
-            ].map(([value, label]) => (
-              <Checkbox
-                key={value}
-                color="secondary"
-                name="permissions"
-                value={value}
-                checked={form.permissions.includes(value)}
-                onChange={handleChange}
-              >
-                {label}
-              </Checkbox>
-            ))}
-          </div>
-        </AccordionItem>
-      </Accordion>
       <div className="flex w-full justify-end">
         <Button className="min-w-[100px]" color="primary" isLoading={formLoading} type="submit" variant="ghost">
           {!formLoading && <span>Connect</span>}
