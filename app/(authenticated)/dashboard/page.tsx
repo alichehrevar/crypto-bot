@@ -11,6 +11,7 @@ import TopMovers from "@/components/profile/dashboard/TopMovers";
 import TechnicalBotsList from "@/components/profile/bots/technical/TechnicalBotsList";
 import BotTypeSelectionModal from "@/components/profile/bots/BotTypeSelectionModal";
 import AssetSummary from "@/components/profile/dashboard/assetSummary";
+import { RecentActivities } from "@/components/shared/RecentActivities";
 
 export default function Dashboard() {
 
@@ -33,6 +34,9 @@ export default function Dashboard() {
       </div>
       <div className="grid grid-cols-1 dark:bg-[#161616] bg-white mt-4 rounded-2xl py-6 px-3">
         <TechnicalBotsList refreshList={refreshBotsList} />
+      </div>
+      <div className="grid grid-cols-1 dark:bg-[#161616] bg-white mt-4 rounded-2xl py-6 px-3">
+        <RecentActivities />
       </div>
     </section>
   )
