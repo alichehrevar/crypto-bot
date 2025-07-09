@@ -50,3 +50,49 @@ section[role="dialog"] .overflow-y-auto::-webkit-scrollbar-track {
 .backtester-page div[data-slot=input-wrapper] {
     border: unset !important;
 }
+
+/******************** Recent Bots Swiper Styles *********************/
+.today-bots-swiper .swiper-slide {
+    width: 400px;
+}
+.today-bots-swiper .swiper-pagination-bullet {
+    width: 20px;
+    height: 2px;
+    text-align: center;
+    line-height: 20px;
+    font-size: 12px;
+    color: #000;
+    opacity: 1;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 1px;
+}
+
+.today-bots-swiper .swiper-pagination-bullet-active {
+    color: #fff;
+    background: white !important;
+}
+
+.today-bots-swiper .swiper-button-next,
+.today-bots-swiper .swiper-button-prev {
+    color: #10B981;
+    width: 30px;
+    height: 30px;
+    margin-top: -15px;
+}
+.today-bots-swiper .swiper-button-next:after,
+.today-bots-swiper .swiper-button-prev:after {
+    font-size: 14px;
+    font-weight: bold;
+}
+.today-bots-swiper .swiper-pagination-bullet {
+    background: #374151;
+    opacity: 1;
+}
+.today-bots-swiper .swiper-pagination-bullet-active {
+    background: #10B981;
+}
+.today-bots-swiper .swiper-pagination {
+    bottom: -10px;
+}
+/******************** End: Recent Bots Swiper Styles *********************/
+

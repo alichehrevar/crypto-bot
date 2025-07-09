@@ -4,7 +4,6 @@ import React, { useState } from "react";
 
 import TechnicalBotsList from "@/components/profile/bots/technical/TechnicalBotsList";
 import TechnicalDeployBotSection from "@/components/profile/bots/deploy/TechnicalDeployBotSection";
-import BotSelectionComponent from "@/components/profile/bots/BotSelectionComponent";
 import TradingViewAdvancedChart from "@/components/shared/charts/TradingViewAdvancedChart";
 
 export default function TechnicalBotsPage() {
@@ -29,7 +28,6 @@ export default function TechnicalBotsPage() {
           <TechnicalDeployBotSection onSuccessAction={() => setRefreshBotsList(true)} />
         </div>
       </div>
-      <BotSelectionComponent />
     </div>
   )
 }
