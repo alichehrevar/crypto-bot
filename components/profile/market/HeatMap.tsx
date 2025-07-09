@@ -4,8 +4,12 @@ import React, { useEffect, useRef, memo } from 'react';
 
 function HeatMapWidget() {
   const containerRef = useRef<HTMLDivElement>(null);
+  const hasInjected = useRef(false)
 
   useEffect(() => {
+    if (hasInjected.current) return
+    hasInjected.current = true
+
     if (!containerRef.current) return;
 
     const script = document.createElement('script');
