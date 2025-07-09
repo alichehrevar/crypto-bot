@@ -1,15 +1,12 @@
 'use client'
 
 import React, { useState } from "react";
-import Image from "next/image";
 import { Divider } from "@heroui/react";
 
-import { ArrowDownIcon, PlusIcon } from "@/utils/icons";
 import AssetSection from "@/components/profile/dashboard/AssetSection";
 import PnLSection from "@/components/profile/dashboard/PnLSection";
 import TopMovers from "@/components/profile/dashboard/TopMovers";
 import TechnicalBotsList from "@/components/profile/bots/technical/TechnicalBotsList";
-import BotTypeSelectionModal from "@/components/profile/bots/BotTypeSelectionModal";
 import AssetSummary from "@/components/profile/dashboard/assetSummary";
 import { RecentActivities } from "@/components/shared/RecentActivities";
 
