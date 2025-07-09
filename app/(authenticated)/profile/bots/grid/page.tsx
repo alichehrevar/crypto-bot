@@ -30,7 +30,6 @@ export default function TechnicalBotsPage() {
           <GridDeployBotSection onSuccessAction={() => setRefreshBotsList(true)} />
         </div>
       </div>
-      <BotSelectionComponent />
     </div>
   )
 }
