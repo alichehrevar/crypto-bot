@@ -36,7 +36,7 @@ section[role="dialog"] .overflow-y-auto::-webkit-scrollbar-track {
 }
 
 .bot-config-form__tabs-screen-height {
-    height: calc(100svh - 130px);
+    height: calc(100svh - 50px);
 }
 
 .thin-scrollbar::-webkit-scrollbar {
