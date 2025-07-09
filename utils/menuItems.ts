@@ -41,5 +41,10 @@ export const MenuItems = [
     name: 'Academy',
     link: '/profile/academy',
     children: []
+  },
+  {
+    name: 'Community',
+    link: '/profile/community',
+    children: []
   }
 ]
