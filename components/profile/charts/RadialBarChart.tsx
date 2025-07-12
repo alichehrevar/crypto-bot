@@ -19,6 +19,12 @@ export default function RadialBarChart({ data }: RadialBarChartProps) {
     data: [{ x: point.x, y: point.y }],
   }));
 
+  if (data.length === 0) {
+    return (
+      <span className="text-center flex items-center justify-center ml-[40px] h-full w-full text-sm">No unrealized PnL started</span>
+    )
+  }
+
   return (
     <ResponsiveRadialBar
       data={series}

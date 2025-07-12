@@ -3,7 +3,7 @@ import { Skeleton } from "@heroui/react";
 
 export default function TopMoversBarLoading() {
   return (
-    <div className="grid grid-flow-col auto-cols-fr gap-4 items-end h-40">
+    <div className="grid grid-flow-col auto-cols-fr gap-4 items-end h-32 mt-6">
       {Array.from({ length: 5 }).map((_, index) => {
         return (
           <div key={index} className="flex flex-col items-center gap-2">
@@ -14,7 +14,7 @@ export default function TopMoversBarLoading() {
 
             {/* bar */}
             <Skeleton className="w-3/5 rounded-lg">
-              <div className="h-28 w-3/5 rounded-lg bg-default-300" />
+              <div className="h-24 w-3/5 rounded-lg bg-default-300" />
             </Skeleton>
 
             {/* icon */}

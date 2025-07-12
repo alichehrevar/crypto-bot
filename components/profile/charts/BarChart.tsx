@@ -19,6 +19,12 @@ export default function BarChart({ data }: BarChartProps) {
     value: d.value,
   })) as BarDatum[];
 
+  if (data.length === 0) {
+    return (
+      <span className="text-center flex items-center justify-center h-full w-full text-sm">No realized PnL started</span>
+    )
+  }
+
   return (
     <ResponsiveBar
       data={chartData}
