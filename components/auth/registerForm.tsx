@@ -1,27 +1,31 @@
-'use client'
+"use client";
 
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import Link from "next/link";
-import {useRouter} from "next/navigation";
+import { useRouter } from "next/navigation";
 import {
   Button,
   Input,
   Checkbox,
-  addToast,
-} from '@heroui/react'
+  addToast
+} from "@heroui/react";
 import { AppleIcon } from "@/utils/icons";
-import  {ArrowLeftIcon} from "@heroui/shared-icons";
+import { ArrowLeftIcon } from "@heroui/shared-icons";
 import ProfileSetupForm from "@/components/auth/ProfileSetupForm";
 import OTPConfirmationForm from "@/components/auth/OTPConfirmationForm";
+import { sendRequest } from "@/actions/post";
+import { AuthResponse, checkEmailExistenceResponse } from "@/types/auth";
 
 const Register = () => {
 
-  const router = useRouter()
+  const router = useRouter();
+
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const [step, setStep] = useState(1);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [repeatPassword, setRepeatPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [repeatPassword, setRepeatPassword] = useState("");
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [profileData, setProfileData] = useState<any>(null);
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -40,44 +44,103 @@ const Register = () => {
     // Validate passwords match
     if (password !== repeatPassword) {
       addToast({
-        title: 'Passwords do not match',
-        color:'danger'
-      })
+        title: "Passwords do not match",
+        color: "danger"
+      });
       return;
     }
 
     if (!agreeTerms) {
       addToast({
-        title: 'Please agree to the terms and conditions',
-        color:'danger'
-      })
+        title: "Please agree to the terms and conditions",
+        color: "danger"
+      });
       return;
     }
 
-    console.log('First step completed:', { email, password, repeatPassword, agreeTerms });
-    handleStepTransition(2);
+    console.log("First step completed:", { email, password, repeatPassword, agreeTerms });
+    setIsLoading(true);
+    checkEmailExistence()
+      .then((res: checkEmailExistenceResponse) => {
+        if (res.success && res.exists) {
+          addToast({
+            title: "Email already exists",
+            description: "Please log in to continue",
+            color: "danger"
+          });
+        } else if (res.success && !res.exists) {
+          handleStepTransition(2);
+        } else {
+          addToast({
+            title: res.error,
+            color: "danger"
+          });
+        }
+      })
+      .catch(() => {
+        addToast({
+          title: "Something went wrong",
+          description: "Please, try again later",
+          color: "danger"
+        });
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
+  };
+
+  const checkEmailExistence = async () => {
+    return await sendRequest({
+      email: email
+    }, "/auth/check-email-existence");
+  };
+
+  const register = async (data: { [p: string]: File | string }) => {
+    return await sendRequest(data, "/auth/register");
   };
 
   const handleProfileSetup = (data: any) => {
-    console.log('Profile setup completed:', data);
+    console.log("Profile setup completed:", data);
     setProfileData(data);
     handleStepTransition(3);
   };
 
   const handleOTPConfirmation = (otp: string) => {
-    console.log('Registration completed:', {
+    console.log("Registration completed:", {
       email,
       password,
       ...profileData,
       otp
     });
 
-    addToast({
-      title: 'Registration successful !',
-      description: 'Welcome to TradingX !',
-      color:'success'
+    register({
+      email,
+      password,
+      ...profileData,
+      otp
     })
-    router.push('/dashboard')
+      .then((res: AuthResponse) => {
+        if (res.success) {
+          addToast({
+            title: "Registration successful !",
+            description: "Welcome to TradingX !",
+            color: "success"
+          });
+          router.push("/dashboard");
+        } else if (!res.success) {
+          addToast({
+            title: res.error,
+            color: "danger"
+          });
+        }
+      })
+      .catch(() => {
+        addToast({
+          title: "Something went wrong",
+          description: "Please, try again later",
+          color: "danger"
+        });
+      })
   };
 
   const handleBackToFirstStep = () => {
@@ -90,10 +153,14 @@ const Register = () => {
 
   const getStepTitle = () => {
     switch (step) {
-      case 1: return 'Register';
-      case 2: return 'Complete Profile';
-      case 3: return 'Verify Account';
-      default: return 'Register';
+      case 1:
+        return "Register";
+      case 2:
+        return "Complete Profile";
+      case 3:
+        return "Verify Account";
+      default:
+        return "Register";
     }
   };
 
@@ -119,7 +186,8 @@ const Register = () => {
         </div>
       </div>
 
-      <div className={`transition-all duration-300 ${isTransitioning ? 'opacity-0 translate-y-4' : 'opacity-100 translate-y-0'}`}>
+      <div
+        className={`transition-all duration-300 ${isTransitioning ? "opacity-0 translate-y-4" : "opacity-100 translate-y-0"}`}>
         {step === 1 ? (
           <form onSubmit={handleFirstStep} className="space-y-6">
             <div className="space-y-2">
@@ -173,7 +241,7 @@ const Register = () => {
                 className="border-white data-[state=checked]:bg-white data-[state=checked]:text-black"
               >
                 <label htmlFor="terms" className="text-white text-sm">
-                  I agree to the{' '}
+                  I agree to the{" "}
                 </label>
               </Checkbox>
               <Link href="/terms" className="hover:underline font-medium text-sm" target="_blank">
@@ -183,13 +251,15 @@ const Register = () => {
 
             <Button
               type="submit"
+              isLoading={isLoading}
+              disabled={isLoading}
               className="w-full bg-transparent border-2 border-white text-white hover:bg-white hover:text-black transition-colors"
             >
               Next
             </Button>
 
             <div className="text-center text-white text-sm">
-              Already have an Account?{' '}
+              Already have an Account?{" "}
               <Link href="/login" className="hover:underline font-medium">
                 Login
               </Link>

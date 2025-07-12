@@ -1,4 +1,11 @@
 export type AuthResponse = {
-  token: string | null,
-  error: string | null,
+  success: boolean
+  token: string,
+  error: string,
+}
+
+export type checkEmailExistenceResponse = {
+  success: boolean,
+  exists: boolean,
+  error: string
 }

@@ -8,6 +8,7 @@ import {
   DatePicker
 } from "@heroui/react";
 import { getLocalTimeZone, parseDate, today } from "@internationalized/date";
+import { useDateFormatter } from "@react-aria/i18n";
 
 interface ProfileSetupFormProps {
   onSubmit: (data: any) => void;
@@ -22,12 +23,14 @@ const ProfileSetupForm = ({ onSubmit, onBack }: ProfileSetupFormProps) => {
   const [phoneCountry, setPhoneCountry] = useState('+1');
   const [phoneNumber, setPhoneNumber] = useState('');
 
+  let formatter = useDateFormatter({dateStyle: "full"});
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSubmit({
       firstName,
       lastName,
-      birthday,
+      birthday: birthday ? formatter.format(birthday.toDate(getLocalTimeZone())) : null,
       gender,
       phoneCountry,
       phoneNumber
@@ -84,6 +87,8 @@ const ProfileSetupForm = ({ onSubmit, onBack }: ProfileSetupFormProps) => {
           minValue={parseDate("1900-01-01")}
           maxValue={today(getLocalTimeZone())}
           size="md"
+          value={birthday}
+          onChange={setBirthday}
           className="pointer-events-auto"
         />
       </div>
@@ -106,6 +111,7 @@ const ProfileSetupForm = ({ onSubmit, onBack }: ProfileSetupFormProps) => {
             items={countryCodes}
             errorMessage={!phoneCountry ? "" : "Country code is required"}
             className="w-[90px]"
+            name="country-code"
             isClearable={false}
             onSelectionChange={(k: Key | null) => setPhoneCountry(k as string)}
           >
