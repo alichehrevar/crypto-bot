@@ -3,9 +3,9 @@ const BinanceAccount  = require('../models/BinanceAccount');
 const OkxAccount      = require('../models/OkxAccount');
 const BingxAccount    = require('../models/BingxAccount');
 const AssetSnapshot   = require('../models/AssetSnapshot');
-const BinanceWS       = require('./BinanceWS');
-const OkxWS           = require('./OKXWS');
-const BingxWS         = require('./BingXWS');
+const BinanceWS       = require('./binanceWS');
+const OkxWS           = require('./okxWS');
+const BingxWS         = require('./bingXWS');
 
 async function sumBalancesForUser(userId) {
     // load all three types of accounts
