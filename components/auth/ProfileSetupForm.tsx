@@ -104,9 +104,10 @@ const ProfileSetupForm = ({ onSubmit, onBack }: ProfileSetupFormProps) => {
       </div>
 
       <div className="space-y-2">
-        <label className="text-white text-sm">Phone Number</label>
+        <label htmlFor="phone-number" className="text-white text-sm">Phone Number</label>
         <div className="flex gap-2">
           <Autocomplete
+            id="phone-number"
             isRequired
             items={countryCodes}
             errorMessage={!phoneCountry ? "" : "Country code is required"}
