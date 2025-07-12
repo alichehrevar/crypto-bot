@@ -31,6 +31,10 @@ const userInfoSchema = new mongoose.Schema({
     birthday: {
         type: Date,
         required: true
+    },
+    avatar: {
+        type: String,
+        required: false
     }
 });
 
