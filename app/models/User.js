@@ -10,12 +10,6 @@ const userSchema = new mongoose.Schema({
     password: {
         type: String,
         required: true
-    },
-    exchangeKeys: {
-        binance: {
-            apiKey: String,
-            secret: String
-        }
     }
 });
 

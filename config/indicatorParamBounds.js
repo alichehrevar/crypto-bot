@@ -26,5 +26,4 @@ module.exports = {
         smoothK:     [3, 5],
         smoothD:     [3, 5]
     }
-    // add more indicator bounds as needed
 };
