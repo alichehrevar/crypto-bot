@@ -52,7 +52,7 @@ export default function TopMovers() {
     <div className="relative rounded-2xl w-full ">
       {/* header + sort buttons */}
       <div className={`flex justify-between items-center ${isLoading ? '' : 'mb-6'}`}>
-        <h3 className="text-white text-xl font-bold">Big Changes</h3>
+        <h4 className="font-bold text-[16px]">Big Changes</h4>
         <div className="flex space-x-2">
           <button
             className={sortOrder === 'asc' ? 'text-white' : 'text-gray-500'}

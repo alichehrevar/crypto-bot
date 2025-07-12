@@ -25,6 +25,11 @@ export default function AssetsPieChart() {
             label: d.exchange,
             value: d.pct,           // slice size by percentage
           }));
+          if (chartData.every(item => item.value === 0)) {
+            setData([]);
+            return;
+          }
+
           setData(chartData);
         } else {
           console.error('Failed to load assets distribution:', res.error);
@@ -44,6 +49,12 @@ export default function AssetsPieChart() {
 
   if (loading) {
     return <div className="text-center text-gray-400">Loading chart…</div>;
+  }
+
+  if (data.length === 0) {
+    return (
+      <span className="text-center flex items-center justify-center h-full w-full ml-[40px] mt-[-10px] text-sm">No assets found</span>
+    )
   }
 
   return (

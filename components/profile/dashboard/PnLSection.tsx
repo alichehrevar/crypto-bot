@@ -69,6 +69,7 @@ export default function PnLSection() {
 
   return (
     <div className="space-y-4">
+      <h4 className="font-bold text-[16px]">PnL</h4>
       {/* Controls */}
       <div className="flex items-center justify-between w-full">
         <ul className="flex items-center gap-2">
@@ -105,7 +106,7 @@ export default function PnLSection() {
       {/* Chart */}
       <div
         className={`
-          w-full h-[160px] transition-all duration-200
+          w-full h-[120px] transition-all duration-200
           ${tab === 'unrealized-pnl' ? 'ml-[-35px] overflow-x-hidden' : ''}
         `}
       >
