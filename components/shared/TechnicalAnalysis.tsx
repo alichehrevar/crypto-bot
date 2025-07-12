@@ -11,6 +11,7 @@ function TechnicalAnalysis() {
     if (!container.current) return;
 
     const script = document.createElement("script");
+
     script.src = "https://s3.tradingview.com/external-embedding/embed-widget-technical-analysis.js";
     script.type = "text/javascript";
     script.async = true;
@@ -31,8 +32,8 @@ function TechnicalAnalysis() {
   }, []);
 
   return (
-    <div className="tradingview-widget-container" ref={container}>
-      <div className="tradingview-widget-container__widget"></div>
+    <div ref={container} className="tradingview-widget-container">
+      <div className="tradingview-widget-container__widget" />
     </div>
   );
 }

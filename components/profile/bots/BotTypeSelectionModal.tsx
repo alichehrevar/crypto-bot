@@ -7,6 +7,7 @@ import {
   ModalBody,
   useDisclosure,
 } from "@heroui/react";
+
 import { DcaChartIcon, GridChartIcon, TechnicalChartIcon } from "@/utils/icons";
 
 const technicalBots = [
@@ -74,12 +75,12 @@ export default function BotTypeSelectionModal ({
                     return (
                       <Link
                         key={bot.id}
-                        href={bot.link}
                         className={`
                       flex justify-between items-center px-6 py-4 rounded-2xl w-full
                       border border-white/20
                       bg-white/10 backdrop-blur-md cursor-pointer
                     `}
+                        href={bot.link}
                       >
                         <div className="space-y-1">
                           {/* title + users */}

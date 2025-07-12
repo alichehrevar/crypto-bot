@@ -27,6 +27,7 @@ export const OrderBook = () => {
       const priceOffset = isSell ? (i + 1) * 0.5 : -(i + 1) * 0.5;
       const price = basePrice + priceOffset;
       const amount = Math.random() * 0.2 + 0.05;
+
       return {
         id: `${isSell ? 'sell' : 'buy'}-${i}`,
         price: parseFloat(price.toFixed(1)),
@@ -39,8 +40,10 @@ export const OrderBook = () => {
   // Generate recent trades
   const generateRecentTrades = () => {
     const trades = [];
+
     for (let i = 0; i < 10; i++) {
       const now = new Date();
+
       now.setSeconds(now.getSeconds() - i * 3);
       trades.push({
         id: `trade-${i}`,
@@ -55,6 +58,7 @@ export const OrderBook = () => {
         type: Math.random() > 0.5 ? 'buy' : 'sell' as 'buy' | 'sell'
       });
     }
+
     return trades;
   };
 
@@ -70,6 +74,7 @@ export const OrderBook = () => {
     const interval = setInterval(() => {
       const change = (Math.random() - 0.5) * 2;
       const newPrice = currentPrice + change;
+
       setPriceChange(change);
       setCurrentPrice(parseFloat(newPrice.toFixed(1)));
 
@@ -91,6 +96,7 @@ export const OrderBook = () => {
           }),
           type: Math.random() > 0.5 ? 'buy' : 'sell' as 'buy' | 'sell'
         };
+
         return [newTrade, ...prev.slice(0, 9)];
       });
     }, 2000);
@@ -125,22 +131,22 @@ export const OrderBook = () => {
       {/* Tabs */}
       <div className="flex border-b border-gray-800/50">
         <button
-          onClick={() => setActiveTab('Order Book')}
           className={`px-4 py-3 text-sm font-medium transition-colors ${
             activeTab === 'Order Book'
               ? 'text-white border-b-2 border-blue-500'
               : 'text-gray-400 hover:text-white'
           }`}
+          onClick={() => setActiveTab('Order Book')}
         >
           Order Book
         </button>
         <button
-          onClick={() => setActiveTab('Recent Trade')}
           className={`px-4 py-3 text-sm font-medium transition-colors ${
             activeTab === 'Recent Trade'
               ? 'text-white border-b-2 border-blue-500'
               : 'text-gray-400 hover:text-white'
           }`}
+          onClick={() => setActiveTab('Recent Trade')}
         >
           Recent Trade
         </button>
@@ -152,12 +158,12 @@ export const OrderBook = () => {
             {/* Controls */}
             <div className="flex items-center justify-between mb-4">
               <div className="flex gap-2">
-                <div className="w-4 h-4 bg-green-600 rounded-sm animate-pulse"></div>
-                <div className="w-4 h-4 bg-red-600 rounded-sm animate-pulse"></div>
-                <div className="w-4 h-4 bg-gray-600 rounded-sm"></div>
+                <div className="w-4 h-4 bg-green-600 rounded-sm animate-pulse" />
+                <div className="w-4 h-4 bg-red-600 rounded-sm animate-pulse" />
+                <div className="w-4 h-4 bg-gray-600 rounded-sm" />
               </div>
               <div className="text-xs text-gray-400">
-                <span className="inline-block w-2 h-2 bg-green-500 rounded-full mr-1 animate-pulse"></span>
+                <span className="inline-block w-2 h-2 bg-green-500 rounded-full mr-1 animate-pulse" />
                 Live
               </div>
             </div>

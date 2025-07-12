@@ -92,6 +92,7 @@ export default function BotConfigForm({ mode, onCloseAction }: BotConfigFormProp
 
         if (!res.accounts) {
           addToast({ title: 'No accounts found !', color: 'danger' });
+
           return;
         }
         const arr = Object.entries(res.accounts).map(([exchange, acc]) => ({
@@ -366,10 +367,10 @@ export default function BotConfigForm({ mode, onCloseAction }: BotConfigFormProp
         {/* Primary Indicator + Timeframe */}
         <div className="flex items-center gap-4">
           <Autocomplete
+            className="w-2/3"
             id="Indicator"
             isClearable={false}
             label="Indicator"
-            className="w-2/3"
             onSelectionChange={k => k && setIndicator(k.toString())}
           >
             {botProps.indicatorOptions.map(ind => (
@@ -379,10 +380,10 @@ export default function BotConfigForm({ mode, onCloseAction }: BotConfigFormProp
             ))}
           </Autocomplete>
           <Autocomplete
+            className="w-1/3"
             id="Timeframe"
             isClearable={false}
             label="Timeframe"
-            className="w-1/3"
             onSelectionChange={k => k && setTimeframe(k.toString())}
           >
             {botProps.timeframeOptions.map(tf => (
@@ -397,10 +398,10 @@ export default function BotConfigForm({ mode, onCloseAction }: BotConfigFormProp
         {additional.map((ai, i) => (
           <div key={i} className="flex items-center gap-4">
             <Autocomplete
+              className="w-2/3"
               id={`Indicator${i}`}
               isClearable={false}
               label="Indicator"
-              className="w-2/3"
               onSelectionChange={k => {
                 const nxt = [...additional];
 
@@ -415,10 +416,10 @@ export default function BotConfigForm({ mode, onCloseAction }: BotConfigFormProp
               ))}
             </Autocomplete>
             <Autocomplete
+              className="w-1/3"
               id="Timeframe"
               isClearable={false}
               label="Timeframe"
-              className="w-1/3"
               onSelectionChange={k => {
                 const nxt = [...additional];
 

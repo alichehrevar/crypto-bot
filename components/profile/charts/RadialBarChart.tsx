@@ -27,20 +27,17 @@ export default function RadialBarChart({ data }: RadialBarChartProps) {
 
   return (
     <ResponsiveRadialBar
-      data={series}
-      innerRadius={0.35}
-      cornerRadius={32}
-      padding={0.45}
-      colors={{ scheme: 'accent' }}
       borderColor={{
         from: 'color',
         modifiers: [['darker', 1.2]],
       }}
+      circularAxisOuter={null}
+      colors={{ scheme: 'accent' }}
+      cornerRadius={32}
+      data={series}
       enableCircularGrid={false}
       enableRadialGrid={false}
-      radialAxisStart={null}
-      circularAxisOuter={null}
-      margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
+      innerRadius={0.35}
       legends={[
         {
           anchor: 'right',
@@ -60,6 +57,9 @@ export default function RadialBarChart({ data }: RadialBarChartProps) {
           ],
         },
       ]}
+      margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
+      padding={0.45}
+      radialAxisStart={null}
     />
   );
 }

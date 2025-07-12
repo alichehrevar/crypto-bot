@@ -13,6 +13,7 @@ function TradingViewAdvancedChart() {
     if (!container.current) return;
 
     const script = document.createElement("script");
+
     script.src = "https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js";
     script.type = "text/javascript";
     script.async = true;
@@ -51,8 +52,8 @@ function TradingViewAdvancedChart() {
   }, []);
 
   return (
-    <div className="tradingview-widget-container h-full" ref={container}>
-      <div className="tradingview-widget-container__widget h-full"></div>
+    <div ref={container} className="tradingview-widget-container h-full">
+      <div className="tradingview-widget-container__widget h-full" />
     </div>
   );
 }

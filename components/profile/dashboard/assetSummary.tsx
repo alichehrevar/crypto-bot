@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from "react";
 import Image from "next/image";
+import { Skeleton } from "@heroui/react";
+
 import { AssetSummaryResponse, Summary } from "@/types/profile/AssetSummary";
 import { getData } from "@/actions/get";
-import { Skeleton } from "@heroui/react";
 
 export default function AssetSummary() {
 

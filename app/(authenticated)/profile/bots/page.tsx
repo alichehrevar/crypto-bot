@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState } from "react";
+
 import BotSelectionComponent from "@/components/profile/bots/BotSelectionComponent";
 import BotProgressChart from "@/components/shared/charts/BotProgressChart";
 import TechnicalBotsList from "@/components/profile/bots/technical/TechnicalBotsList";

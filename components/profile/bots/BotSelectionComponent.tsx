@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
+
 import { TechnicalChartIcon, DcaChartIcon, GridChartIcon } from '@/utils/icons'
 
 // --- demo data ---

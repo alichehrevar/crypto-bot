@@ -45,6 +45,7 @@ export default function TokenForm(props: {type: 'binance' | 'okx' | 'bingx' | 'b
     e: React.ChangeEvent<HTMLInputElement>
   ) => {
     const { name, value, type, checked } = e.target;
+
     if (type === "checkbox") {
       setForm((f) => ({
         ...f,
@@ -96,8 +97,8 @@ export default function TokenForm(props: {type: 'binance' | 'okx' | 'bingx' | 'b
         name="apiKey"
         type="text"
         value={form.apiKey}
-        onChange={handleChange}
         variant="bordered"
+        onChange={handleChange}
       />
       <Input
         isRequired
@@ -109,8 +110,8 @@ export default function TokenForm(props: {type: 'binance' | 'okx' | 'bingx' | 'b
         name="secretKey"
         type="text"
         value={form.secretKey}
-        onChange={handleChange}
         variant="bordered"
+        onChange={handleChange}
       />
       {props.type === 'okx' &&
         <Input
@@ -119,12 +120,12 @@ export default function TokenForm(props: {type: 'binance' | 'okx' | 'bingx' | 'b
           classNames={{
             inputWrapper: 'dark:border-white border-[0.5px] backdrop-blur-sm'
           }}
-          value={form.passphrase}
-          onChange={handleChange}
           label="Passphrase"
           name="passphrase"
           type="text"
+          value={form.passphrase}
           variant="bordered"
+          onChange={handleChange}
         />
       }
       <div className="flex w-full justify-end">

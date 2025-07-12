@@ -50,52 +50,52 @@ const ProfileSetupForm = ({ onSubmit, onBack }: ProfileSetupFormProps) => {
   ];
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form className="space-y-6" onSubmit={handleSubmit}>
       <div className="space-y-2">
-        <label htmlFor="firstName" className="text-white text-sm">First Name</label>
+        <label className="text-white text-sm" htmlFor="firstName">First Name</label>
         <Input
+          required
+          className="border-gray-300 text-black placeholder:text-gray-500"
           id="firstName"
-          type="text"
           placeholder="Enter your First Name"
+          type="text"
           value={firstName}
           onChange={(e) => setFirstName(e.target.value)}
-          className="border-gray-300 text-black placeholder:text-gray-500"
-          required
         />
       </div>
 
       <div className="space-y-2">
-        <label htmlFor="lastName" className="text-white text-sm">Last Name</label>
+        <label className="text-white text-sm" htmlFor="lastName">Last Name</label>
         <Input
+          required
+          className="border-gray-300 text-black placeholder:text-gray-500"
           id="lastName"
-          type="text"
-          size="md"
           placeholder="Enter your Last Name"
+          size="md"
+          type="text"
           value={lastName}
           onChange={(e) => setLastName(e.target.value)}
-          className="border-gray-300 text-black placeholder:text-gray-500"
-          required
         />
       </div>
 
       <div className="space-y-2">
-        <label htmlFor="birthday" className="text-white text-sm">Birthday</label>
+        <label className="text-white text-sm" htmlFor="birthday">Birthday</label>
         <DatePicker
+          showMonthAndYearPickers
+          className="pointer-events-auto"
           id="birthday"
           labelPlacement="outside"
-          showMonthAndYearPickers
-          minValue={parseDate("1900-01-01")}
           maxValue={today(getLocalTimeZone())}
+          minValue={parseDate("1900-01-01")}
           size="md"
           value={birthday}
           onChange={setBirthday}
-          className="pointer-events-auto"
         />
       </div>
 
       <div className="space-y-2">
-        <label htmlFor="gender" className="text-white text-sm">Gender</label>
-        <Autocomplete id="gender" className="w-full" placeholder="Select your gender" labelPlacement="outside" size="md" onSelectionChange={(k: Key | null) => setGender(k as string)}>
+        <label className="text-white text-sm" htmlFor="gender">Gender</label>
+        <Autocomplete className="w-full" id="gender" labelPlacement="outside" placeholder="Select your gender" size="md" onSelectionChange={(k: Key | null) => setGender(k as string)}>
           <AutocompleteItem key="male">Male</AutocompleteItem>
           <AutocompleteItem key="female">Female</AutocompleteItem>
           <AutocompleteItem key="other">Other</AutocompleteItem>
@@ -104,16 +104,16 @@ const ProfileSetupForm = ({ onSubmit, onBack }: ProfileSetupFormProps) => {
       </div>
 
       <div className="space-y-2">
-        <label htmlFor="phone-number" className="text-white text-sm">Phone Number</label>
+        <label className="text-white text-sm" htmlFor="phone-number">Phone Number</label>
         <div className="flex gap-2">
           <Autocomplete
-            id="phone-number"
             isRequired
-            items={countryCodes}
-            errorMessage={!phoneCountry ? "" : "Country code is required"}
             className="w-[90px]"
-            name="country-code"
+            errorMessage={!phoneCountry ? "" : "Country code is required"}
+            id="phone-number"
             isClearable={false}
+            items={countryCodes}
+            name="country-code"
             onSelectionChange={(k: Key | null) => setPhoneCountry(k as string)}
           >
             {countryCodes.map((country) => (
@@ -126,19 +126,19 @@ const ProfileSetupForm = ({ onSubmit, onBack }: ProfileSetupFormProps) => {
             ))}
           </Autocomplete>
           <Input
-            type="tel"
+            required
+            className="flex-1 border-gray-300 text-black placeholder:text-gray-500"
             placeholder="724-848-1225"
+            type="tel"
             value={phoneNumber}
             onChange={(e) => setPhoneNumber(e.target.value)}
-            className="flex-1 border-gray-300 text-black placeholder:text-gray-500"
-            required
           />
         </div>
       </div>
 
       <Button
-        type="submit"
         className="w-full bg-transparent border-2 border-white text-white hover:bg-white hover:text-black transition-colors"
+        type="submit"
       >
         Next
       </Button>

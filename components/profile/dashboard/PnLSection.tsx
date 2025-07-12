@@ -32,32 +32,36 @@ export default function PnLSection() {
     async function loadData() {
       setLoading(true);
       const period = PERIOD_MAP[duration];
+
       try {
         if (tab === 'realized-pnl') {
           const res: RealizedPnLResponse = await getData(`/pnl/realized?period=${period}`);
+
           console.log('realized-pnl' ,res)
           if (!res.success) {
             addToast({
               title: 'Error loading PnL data !',
               color: "danger",
             });
+
             return;
           }
           setRealizedData(res.data);
         } else {
           const res: UnrealizedPnLResponse = await getData(`/pnl/unrealized?period=${period}`);
+
           console.log('unrealized-pnl' ,res)
           if (!res.success) {
             addToast({
               title: 'Error loading PnL data !',
               color: "danger",
             });
+
             return;
           }
           setUnrealizedData(res.data);
         }
       } catch (err: any) {
-        console.error(err);
         addToast({ title: err.message || 'Error loading PnL data', color: 'danger' });
       } finally {
         setLoading(false);

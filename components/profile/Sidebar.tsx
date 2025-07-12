@@ -67,13 +67,13 @@ export default function Sidebar() {
                   classNames={{
                     content: collapsed ? 'hidden' : ''
                   }}
+                  textValue={menuItem.name}
                   title={
                     <div className="flex items-center space-x-3 px-2 rounded-full">
                       {/*<menuItem.Icon className="w-5 h-5 flex-shrink-0" />*/}
                       {!collapsed && <span className="flex-1 font-medium text-[14px]">{menuItem.name}</span>}
                     </div>
                   }
-                  textValue={menuItem.name}
                 >
                   <ul className="flex flex-col space-y-1">
                     <li key={i * 10}>

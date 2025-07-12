@@ -24,24 +24,23 @@ const OTPConfirmationForm = ({ onSubmit, onBack }: OTPConfirmationFormProps) => 
           Enter the code sent to your E-mail
         </p>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form className="space-y-6" onSubmit={handleSubmit}>
           <div className="flex justify-center gap-16">
             <InputOtp
+              classNames={{
+                segment: 'mx-1'
+              }}
               length={4}
               size="lg"
               value={otp}
               onValueChange={(value) => setOtp(value)}
-              classNames={{
-                segment: 'mx-1'
-              }}
-            >
-            </InputOtp>
+             />
           </div>
 
           <Button
-            type="submit"
-            disabled={otp.length !== 4}
             className="w-full bg-transparent border-2 border-white text-white hover:bg-white hover:text-black transition-colors disabled:opacity-50"
+            disabled={otp.length !== 4}
+            type="submit"
           >
             Continue
           </Button>

@@ -2,6 +2,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+
 import CloseTradeModal from '@/components/profile/bots/technical/modals/closeTradeModal'
 import { Bot, Trade } from '@/types/profile/bots/DeployedBots'
 import { ChevronUpIcon } from '@/utils/icons'
@@ -35,13 +36,17 @@ function DetailRow({ label, value, valueClass }: DetailRowProps) {
 // Hook to detect desktop vs mobile
 function useIsDesktop(breakpoint = 1024) {
   const [isDesktop, setIsDesktop] = useState(false)
+
   useEffect(() => {
     const mql = window.matchMedia(`(min-width: ${breakpoint}px)`)
     const onChange = (e: MediaQueryListEvent) => setIsDesktop(e.matches)
+
     setIsDesktop(mql.matches)
     mql.addEventListener('change', onChange)
+
     return () => mql.removeEventListener('change', onChange)
   }, [breakpoint])
+
   return isDesktop
 }
 
@@ -53,6 +58,7 @@ export default function TradesList({
   const isDesktop = useIsDesktop()
 
   const trades = bot.trades || []
+
   if (trades.length === 0) {
     return (
       <div className="rounded-b-2xl flex items-center justify-center w-full p-6">
@@ -100,6 +106,7 @@ export default function TradesList({
             (((isClosed ? exit! : current) - entry) / entry) * 100
           const statusText = isClosed ? 'Closed' : 'Open'
           let resultText = '—'
+
           if (isClosed) {
             resultText =
               profit >= 0
@@ -173,8 +180,8 @@ export default function TradesList({
                 {!isClosed && (
                   <CloseTradeModal
                     botId={bot._id}
-                    tradeId={trade._id}
                     refreshBotsList={refreshBotsList}
+                    tradeId={trade._id}
                   />
                 )}
               </div>
@@ -201,9 +208,9 @@ export default function TradesList({
         {onCollapse && (
           <div className="flex justify-end">
             <button
+              className="text-gray-400"
               type="button"
               onClick={onCollapse}
-              className="text-gray-400"
             >
               <ChevronUpIcon className="w-5 h-5" />
             </button>

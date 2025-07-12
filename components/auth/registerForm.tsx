@@ -9,8 +9,9 @@ import {
   Checkbox,
   addToast
 } from "@heroui/react";
-import { AppleIcon } from "@/utils/icons";
 import { ArrowLeftIcon } from "@heroui/shared-icons";
+
+import { AppleIcon } from "@/utils/icons";
 import ProfileSetupForm from "@/components/auth/ProfileSetupForm";
 import OTPConfirmationForm from "@/components/auth/OTPConfirmationForm";
 import { sendRequest } from "@/actions/post";
@@ -47,6 +48,7 @@ const Register = () => {
         title: "Passwords do not match",
         color: "danger"
       });
+
       return;
     }
 
@@ -55,6 +57,7 @@ const Register = () => {
         title: "Please agree to the terms and conditions",
         color: "danger"
       });
+
       return;
     }
 
@@ -170,9 +173,9 @@ const Register = () => {
         <div className="flex items-center gap-4">
           {(step === 2 || step === 3) && (
             <button
+              className="text-white hover:text-gray-300 transition-colors"
               type="button"
               onClick={step === 2 ? handleBackToFirstStep : handleBackToProfileStep}
-              className="text-white hover:text-gray-300 transition-colors"
             >
               <ArrowLeftIcon className="h-6 w-6" />
             </button>
@@ -189,78 +192,78 @@ const Register = () => {
       <div
         className={`transition-all duration-300 ${isTransitioning ? "opacity-0 translate-y-4" : "opacity-100 translate-y-0"}`}>
         {step === 1 ? (
-          <form onSubmit={handleFirstStep} className="space-y-6">
+          <form className="space-y-6" onSubmit={handleFirstStep}>
             <div className="space-y-2">
-              <label htmlFor="email" className="text-white font-bold text-sm">Email</label>
+              <label className="text-white font-bold text-sm" htmlFor="email">Email</label>
               <Input
-                id="email"
-                type="email"
-                placeholder="Enter your Email"
-                value={email}
-                size="md"
-                onChange={(e) => setEmail(e.target.value)}
+                required
                 className="border-gray-300 text-black placeholder:text-gray-500"
-                required
+                id="email"
+                placeholder="Enter your Email"
+                size="md"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
               />
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="password" className="text-white font-bold text-sm">Password</label>
+              <label className="text-white font-bold text-sm" htmlFor="password">Password</label>
               <Input
-                id="password"
-                type="password"
-                placeholder="Enter your Password"
-                value={password}
-                size="md"
-                onChange={(e) => setPassword(e.target.value)}
+                required
                 className="rounded-2xl text-black placeholder:text-gray-500"
-                required
+                id="password"
+                placeholder="Enter your Password"
+                size="md"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
               />
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="repeatPassword" className="text-white font-bold text-sm">Repeat Password</label>
+              <label className="text-white font-bold text-sm" htmlFor="repeatPassword">Repeat Password</label>
               <Input
-                id="repeatPassword"
-                type="password"
-                placeholder="Repeat your Password"
-                value={repeatPassword}
-                size="md"
-                onChange={(e) => setRepeatPassword(e.target.value)}
-                className="border-gray-300 text-black placeholder:text-gray-500 text-sm"
                 required
+                className="border-gray-300 text-black placeholder:text-gray-500 text-sm"
+                id="repeatPassword"
+                placeholder="Repeat your Password"
+                size="md"
+                type="password"
+                value={repeatPassword}
+                onChange={(e) => setRepeatPassword(e.target.value)}
               />
             </div>
 
             <div className="flex items-center space-x-1">
               <Checkbox
+                className="border-white data-[state=checked]:bg-white data-[state=checked]:text-black"
+                color={"default"}
                 id="terms"
                 isSelected={agreeTerms}
                 onValueChange={setAgreeTerms}
-                color={"default"}
-                className="border-white data-[state=checked]:bg-white data-[state=checked]:text-black"
               >
-                <label htmlFor="terms" className="text-white text-sm">
+                <label className="text-white text-sm" htmlFor="terms">
                   I agree to the{" "}
                 </label>
               </Checkbox>
-              <Link href="/terms" className="hover:underline font-medium text-sm" target="_blank">
+              <Link className="hover:underline font-medium text-sm" href="/terms" target="_blank">
                 Terms and Conditions
               </Link>
             </div>
 
             <Button
-              type="submit"
-              isLoading={isLoading}
-              disabled={isLoading}
               className="w-full bg-transparent border-2 border-white text-white hover:bg-white hover:text-black transition-colors"
+              disabled={isLoading}
+              isLoading={isLoading}
+              type="submit"
             >
               Next
             </Button>
 
             <div className="text-center text-white text-sm">
               Already have an Account?{" "}
-              <Link href="/login" className="hover:underline font-medium">
+              <Link className="hover:underline font-medium" href="/login">
                 Login
               </Link>
             </div>
@@ -268,28 +271,28 @@ const Register = () => {
             {/* Social Login Icons */}
             <div className="flex justify-center space-x-4 pt-4">
               <button
-                type="button"
                 className="w-10 h-10 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-white/20 transition-colors"
+                type="button"
               >
                 <span className="text-white text-lg font-bold">G</span>
               </button>
               <button
-                type="button"
                 className="w-10 h-10 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-white/20 transition-colors"
+                type="button"
               >
                 <span className="text-white text-lg font-bold">X</span>
               </button>
               <button
-                type="button"
                 className="w-10 h-10 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-white/20 transition-colors"
+                type="button"
               >
                 <span className="text-white text-lg">
                   <AppleIcon className="size-5 mt-[-2px]" />
                 </span>
               </button>
               <button
-                type="button"
                 className="w-10 h-10 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-white/20 transition-colors"
+                type="button"
               >
                 <span className="text-white text-lg">f</span>
               </button>
@@ -297,13 +300,13 @@ const Register = () => {
           </form>
         ) : step === 2 ? (
           <ProfileSetupForm
-            onSubmit={handleProfileSetup}
             onBack={handleBackToFirstStep}
+            onSubmit={handleProfileSetup}
           />
         ) : (
           <OTPConfirmationForm
-            onSubmit={handleOTPConfirmation}
             onBack={handleBackToProfileStep}
+            onSubmit={handleOTPConfirmation}
           />
         )}
       </div>

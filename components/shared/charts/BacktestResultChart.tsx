@@ -1,14 +1,14 @@
 // FINAL CORRECTED FILE: app/components/shared/charts/BacktestResultChart.tsx
 'use client';
 
-import React, { useEffect, useRef } from 'react';
 import type {
   IChartApi,
-  ISeriesApi,
   UTCTimestamp,
   CandlestickData,
   SeriesMarker,
 } from 'lightweight-charts';
+
+import React, { useEffect, useRef } from 'react';
 
 // Define the shape of a single trade for the chart
 interface Trade {
@@ -69,6 +69,7 @@ export default function BacktestResultChart({
       series.setData(candles);
 
       const markers: SeriesMarker<UTCTimestamp>[] = [];
+
       trades.forEach(trade => {
         markers.push({
           time: trade.entryTime as UTCTimestamp,
@@ -93,6 +94,7 @@ export default function BacktestResultChart({
       resizeObserver = new ResizeObserver(entries => {
         if (entries.length === 0 || !entries[0].contentRect) return;
         const { width } = entries[0].contentRect;
+
         chart.applyOptions({ width });
       });
       resizeObserver.observe(containerRef.current!);

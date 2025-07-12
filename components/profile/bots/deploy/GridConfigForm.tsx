@@ -9,6 +9,7 @@ import {
   Button,
   Switch,
 } from "@heroui/react";
+
 import { getData } from "@/actions/get";
 import { sendRequest } from "@/actions/post";
 import { ExchangeAccount } from "@/types/profile/AccountType";
@@ -96,6 +97,7 @@ export default function GridConfigForm({
     (async () => {
       try {
         const res: SymbolFilterResponse = await getData("/currencies");
+
         if (!res.success) {
           addToast({ title: res.message || "No symbols found!", color: "danger" });
         } else {
@@ -110,8 +112,10 @@ export default function GridConfigForm({
     (async () => {
       try {
         const res = await getData("/accounts");
+
         if (!res.accounts) {
           addToast({ title: "No accounts found!", color: "danger" });
+
           return;
         }
         const arr: ExchangeAccount[] = Object.entries(res.accounts).map(
@@ -126,6 +130,7 @@ export default function GridConfigForm({
             __v: acc.__v ?? 0,
           })
         );
+
         setAccounts(arr);
       } catch {
         addToast({ title: "Failed to load accounts", color: "danger" });
@@ -136,6 +141,7 @@ export default function GridConfigForm({
     (async () => {
       try {
         const res = await getData("/bots/botProps");
+
         if (!res.success) {
           addToast({ title: "Error getting bot parameters", color: "danger" });
         } else {
@@ -157,15 +163,18 @@ export default function GridConfigForm({
       setAvailableBalance(0);
       setBaseFund("");
       setBaseFundError("");
+
       return;
     }
     try {
       const res = await getData(`/accounts/${accountId}/balance`);
+
       if (res.balance) {
         const usdtBal: WalletBalance = res.balance.find(
           (b: WalletBalance) => b.asset === "USDT"
         );
         const free = usdtBal ? parseFloat(usdtBal.free) : 0;
+
         setAvailableBalance(free);
         setBaseFund(free.toString());
         setBaseFundError("");
@@ -195,6 +204,7 @@ export default function GridConfigForm({
 
     const low = parseFloat(newLower);
     const high = parseFloat(newUpper);
+
     if (isNaN(low) || isNaN(high)) {
       setPriceRangeError("Both prices must be valid numbers");
     } else if (low <= 0 || high <= 0) {
@@ -213,6 +223,7 @@ export default function GridConfigForm({
     setBaseFund(val);
 
     const num = parseFloat(val);
+
     if (isNaN(num) || num < 0) {
       setBaseFundError("Base Fund must be a positive number");
     } else if (num > availableBalance) {
@@ -231,10 +242,12 @@ export default function GridConfigForm({
     // Validate errors
     if ((mode === "standard" || mode === "dynamic") && priceRangeError) {
       addToast({ title: priceRangeError, color: "danger" });
+
       return;
     }
     if (baseFundError) {
       addToast({ title: baseFundError, color: "danger" });
+
       return;
     }
 
@@ -307,6 +320,7 @@ export default function GridConfigForm({
 
     try {
       const res = await sendRequest(body, "/bots/deploy");
+
       if (res.success) {
         addToast({ title: "Grid Bot deployed!", color: "success" });
       } else {
@@ -373,10 +387,10 @@ export default function GridConfigForm({
         <Input
           required
           label="Base Fund (USDT)"
-          type="number"
-          min={0}
           max={availableBalance}
+          min={0}
           step="0.01"
+          type="number"
           value={baseFund}
           onChange={(e) => onBaseFundChange(e.target.value)}
         />
@@ -406,8 +420,8 @@ export default function GridConfigForm({
               <Input
                 required
                 label="Lower Price (USDT)"
-                type="number"
                 step="0.01"
+                type="number"
                 value={lowerPrice}
                 onChange={(e) =>
                   onPriceRangeChange(e.target.value, upperPrice)
@@ -416,8 +430,8 @@ export default function GridConfigForm({
               <Input
                 required
                 label="Upper Price (USDT)"
-                type="number"
                 step="0.01"
+                type="number"
                 value={upperPrice}
                 onChange={(e) =>
                   onPriceRangeChange(lowerPrice, e.target.value)
@@ -433,9 +447,9 @@ export default function GridConfigForm({
           <Input
             required
             label="Number of Grids"
-            type="number"
             min={1}
             step={1}
+            type="number"
             value={gridCount}
             onChange={(e) => setGridCount(e.target.value)}
           />
@@ -444,8 +458,8 @@ export default function GridConfigForm({
           <div className="flex items-center justify-between flex-row-reverse gap-2">
             <Switch
               color="success"
-              size="sm"
               isSelected={usePercentage}
+              size="sm"
               onValueChange={setUsePercentage}
             />
             <span className="text-sm text-gray-700">Percentage Grids</span>
@@ -453,22 +467,22 @@ export default function GridConfigForm({
 
           {/* — Investment (%) — disabled if Percentage is off — */}
           <Input
+            disabled={!usePercentage}
             label="Investment (%)"
-            type="number"
-            min={1}
             max={100}
+            min={1}
+            required={usePercentage}
+            type="number"
             value={investmentAmount}
             onChange={(e) => setInvestmentAmount(e.target.value)}
-            disabled={!usePercentage}
-            required={usePercentage}
           />
 
           {/* — TP/SL Toggle — */}
           <div className="flex items-center justify-between flex-row-reverse gap-2 pt-2">
             <Switch
               color="success"
-              size="sm"
               isSelected={enableTPSL}
+              size="sm"
               onValueChange={setEnableTPSL}
             />
             <span className="text-sm text-gray-700">Bot TP/SL</span>
@@ -476,28 +490,28 @@ export default function GridConfigForm({
 
           {/* — Take Profit and Stop Loss inputs; disabled if TP/SL is off — */}
           <Input
+            disabled={!enableTPSL}
             label="Take Profit (%)"
-            type="number"
-            min={0.1}
             max={500}
+            min={0.1}
+            required={enableTPSL}
             step={0.1}
+            type="number"
             value={takeProfitPct}
             onChange={(e) => setTakeProfitPct(e.target.value)}
-            disabled={!enableTPSL}
-            required={enableTPSL}
           />
           <div className="flex items-center gap-2 flex-wrap">
             {[5, 10, 25, 50, 100, 150].map((p) => (
               <button
                 key={p}
-                type="button"
                 className={`px-2 py-1 rounded-2xl text-[12px] ${
                   enableTPSL
                     ? "bg-default-200"
                     : "bg-default-100 text-gray-400 cursor-not-allowed"
                 }`}
-                onClick={() => enableTPSL && setTakeProfitPct(String(p))}
                 disabled={!enableTPSL}
+                type="button"
+                onClick={() => enableTPSL && setTakeProfitPct(String(p))}
               >
                 {p}%
               </button>
@@ -505,28 +519,28 @@ export default function GridConfigForm({
           </div>
 
           <Input
+            disabled={!enableTPSL}
             label="Stop Loss (%)"
-            type="number"
-            min={0.1}
             max={500}
+            min={0.1}
+            required={enableTPSL}
             step={0.1}
+            type="number"
             value={stopLossPct}
             onChange={(e) => setStopLossPct(e.target.value)}
-            disabled={!enableTPSL}
-            required={enableTPSL}
           />
           <div className="flex items-center justify-between gap-2">
             {[20, 30, 40, 50, 60, 70].map((p) => (
               <button
                 key={p}
-                type="button"
                 className={`px-2 py-1 rounded-2xl text-[12px] ${
                   enableTPSL
                     ? "bg-default-200"
                     : "bg-default-100 text-gray-400 cursor-not-allowed"
                 }`}
-                onClick={() => enableTPSL && setStopLossPct(String(p))}
                 disabled={!enableTPSL}
+                type="button"
+                onClick={() => enableTPSL && setStopLossPct(String(p))}
               >
                 {p}%
               </button>
@@ -537,8 +551,8 @@ export default function GridConfigForm({
           <div className="flex items-center justify-between flex-row-reverse gap-2 pt-2">
             <Switch
               color="success"
-              size="sm"
               isSelected={enableTrailing}
+              size="sm"
               onValueChange={setEnableTrailing}
             />
             <span className="text-sm text-gray-700">Trailing TP/SL</span>
@@ -549,8 +563,8 @@ export default function GridConfigForm({
             <div className="flex items-center gap-2 pt-2">
               <Switch
                 color="success"
-                size="sm"
                 isSelected={useBollinger}
+                size="sm"
                 onValueChange={setUseBollinger}
               />
               <span className="text-sm text-gray-700">Use Bollinger Bands</span>
@@ -562,9 +576,9 @@ export default function GridConfigForm({
             <Input
               required
               label="Retrain Interval (ms)"
-              type="number"
               min={60000}
               step={60000}
+              type="number"
               value={retrainInterval}
               onChange={(e) => setRetrainInterval(e.target.value)}
             />

@@ -68,10 +68,8 @@ export const RecentBots = () => {
       <h3 className="text-xl font-semibold text-white mb-6">Today Bots</h3>
 
       <Swiper
-        effect={'coverflow'}
-        grabCursor={true}
         centeredSlides={true}
-        slidesPerView={'auto'}
+        className="today-bots-swiper"
         coverflowEffect={{
           rotate: 50,
           stretch: 0,
@@ -79,9 +77,11 @@ export const RecentBots = () => {
           modifier: 1,
           slideShadows: true,
         }}
-        pagination={pagination}
+        effect={'coverflow'}
+        grabCursor={true}
         modules={[EffectCoverflow, Pagination]}
-        className="today-bots-swiper"
+        pagination={pagination}
+        slidesPerView={'auto'}
       >
         {todayBots.map((bot, index) => (
           <SwiperSlide key={index}>
@@ -99,14 +99,14 @@ export const RecentBots = () => {
                 </div>
               </div>
               <div className="w-24 h-12">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer height="100%" width="100%">
                   <LineChart data={data}>
                     <Line
-                      type="monotone"
                       dataKey="value"
+                      dot={false}
                       stroke="#10B981"
                       strokeWidth={2}
-                      dot={false}
+                      type="monotone"
                     />
                   </LineChart>
                 </ResponsiveContainer>

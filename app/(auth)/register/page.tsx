@@ -1,4 +1,5 @@
 import React from 'react';
+
 import RegisterForm from "@/components/auth/registerForm";
 
 const Register = () => {
@@ -12,7 +13,7 @@ const Register = () => {
           backgroundImage: `url('/images/auth/auth-bg-nature.webp')`
         }}
       >
-        <div className="absolute inset-0 bg-black/40"></div>
+        <div className="absolute inset-0 bg-black/40" />
       </div>
 
       {/* Register Form */}

@@ -27,30 +27,30 @@ export default function BarChart({ data }: BarChartProps) {
 
   return (
     <ResponsiveBar
-      data={chartData}
-      keys={['value']}
-      indexBy="date"
-      margin={{ top: 3, right: 0, bottom: 20, left: 30 }}
-      padding={0.4}
-      colors={{ scheme: 'blues' }}
-      borderRadius={7}
-      borderColor={{
-        from: 'color',
-        modifiers: [['darker', 2]],
-      }}
-      enableGridY={false}
-      enableLabel={false}
-      axisTop={null}
-      axisRight={null}
-      axisLeft={null}
+      ariaLabel="Realized PnL bar chart"
       axisBottom={{
         tickSize: 0,
         tickPadding: 10,
         tickRotation: 0,
       }}
-      role="application"
-      ariaLabel="Realized PnL bar chart"
+      axisLeft={null}
+      axisRight={null}
+      axisTop={null}
       barAriaLabel={d => `value ${d.formattedValue} on ${d.indexValue}`}
+      borderColor={{
+        from: 'color',
+        modifiers: [['darker', 2]],
+      }}
+      borderRadius={7}
+      colors={{ scheme: 'blues' }}
+      data={chartData}
+      enableGridY={false}
+      enableLabel={false}
+      indexBy="date"
+      keys={['value']}
+      margin={{ top: 3, right: 0, bottom: 20, left: 30 }}
+      padding={0.4}
+      role="application"
       valueScale={{ type: 'linear' }}
     />
   );

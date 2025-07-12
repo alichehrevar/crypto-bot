@@ -1,9 +1,11 @@
 'use client';
 
+import type { PieChartType } from '@/types/profile/ChartTypes';
+
 import React, { useEffect, useState } from 'react';
 import { ResponsivePie } from '@nivo/pie';
+
 import { getData } from '@/actions/get';
-import type { PieChartType } from '@/types/profile/ChartTypes';
 
 interface Distribution {
   exchange: string;
@@ -25,8 +27,10 @@ export default function AssetsPieChart() {
             label: d.exchange,
             value: d.pct,           // slice size by percentage
           }));
+
           if (chartData.every(item => item.value === 0)) {
             setData([]);
+
             return;
           }
 

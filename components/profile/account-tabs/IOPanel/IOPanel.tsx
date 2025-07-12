@@ -47,8 +47,8 @@ export default function IOPanel() {
               title: 'data-[open=true]:text-primary'
             }}
             indicator={<ChevronLeftIcon />}
-            title={<span className="font-bold">Indicators</span>}
             textValue="Indicators"
+            title={<span className="font-bold">Indicators</span>}
           >
             {indicators.length !== 0
               ? <Tabs
@@ -87,8 +87,8 @@ export default function IOPanel() {
               title: 'data-[open=true]:text-primary'
             }}
             indicator={<ChevronLeftIcon />}
-            title={<span className="font-bold">Strategies</span>}
             textValue="Strategies"
+            title={<span className="font-bold">Strategies</span>}
           >
             {'defaultContent'}
           </AccordionItem>
@@ -110,8 +110,8 @@ export default function IOPanel() {
               title: 'data-[open=true]:text-primary'
             }}
             indicator={<ChevronLeftIcon />}
-            title={<span className="font-bold">Risk Strategies</span>}
             textValue="Risk Strategies"
+            title={<span className="font-bold">Risk Strategies</span>}
           >
             {'defaultContent'}
           </AccordionItem>

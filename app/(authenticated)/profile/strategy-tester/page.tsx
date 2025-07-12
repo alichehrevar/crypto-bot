@@ -1,5 +1,7 @@
 'use client';
 
+import type { BotProps } from "@/types/profile/bots/StrategyParams";
+
 import React, { FormEvent, useEffect, useState } from "react";
 import {
   Autocomplete,
@@ -15,10 +17,10 @@ import {
   addToast
 } from "@heroui/react";
 import copy from "copy-to-clipboard";
+import { parseDate } from "@internationalized/date";
+
 import { getData } from "@/actions/get";
 import { sendRequest } from "@/actions/post";
-import type { BotProps } from "@/types/profile/bots/StrategyParams";
-import { parseDate } from "@internationalized/date";
 import { XIcon } from "@/utils/icons";
 import BacktestResultChart from "@/components/shared/charts/BacktestResultChart";
 import TradingViewAdvancedChart from "@/components/shared/charts/TradingViewAdvancedChart";
@@ -28,6 +30,7 @@ function formatDuration(mins: number) {
   if (!mins || mins < 0) return "0m";
   const h = Math.floor(mins / 60);
   const m = Math.round(mins % 60);
+
   return [h ? `${h}h` : null, m ? `${m}m` : null]
     .filter(Boolean)
     .join(" ") || "0m";
@@ -104,6 +107,7 @@ export default function StrategyTesterPage() {
         params: row.bestParam
       }]
     };
+
     copy(JSON.stringify(payload, null, 2));
     addToast({ title: "Settings copied to clipboard!", color: "success" });
   };
@@ -127,10 +131,18 @@ export default function StrategyTesterPage() {
     if (indicators.length > 1) setIndicators(prev => prev.filter((_, idx) => idx !== i));
   };
   const updateIndicator = (i: number, v: string) => {
-    setIndicators(prev => { const c = [...prev]; c[i].indicator = v; return c; });
+    setIndicators(prev => { const c = [...prev];
+
+ c[i].indicator = v;
+
+ return c; });
   };
   const updateTimeframe = (i: number, v: string) => {
-    setIndicators(prev => { const c = [...prev]; c[i].timeframe = v; return c; });
+    setIndicators(prev => { const c = [...prev];
+
+ c[i].timeframe = v;
+
+ return c; });
   };
 
   const handleSubmit = async (e: FormEvent) => {
@@ -173,6 +185,7 @@ export default function StrategyTesterPage() {
 
         if (res.backtestId) {
           const fullRunData = await getData(`/backtest/runs/${res.backtestId}`);
+
           if (fullRunData.success && fullRunData.run) {
             const formattedCandles = fullRunData.run.candles.map((c: any) => ({
               time: c.timestamp / 1000,
@@ -183,6 +196,7 @@ export default function StrategyTesterPage() {
               entryTime: new Date(t.entryTime).getTime() / 1000,
               exitTime: new Date(t.exitTime).getTime() / 1000,
             }));
+
             setChartData({ candles: formattedCandles, trades: formattedTrades });
           }
         }
@@ -202,28 +216,28 @@ export default function StrategyTesterPage() {
         {/* Top Bar: Symbol and Date Selection */}
         <div className="flex items-center justify-between w-full border-b border-default-200 pb-4">
           <Autocomplete
-            label="Symbol"
-            variant="underlined"
-            defaultItems={symbols.map(s => ({ label: s, value: s }))}
-            selectedKey={selectedSymbol}
-            onSelectionChange={(key) => setSelectedSymbol(key as string)}
             className="w-48"
+            defaultItems={symbols.map(s => ({ label: s, value: s }))}
+            label="Symbol"
+            selectedKey={selectedSymbol}
+            variant="underlined"
+            onSelectionChange={(key) => setSelectedSymbol(key as string)}
           >
             {(item: any) => <AutocompleteItem key={item.value}>{item.label}</AutocompleteItem>}
           </Autocomplete>
           <div className="flex items-center gap-4">
-            <RadioGroup value={useRecent} onValueChange={setUseRecent} orientation="horizontal">
+            <RadioGroup orientation="horizontal" value={useRecent} onValueChange={setUseRecent}>
               <Radio value="recent-candles">Recent Candles</Radio>
               <Radio value="time-range">Time Range</Radio>
             </RadioGroup>
             {useRecent === "recent-candles" ? (
               <Input
-                type="number"
+                className="w-28"
                 min={1}
+                placeholder="e.g., 1000"
+                type="number"
                 value={recentCount}
                 onChange={e => setRecentCount(e.target.value)}
-                className="w-28"
-                placeholder="e.g., 1000"
               />
             ) : (
               <DateRangePicker value={dateRangeValue} onChange={setDateRangeValue} />
@@ -238,7 +252,7 @@ export default function StrategyTesterPage() {
           <div className="w-full lg:w-[65%] flex-shrink-0">
             <div className="bg-default-50 rounded-2xl p-2">
               {chartData ? (
-                <BacktestResultChart candles={chartData.candles} trades={chartData.trades} height={550} />
+                <BacktestResultChart candles={chartData.candles} height={550} trades={chartData.trades} />
               ) : (
                 <div className="h-[480px]">
                   <TradingViewAdvancedChart />
@@ -255,20 +269,20 @@ export default function StrategyTesterPage() {
                 <p className="font-medium text-lg">Indicators</p>
                 {indicators.map((row, i) => (
                   <div key={i} className="flex items-center gap-2">
-                    <Autocomplete label="Indicator" selectedKey={row.indicator} onSelectionChange={v => updateIndicator(i, v as string)} className="flex-1">
+                    <Autocomplete className="flex-1" label="Indicator" selectedKey={row.indicator} onSelectionChange={v => updateIndicator(i, v as string)}>
                       {botProps.indicatorOptions.map(ind => <AutocompleteItem key={ind} textValue={ind}>{ind}</AutocompleteItem>)}
                     </Autocomplete>
-                    <Autocomplete label="Timeframe" selectedKey={row.timeframe} onSelectionChange={v => updateTimeframe(i, v as string)} className="w-28">
+                    <Autocomplete className="w-28" label="Timeframe" selectedKey={row.timeframe} onSelectionChange={v => updateTimeframe(i, v as string)}>
                       {botProps.timeframeOptions.map(tf => <AutocompleteItem key={tf} textValue={tf}>{tf}</AutocompleteItem>)}
                     </Autocomplete>
                     {indicators.length > 1 && (
-                      <Button isIconOnly variant="light" color="danger" size="sm" onPress={() => removeIndicatorRow(i)}>
+                      <Button isIconOnly color="danger" size="sm" variant="light" onPress={() => removeIndicatorRow(i)}>
                         <XIcon />
                       </Button>
                     )}
                   </div>
                 ))}
-                <Button size="sm" color="primary" variant="light" onPress={addIndicatorRow}>
+                <Button color="primary" size="sm" variant="light" onPress={addIndicatorRow}>
                   + Add Indicator
                 </Button>
               </div>
@@ -276,18 +290,18 @@ export default function StrategyTesterPage() {
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
                   <p className="font-medium text-lg">Optimize Parameters</p>
-                  <Switch isSelected={optimize} onValueChange={setOptimize} color="success" />
+                  <Switch color="success" isSelected={optimize} onValueChange={setOptimize} />
                 </div>
                 {optimize && (
                   <>
-                    <RadioGroup value={optMethod} onValueChange={(v) => setOptMethod(v as any)} orientation="horizontal" className="justify-between">
+                    <RadioGroup className="justify-between" orientation="horizontal" value={optMethod} onValueChange={(v) => setOptMethod(v as any)}>
                       <Radio value="grid">Grid</Radio>
                       <Radio value="bayesian">Bayesian</Radio>
                       <Radio value="ann">ANN</Radio>
                     </RadioGroup>
                     <div className="flex gap-4 mt-2">
-                      <Input label="Min Accuracy (%)" type="number" min={0} value={minAccuracy} onChange={e => setMinAccuracy(e.target.value)} />
-                      <Input label="Min Trades" type="number" min={1} value={minTrades} onChange={e => setMinTrades(e.target.value)} />
+                      <Input label="Min Accuracy (%)" min={0} type="number" value={minAccuracy} onChange={e => setMinAccuracy(e.target.value)} />
+                      <Input label="Min Trades" min={1} type="number" value={minTrades} onChange={e => setMinTrades(e.target.value)} />
                     </div>
                   </>
                 )}
@@ -296,19 +310,19 @@ export default function StrategyTesterPage() {
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
                   <p className="font-medium text-lg">Risk Parameters</p>
-                  <Switch isSelected={useRisk} onValueChange={setUseRisk} color="success" />
+                  <Switch color="success" isSelected={useRisk} onValueChange={setUseRisk} />
                 </div>
                 {useRisk && (
                   <div className="grid grid-cols-2 gap-4 mt-2">
-                    <Input label="Investment" type="number" min={0.01} value={investment} onChange={e => setInvestment(e.target.value)} />
-                    <Input label="Leverage" type="number" min={1} value={leverage} onChange={e => setLeverage(e.target.value)} />
-                    <Input label="Take Profit (%)" type="number" min={0} value={takeProfit} onChange={e => setTakeProfit(e.target.value)} />
-                    <Input label="Stop Loss (%)" type="number" min={0} value={stopLoss} onChange={e => setStopLoss(e.target.value)} />
+                    <Input label="Investment" min={0.01} type="number" value={investment} onChange={e => setInvestment(e.target.value)} />
+                    <Input label="Leverage" min={1} type="number" value={leverage} onChange={e => setLeverage(e.target.value)} />
+                    <Input label="Take Profit (%)" min={0} type="number" value={takeProfit} onChange={e => setTakeProfit(e.target.value)} />
+                    <Input label="Stop Loss (%)" min={0} type="number" value={stopLoss} onChange={e => setStopLoss(e.target.value)} />
                   </div>
                 )}
               </div>
 
-              <Button fullWidth color="primary" type="submit" isLoading={loading} disabled={loading} size="lg">
+              <Button fullWidth color="primary" disabled={loading} isLoading={loading} size="lg" type="submit">
                 Start Backtester
               </Button>
             </form>

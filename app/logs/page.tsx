@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { getData } from '@/actions/get';
 import { Input, Autocomplete, AutocompleteItem } from '@heroui/react';
+
+import { getData } from '@/actions/get';
 
 /**
  * LogViewerPage
@@ -28,6 +29,7 @@ export default function LogViewerPage() {
       try {
         setLoadingFiles(true);
         const res = await getData('/logs/files');
+
         if (res.success) {
           setFiles(res.files || []);
           if (res.files && res.files.length > 0) {
@@ -48,6 +50,7 @@ export default function LogViewerPage() {
   useEffect(() => {
     if (!selectedFile) {
       setLogContent('');
+
       return;
     }
     (async () => {
@@ -55,10 +58,12 @@ export default function LogViewerPage() {
         setLoadingContent(true);
         setError('');
         const resp = await fetch(`/api/logs/file/${selectedFile}`);
+
         if (!resp.ok) {
           throw new Error(`Could not fetch ${selectedFile}`);
         }
         const text = await resp.text();
+
         setLogContent(text);
       } catch (err: any) {
         setError(err.message || 'Error fetching log content');
@@ -73,6 +78,7 @@ export default function LogViewerPage() {
   const filteredLines = React.useMemo(() => {
     if (!searchTerm) return logContent.split('\n');
     const lower = searchTerm.toLowerCase();
+
     return logContent
       .split('\n')
       .filter(line => line.toLowerCase().includes(lower));
@@ -88,7 +94,7 @@ export default function LogViewerPage() {
 
       {/* 1) File selector */}
       <div className="mb-4">
-        <label htmlFor="logFileSelect" className="block text-sm font-medium text-gray-700 mb-1">
+        <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="logFileSelect">
           Select Log File:
         </label>
         {loadingFiles ? (

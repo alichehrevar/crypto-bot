@@ -26,6 +26,7 @@ const getCryptoIcon = (symbol: string) => {
   if (symbol.includes('LTC')) return 'Ł';
   if (symbol.includes('XMR')) return 'ɱ';
   if (symbol.includes('BNB')) return '♢';
+
   return '●';
 };
 
@@ -35,6 +36,7 @@ const getCryptoColor = (symbol: string) => {
   if (symbol.includes('LTC')) return 'text-yellow-400';
   if (symbol.includes('XMR')) return 'text-orange-400';
   if (symbol.includes('BNB')) return 'text-green-400';
+
   return 'text-gray-400';
 };
 
@@ -42,6 +44,7 @@ const getPnlColor = (pnl: string) => {
   if (pnl === 'MARKET') return 'text-red-400';
   if (pnl.startsWith('+')) return 'text-green-400';
   if (pnl.startsWith('-')) return 'text-red-400';
+
   return 'text-gray-400';
 };
 
@@ -59,22 +62,22 @@ export const RecentActivities = () => {
 
         <div className="flex bg-gray-900/80 rounded-lg p-1 backdrop-blur-sm border border-gray-700/30">
           <button
-            onClick={() => setActiveTab('open')}
             className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
               activeTab === 'open'
                 ? 'bg-white text-black shadow-sm'
                 : 'text-gray-400 hover:text-white hover:bg-gray-800/50'
             }`}
+            onClick={() => setActiveTab('open')}
           >
             Open
           </button>
           <button
-            onClick={() => setActiveTab('close')}
             className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
               activeTab === 'close'
                 ? 'bg-white text-black shadow-sm'
                 : 'text-gray-400 hover:text-white hover:bg-gray-800/50'
             }`}
+            onClick={() => setActiveTab('close')}
           >
             Close
           </button>
@@ -93,7 +96,7 @@ export const RecentActivities = () => {
             <TableColumn className="text-gray-400 font-medium">Leverage</TableColumn>
             <TableColumn className="text-gray-400 font-medium">TP/SL</TableColumn>
             <TableColumn className="text-gray-400 font-medium">Unrealized Pnl</TableColumn>
-            <TableColumn className="text-gray-400 font-medium"><span></span></TableColumn>
+            <TableColumn className="text-gray-400 font-medium"><span /></TableColumn>
           </TableHeader>
         </TableHeader>
         <TableBody>
@@ -121,8 +124,8 @@ export const RecentActivities = () => {
               </TableCell>
               <TableCell>
                 <button
-                  onClick={() => handleClosePosition(index)}
                   className="bg-white text-black hover:bg-gray-200 px-3 py-1 rounded text-xs font-medium transition-colors"
+                  onClick={() => handleClosePosition(index)}
                 >
                   Close
                 </button>
