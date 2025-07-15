@@ -62,86 +62,82 @@ export default function AssetsPieChart() {
   }
 
   return (
-    <ResponsivePie
-      activeOuterRadiusOffset={8}
-      arcLabelsRadiusOffset={0.6}
-      arcLabelsSkipAngle={8}
-      arcLabelsTextColor={{
-        from: 'color',
-        modifiers: [
-          [
-            'darker',
-            3
-          ]
-        ]
-      }}
-      arcLinkLabelsColor={{ from: 'color' }}
-      arcLinkLabelsSkipAngle={10}
-      arcLinkLabelsTextColor="#333333"
-      arcLinkLabelsThickness={3}
-      borderColor={{
-        from: 'color',
-        modifiers: [
-          [
-            'darker',
-            3
-          ]
-        ]
-      }}
-      borderWidth={0}
-      colors={{ scheme: 'accent' }}
-      cornerRadius={13}
-      data={data}
-      defs={[
-        {
-          id: 'dots',
-          type: 'patternDots',
-          background: 'inherit',
-          color: 'rgba(255, 255, 255, 0.3)',
-          size: 4,
-          padding: 1,
-          stagger: true
-        },
-        {
-          id: 'lines',
-          type: 'patternLines',
-          background: 'inherit',
-          color: 'rgba(255, 255, 255, 0.3)',
-          rotation: -45,
-          lineWidth: 6,
-          spacing: 10
-        }
-      ]}
-      enableArcLabels={false}
-      enableArcLinkLabels={false}
-      innerRadius={0.4}
-      legends={[
-        {
-          anchor: 'right',
-          direction: 'column',
-          justify: false,
-          translateX: 30,
-          translateY: 0,
-          itemsSpacing: 20,
-          itemWidth: 100,
-          itemHeight: 18,
-          itemTextColor: '#999',
-          itemDirection: 'left-to-right',
-          itemOpacity: 1,
-          symbolSize: 18,
-          symbolShape: 'circle',
-          effects: [
+    <div className="flex items-center justify-center gap-8 w-full h-full">
+      <div className="h-full w-32">
+        <ResponsivePie
+          activeOuterRadiusOffset={2}
+          arcLabelsRadiusOffset={0.6}
+          arcLabelsSkipAngle={8}
+          arcLabelsTextColor={{
+            from: 'color',
+            modifiers: [
+              [
+                'darker',
+                3
+              ]
+            ]
+          }}
+          arcLinkLabelsColor={{ from: 'color' }}
+          motionConfig="wobbly"
+          arcLinkLabelsSkipAngle={10}
+          arcLinkLabelsTextColor="#333333"
+          arcLinkLabelsThickness={3}
+          borderColor={{
+            from: 'color',
+            modifiers: [
+              [
+                'darker',
+                3
+              ]
+            ]
+          }}
+          borderWidth={0}
+          colors={[ '#84E2FF', '#186C86', '#59B4D1' ]}
+          cornerRadius={13}
+          data={data}
+          defs={[
             {
-              on: 'hover',
-              style: {
-                itemTextColor: '#000'
-              }
+              id: 'dots',
+              type: 'patternDots',
+              background: 'inherit',
+              color: 'rgba(255, 255, 255, 0.3)',
+              size: 4,
+              padding: 1,
+              stagger: true
+            },
+            {
+              id: 'lines',
+              type: 'patternLines',
+              background: 'inherit',
+              color: 'rgba(255, 255, 255, 0.3)',
+              rotation: -45,
+              lineWidth: 6,
+              spacing: 10
             }
-          ]
-        }
-      ]}
-      margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
-      padAngle={2}
-    />
+          ]}
+          enableArcLabels={false}
+          enableArcLinkLabels={false}
+          innerRadius={0.4}
+          legends={[]}
+          padAngle={2}
+        />
+      </div>
+      <div className="flex flex-col justify-center items-center w-[140px]">
+        <div className="space-y-3 w-full">
+          {data.map((item, index) => (
+            <div key={item.id} className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div
+                  className="w-3 h-3 rounded-full"
+                  style={{ backgroundColor: ['#84E2FF', '#186C86', '#59B4D1'][index] }}
+                />
+                <span className="text-gray-400 text-sm">{item.label}</span>
+              </div>
+              <span className="text-white text-sm font-medium">{item.value}%</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
   );
 }
