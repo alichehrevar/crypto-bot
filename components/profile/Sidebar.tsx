@@ -18,22 +18,22 @@ export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
 
   return (
-    <div className={`relative flex flex-col h-full
+    <div className={`relative flex flex-col h-screen
       bg-black text-white px-3
       ${collapsed ? "w-20" : "w-64"}
       transition-width duration-300
       overflow-hidden
     `}>
       {/* collapse/expand button */}
-      <button
-        aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-        className="absolute -right-3 top-4 bg-black p-1 rounded-full shadow-lg"
-        onClick={() => setCollapsed(c => !c)}
-      >
-        {collapsed
-          ? <ChevronRightIcon className="w-5 h-5 text-gray-400" />
-          : <ChevronLeftIcon className="w-5 h-5 text-gray-400" />}
-      </button>
+      {/*<button*/}
+      {/*  aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}*/}
+      {/*  className="absolute -right-3 top-4 bg-black p-1 rounded-full shadow-lg"*/}
+      {/*  onClick={() => setCollapsed(c => !c)}*/}
+      {/*>*/}
+      {/*  {collapsed*/}
+      {/*    ? <ChevronRightIcon className="w-5 h-5 text-gray-400" />*/}
+      {/*    : <ChevronLeftIcon className="w-5 h-5 text-gray-400" />}*/}
+      {/*</button>*/}
 
       {/* logo */}
       <div className="flex-shrink-0 flex items-center justify-center h-16 mt-4">
