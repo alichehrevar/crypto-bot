@@ -107,34 +107,6 @@ export default function AccountSettingsTab() {
               <SelectItem key="1" textValue={'UTC'}>UTC</SelectItem>
             </Select>
           </li>
-          <li className="flex items-center justify-center">
-            <span className="text-gray-400 w-[200px]">Market Indicators</span>
-            <Select
-              className="w-[300px]"
-              classNames={{
-                trigger: 'border-[1.4px]'
-              }}
-              label=""
-              placeholder="Select indicator"
-              variant="bordered"
-            >
-              <SelectItem key="1" textValue={'TURNOVER'}>TURNOVER</SelectItem>
-            </Select>
-          </li>
-          <li className="flex items-center justify-center">
-            <span className="text-gray-400 w-[200px]">Chat Preferences</span>
-            <Select
-              className="w-[300px]"
-              classNames={{
-                trigger: 'border-[1.4px]'
-              }}
-              label=""
-              placeholder="Select chat preference"
-              variant="bordered"
-            >
-              <SelectItem key="1" textValue={'TURNOVER'}>TURNOVER</SelectItem>
-            </Select>
-          </li>
         </ul>
       </div>
       <div className="flex items-start justify-center flex-col w-full gap-4 mt-6">
