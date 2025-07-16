@@ -25,3 +25,25 @@ export interface UnrealizedPnLResponse {
   success: boolean;
   data: UnrealizedPoint[];
 }
+
+export interface AllPnLData {
+  success: boolean,
+  data: PnLData,
+  message?: string
+}
+
+export interface PnLData {
+  open: PnLDetails[],
+  closed: PnLDetails[]
+}
+
+export interface PnLDetails {
+  symbol: string,
+  broker: string,
+  execution: string,
+  strategy: string,
+  leverage: string,
+  tpsl: string,
+  action: string,
+  unrealizedPnl: string
+}
