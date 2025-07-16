@@ -128,3 +128,12 @@ exports.register = async (req, res) => {
         res.status(500).json({success: false, error: error.message});
     }
 }
+
+exports.logout = (req, res) => {
+    try {
+        res.json({ success: true, message: 'Logged out successfully.' });
+    } catch (error) {
+        logger.error(`Logout error: ${error.message}`, {stack: error.stack});
+        res.status(500).json({success: false, error: 'Internal server error during logout.'});
+    }
+}
