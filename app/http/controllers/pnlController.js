@@ -102,3 +102,94 @@ exports.getUnrealizedPnL = async (req, res) => {
         return res.status(500).json({ success: false, error: err.message });
     }
 };
+
+/**
+ * GET /api/pnl/all
+ *
+ * Returns every trade, grouped into open vs. closed, and enriched with:
+ *   • symbol        – from the bot
+ *   • broker        – e.g. “OKX” or “Binance”
+ *   • execution     – bot name (e.g. “DCA bot”)
+ *   • strategy      – strategy name (e.g. “Dynamic”)
+ *   • leverage      – “x 20”
+ *   • tpsl          – “50% / 50%”
+ *   • unrealizedPnl – “+0.01%” (for open trades)
+ *   • realizedPnl   – “+2.34%” (for closed trades)
+ *   • action        – “Close” (for open) or “Reopen” (for closed)
+ */
+exports.getAllPnL = async (req, res) => {
+    try {
+        const userId = req.user.id;
+
+        // 1) load all this user’s bots
+        const bots = await Bot.find({ userId }).lean();
+        const botMap = bots.reduce((m, b) => {
+            m[b._id.toString()] = b;
+            return m;
+        }, {});
+
+        // 2) fetch every trade for those bots
+        const trades = await Trade.find({
+            bot: { $in: bots.map(b => b._id) }
+        }).lean();
+
+        // 3) build rows
+        const open  = [];
+        const closed = [];
+
+        trades.forEach(t => {
+            const bot = botMap[t.bot.toString()] || {};
+
+            // from your demo:
+            const symbol    = bot.symbol || '';
+            const broker    = bot.broker || bot.accountType || '';
+            const execution = bot.name   || bot.executionName || '';
+            const strategy  = bot.strategyName   || bot.strategy  || '';
+            const ro         = bot.tradeInfo || {};
+            const leverage  = ro.leverage
+                ? `x ${ro.leverage}`
+                : '';
+            const tpsl      = (ro.takeProfit != null && ro.stopLoss != null)
+                ? `${ro.takeProfit}% / ${ro.stopLoss}%`
+                : '';
+
+            // compute a % PnL
+            let pnlPct = '';
+            if (t.exitPrice != null) {
+                // realized
+                const diff = ((t.exitPrice - t.entryPrice) / t.entryPrice) * 100;
+                pnlPct = `${diff >= 0 ? '+' : ''}${diff.toFixed(2)}%`;
+            } else {
+                // unrealized: use current market price
+                const cur = bot.marketInfo?.currentCandle?.price;
+                if (cur != null) {
+                    const diff = ((cur - t.entryPrice) / t.entryPrice) * 100;
+                    pnlPct = `${diff >= 0 ? '+' : ''}${diff.toFixed(2)}%`;
+                }
+            }
+
+            const row = {
+                symbol,
+                broker,
+                execution,
+                strategy,
+                leverage,
+                tpsl,
+                action:  t.exitPrice == null ? 'Close' : 'Reopen',
+                // put the pct on the right field:
+                ...(t.exitPrice == null
+                    ? { unrealizedPnl: pnlPct }
+                    : { realizedPnl:   pnlPct })
+            };
+
+            if (t.exitPrice == null) open.push(row);
+            else closed.push(row);
+        });
+
+        return res.json({ success: true, data: { open, closed } });
+    }
+    catch (err) {
+        console.error('getAllPnL error', err);
+        return res.status(500).json({ success: false, error: err.message });
+    }
+};

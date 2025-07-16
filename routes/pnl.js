@@ -2,9 +2,10 @@
 const express = require('express');
 const router = express.Router();
 const authenticate = require('../app/http/middleware/auth'); // Authentication middleware
-const pnl = require('../app/http/controllers/pnlController');
+const pnlController = require('../app/http/controllers/pnlController');
 
-router.get('/realized',   authenticate, pnl.getRealizedPnL);
-router.get('/unrealized', authenticate, pnl.getUnrealizedPnL);
+router.get('/realized',   authenticate, pnlController.getRealizedPnL);
+router.get('/unrealized', authenticate, pnlController.getUnrealizedPnL);
+router.get('/all', authenticate, pnlController.getAllPnL);
 
 module.exports = router;
