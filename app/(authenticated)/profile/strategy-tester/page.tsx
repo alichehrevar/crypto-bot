@@ -21,7 +21,7 @@ import { parseDate } from "@internationalized/date";
 
 import { getData } from "@/actions/get";
 import { sendRequest } from "@/actions/post";
-import { XIcon } from "@/utils/icons";
+import { Cog8ToothIcon, XIcon } from "@/utils/icons";
 import BacktestResultChart from "@/components/shared/charts/BacktestResultChart";
 import TradingViewAdvancedChart from "@/components/shared/charts/TradingViewAdvancedChart";
 
@@ -213,38 +213,6 @@ export default function StrategyTesterPage() {
     <div className="container mt-4 relative px-5 backtester-page">
       <div className="w-full flex flex-col gap-6">
 
-        {/* Top Bar: Symbol and Date Selection */}
-        <div className="flex items-center justify-between w-full border-b border-default-200 pb-4">
-          <Autocomplete
-            className="w-48"
-            defaultItems={symbols.map(s => ({ label: s, value: s }))}
-            label="Symbol"
-            selectedKey={selectedSymbol}
-            variant="underlined"
-            onSelectionChange={(key) => setSelectedSymbol(key as string)}
-          >
-            {(item: any) => <AutocompleteItem key={item.value}>{item.label}</AutocompleteItem>}
-          </Autocomplete>
-          <div className="flex items-center gap-4">
-            <RadioGroup orientation="horizontal" value={useRecent} onValueChange={setUseRecent}>
-              <Radio value="recent-candles">Recent Candles</Radio>
-              <Radio value="time-range">Time Range</Radio>
-            </RadioGroup>
-            {useRecent === "recent-candles" ? (
-              <Input
-                className="w-28"
-                min={1}
-                placeholder="e.g., 1000"
-                type="number"
-                value={recentCount}
-                onChange={e => setRecentCount(e.target.value)}
-              />
-            ) : (
-              <DateRangePicker value={dateRangeValue} onChange={setDateRangeValue} />
-            )}
-          </div>
-        </div>
-
         {/* Main Content: Chart (Left) and Form (Right) */}
         <div className="w-full flex flex-col lg:flex-row items-start gap-6">
 
@@ -264,9 +232,41 @@ export default function StrategyTesterPage() {
           {/* Right Column: Form */}
           <div className="w-full lg:w-[35%] p-6 bg-default-50 rounded-2xl text-white">
             <form className="space-y-6" onSubmit={handleSubmit}>
-
+              <div className="flex items-center gap-2 mb-4">
+                <Cog8ToothIcon className="w-6 h-6" stroke="#60a5fa" />
+                <h3 className="text-lg font-semibold text-white">Strategy Parameters</h3>
+              </div>
+              <div className="flex items-center justify-between flex-col-reverse gap-4 w-full border-b border-default-200 pb-4">
+                <Autocomplete
+                  className="w-full"
+                  defaultItems={symbols.map(s => ({ label: s, value: s }))}
+                  label="Symbol"
+                  selectedKey={selectedSymbol}
+                  variant="underlined"
+                  onSelectionChange={(key) => setSelectedSymbol(key as string)}
+                >
+                  {(item: any) => <AutocompleteItem key={item.value}>{item.label}</AutocompleteItem>}
+                </Autocomplete>
+                <div className="flex items-center gap-4">
+                  <RadioGroup size="sm" orientation="horizontal" value={useRecent} onValueChange={setUseRecent}>
+                    <Radio value="recent-candles">Recent Candles</Radio>
+                    <Radio value="time-range">Time Range</Radio>
+                  </RadioGroup>
+                  {useRecent === "recent-candles" ? (
+                    <Input
+                      className="w-28"
+                      min={1}
+                      placeholder="e.g., 1000"
+                      type="number"
+                      value={recentCount}
+                      onChange={e => setRecentCount(e.target.value)}
+                    />
+                  ) : (
+                    <DateRangePicker value={dateRangeValue} onChange={setDateRangeValue} />
+                  )}
+                </div>
+              </div>
               <div className="space-y-4">
-                <p className="font-medium text-lg">Indicators</p>
                 {indicators.map((row, i) => (
                   <div key={i} className="flex items-center gap-2">
                     <Autocomplete className="flex-1" label="Indicator" selectedKey={row.indicator} onSelectionChange={v => updateIndicator(i, v as string)}>
@@ -294,7 +294,9 @@ export default function StrategyTesterPage() {
                 </div>
                 {optimize && (
                   <>
-                    <RadioGroup className="justify-between" orientation="horizontal" value={optMethod} onValueChange={(v) => setOptMethod(v as any)}>
+                    <RadioGroup size="sm" className="justify-between" classNames={{
+                      wrapper: 'flex w-full gap-5'
+                    }} orientation="horizontal" value={optMethod} onValueChange={(v) => setOptMethod(v as any)}>
                       <Radio value="grid">Grid</Radio>
                       <Radio value="bayesian">Bayesian</Radio>
                       <Radio value="ann">ANN</Radio>
