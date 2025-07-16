@@ -24,6 +24,7 @@ import { sendRequest } from "@/actions/post";
 import { Cog8ToothIcon, XIcon } from "@/utils/icons";
 import BacktestResultChart from "@/components/shared/charts/BacktestResultChart";
 import TradingViewAdvancedChart from "@/components/shared/charts/TradingViewAdvancedChart";
+import MarketStats from "@/components/profile/MarketStats";
 
 // Helper functions
 function formatDuration(mins: number) {
@@ -212,6 +213,8 @@ export default function StrategyTesterPage() {
   return (
     <div className="container mt-4 relative px-5 backtester-page">
       <div className="w-full flex flex-col gap-6">
+
+        <MarketStats />
 
         {/* Main Content: Chart (Left) and Form (Right) */}
         <div className="w-full flex flex-col lg:flex-row items-start gap-6">
