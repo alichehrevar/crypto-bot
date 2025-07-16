@@ -44,6 +44,15 @@ section[role="dialog"] .overflow-y-auto::-webkit-scrollbar-thumb {
     @apply bg-primary;
 }
 
+.technical-analysis iframe .widget-technical-analysis__container::-webkit-scrollbar {
+    width: 2px !important;
+    height: 2px !important;
+}
+
+.technical-analysis iframe .widget-technical-analysis__container::-webkit-scrollbar-thumb {
+    @apply bg-primary;
+}
+
 section[role="dialog"] .overflow-y-auto::-webkit-scrollbar-track {
     background: rgba(0, 0, 0, 0.1);
 }
@@ -110,5 +119,8 @@ section[role="dialog"] .overflow-y-auto::-webkit-scrollbar-track {
 /******************** End: Recent Bots Swiper Styles *********************/
 
 .tradingview-widget-container iframe {
+    height: 100% !important;
+}
+.order-book-parent .tradingview-widget-container {
     height: 100% !important;
 }

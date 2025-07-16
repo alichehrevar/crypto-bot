@@ -127,7 +127,7 @@ export const OrderBook = () => {
   );
 
   return (
-    <div className="bg-gray-900/50 backdrop-blur-sm rounded-xl border border-gray-800/50 h-full">
+    <div className="bg-gray-900/50 backdrop-blur-sm rounded-xl border border-gray-800/50 h-full w-full">
       {/* Tabs */}
       <div className="flex border-b border-gray-800/50">
         <button

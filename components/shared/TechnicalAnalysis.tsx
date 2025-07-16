@@ -24,7 +24,7 @@ function TechnicalAnalysis() {
           "interval": "1m",
           "disableInterval": false,
           "width": "100%",
-          "height": 600,
+          "height": "100%",
           "symbol": "NASDAQ:AAPL",
           "showIntervalTabs": true
         }`;

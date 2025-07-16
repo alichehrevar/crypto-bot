@@ -3,8 +3,8 @@
 import React, { useState } from 'react'
 
 import { TechnicalChartIcon, DcaChartIcon, GridChartIcon } from '@/utils/icons'
+import Link from "next/link";
 
-// --- demo data ---
 const technicalBots = [
   {
     id: 'tech1',
@@ -13,6 +13,7 @@ const technicalBots = [
     count: '300+',
     changePct: 14,
     Icon: TechnicalChartIcon,
+    link: '/profile/bots/technical'
   },
   {
     id: 'tech2',
@@ -21,6 +22,7 @@ const technicalBots = [
     count: '120+',
     changePct: 7,
     Icon: DcaChartIcon,
+    link: '/profile/bots/dca'
   },
   {
     id: 'tech3',
@@ -29,6 +31,7 @@ const technicalBots = [
     count: '80+',
     changePct: 4,
     Icon: GridChartIcon,
+    link: '/profile/bots/grid'
   }
 ]
 
@@ -62,17 +65,17 @@ export default function BotSelectionComponent() {
                         {bot.label}
                       </span>
                 <span className="text-gray-400 text-xs flex items-center">
-                        <svg
-                          className="w-4 h-4 mr-1 text-gray-400"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          viewBox="0 0 24 24"
-                        >
-                          <path d="M5 12h14M12 5l7 7-7 7" />
-                        </svg>
+                  <svg
+                    className="w-4 h-4 mr-1 text-gray-400"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    viewBox="0 0 24 24"
+                  >
+                    <path d="M5 12h14M12 5l7 7-7 7" />
+                  </svg>
                   {bot.users}
-                      </span>
+                </span>
               </div>
               {/* count */}
               <div className="text-2xl font-bold text-white">
@@ -83,9 +86,9 @@ export default function BotSelectionComponent() {
                 ↗ +{bot.changePct}% vs previous week
               </div>
               {/* create link */}
-              <div className="pt-2 text-sm text-white font-medium">
+              <Link href={bot.link} className="pt-2 flex text-sm text-white font-medium">
                 Create →
-              </div>
+              </Link>
             </div>
             <bot.Icon />
           </button>

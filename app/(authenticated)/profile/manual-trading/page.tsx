@@ -17,12 +17,16 @@ export default function TechnicalBotsPage() {
       <div className=" w-full flex items-start justify-center gap-6">
         <div className="w-full lg:w-[72%] h-[60svh]">
           {/*<MarketWatchChart />*/}
-          <div className="grid grid-cols-1 lg:grid-cols-[35%_65%] gap-4">
+          <div className="grid grid-cols-1 lg:grid-cols-[35%_65%] gap-4 order-book-parent">
+            <OrderBook />
             <div className="flex items-center justify-center flex-col gap-4">
-              <TechnicalAnalysis />
-              <OrderBook />
+              <div className="flex w-full h-[400px]">
+                <TradingViewAdvancedChart />
+              </div>
+              <div className="flex w-full h-[300px] technical-analysis">
+                <TechnicalAnalysis />
+              </div>
             </div>
-            <TradingViewAdvancedChart />
           </div>
           <div className="grid grid-cols-1 dark:bg-[#161616] bg-white mt-4 rounded-2xl py-6 px-3 h-[32.2svh]">
             <div className="flex items-center justify-between">
