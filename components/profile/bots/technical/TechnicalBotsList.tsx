@@ -68,8 +68,13 @@ export default function TechnicalBotsList({ refreshList }: { refreshList: boolea
 
   return (
     <>
+      <div className="flex items-center justify-between">
+        <h3 className="text-xl font-bold ml-4 mb-4">Bots List</h3>
+      </div>
+
       {/* ========== MOBILE (below lg) ========== */}
       <div className="space-y-4 lg:hidden">
+
         {isLoading && (
           <div className="flex items-center justify-center h-24 bg-[#1A1A1A] rounded-2xl">
             <Spinner className="mr-2" color="primary" size="sm" variant="wave" />

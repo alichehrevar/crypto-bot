@@ -29,9 +29,6 @@ export default function TechnicalBotsPage() {
             </div>
           </div>
           <div className="grid grid-cols-1 dark:bg-[#161616] bg-white mt-4 rounded-2xl py-6 px-3 h-[32.2svh]">
-            <div className="flex items-center justify-between">
-              <h3 className="text-xl font-bold ml-4 mb-4">Bots List</h3>
-            </div>
             <TechnicalBotsList refreshList={refreshBotsList} />
           </div>
         </div>
