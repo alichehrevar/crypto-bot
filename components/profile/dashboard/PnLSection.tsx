@@ -72,10 +72,24 @@ export default function PnLSection() {
   }, [duration, tab]);
 
   return (
-    <div className="space-y-4">
-      <h4 className="font-bold text-[16px]">PnL</h4>
-      {/* Controls */}
+    <div className="space-y-4 w-full">
       <div className="flex items-center justify-between w-full">
+        <h4 className="font-bold text-[16px]">PnL</h4>
+        <Tabs
+          aria-label="PnL Type"
+          classNames={{
+            tabList: 'h-7 rounded-lg px-0.5 ml-3',
+            tab: 'py-0 px-1 h-6 rounded-lg w-[75px]',
+          }}
+          selectedKey={tab}
+          onSelectionChange={(k) => setTab(k as any)}
+        >
+          <Tab key="realized-pnl" title={<span className="text-[12px]">Realized</span>} />
+          <Tab key="unrealized-pnl" title={<span className="text-[12px]">Unrealized</span>} />
+        </Tabs>
+      </div>
+      {/* Controls */}
+      <div className="flex items-center justify-end w-full">
         <ul className="flex items-center gap-2">
           {DURS.map((d) => (
             <li key={d}>
@@ -92,19 +106,6 @@ export default function PnLSection() {
             </li>
           ))}
         </ul>
-
-        <Tabs
-          aria-label="PnL Type"
-          classNames={{
-            tabList: 'h-6 rounded-lg px-0.5 ml-3',
-            tab: 'py-0 px-1 h-5 rounded-lg',
-          }}
-          selectedKey={tab}
-          onSelectionChange={(k) => setTab(k as any)}
-        >
-          <Tab key="realized-pnl" title={<span className="text-[12px]">Realized PnL</span>} />
-          <Tab key="unrealized-pnl" title={<span className="text-[12px]">Unrealized PnL</span>} />
-        </Tabs>
       </div>
 
       {/* Chart */}
