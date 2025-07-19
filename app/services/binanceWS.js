@@ -166,30 +166,70 @@ class BinanceWS {
      * Get the USDT balance for a Binance account via REST.
      *
      * @param {Object} account  - Must contain { apiKey, secretKey }.
+     * @param all
      * @returns {Promise<number>} - Free USDT balance.
      */
-    async getBalance(account) {
+    async getBalance(account, { all = false } = {}) {
         const { apiKey, secretKey } = account;
         const timestamp = Date.now();
-        const queryString = `timestamp=${timestamp}`;
-        const signature = crypto
-            .createHmac('sha256', secretKey)
-            .update(queryString)
-            .digest('hex');
-        const endpoint = `https://api.binance.com/api/v3/account?${queryString}&signature=${signature}`;
+
+        // Helper to sign any query-string
+        const sign = qs =>
+            crypto.createHmac('sha256', secretKey).update(qs).digest('hex');
+
+        // 1) Spot-only
+        if (!all) {
+            const spotQs = `timestamp=${timestamp}`;
+            const spotSig = sign(spotQs);
+            const spotUrl = `https://api.binance.com/api/v3/account?${spotQs}&signature=${spotSig}`;
+            try {
+                const res = await axios.get(spotUrl, {
+                    headers: { 'X-MBX-APIKEY': apiKey }
+                });
+                const usdt = res.data.balances.find(b => b.asset === 'USDT');
+                return usdt ? parseFloat(usdt.free) : 0;
+            } catch (err) {
+                console.error('BinanceWS getBalance error (spot):', err.response?.data || err.message);
+                throw err;
+            }
+        }
+
+        // 2) Spot + futures
+        // 2a) Spot
+        const spotQs = `timestamp=${timestamp}`;
+        const spotSig = sign(spotQs);
+        const spotUrl = `https://api.binance.com/api/v3/account?${spotQs}&signature=${spotSig}`;
+
+        // 2b) USDT-M futures
+        const futQs = `timestamp=${timestamp}`;
+        const futSig = sign(futQs);
+        const futUrl = `https://fapi.binance.com/fapi/v2/balance?${futQs}&signature=${futSig}`;
 
         try {
-            const response = await axios.get(endpoint, {
-                headers: { 'X-MBX-APIKEY': apiKey }
-            });
-            const balances = response.data.balances;
-            const usdt = balances.find(b => b.asset === 'USDT');
-            return usdt ? parseFloat(usdt.free) : 0;
+            const [spotRes, futRes] = await Promise.all([
+                axios.get(spotUrl, { headers: { 'X-MBX-APIKEY': apiKey } }),
+                axios.get(futUrl, { headers: { 'X-MBX-APIKEY': apiKey } })
+            ]);
+
+            // spot part
+            const spotUsdt = spotRes.data.balances.find(b => b.asset === 'USDT');
+            const spotBalance = spotUsdt ? parseFloat(spotUsdt.free) : 0;
+
+            // futures part
+            const futUsdt = futRes.data.find(b => b.asset === 'USDT');
+            // on futures endpoint, `balance` is total; `availableBalance` if you want free
+            const futBalance = futUsdt ? parseFloat(futUsdt.balance) : 0;
+
+            return [
+                { accountType: 'spot',    usdtBalance: spotBalance.toString()   },
+                { accountType: 'futures', usdtBalance: futBalance.toString()    }
+            ];
         } catch (err) {
-            console.error('BinanceWS getBalance error:', err.response?.data || err.message);
+            console.error('BinanceWS getBalance error (all):', err.response?.data || err.message);
             throw err;
         }
     }
+
 
     disconnect() {
         if (this.ws) {

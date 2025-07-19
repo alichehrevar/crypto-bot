@@ -80,47 +80,65 @@ class OKXWS {
      * Assumes the account object includes: apiKey, apiSecret, passphrase.
      *
      * @param {Object} account - The account object with credentials.
+     * @param all
      * @returns {Promise<number>} - The available USDT balance.
      */
-    async getBalance(account) {
+    async getBalance(account, { all = false } = {}) {
         const { apiKey, apiSecret, passphrase } = account;
-        // Use current timestamp in ISO format.
         const timestamp = new Date().toISOString();
         const method = 'GET';
-        // We request USDT balance.
-        const requestPath = '/api/v5/account/balance?ccy=USDT';
-        const body = ''; // GET request has no body.
-        const signature = crypto
-            .createHmac('sha256', apiSecret)
-            .update(timestamp + method + requestPath + body)
-            .digest('base64');
-        const url = `https://www.okx.com${requestPath}`;
-        try {
-            const response = await axios.get(url, {
-                headers: {
-                    'OK-ACCESS-KEY': apiKey,
-                    'OK-ACCESS-SIGN': signature,
-                    'OK-ACCESS-TIMESTAMP': timestamp,
-                    'OK-ACCESS-PASSPHRASE': passphrase,
-                    'Content-Type': 'application/json'
-                }
-            });
-            // OKX typically returns data in the following format:
-            // { code: "0", msg: "", data: [ { details: [ { ccy: "USDT", availBal: "123.45", ... } ] } ] }
-            if (response.data.code !== "0") {
-                throw new Error(response.data.msg || 'Error fetching OKX balance');
+        const headers = {
+            'OK-ACCESS-KEY': apiKey,
+            'OK-ACCESS-SIGN': crypto
+                .createHmac('sha256', apiSecret)
+                .update(timestamp + method + (all
+                        ? '/api/v5/account/positions?instType=FUTURES'
+                        : '/api/v5/account/balance?ccy=USDT'
+                ) + '')
+                .digest('base64'),
+            'OK-ACCESS-TIMESTAMP': timestamp,
+            'OK-ACCESS-PASSPHRASE': passphrase,
+            'Content-Type': 'application/json',
+        };
+
+        // 1) Spot-only
+        if (!all) {
+            const spotRes = await axios.get(
+                'https://www.okx.com/api/v5/account/balance?ccy=USDT',
+                { headers }
+            );
+            if (spotRes.data.code !== '0') {
+                throw new Error(`OKX balance error: ${spotRes.data.msg}`);
             }
-            const data = response.data.data;
-            if (!data || !Array.isArray(data) || data.length === 0) {
-                throw new Error("No balance data returned from OKX");
-            }
-            // Find the details for USDT.
-            const balanceDetail = data[0].details.find(d => d.ccy === "USDT");
-            return balanceDetail ? parseFloat(balanceDetail.availBal) : 0;
-        } catch (error) {
-            console.error('[OKXWS] Error fetching balance:', error.response?.data || error.message);
-            throw error;
+            const detail = spotRes.data.data[0].details.find(d => d.ccy === 'USDT');
+            return detail ? parseFloat(detail.availBal) : 0;
         }
+
+        // 2) Both spot & futures
+        const [spotRes, posRes] = await Promise.all([
+            axios.get('https://www.okx.com/api/v5/account/balance?ccy=USDT', { headers }),
+            axios.get('https://www.okx.com/api/v5/account/positions?instType=FUTURES', { headers }),
+        ]);
+
+        // Spot part
+        if (spotRes.data.code !== '0') {
+            throw new Error(`OKX balance error: ${spotRes.data.msg}`);
+        }
+        const spotDetail = spotRes.data.data[0].details.find(d => d.ccy === 'USDT');
+        const spotBalance = spotDetail ? parseFloat(spotDetail.availBal) : 0;
+
+        // Futures part (sum the initial margin requirement for USDT-margined futures)
+        if (posRes.data.code !== '0') {
+            throw new Error(`OKX positions error: ${posRes.data.msg}`);
+        }
+        const futuresBalance = posRes.data.data
+            .reduce((sum, p) => sum + parseFloat(p.imr || 0), 0);
+
+        // Return in the same “accountType + usdtBalance” shape
+        return [
+            { accountType: 'spot',  usdtBalance: spotBalance.toString()  },
+            { accountType: 'futures', usdtBalance: futuresBalance.toFixed(8) }
+        ];
     }
 
     async getHistoricalBalance(account, timestamp) {

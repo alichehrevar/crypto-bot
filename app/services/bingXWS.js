@@ -388,65 +388,76 @@ class BingXWS {
     /**
      * Fetch the account balance from BingX using REST API.
      * @param {Object} account - The account object containing API credentials.
+     * @param all
      * @returns {Promise<number>} The account balance.
      */
-    async getBalance(account) {
+    async getBalance(account, { all = false } = {}) {
         const { apiKey, secretKey } = account;
         const timestamp = Date.now().toString();
 
-        // Correct signature generation for BingX according to their documentation
+        // build signature
         const queryString = `timestamp=${timestamp}`;
         const signature = crypto
             .createHmac('sha256', secretKey)
             .update(queryString)
             .digest('hex');
 
-        // Correct BingX API endpoint for spot account balance
-        const endpoint = `https://open-api.bingx.com/openApi/spot/v1/account/balance?${queryString}&signature=${signature}`;
+        // pick your endpoint
+        const base = 'https://open-api.bingx.com/openApi';
+        const path = all
+            ? '/account/v1/allAccountBalance'
+            : '/spot/v1/account/balance';
+        const endpoint = `${base}${path}?${queryString}&signature=${signature}`;
 
         const headers = {
-            "Content-Type": "application/json",
-            "X-BX-APIKEY": apiKey,
-            "X-BX-SIGNATURE": signature,
-            "X-BX-TIMESTAMP": timestamp
+            'Content-Type': 'application/json',
+            'X-BX-APIKEY': apiKey,
+            'X-BX-SIGNATURE': signature,
+            'X-BX-TIMESTAMP': timestamp,
         };
 
         try {
-            const res = await fetch(endpoint, {
-                method: "GET",
-                headers
-            });
-
-            const responseText = await res.text();
-
-            let data;
+            const res = await fetch(endpoint, { method: 'GET', headers });
+            const text = await res.text();
+            let json;
             try {
-                data = JSON.parse(responseText);
-            } catch (e) {
-                console.error('[BingXWS] Failed to parse response as JSON:', e);
-                throw new Error(`Invalid JSON response: ${responseText}`);
+                json = JSON.parse(text);
+            } catch (parseErr) {
+                console.error('[BingXWS] JSON parse error:', parseErr);
+                throw new Error(`Invalid JSON response: ${text}`);
             }
 
             if (!res.ok) {
-                console.error('[BingXWS] API Error Response:', data);
-                throw new Error(`BingX API error (${res.status}): ${data.msg || data.message || 'Unknown error'}`);
+                console.error('[BingXWS] HTTP error:', res.status, json);
+                throw new Error(`BingX API error (${res.status}): ${json.msg||json.message}`);
+            }
+            if (json.code !== 0) {
+                console.error('[BingXWS] API error code:', json.code, json.msg);
+                throw new Error(`BingX API error (${json.code}): ${json.msg}`);
             }
 
-            if (data.code !== 0) {
-                console.error('[BingXWS] API Error Code:', data.code, 'Message:', data.msg);
-                throw new Error(`BingX API error (${data.code}): ${data.msg || 'Unknown error'}`);
-            }
-
-            if (!data.data || !data.data.balances) {
-                console.error('[BingXWS] Unexpected response format:', data);
+            // extract balances array
+            const raw = all ? json.data : json.data?.balances;
+            if (!Array.isArray(raw)) {
+                console.error('[BingXWS] Unexpected format:', json);
                 throw new Error('Unexpected response format from BingX API');
             }
 
-            return data.data.balances;
-        } catch (error) {
-            console.error('[BingXWS] Error fetching balance:', error);
-            console.error('[BingXWS] Error stack:', error.stack);
-            throw new Error(`Failed to fetch BingX balance: ${error.message}`);
+            // if allAccounts, filter to only sopt & stdFutures; otherwise return spot balances as-is
+            if (all) {
+                const wanted = new Set(['sopt', 'stdFutures']);
+                return raw
+                    .filter(item => wanted.has(item.accountType))
+                    .map(item => ({
+                        accountType: item.accountType,
+                        usdtBalance: item.usdtBalance,
+                    }));
+            } else {
+                return raw;
+            }
+        } catch (err) {
+            console.error('[BingXWS] Error fetching balance:', err);
+            throw new Error(`Failed to fetch BingX balance: ${err.message}`);
         }
     }
 
