@@ -341,9 +341,11 @@ export default function GridConfigForm({
     <div className="py-4">
       <form className="space-y-4 overflow-x-hidden" onSubmit={handleDeploy}>
         {/* — Bot Name — */}
+        <label htmlFor="bot-name">Bot Name</label>
         <Input
+          id="bot-name"
           required
-          label="Bot Name"
+          placeholder="Please enter a name"
           value={name}
           onChange={(e) => setName(e.target.value)}
         />

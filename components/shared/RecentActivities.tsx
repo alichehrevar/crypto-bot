@@ -11,17 +11,6 @@ import {
 import { getData } from "@/actions/get";
 import { AllPnLData, PnLData, PnLDetails } from "@/types/profile/PnLTypes";
 
-const activities = [
-  { symbol: 'BTC USDT', broker: 'Binance', execution: 'DCA bot', strategy: 'Default', leverage: 'x 50', tpsl: '50% / 50%', unrealizedPnl: '+6.93%', action: 'Close' },
-  { symbol: 'ETH USDT', broker: 'OKX', execution: 'manual', strategy: 'Default', leverage: 'x 50', tpsl: '50% / 50%', unrealizedPnl: '+5.67%', action: 'Close' },
-  { symbol: 'LTC USDT', broker: 'Bingx', execution: 'Technical bot', strategy: 'Dynamic', leverage: 'x 50', tpsl: '50% / 50%', unrealizedPnl: '-3.33%', action: 'Close' },
-  { symbol: 'XMR USDT', broker: 'Bingx', execution: 'manual', strategy: 'Default', leverage: 'x 100', tpsl: '50% / 50%', unrealizedPnl: '-6.93%', action: 'Close' },
-  { symbol: 'BNB USDT', broker: 'OKX', execution: 'DCA bot', strategy: 'Dynamic', leverage: 'x 20', tpsl: '50% / 50%', unrealizedPnl: '+0.01%', action: 'Close' },
-  { symbol: 'BTC USDT', broker: 'Bingx', execution: 'Technical bot', strategy: 'Optimiton', leverage: 'x 50', tpsl: '50% / 50%', unrealizedPnl: 'MARKET', action: 'Close' },
-  { symbol: 'LTC USDT', broker: 'OKX', execution: 'manual', strategy: 'Default', leverage: 'x 50', tpsl: '50% / 50%', unrealizedPnl: 'MARKET', action: 'Close' },
-  { symbol: 'XMR USDT', broker: 'Binance', execution: 'DCA bot', strategy: 'Optimiton', leverage: 'x 50', tpsl: '50% / 50%', unrealizedPnl: 'MARKET', action: 'Close' },
-];
-
 async function getAllPnL() {
   return await getData('/pnl/all')
 }
@@ -89,10 +78,10 @@ export const RecentActivities = () => {
         color: "danger",
       })
     }
-  })
+  }, [])
 
   const handleClosePosition = (index: number) => {
-    console.log(`Closing position for ${activities[index].symbol}`);
+    console.log(`Closing position for ${pnLData!.open[index].symbol}`);
   };
 
   return (

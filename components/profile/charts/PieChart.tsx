@@ -57,7 +57,7 @@ export default function AssetsPieChart() {
 
   if (data.length === 0) {
     return (
-      <span className="text-center flex items-center justify-center h-full w-full ml-[40px] mt-[-10px] text-sm">No assets found</span>
+      <span className="text-center flex items-center justify-center h-full w-full text-sm">No assets found</span>
     )
   }
 

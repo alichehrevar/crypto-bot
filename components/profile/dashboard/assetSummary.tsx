@@ -13,6 +13,7 @@ export default function AssetSummary() {
   useEffect(() => {
     fetchAssetSummary()
       .then((response: AssetSummaryResponse) => {
+        console.log(response);
         setAssetData(response.summary)
       })
       .catch((err) => {
@@ -58,7 +59,7 @@ export default function AssetSummary() {
           {loading
             ? <Skeleton className="h-1.5 w-[40px] mt-2.5 rounded-lg" />
             : <span className="dark:text-white text-black font-semibold text-[14px]">
-              {`$ ${assetData?.totalBalance}`}
+              {`$ ${assetData?.portfolioBalance}`}
             </span>
           }
         </div>

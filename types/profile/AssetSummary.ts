@@ -1,11 +1,12 @@
 
 export type AssetSummaryResponse = {
-  "success": boolean,
-  "summary": Summary
+  success: boolean,
+  summary: Summary
 };
 
 export type Summary = {
-  "totalBalance": number,
-  "availableFunds": number,
-  "pctChange": number,
+  portfolioBalance: number,
+  availableFunds: number,
+  totalBalance: number,
+  pctChange: number,
 }
