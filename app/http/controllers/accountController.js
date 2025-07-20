@@ -202,13 +202,13 @@ exports.getAccountBalance = async (req, res) => {
         // Depending on the account type, use the corresponding service.
         switch (type) {
             case 'binance':
-                balance = await BinanceService.getBalance(account);
+                balance = await BinanceService.getBalance(account, { all: true });
                 break;
             case 'okx':
-                balance = await OkxService.getBalance(account);
+                balance = await OkxService.getBalance(account, { all: true });
                 break;
             case 'bingx':
-                balance = await BingxService.getBalance(account);
+                balance = await BingxService.getBalance(account, { all: true });
                 break;
             default:
                 return res.status(400).json({error: 'Unsupported account type'});
