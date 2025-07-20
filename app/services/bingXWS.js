@@ -395,14 +395,12 @@ class BingXWS {
         const { apiKey, secretKey } = account;
         const timestamp = Date.now().toString();
 
-        // build signature
         const queryString = `timestamp=${timestamp}`;
         const signature = crypto
             .createHmac('sha256', secretKey)
             .update(queryString)
             .digest('hex');
 
-        // pick your endpoint
         const base = 'https://open-api.bingx.com/openApi';
         const path = all
             ? '/account/v1/allAccountBalance'
@@ -416,48 +414,46 @@ class BingXWS {
             'X-BX-TIMESTAMP': timestamp,
         };
 
+        const res = await fetch(endpoint, { method: 'GET', headers });
+        const text = await res.text();
+        let json;
         try {
-            const res = await fetch(endpoint, { method: 'GET', headers });
-            const text = await res.text();
-            let json;
-            try {
-                json = JSON.parse(text);
-            } catch (parseErr) {
-                console.error('[BingXWS] JSON parse error:', parseErr);
-                throw new Error(`Invalid JSON response: ${text}`);
-            }
+            json = JSON.parse(text);
+        } catch {
+            throw new Error(`Invalid JSON response: ${text}`);
+        }
+        if (!res.ok || json.code !== 0) {
+            const msg = json.msg || json.message || 'Unknown error';
+            throw new Error(`BingX API error (${res.status||json.code}): ${msg}`);
+        }
 
-            if (!res.ok) {
-                console.error('[BingXWS] HTTP error:', res.status, json);
-                throw new Error(`BingX API error (${res.status}): ${json.msg||json.message}`);
-            }
-            if (json.code !== 0) {
-                console.error('[BingXWS] API error code:', json.code, json.msg);
-                throw new Error(`BingX API error (${json.code}): ${json.msg}`);
-            }
+        // pull out the raw array
+        const raw = all ? json.data : json.data?.balances;
+        if (!Array.isArray(raw)) {
+            throw new Error('Unexpected response format from BingX API');
+        }
 
-            // extract balances array
-            const raw = all ? json.data : json.data?.balances;
-            if (!Array.isArray(raw)) {
-                console.error('[BingXWS] Unexpected format:', json);
-                throw new Error('Unexpected response format from BingX API');
-            }
-
-            // if allAccounts, filter to only sopt & stdFutures; otherwise return spot balances as-is
-            if (all) {
-                const wanted = new Set(['sopt', 'stdFutures']);
-                return raw
-                    .filter(item => wanted.has(item.accountType))
-                    .map(item => ({
-                        accountType: item.accountType,
-                        usdtBalance: item.usdtBalance,
-                    }));
-            } else {
-                return raw;
-            }
-        } catch (err) {
-            console.error('[BingXWS] Error fetching balance:', err);
-            throw new Error(`Failed to fetch BingX balance: ${err.message}`);
+        if (all) {
+            // unchanged: filter for sopt & stdFutures
+            const wanted = new Set(['sopt', 'stdFutures']);
+            return raw
+                .filter(item => wanted.has(item.accountType))
+                .map(item => ({
+                    accountType: item.accountType,
+                    usdtBalance: item.usdtBalance,
+                }));
+        } else {
+            // —— NEW: spot-only case ——
+            // find the USDT entry, sum available + frozen, and wrap in the same shape
+            const entry = raw.find(b => b.asset === 'USDT');
+            const free   = parseFloat(entry?.availableBalance ?? 0);
+            const locked = parseFloat(entry?.freezeBalance     ?? 0);
+            return [
+                {
+                    accountType: 'spot',
+                    usdtBalance: (free + locked).toString()
+                }
+            ];
         }
     }
 

@@ -7,7 +7,7 @@ const BingxAccount = require('../../models/BingxAccount');
 
 // Import services that handle the API calls for each exchange.
 const BinanceService = require('../../services/binanceWS');
-const OkxService = require('../../services/okxWS'); // Ensure you have this or adjust accordingly.
+const OkxService = require('../../services/okxWS');
 const BingxService = require('../../services/bingXWS');
 
 const logger = require('../../../logs/logger')
@@ -309,79 +309,56 @@ exports.getAssetsDistribution = async (req, res) => {
     const userId = req.user.id;
 
     try {
-        // 1) Load all accounts, grouped by exchange type
+        // 1) Load all accounts, grouped by exchange
         const [binanceAccounts, okxAccounts, bingxAccounts] = await Promise.all([
             BinanceAccount.find({ userId }).lean(),
             OkxAccount.find({ userId }).lean(),
             BingxAccount.find({ userId }).lean(),
         ]);
 
-        // helper to sum USDT balance for a list of accounts via a fetchBalance service
+        // 2) Helper: sum USDT (spot+futures) across a list of accounts
         async function sumUsdt(accounts, service) {
             let total = 0;
-
             for (const acct of accounts) {
-                // call the service
-                const resp = await service.getBalance(acct);
-
-                // normalize to an Array< { asset, free, locked } >
-                let balanceArr;
-                if (Array.isArray(resp)) {
-                    // e.g. BingxService returns plain array
-                    balanceArr = resp;
-                } else if (Array.isArray(resp.balance)) {
-                    // BinanceService.getBalance → { balance: [...] }
-                    balanceArr = resp.balance;
-                } else if (Array.isArray(resp.data?.balance)) {
-                    // OKXService.getBalance → { data: { balance: [...] } }
-                    balanceArr = resp.data.balance;
-                } else if (Array.isArray(resp.data?.result?.balance)) {
-                    // some other shape
-                    balanceArr = resp.data.result.balance;
-                } else {
-                    balanceArr = [];
-                }
-
-                // pick out USDT
-                const usdt = balanceArr.find(b => b.asset === 'USDT');
-                if (usdt) {
-                    total += parseFloat(usdt.free) || 0;
+                // pass { all: true } to include both spot and futures
+                const balArr = await service.getBalance(acct, { all: true });
+                for (const { usdtBalance } of balArr) {
+                    total += parseFloat(usdtBalance) || 0;
                 }
             }
-
             return total;
         }
 
-        // 2) Fetch & sum balances in parallel
+        // 3) Fetch & sum in parallel
         const [binanceSum, okxSum, bingxSum] = await Promise.all([
             sumUsdt(binanceAccounts, BinanceService),
-            sumUsdt(okxAccounts, OkxService),
-            sumUsdt(bingxAccounts, BingxService),
+            sumUsdt(okxAccounts,     OkxService),
+            sumUsdt(bingxAccounts,   BingxService),
         ]);
 
-        // 3) Build distribution array
+        // 4) Build and compute percentages
         const raw = [
             { exchange: 'Binance', total: binanceSum },
             { exchange: 'OKX',     total: okxSum     },
             { exchange: 'BingX',   total: bingxSum   },
         ];
+        const grandTotal = raw.reduce((sum, r) => sum + r.total, 0) || 1;
 
-        // 4) Compute percentages
-        const grandTotal = raw.reduce((acc, r) => acc + r.total, 0) || 1;
         const distribution = raw.map(r => ({
             exchange:     r.exchange,
-            totalBalance: r.total,
+            totalBalance: parseFloat(r.total.toFixed(2)),
             pct:          parseFloat(((r.total / grandTotal) * 100).toFixed(2)),
         }));
 
         return res.json({ success: true, distribution });
-
-    } catch (err) {
+    }
+    catch (err) {
         console.error('getAssetsDistribution error', err);
         logger.error(`getAssetsDistribution error: ${err.message}`, { stack: err.stack });
         return res.status(500).json({ success: false, error: err.message });
     }
 };
+
 
 /**
  * GET /api/accounts/summary
@@ -400,58 +377,66 @@ exports.getSummary = async (req, res) => {
     try {
         const userId = req.user.id;
 
-        // 1) Load all accounts
-        const [binanceAccounts, okxAccounts, bingxAccounts] = await Promise.all([
+        // 1) Load accounts
+        const [binanceAccts, okxAccts, bingxAccts] = await Promise.all([
             BinanceAccount.find({ userId }).lean(),
             OkxAccount.find({ userId }).lean(),
             BingxAccount.find({ userId }).lean(),
         ]);
 
-        // helper to sum USDT-equivalent at a given timestamp
-        async function sumUsdtAt(accounts, service, timestamp) {
+        // Helper: sum USDT in either spot-only or spot+futures
+        async function sumUsdt(accounts, service, all) {
             let total = 0;
             for (const acct of accounts) {
-                // service.getBalance(acct, timestamp) -> array of { asset, free, locked }
-                const resp = await service.getBalance(acct, timestamp);
-                const balances = Array.isArray(resp)
-                    ? resp
-                    : resp.balance || resp.data?.balance || resp.data?.result?.balance || [];
-                // find USDT
-                const usdt = balances.find(b => b.asset === 'USDT');
-                total += usdt
-                    ? parseFloat(usdt.free) + parseFloat(usdt.locked || 0)
-                    : 0;
+                const arr = await service.getBalance(acct, { all });
+                for (const b of arr) {
+                    total += parseFloat(b.usdtBalance);
+                }
             }
             return total;
         }
 
-        const nowTs       = Date.now();
-        const yesterdayTs = nowTs - 24 * 60 * 60 * 1000;
+        // 2) Kick off all nine sums in parallel (spot/full/then × 3 services)
+        const promises = [
+            // spot-now
+            sumUsdt(binanceAccts, BinanceService, false),
+            sumUsdt(okxAccts,     OkxService,     false),
+            sumUsdt(bingxAccts,   BingxService,   false),
 
-        // 2) Fetch in parallel
+            // full-now
+            sumUsdt(binanceAccts, BinanceService, true),
+            sumUsdt(okxAccts,     OkxService,     true),
+            sumUsdt(bingxAccts,   BingxService,   true),
+
+            // full-then (placeholder – wire to your snapshot logic)
+            sumUsdt(binanceAccts, BinanceService, true),
+            sumUsdt(okxAccts,     OkxService,     true),
+            sumUsdt(bingxAccts,   BingxService,   true),
+        ];
+
         const [
-            nowBinance, nowOkx, nowBingx,
-            thenBinance, thenOkx, thenBingx
-        ] = await Promise.all([
-            sumUsdtAt(binanceAccounts, BinanceService, nowTs),
-            sumUsdtAt(okxAccounts,     OkxService,     nowTs),
-            sumUsdtAt(bingxAccounts,   BingxService,   nowTs),
-            sumUsdtAt(binanceAccounts, BinanceService, yesterdayTs),
-            sumUsdtAt(okxAccounts,     OkxService,     yesterdayTs),
-            sumUsdtAt(bingxAccounts,   BingxService,   yesterdayTs),
-        ]);
+            spotBin, spotOkx, spotBingx,
+            fullBin, fullOkx, fullBingx,
+            thenBin, thenOkx, thenBingx
+        ] = await Promise.all(promises);
 
-        const totalNow  = nowBinance  + nowOkx  + nowBingx;
-        const totalThen = thenBinance + thenOkx + thenBingx || 1;  // avoid div by zero
-        const pctChange = ((totalNow - totalThen) / totalThen) * 100;
+        // 3) Compute aggregates
+        const availableFunds    = spotBin  + spotOkx  + spotBingx;
+        const portfolioBalance  = fullBin  + fullOkx  + fullBingx;
+        const totalBalance      = portfolioBalance;
+        const thenTotal         = thenBin  + thenOkx  + thenBingx || 1;
+        const pctChange         = ((portfolioBalance - thenTotal) / thenTotal) * 100;
 
-        // 3) send back
+        console.log('availableFunds', thenBingx)
+
+        // 4) Return four clean numeric fields
         return res.json({
             success: true,
             summary: {
-                totalBalance:   parseFloat(totalNow.toFixed(2)),
-                availableFunds: parseFloat(totalNow.toFixed(2)),  // or split free vs locked if you like
-                pctChange:      parseFloat(pctChange.toFixed(2)),
+                portfolioBalance: parseFloat(portfolioBalance.toFixed(2)),
+                availableFunds:   parseFloat(availableFunds.toFixed(2)),
+                totalBalance:     parseFloat(totalBalance.toFixed(2)),
+                pctChange:        parseFloat(pctChange.toFixed(2)),
             }
         });
     } catch (err) {
@@ -459,3 +444,5 @@ exports.getSummary = async (req, res) => {
         return res.status(500).json({ success: false, error: err.message });
     }
 };
+
+
