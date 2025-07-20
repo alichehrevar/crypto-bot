@@ -18,12 +18,12 @@ export interface UnrealizedPoint {
 
 export interface RealizedPnLResponse {
   success: boolean;
-  data: RealizedPoint[];
+  data: RealizedPoint[] | [];
 }
 
 export interface UnrealizedPnLResponse {
   success: boolean;
-  data: UnrealizedPoint[];
+  data: UnrealizedPoint[] | [];
 }
 
 export interface AllPnLData {

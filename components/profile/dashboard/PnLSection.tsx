@@ -37,7 +37,6 @@ export default function PnLSection() {
         if (tab === 'realized-pnl') {
           const res: RealizedPnLResponse = await getData(`/pnl/realized?period=${period}`);
 
-          console.log('realized-pnl' ,res)
           if (!res.success) {
             addToast({
               title: 'Error loading PnL data !',
@@ -46,11 +45,11 @@ export default function PnLSection() {
 
             return;
           }
+          console.log('realized-pnl' ,res)
           setRealizedData(res.data);
         } else {
           const res: UnrealizedPnLResponse = await getData(`/pnl/unrealized?period=${period}`);
 
-          console.log('unrealized-pnl' ,res)
           if (!res.success) {
             addToast({
               title: 'Error loading PnL data !',
@@ -59,6 +58,7 @@ export default function PnLSection() {
 
             return;
           }
+          console.log('unrealized-pnl' ,res)
           setUnrealizedData(res.data);
         }
       } catch (err: any) {

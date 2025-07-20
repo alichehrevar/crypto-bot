@@ -140,6 +140,15 @@ export const RecentActivities = () => {
                 </TableCell>
               </TableRow>
             }
+            {!loading && pnLData && pnLData.open.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={8}>
+                  <div className="flex items-center justify-center h-24 bg-[#1A1A1A] rounded-2xl">
+                    No active positions.
+                  </div>
+                </TableCell>
+              </TableRow>
+            )}
             {pnLData && pnLData.open.map((activity, index) => (
               <TableRow key={index} className={`border-gray-800/30 hover:bg-gray-900/40 ${index === 0 ? 'font-bold' : ''}`}>
                 <TableCell className="text-white text-sm">
