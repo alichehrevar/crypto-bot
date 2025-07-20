@@ -427,8 +427,6 @@ exports.getSummary = async (req, res) => {
         const thenTotal         = thenBin  + thenOkx  + thenBingx || 1;
         const pctChange         = ((portfolioBalance - thenTotal) / thenTotal) * 100;
 
-        console.log('availableFunds', thenBingx)
-
         // 4) Return four clean numeric fields
         return res.json({
             success: true,

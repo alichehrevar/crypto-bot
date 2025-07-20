@@ -144,6 +144,80 @@ class OKXWS {
     async getHistoricalBalance(account, timestamp) {
         return this.getBalance(account);
     }
+    /**
+     * Fetch up to `days` days of realized PnL from OKX’s income-history.
+     * Shape: [ { timestamp: ms, profit: number }, … ]
+     */
+    async getHistoricalRealizedPnL(account, { days }) {
+        const { apiKey, apiSecret, passphrase } = account;
+        const timestamp = new Date().toISOString();
+        const method    = 'GET';
+        const requestPath = '/api/v5/account/income?instType=FUTURES&ccy=USDT';
+        const preSign   = timestamp + method + requestPath;
+        const signature = crypto.createHmac('sha256', apiSecret).update(preSign).digest('base64');
+
+        const url = `https://www.okx.com${requestPath}`;
+        const res = await axios.get(url, {
+            headers: {
+                'OK-ACCESS-KEY':        apiKey,
+                'OK-ACCESS-SIGN':       signature,
+                'OK-ACCESS-TIMESTAMP':  timestamp,
+                'OK-ACCESS-PASSPHRASE': passphrase
+            }
+        });
+
+        // res.data.data should be an array
+        const arr = Array.isArray(res.data.data) ? res.data.data : [];
+        const groups = {};
+        for (const rec of arr) {
+            // `ts` or maybe `ts` in each record, and `realizedPnl` or `real`
+            const dateKey = new Date(rec.ts).toISOString().slice(0,10);
+            const pnl     = parseFloat(rec.realizedPnl || rec.real || 0);
+            groups[dateKey] = (groups[dateKey]||0) + pnl;
+        }
+
+        return Object.entries(groups)
+            .map(([date, profit]) => ({
+                timestamp: new Date(`${date}T00:00:00Z`).getTime(),
+                profit
+            }))
+            .sort((a,b) => b.timestamp - a.timestamp)
+            .slice(0, days);
+    }
+
+    /**
+     * Fetch the current unrealized PnL snapshot from OKX positions.
+     * Shape: [ { timestamp: ms, pct: number } ]
+     */
+    async getUnrealizedPnLHistory(account, { days }) {
+        const { apiKey, apiSecret, passphrase } = account;
+        const timestamp = new Date().toISOString();
+        const method    = 'GET';
+        const requestPath = '/api/v5/account/positions?instType=FUTURES';
+        const preSign      = timestamp + method + requestPath;
+        const signature    = crypto.createHmac('sha256', apiSecret).update(preSign).digest('base64');
+
+        const url = `https://www.okx.com${requestPath}`;
+        const res = await axios.get(url, {
+            headers: {
+                'OK-ACCESS-KEY':        apiKey,
+                'OK-ACCESS-SIGN':       signature,
+                'OK-ACCESS-TIMESTAMP':  timestamp,
+                'OK-ACCESS-PASSPHRASE': passphrase
+            }
+        });
+
+        const arr = Array.isArray(res.data.data) ? res.data.data : [];
+        const total = arr.reduce(
+            (sum, pos) => sum + parseFloat(pos.upl || pos.unrealizedPnl || 0),
+            0
+        );
+
+        return [{
+            timestamp: Date.now(),
+            pct: parseFloat(total.toFixed(2))
+        }];
+    }
 }
 
 module.exports = new OKXWS();

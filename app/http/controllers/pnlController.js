@@ -1,14 +1,19 @@
 // controllers/pnlController.js
-const Bot = require('../../models/BotBase');
-const Trade = require('../../models/Trade');
-const moment = require('moment');
-const logger = require("../../../logs/logger");
+const Bot       = require('../../models/BotBase');
+const Trade     = require('../../models/Trade');
+const BinanceAccount = require('../../models/BinanceAccount');
+const OkxAccount     = require('../../models/OkxAccount');
+const moment    = require('moment');
+const logger    = require('../../../logs/logger');
+
+const BinanceService = require('../../services/binanceWS');
+const OkxService     = require('../../services/okxWS');
 
 const FORMAT_MAP = {
-    '1D': 'HH:mm',   // show time
-    '1W': 'ddd DD',  // Mon 01
-    '1M': 'DD MMM',  // 15 Mar
-    '1Y': 'MMM YYYY' // Mar 2025
+    '1D': 'HH:mm',
+    '1W': 'ddd DD',
+    '1M': 'DD MMM',
+    '1Y': 'MMM YYYY'
 };
 
 /**
@@ -19,32 +24,61 @@ exports.getRealizedPnL = async (req, res) => {
     const period = (req.query.period || '1D').toUpperCase();
 
     try {
-        // 1) load all bots for this user
+        // --- 1) LOCAL closed trades ---
         const bots   = await Bot.find({ userId }).lean();
         const botIds = bots.map(b => b._id);
-
-        // 2) fetch all closed trades for those bots
-        const trades = await Trade.find({
+        let local = await Trade.find({
             bot:       { $in: botIds },
             exitPrice: { $ne: null }
         })
             .select('timestamp profit')
             .lean();
-
-        // 3) sort by timestamp desc, take latest 7, then reverse to chronological
-        trades.sort((a, b) => b.timestamp - a.timestamp);
-        const last7 = trades.slice(0, 7).reverse();
-
-        // 4) format according to period
-        const fmt  = FORMAT_MAP[period] || FORMAT_MAP['1D'];
-        const data = last7.map(t => ({
-            date:  moment(t.timestamp).format(fmt),
-            value: t.profit
+        local.sort((a,b) => b.timestamp - a.timestamp);
+        let latest = local.slice(0, 7).map(t => ({
+            timestamp: t.timestamp,
+            profit:    t.profit
         }));
 
-        return res.json({ success: true, data });
+        // --- 2) REMOTE if we need more ---
+        if (latest.length < 7) {
+            const missing = 7 - latest.length;
 
-    } catch (err) {
+            // load API accounts
+            const [binAccts, okxAccts] = await Promise.all([
+                BinanceAccount.find({ userId }).lean(),
+                OkxAccount.find({ userId }).lean()
+            ]);
+
+            // call each service
+            const remoteArrays = await Promise.all([
+                ...binAccts.map(a => BinanceService.getHistoricalRealizedPnL(a, { days: missing })),
+                ...okxAccts.map(a => OkxService.getHistoricalRealizedPnL(a, { days: missing }))
+            ]);
+            const remote = remoteArrays.flat();
+
+            // merge & dedupe by timestamp
+            const merged = [ ...latest, ...remote ]
+                .reduce((acc, p) => {
+                    if (!acc.find(x => x.timestamp === p.timestamp)) acc.push(p);
+                    return acc;
+                }, [])
+                .sort((a,b) => b.timestamp - a.timestamp);
+
+            latest = merged.slice(0, 7);
+        }
+
+        // --- 3) FORMAT for output (oldest→newest) ---
+        const fmt  = FORMAT_MAP[period] || FORMAT_MAP['1D'];
+        const data = latest
+            .slice().reverse()
+            .map(p => ({
+                date:  moment(p.timestamp).format(fmt),
+                value: parseFloat(p.profit.toFixed(2))
+            }));
+
+        return res.json({ success: true, data });
+    }
+    catch (err) {
         console.error('getRealizedPnL error', err);
         logger.error(`getRealizedPnL error: ${err.message}`, { stack: err.stack });
         return res.status(500).json({ success: false, error: err.message });
@@ -57,46 +91,65 @@ exports.getRealizedPnL = async (req, res) => {
  */
 exports.getUnrealizedPnL = async (req, res) => {
     const userId = req.user.id;
-    // period is ignored here for grouping, but you could use it to bucket by age
-    try {
-        // 1) load all bots
-        const bots   = await Bot.find({ userId }).lean();
-        const botMap = Object.fromEntries(bots.map(b => [b._id.toString(), b]));
-        const botIds = Object.keys(botMap);
 
-        // 2) fetch all open trades for those bots
-        const trades = await Trade.find({
-            bot:       { $in: botIds },
+    try {
+        // --- 1) LOCAL open trades → compute % PnL ---
+        const bots    = await Bot.find({ userId }).lean();
+        const botMap  = Object.fromEntries(bots.map(b => [b._id.toString(), b]));
+        let local = (await Trade.find({
+            bot:       { $in: bots.map(b => b._id) },
             exitPrice: null
         })
             .select('bot entryPrice timestamp')
-            .lean();
-
-        // 3) compute % pnl using each bot's currentCandle.price
-        const openWithPct = trades
+            .lean())
             .map(t => {
-                const bot       = botMap[t.bot.toString()];
-                const curPrice  = bot.marketInfo?.currentCandle?.price;
-                if (!curPrice) return null;
-                const pct = ((curPrice - t.entryPrice) / t.entryPrice) * 100;
+                const bot = botMap[t.bot.toString()];
+                const cur = bot.marketInfo?.currentCandle?.price;
+                if (!cur) return null;
                 return {
                     timestamp: t.timestamp,
-                    name:      `Position ${t._id.toString().slice(-4)}`, // or however you want to label
-                    pct:       parseFloat(pct.toFixed(2))
+                    pct:       ((cur - t.entryPrice) / t.entryPrice) * 100
                 };
             })
             .filter(x => x !== null);
 
-        // 4) sort desc, take latest 7
-        openWithPct.sort((a, b) => b.timestamp - a.timestamp);
-        const last7 = openWithPct.slice(0, 7);
+        local.sort((a,b) => b.timestamp - a.timestamp);
+        let latest = local.slice(0, 7);
 
-        // 5) output
-        const data = last7.map(t => ({ name: t.name, pct: t.pct }));
+        // --- 2) REMOTE if we need more ---
+        if (latest.length < 7) {
+            const missing = 7 - latest.length;
+
+            const [binAccts, okxAccts] = await Promise.all([
+                BinanceAccount.find({ userId }).lean(),
+                OkxAccount.find({ userId }).lean()
+            ]);
+
+            const remoteArrays = await Promise.all([
+                ...binAccts.map(a => BinanceService.getUnrealizedPnLHistory(a, { days: missing })),
+                ...okxAccts.map(a => OkxService.getUnrealizedPnLHistory(a, { days: missing }))
+            ]);
+            const remote = remoteArrays.flat();
+
+            const merged = [ ...latest, ...remote ]
+                .reduce((acc, p) => {
+                    if (!acc.find(x => x.timestamp === p.timestamp)) acc.push(p);
+                    return acc;
+                }, [])
+                .sort((a,b) => b.timestamp - a.timestamp);
+
+            latest = merged.slice(0, 7);
+        }
+
+        // --- 3) FORMAT for output (newest first as “bar” names) ---
+        const data = latest.map(p => ({
+            name: `Pos ${moment(p.timestamp).format('MMDD')}`,
+            pct:  parseFloat(p.pct.toFixed(2))
+        }));
 
         return res.json({ success: true, data });
-
-    } catch (err) {
+    }
+    catch (err) {
         console.error('getUnrealizedPnL error', err);
         logger.error(`getUnrealizedPnL error: ${err.message}`, { stack: err.stack });
         return res.status(500).json({ success: false, error: err.message });

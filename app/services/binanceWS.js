@@ -263,6 +263,68 @@ class BinanceWS {
             locked: parseFloat(b.locked)
         }));
     }
+    /**
+     * Returns up to `days` days of realized PnL from Binance USDT‐M futures income history.
+     * Shape: [ { timestamp: ms, profit: number }, … ]
+     */
+    async getHistoricalRealizedPnL(account, { days }) {
+        const { apiKey, secretKey } = account;
+        const timestamp  = Date.now();
+        const recvWindow = 5000;
+        const qs = `incomeType=REALIZED_PNL&limit=1000&timestamp=${timestamp}&recvWindow=${recvWindow}`;
+        const signature = crypto.createHmac('sha256', secretKey).update(qs).digest('hex');
+        const url = `https://fapi.binance.com/fapi/v1/income?${qs}&signature=${signature}`;
+
+        const res = await axios.get(url, { headers: { 'X-MBX-APIKEY': apiKey } });
+        // res.data is an array of income records
+        if (!Array.isArray(res.data)) {
+            throw new Error('Unexpected Binance income response');
+        }
+
+        // group by UTC date
+        const groups = {};
+        for (const inc of res.data) {
+            const dateKey = new Date(inc.time).toISOString().slice(0,10);
+            const val     = parseFloat(inc.income || 0);
+            groups[dateKey] = (groups[dateKey]||0) + val;
+        }
+
+        return Object.entries(groups)
+            .map(([date, profit]) => ({
+                timestamp: new Date(`${date}T00:00:00Z`).getTime(),
+                profit
+            }))
+            .sort((a,b) => b.timestamp - a.timestamp)
+            .slice(0, days);
+    }
+
+    /**
+     * Returns a single‐point snapshot of current unrealized PnL on Binance futures.
+     * Shape: [ { timestamp: ms, pct: number } ]
+     */
+    async getUnrealizedPnLHistory(account, { days }) {
+        // Binance only gives “right now”
+        const { apiKey, secretKey } = account;
+        const timestamp  = Date.now();
+        const qs         = `timestamp=${timestamp}`;
+        const signature  = crypto.createHmac('sha256', secretKey).update(qs).digest('hex');
+        const url        = `https://fapi.binance.com/fapi/v2/positionRisk?${qs}&signature=${signature}`;
+        const res        = await axios.get(url, { headers: { 'X-MBX-APIKEY': apiKey } });
+
+        if (!Array.isArray(res.data)) {
+            throw new Error('Unexpected Binance positionRisk response');
+        }
+
+        const totalUnreal = res.data.reduce(
+            (sum, pos) => sum + parseFloat(pos.unrealizedProfit || 0),
+            0
+        );
+
+        return [{
+            timestamp,
+            pct: parseFloat(totalUnreal.toFixed(2))
+        }];
+    }
 }
 
 module.exports = new BinanceWS();

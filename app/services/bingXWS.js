@@ -515,6 +515,88 @@ class BingXWS {
     async getHistoricalBalance(account, timestamp) {
         return this.getBalance(account);
     }
+
+    /**
+     * BingX swapV2 exec-list (closed trades). Returns up to `days` days of realized PnL.
+     * Shape: [ { timestamp: ms, profit: number }, … ]
+     */
+    async getHistoricalRealizedPnL(account, { days }) {
+        const { apiKey, secretKey } = account;
+        const ts  = Date.now().toString();
+        const qs  = `timestamp=${ts}`;
+        const sig = crypto.createHmac('sha256', secretKey).update(qs).digest('hex');
+        const url = `https://open-api.bingx.com/openApi/swap/v2/exec-list?${qs}&signature=${sig}`;
+
+        const res  = await fetch(url, {
+            headers: {
+                'X-BX-APIKEY':    apiKey,
+                'X-BX-SIGNATURE': sig,
+                'X-BX-TIMESTAMP': ts
+            }
+        });
+        const json = await res.json();
+        if (json.code !== 0) {
+            throw new Error(`BingX error: ${json.msg || json.message}`);
+        }
+
+        // the list of closed trades may live in json.data.list or json.data itself
+        const list = Array.isArray(json.data.list)
+            ? json.data.list
+            : Array.isArray(json.data)
+                ? json.data
+                : [];
+        const groups = {};
+        for (const tr of list) {
+            if (!tr.closeTime) continue;
+            const dateKey = new Date(tr.closeTime).toISOString().slice(0,10);
+            const pnl     = parseFloat(tr.pnl || tr.profit || 0);
+            groups[dateKey] = (groups[dateKey]||0) + pnl;
+        }
+
+        return Object.entries(groups)
+            .map(([date, profit]) => ({
+                timestamp: new Date(`${date}T00:00:00Z`).getTime(),
+                profit
+            }))
+            .sort((a,b) => b.timestamp - a.timestamp)
+            .slice(0, days);
+    }
+
+    /**
+     * BingX swapV2 pos-list (open positions). Single‐point unrealized PnL snapshot.
+     * Shape: [ { timestamp: ms, pct: number } ]
+     */
+    async getUnrealizedPnLHistory(account, { days }) {
+        const { apiKey, secretKey } = account;
+        const ts  = Date.now().toString();
+        const qs  = `timestamp=${ts}`;
+        const sig = crypto.createHmac('sha256', secretKey).update(qs).digest('hex');
+        const url = `https://open-api.bingx.com/openApi/swap/v2/pos-list?${qs}&signature=${sig}`;
+
+        const res  = await fetch(url, {
+            headers: {
+                'X-BX-APIKEY':    apiKey,
+                'X-BX-SIGNATURE': sig,
+                'X-BX-TIMESTAMP': ts
+            }
+        });
+        const json = await res.json();
+        if (json.code !== 0) {
+            throw new Error(`BingX error: ${json.msg || json.message}`);
+        }
+
+        // data is an array of positions
+        const arr = Array.isArray(json.data) ? json.data : [];
+        const total = arr.reduce(
+            (sum, pos) => sum + parseFloat(pos.unrealizedPnl || pos.pnl || 0),
+            0
+        );
+
+        return [{
+            timestamp: Date.now(),
+            pct: parseFloat(total.toFixed(2))
+        }];
+    }
 }
 
 // Export a singleton instance.
