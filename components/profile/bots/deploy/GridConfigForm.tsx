@@ -14,7 +14,7 @@ import { getData } from "@/actions/get";
 import { sendRequest } from "@/actions/post";
 import { ExchangeAccount } from "@/types/profile/AccountType";
 import { SymbolFilterResponse } from "@/types/profile/CurrencyType";
-import { WalletBalance } from "@/types/profile/WalletBalanceType";
+import { RawBalanceResponse, WalletBalance } from "@/types/profile/WalletBalanceType";
 import { BotProps } from "@/types/profile/bots/StrategyParams";
 
 interface Currency {
@@ -167,13 +167,19 @@ export default function GridConfigForm({
       return;
     }
     try {
-      const res = await getData(`/accounts/${accountId}/balance`);
+      const res: RawBalanceResponse = await getData(`/accounts/${accountId}/balance`);
+
+      if (!res.success) {
+        addToast({
+          title: res.error,
+          color: "danger"
+        })
+        return
+      }
 
       if (res.balance) {
-        const usdtBal: WalletBalance = res.balance.find(
-          (b: WalletBalance) => b.asset === "USDT"
-        );
-        const free = usdtBal ? parseFloat(usdtBal.free) : 0;
+        const soptEntry = res.balance.find(b => b.accountType === 'sopt');
+        const free = parseFloat(soptEntry?.usdtBalance ?? '0');
 
         setAvailableBalance(free);
         setBaseFund(free.toString());

@@ -5,7 +5,19 @@ export type WalletBalance = {
   locked: string;
 };
 
+export type RawBalance = {
+  accountType: string;
+  usdtBalance: string;
+};
+
+export type RawBalanceResponse = {
+  success: boolean,
+  balance: RawBalance[],
+  error: string
+}
+
 export type WalletBalanceResponse = {
-  balance?: WalletBalance[],
+  success: boolean,
+  balance: WalletBalance[],
   error: string
 };

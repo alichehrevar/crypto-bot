@@ -13,7 +13,7 @@ import {
 import { getData } from '@/actions/get';
 import { ExchangeAccount, AccountsResponse } from '@/types/profile/AccountType';
 import { SymbolFilterResponse } from '@/types/profile/CurrencyType';
-import { WalletBalance } from '@/types/profile/WalletBalanceType';
+import { WalletBalance, RawBalanceResponse } from "@/types/profile/WalletBalanceType";
 import { sendRequest } from '@/actions/post';
 import { BotProps } from '@/types/profile/bots/StrategyParams';
 import { DefaultBotConfigForm } from '@/types/profile/bots/defaultBotConfigForm';
@@ -157,22 +157,21 @@ export default function BotConfigForm({ mode, onCloseAction }: BotConfigFormProp
   async function handleAccountChange(accountId: Key | null) {
     setSelectedAccountId(accountId?.toString())
     try {
-      const getBalance = await getData(`/accounts/${accountId}/balance`);
+      const getBalance: RawBalanceResponse = await getData(`/accounts/${accountId}/balance`);
 
-      if (getBalance.balance) {
-        const usdtBal: WalletBalance = getBalance.balance.find((b: WalletBalance) => b.asset === 'USDT');
-        const free = usdtBal ? parseFloat(usdtBal.free) : 0;
-
-        setAvailableBalance(free);
-        setBaseFund(free);
-      } else {
+      if (!getBalance.success) {
         addToast({
           title: getBalance.error,
-          color: "danger",
-        });
-        setAvailableBalance(0);
-        setBaseFund(0);
+          color: "danger"
+        })
+        return
       }
+
+      const soptEntry = getBalance.balance.find(b => b.accountType === 'sopt');
+      const freeAmount = parseFloat(soptEntry?.usdtBalance ?? '0');
+
+      setAvailableBalance(freeAmount);
+      setBaseFund(freeAmount);
     } catch {
       addToast({
         title: 'Failed to load balance',
@@ -180,6 +179,14 @@ export default function BotConfigForm({ mode, onCloseAction }: BotConfigFormProp
       });
       setAvailableBalance(0);
       setBaseFund(0);
+    }
+  }
+
+  function formatDisplayName(accountType: string) {
+    switch (accountType) {
+      case 'sopt':       return 'Spot';
+      case 'stdFutures': return 'USDT Futures';
+      default:           return accountType;
     }
   }
 
