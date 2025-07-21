@@ -9,7 +9,7 @@ import {
   TableCell, addToast, Spinner
 } from "@heroui/react";
 import { getData } from "@/actions/get";
-import { AllPnLData, PnLData, PnLDetails } from "@/types/profile/PnLTypes";
+import { AllPnLData, PnLData } from "@/types/profile/PnLTypes";
 
 async function getAllPnL() {
   return await getData('/pnl/all')

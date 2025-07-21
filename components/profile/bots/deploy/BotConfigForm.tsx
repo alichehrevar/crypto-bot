@@ -183,14 +183,6 @@ export default function BotConfigForm({ mode, selectedParentTab, onCloseAction }
     }
   }
 
-  function formatDisplayName(accountType: string) {
-    switch (accountType) {
-      case 'sopt':       return 'Spot';
-      case 'stdFutures': return 'USDT Futures';
-      default:           return accountType;
-    }
-  }
-
   /** POST to deploy */
   const handleDeploy = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();

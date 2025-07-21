@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Input, Autocomplete, AutocompleteItem } from '@heroui/react';
+import { Input, Autocomplete, AutocompleteItem, addToast } from "@heroui/react";
 
 import { getData } from '@/actions/get';
 
@@ -60,7 +60,11 @@ export default function LogViewerPage() {
         const resp = await getData(`/logs/file/${selectedFile}`, true);
 
         if (!resp.ok) {
-          throw new Error(`Could not fetch ${selectedFile}`);
+          addToast({
+            title: `Could not fetch ${selectedFile}`,
+            color: 'danger'
+          })
+          return;
         }
 
         setLogContent(resp);

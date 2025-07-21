@@ -14,7 +14,7 @@ import { getData } from "@/actions/get";
 import { sendRequest } from "@/actions/post";
 import { ExchangeAccount } from "@/types/profile/AccountType";
 import { SymbolFilterResponse } from "@/types/profile/CurrencyType";
-import { RawBalanceResponse, WalletBalance } from "@/types/profile/WalletBalanceType";
+import { RawBalanceResponse } from "@/types/profile/WalletBalanceType";
 import { BotProps } from "@/types/profile/bots/StrategyParams";
 
 interface Currency {
