@@ -18,6 +18,7 @@ import { sendRequest } from '@/actions/post';
 import { BotProps } from '@/types/profile/bots/StrategyParams';
 import { DefaultBotConfigForm } from '@/types/profile/bots/defaultBotConfigForm';
 import { PlusIcon } from '@/utils/icons';
+import LabelTag from "@/components/shared/ui/Label";
 
 interface Currency {
   _id: string;
@@ -244,101 +245,116 @@ export default function BotConfigForm({ mode, selectedParentTab, onCloseAction }
         onSubmit={handleDeploy}
       >
         {/* Bot Name */}
-        <Input
-          required
-          label="Bot Name"
-          value={name}
-          onChange={e => setName(e.target.value)}
-        />
+        <div className="space-y-2">
+          <LabelTag id="botName" title="Bot Name" />
+          <Input
+            id="botName"
+            className="mt-0"
+            required
+            value={name}
+            onChange={e => setName(e.target.value)}
+          />
+        </div>
 
         {/* Account */}
-        <Autocomplete
-          id="Account"
-          isClearable={false}
-          items={accounts}
-          label="Account"
-          onSelectionChange={(k: Key | null) => handleAccountChange(k)}
-        >
-          {accounts.map((acc, index) => (
-            <React.Fragment key={index}>
-              {acc._id &&
-                <AutocompleteItem key={acc._id} textValue={acc.name}>
-                  {acc.name}
-                </AutocompleteItem>
-              }
-            </React.Fragment>
-          ))}
-        </Autocomplete>
+        <div className="space-y-2">
+          <LabelTag id="account" title="account" />
+          <Autocomplete
+            id="account"
+            isClearable={false}
+            items={accounts}
+            onSelectionChange={(k: Key | null) => handleAccountChange(k)}
+          >
+            {accounts.map((acc, index) => (
+              <React.Fragment key={index}>
+                {acc._id &&
+                  <AutocompleteItem key={acc._id} textValue={acc.name}>
+                    {acc.name}
+                  </AutocompleteItem>
+                }
+              </React.Fragment>
+            ))}
+          </Autocomplete>
+        </div>
 
         {/* Symbol */}
-        <Autocomplete
-          defaultItems={symbols}
-          id="Symbol"
-          isClearable={false}
-          label="Symbol"
-          onSelectionChange={k => k && setSymbol(k.toString())}
-        >
-          {symbols.map(s => (
-            <AutocompleteItem key={s.symbol} textValue={s.symbol}>
-              {s.symbol}
-            </AutocompleteItem>
-          ))}
-        </Autocomplete>
+        <div className="space-y-2">
+          <LabelTag id="symbol" title="Symbol" />
+          <Autocomplete
+            defaultItems={symbols}
+            id="symbol"
+            isClearable={false}
+            onSelectionChange={k => k && setSymbol(k.toString())}
+          >
+            {symbols.map(s => (
+              <AutocompleteItem key={s.symbol} textValue={s.symbol}>
+                {s.symbol}
+              </AutocompleteItem>
+            ))}
+          </Autocomplete>
+        </div>
         <p className="text-sm text-gray-600">
           Available balance: <b>{availableBalance.toFixed(2)} USDT</b>
         </p>
 
         {/* Trade Fund % */}
-        <Input
-          required
-          label="Trade Fund (%)"
-          max={100}
-          min={1}
-          type="number"
-          value={tradeFund}
-          onChange={e => setTradeFund(e.target.value)}
-        />
-        <div className="flex items-center justify-between gap-2">
-          {[25, 50, 75, 100].map(p => (
-            <button
-              key={p}
-              className="w-1/4 py-1.5 bg-default-100 text-[14px] rounded-2xl"
-              type="button"
-              onClick={() => setTradeFund(String(p))}
-            >
-              {p}%
-            </button>
-          ))}
+        <div className="space-y-2">
+          <LabelTag id="tradeFund" title="Trade Fund (%)" />
+          <Input
+            id="tradeFund"
+            required
+            max={100}
+            min={1}
+            type="number"
+            value={tradeFund}
+            onChange={e => setTradeFund(e.target.value)}
+          />
+          <div className="flex items-center justify-between gap-2">
+            {[25, 50, 75, 100].map(p => (
+              <button
+                key={p}
+                className="w-1/4 h-[30px] bg-default-100 rounded-xl text-sm"
+                type="button"
+                onClick={() => setTradeFund(String(p))}
+              >
+                {p}%
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Leverage */}
-        <Autocomplete
-          allowsEmptyCollection={false}
-          id="Leverage"
-          isClearable={false}
-          label="Leverage"
-          onSelectionChange={k => k && setLeverage(Number(k.toString()))}
-        >
-          {leverageOptions.map(lv => (
-            <AutocompleteItem key={lv} textValue={`${lv}x`}>
-              {lv}x
-            </AutocompleteItem>
-          ))}
-        </Autocomplete>
+        <div className="space-y-2">
+          <LabelTag id="leverage" title="Leverage" />
+          <Autocomplete
+            allowsEmptyCollection={false}
+            id="leverage"
+            isClearable={false}
+            onSelectionChange={k => k && setLeverage(Number(k.toString()))}
+          >
+            {leverageOptions.map(lv => (
+              <AutocompleteItem key={lv} textValue={`${lv}x`}>
+                {lv}x
+              </AutocompleteItem>
+            ))}
+          </Autocomplete>
+        </div>
 
         {/* Risk Strategy */}
-        <Autocomplete
-          id="RiskStrategy"
-          isClearable={false}
-          label="Risk Strategy"
-          onSelectionChange={k => k && setRiskStrategy(k.toString())}
-        >
-          {botProps.riskStrategyOptions.map(rs => (
-            <AutocompleteItem key={rs} textValue={rs}>
-              {rs}
-            </AutocompleteItem>
-          ))}
-        </Autocomplete>
+        <div className="space-y-2">
+          <LabelTag id="riskStrategy" title="Risk Strategy" />
+          <Autocomplete
+            id="riskStrategy"
+            isClearable={false}
+            onSelectionChange={k => k && setRiskStrategy(k.toString())}
+          >
+            {botProps.riskStrategyOptions.map(rs => (
+              <AutocompleteItem key={rs} textValue={rs}>
+                {rs}
+              </AutocompleteItem>
+            ))}
+          </Autocomplete>
+        </div>
 
         {/* Compound sizing */}
         <Checkbox
@@ -349,65 +365,35 @@ export default function BotConfigForm({ mode, selectedParentTab, onCloseAction }
         </Checkbox>
 
         {/* TP/SL */}
-        <Input
-          label="Take Profit"
-          step="0.01"
-          type="number"
-          value={takeProfit.toString()}
-          onChange={e => setTakeProfit(Number(e.target.value))}
-        />
-        <Input
-          label="Stop Loss"
-          step="0.01"
-          type="number"
-          value={stopLoss.toString()}
-          onChange={e => setStopLoss(Number(e.target.value))}
-        />
+        <div className="space-y-2">
+          <LabelTag id="takeProfit" title="Take Profit" />
+          <Input
+            id="takeProfit"
+            step="0.01"
+            type="number"
+            value={takeProfit.toString()}
+            onChange={e => setTakeProfit(Number(e.target.value))}
+          />
+        </div>
+        <div className="space-y-2">
+          <LabelTag id="stopLoss" title="Stop Loss" />
+          <Input
+            id="stopLoss"
+            step="0.01"
+            type="number"
+            value={stopLoss.toString()}
+            onChange={e => setStopLoss(Number(e.target.value))}
+          />
+        </div>
 
         {/* Primary Indicator + Timeframe */}
         <div className="flex items-center gap-4">
-          <Autocomplete
-            className="w-2/3"
-            id="Indicator"
-            isClearable={false}
-            label="Indicator"
-            onSelectionChange={k => k && setIndicator(k.toString())}
-          >
-            {botProps.indicatorOptions.map(ind => (
-              <AutocompleteItem key={ind} textValue={ind}>
-                {ind}
-              </AutocompleteItem>
-            ))}
-          </Autocomplete>
-          <Autocomplete
-            className="w-1/3"
-            id="Timeframe"
-            isClearable={false}
-            label="Timeframe"
-            onSelectionChange={k => k && setTimeframe(k.toString())}
-          >
-            {botProps.timeframeOptions.map(tf => (
-              <AutocompleteItem key={tf} textValue={tf}>
-                {tf}
-              </AutocompleteItem>
-            ))}
-          </Autocomplete>
-        </div>
-
-        {/* Additional Indicators */}
-        {additional.map((ai, i) => (
-          <div key={i} className="flex items-center gap-4">
+          <div className="space-y-2 flex flex-col w-2/3">
+            <LabelTag id="indicator" title="Indicator" />
             <Autocomplete
-              className="w-2/3"
-              id={`Indicator${i}`}
+              id="indicator"
               isClearable={false}
-              label="Indicator"
-              onSelectionChange={k => {
-                const nxt = [...additional];
-
-                nxt[i].indicator = k!.toString();
-                setAdditional(nxt);
-              }}
+              onSelectionChange={k => k && setIndicator(k.toString())}
             >
               {botProps.indicatorOptions.map(ind => (
                 <AutocompleteItem key={ind} textValue={ind}>
@@ -415,17 +401,13 @@ export default function BotConfigForm({ mode, selectedParentTab, onCloseAction }
                 </AutocompleteItem>
               ))}
             </Autocomplete>
+          </div>
+          <div className="space-y-2 flex flex-col w-1/3">
+            <LabelTag id="timeframe" title="Timeframe" />
             <Autocomplete
-              className="w-1/3"
               id="Timeframe"
               isClearable={false}
-              label="Timeframe"
-              onSelectionChange={k => {
-                const nxt = [...additional];
-
-                nxt[i].timeframe = k!.toString();
-                setAdditional(nxt);
-              }}
+              onSelectionChange={k => k && setTimeframe(k.toString())}
             >
               {botProps.timeframeOptions.map(tf => (
                 <AutocompleteItem key={tf} textValue={tf}>
@@ -433,6 +415,50 @@ export default function BotConfigForm({ mode, selectedParentTab, onCloseAction }
                 </AutocompleteItem>
               ))}
             </Autocomplete>
+          </div>
+        </div>
+
+        {/* Additional Indicators */}
+        {additional.map((ai, i) => (
+          <div key={i} className="flex items-center gap-4">
+            <div className="space-y-2 flex flex-col w-2/3">
+              <LabelTag id={`indicator${i}`} title="Indicator" />
+              <Autocomplete
+                id={`indicator${i}`}
+                isClearable={false}
+                onSelectionChange={k => {
+                  const nxt = [...additional];
+
+                  nxt[i].indicator = k!.toString();
+                  setAdditional(nxt);
+                }}
+              >
+                {botProps.indicatorOptions.map(ind => (
+                  <AutocompleteItem key={ind} textValue={ind}>
+                    {ind}
+                  </AutocompleteItem>
+                ))}
+              </Autocomplete>
+            </div>
+            <div className="space-y-2 flex flex-col w-1/3">
+              <LabelTag id={`timeframe${i}`} title="Timeframe" />
+              <Autocomplete
+                id={`timeframe${i}`}
+                isClearable={false}
+                onSelectionChange={k => {
+                  const nxt = [...additional];
+
+                  nxt[i].timeframe = k!.toString();
+                  setAdditional(nxt);
+                }}
+              >
+                {botProps.timeframeOptions.map(tf => (
+                  <AutocompleteItem key={tf} textValue={tf}>
+                    {tf}
+                  </AutocompleteItem>
+                ))}
+              </Autocomplete>
+            </div>
           </div>
         ))}
 
@@ -452,53 +478,62 @@ export default function BotConfigForm({ mode, selectedParentTab, onCloseAction }
         {/* optimized-only fields */}
         {(mode === 'optimized' || mode === 'dynamic') && (
           <>
-            <Autocomplete
-              required
-              id="Optimization Method"
-              isClearable={false}
-              label="Optimization Method"
-              onSelectionChange={k => k && setOptMethod(k.toString())}
-            >
-              {botProps.OptMethod.map(m => (
-                <AutocompleteItem key={m} textValue={m}>
-                  <span className="capitalize">{m}</span>
-                </AutocompleteItem>
-              ))}
-            </Autocomplete>
+            <div className="space-y-2">
+              <LabelTag id="optimizationMethod" title="Optimization Method" />
+              <Autocomplete
+                required
+                id="optimizationMethod"
+                isClearable={false}
+                onSelectionChange={k => k && setOptMethod(k.toString())}
+              >
+                {botProps.OptMethod.map(m => (
+                  <AutocompleteItem key={m} textValue={m}>
+                    <span className="capitalize">{m}</span>
+                  </AutocompleteItem>
+                ))}
+              </Autocomplete>
+            </div>
 
-            <Input
-              required
-              label="Minimum optimization accuracy (%)"
-              min={1}
-              step={1}
-              type="number"
-              value={minOptAccuracy.toString()}
-              onChange={(e) => setMinOptAccuracy(Number(e.target.value))}
-            />
+            <div className="space-y-2">
+              <LabelTag id="minimumOptimizationAccuracy" title="Minimum optimization accuracy (%)" />
+              <Input
+                id="minimumOptimizationAccuracy"
+                required
+                min={1}
+                step={1}
+                type="number"
+                value={minOptAccuracy.toString()}
+                onChange={(e) => setMinOptAccuracy(Number(e.target.value))}
+              />
+            </div>
 
-            <Input
-              required
-              label="Minimum simulated trades"
-              min={1}
-              type="number"
-              value={minSimTrades.toString()}
-              onChange={(e) => setMinSimTrades(Number(e.target.value))}
-            />
+            <div className="space-y-2">
+              <LabelTag id="minimumSimulatedTrades" title="Minimum Simulated Trades" />
+              <Input
+                id="minimumSimulatedTrades"
+                required
+                min={1}
+                type="number"
+                value={minSimTrades.toString()}
+                onChange={(e) => setMinSimTrades(Number(e.target.value))}
+              />
+            </div>
           </>
         )}
 
         {/* --- dynamic-only block --- */}
         {mode === 'dynamic' && (
-          <>
+          <div className="space-y-2">
+            <LabelTag id="minimumBotAccuracy" title="Minimum bot accuracy (%)" />
             <Input
+              id="minimumBotAccuracy"
               required
-              label="Minimum bot accuracy (%)"
               min={1}
               type="number"
               value={minBotAccuracy.toString()}
               onChange={(e) => setMinBotAccuracy(Number(e.target.value))}
             />
-          </>
+          </div>
         )}
 
         {/* submit */}
