@@ -10,7 +10,7 @@ function listLogFiles() {
     try {
         const all = fs.readdirSync(LOG_DIR);
         return all
-            .filter(f => /^app-\d{4}-\d{2}-\d{2}\.log(?:\.gz)?$/.test(f))
+            .filter(f => /^(?:app|exceptions)-\d{4}-\d{2}-\d{2}\.log(?:\.gz)?$/.test(f))
             .sort()
             .reverse(); // newest first
     } catch (err) {
