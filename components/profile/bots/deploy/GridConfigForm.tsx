@@ -16,6 +16,7 @@ import { ExchangeAccount } from "@/types/profile/AccountType";
 import { SymbolFilterResponse } from "@/types/profile/CurrencyType";
 import { RawBalanceResponse } from "@/types/profile/WalletBalanceType";
 import { BotProps } from "@/types/profile/bots/StrategyParams";
+import LabelTag from "@/components/shared/ui/Label";
 
 interface Currency {
   _id: string;
@@ -349,120 +350,139 @@ export default function GridConfigForm({
     <div className="py-4">
       <form className="space-y-4 overflow-x-hidden" onSubmit={handleDeploy}>
         {/* — Bot Name — */}
-        <label htmlFor="bot-name">Bot Name</label>
-        <Input
-          id="bot-name"
-          required
-          placeholder="Please enter a name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-        />
+        <div className="space-y-2">
+          <LabelTag id="botName" title="Bot Name" />
+          <Input
+            id="botName"
+            required
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+        </div>
 
         {/* — Account Dropdown — */}
-        <Autocomplete
-          id="Account"
-          isClearable={false}
-          items={accounts}
-          label="Account"
-          onSelectionChange={(k: Key | null) => handleAccountChange(k)}
-        >
-          {accounts.map((acc) => (
-            <React.Fragment key={acc._id}>
-              <AutocompleteItem key={acc._id} textValue={acc.name}>
-                {acc.name}
-              </AutocompleteItem>
-            </React.Fragment>
-          ))}
-        </Autocomplete>
+        <div className="space-y-2">
+          <LabelTag id="account" title="Account" />
+          <Autocomplete
+            id="account"
+            isClearable={false}
+            items={accounts}
+            onSelectionChange={(k: Key | null) => handleAccountChange(k)}
+          >
+            {accounts.map((acc) => (
+              <React.Fragment key={acc._id}>
+                <AutocompleteItem key={acc._id} textValue={acc.name}>
+                  {acc.name}
+                </AutocompleteItem>
+              </React.Fragment>
+            ))}
+          </Autocomplete>
+        </div>
 
         {/* — Symbol Dropdown — */}
-        <Autocomplete
-          defaultItems={symbols}
-          id="Symbol"
-          isClearable={false}
-          label="Symbol"
-          onSelectionChange={(k) => k && setSelectedSymbol(k.toString())}
-        >
-          {symbols.map((s) => (
-            <AutocompleteItem key={s.symbol} textValue={s.symbol}>
-              {s.symbol}
-            </AutocompleteItem>
-          ))}
-        </Autocomplete>
+        <div className="space-y-2">
+          <LabelTag id="symbol" title="Symbol" />
+          <Autocomplete
+            defaultItems={symbols}
+            id="symbol"
+            isClearable={false}
+            onSelectionChange={(k) => k && setSelectedSymbol(k.toString())}
+          >
+            {symbols.map((s) => (
+              <AutocompleteItem key={s.symbol} textValue={s.symbol}>
+                {s.symbol}
+              </AutocompleteItem>
+            ))}
+          </Autocomplete>
+        </div>
         <p className="text-sm text-gray-600">
           Available balance: <b>{availableBalance.toFixed(2)} USDT</b>
         </p>
 
         {/* — Base Fund — */}
-        <Input
-          required
-          label="Base Fund (USDT)"
-          max={availableBalance}
-          min={0}
-          step="0.01"
-          type="number"
-          value={baseFund}
-          onChange={(e) => onBaseFundChange(e.target.value)}
-        />
-        {baseFundError && (
-          <p className="text-[12px] text-red-500">{baseFundError}</p>
-        )}
+        <div className="space-y-2">
+          <LabelTag id="baseFund" title="Base Fund (USDT)" />
+          <Input
+            id="baseFund"
+            required
+            max={availableBalance}
+            min={0}
+            step="0.01"
+            type="number"
+            value={baseFund}
+            onChange={(e) => onBaseFundChange(e.target.value)}
+          />
+          {baseFundError && (
+            <p className="text-[12px] text-red-500">{baseFundError}</p>
+          )}
+        </div>
 
         {/* — Risk Strategy Dropdown — */}
-        <Autocomplete
-          id="RiskStrategy"
-          isClearable={false}
-          label="Risk Strategy"
-          onSelectionChange={(k) => k && setRiskStrategy(k.toString())}
-        >
-          {botProps.riskStrategyOptions.map((rs) => (
-            <AutocompleteItem key={rs} textValue={rs}>
-              {rs}
-            </AutocompleteItem>
-          ))}
-        </Autocomplete>
+        <div className="space-y-2">
+          <LabelTag id="riskStrategy" title="Risk Strategy" />
+          <Autocomplete
+            id="riskStrategy"
+            isClearable={false}
+            onSelectionChange={(k) => k && setRiskStrategy(k.toString())}
+          >
+            {botProps.riskStrategyOptions.map((rs) => (
+              <AutocompleteItem key={rs} textValue={rs}>
+                {rs}
+              </AutocompleteItem>
+            ))}
+          </Autocomplete>
+        </div>
 
         {/* ── GRID CONFIGURATION SECTION ── */}
         <div className="border-t border-default-100 pt-4 space-y-4">
           {/* — Lower & Upper Price (Standard & Dynamic) — */}
           {(mode === "standard" || mode === "dynamic") && (
             <>
-              <Input
-                required
-                label="Lower Price (USDT)"
-                step="0.01"
-                type="number"
-                value={lowerPrice}
-                onChange={(e) =>
-                  onPriceRangeChange(e.target.value, upperPrice)
-                }
-              />
-              <Input
-                required
-                label="Upper Price (USDT)"
-                step="0.01"
-                type="number"
-                value={upperPrice}
-                onChange={(e) =>
-                  onPriceRangeChange(lowerPrice, e.target.value)
-                }
-              />
-              {priceRangeError && (
-                <p className="text-[12px] text-red-500">{priceRangeError}</p>
-              )}
+              <div className="space-y-2">
+                <LabelTag id="lowerPrice" title="Lower Price (USDT)" />
+                <Input
+                  id="lowerPrice"
+                  required
+                  step="0.01"
+                  type="number"
+                  value={lowerPrice}
+                  onChange={(e) =>
+                    onPriceRangeChange(e.target.value, upperPrice)
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <LabelTag id="upperPrice" title="Upper Price (USDT)" />
+                <Input
+                  id="upperPrice"
+                  required
+                  step="0.01"
+                  type="number"
+                  value={upperPrice}
+                  onChange={(e) =>
+                    onPriceRangeChange(lowerPrice, e.target.value)
+                  }
+                />
+                {priceRangeError && (
+                  <p className="text-[12px] text-red-500">{priceRangeError}</p>
+                )}
+              </div>
             </>
           )}
 
           {/* — Number of Grids — */}
-          <Input
-            required
-            label="Number of Grids"
-            min={1}
-            step={1}
-            type="number"
-            value={gridCount}
-            onChange={(e) => setGridCount(e.target.value)}
-          />
+          <div className="space-y-2">
+            <LabelTag id="numberOfGrids" title="Number of Grids" />
+            <Input
+              id="numberOfGrids"
+              required
+              min={1}
+              step={1}
+              type="number"
+              value={gridCount}
+              onChange={(e) => setGridCount(e.target.value)}
+            />
+          </div>
 
           {/* — Percentage / Fixed Toggle — */}
           <div className="flex items-center justify-between flex-row-reverse gap-2">
@@ -476,16 +496,19 @@ export default function GridConfigForm({
           </div>
 
           {/* — Investment (%) — disabled if Percentage is off — */}
-          <Input
-            disabled={!usePercentage}
-            label="Investment (%)"
-            max={100}
-            min={1}
-            required={usePercentage}
-            type="number"
-            value={investmentAmount}
-            onChange={(e) => setInvestmentAmount(e.target.value)}
-          />
+          <div className="space-y-2">
+            <LabelTag id="investment" title="Investment (%)" />
+            <Input
+              id="investment"
+              disabled={!usePercentage}
+              max={100}
+              min={1}
+              required={usePercentage}
+              type="number"
+              value={investmentAmount}
+              onChange={(e) => setInvestmentAmount(e.target.value)}
+            />
+          </div>
 
           {/* — TP/SL Toggle — */}
           <div className="flex items-center justify-between flex-row-reverse gap-2 pt-2">
@@ -499,62 +522,68 @@ export default function GridConfigForm({
           </div>
 
           {/* — Take Profit and Stop Loss inputs; disabled if TP/SL is off — */}
-          <Input
-            disabled={!enableTPSL}
-            label="Take Profit (%)"
-            max={500}
-            min={0.1}
-            required={enableTPSL}
-            step={0.1}
-            type="number"
-            value={takeProfitPct}
-            onChange={(e) => setTakeProfitPct(e.target.value)}
-          />
-          <div className="flex items-center gap-2 flex-wrap">
-            {[5, 10, 25, 50, 100, 150].map((p) => (
-              <button
-                key={p}
-                className={`px-2 py-1 rounded-2xl text-[12px] ${
-                  enableTPSL
-                    ? "bg-default-200"
-                    : "bg-default-100 text-gray-400 cursor-not-allowed"
-                }`}
-                disabled={!enableTPSL}
-                type="button"
-                onClick={() => enableTPSL && setTakeProfitPct(String(p))}
-              >
-                {p}%
-              </button>
-            ))}
+          <div className="space-y-2">
+            <LabelTag id="takeProfit" title="Take Profit (%)" />
+            <Input
+              id="takeProfit"
+              disabled={!enableTPSL}
+              max={500}
+              min={0.1}
+              required={enableTPSL}
+              step={0.1}
+              type="number"
+              value={takeProfitPct}
+              onChange={(e) => setTakeProfitPct(e.target.value)}
+            />
+            <div className="flex items-center gap-2 flex-wrap">
+              {[5, 10, 25, 50, 100, 150].map((p) => (
+                <button
+                  key={p}
+                  className={`px-2 py-1 flex-1 rounded-2xl text-[12px] ${
+                    enableTPSL
+                      ? "bg-default-200"
+                      : "bg-default-100 text-gray-400 cursor-not-allowed"
+                  }`}
+                  disabled={!enableTPSL}
+                  type="button"
+                  onClick={() => enableTPSL && setTakeProfitPct(String(p))}
+                >
+                  {p}%
+                </button>
+              ))}
+            </div>
           </div>
 
-          <Input
-            disabled={!enableTPSL}
-            label="Stop Loss (%)"
-            max={500}
-            min={0.1}
-            required={enableTPSL}
-            step={0.1}
-            type="number"
-            value={stopLossPct}
-            onChange={(e) => setStopLossPct(e.target.value)}
-          />
-          <div className="flex items-center justify-between gap-2">
-            {[20, 30, 40, 50, 60, 70].map((p) => (
-              <button
-                key={p}
-                className={`px-2 py-1 rounded-2xl text-[12px] ${
-                  enableTPSL
-                    ? "bg-default-200"
-                    : "bg-default-100 text-gray-400 cursor-not-allowed"
-                }`}
-                disabled={!enableTPSL}
-                type="button"
-                onClick={() => enableTPSL && setStopLossPct(String(p))}
-              >
-                {p}%
-              </button>
-            ))}
+          <div className="space-y-2">
+            <LabelTag id="stopLoss" title="Stop Loss (%)" />
+            <Input
+              id="stopLoss"
+              disabled={!enableTPSL}
+              max={500}
+              min={0.1}
+              required={enableTPSL}
+              step={0.1}
+              type="number"
+              value={stopLossPct}
+              onChange={(e) => setStopLossPct(e.target.value)}
+            />
+            <div className="flex items-center flex-wrap gap-2">
+              {[20, 30, 40, 50, 60, 70].map((p) => (
+                <button
+                  key={p}
+                  className={`px-2 py-1 flex-1 rounded-2xl text-[12px] ${
+                    enableTPSL
+                      ? "bg-default-200"
+                      : "bg-default-100 text-gray-400 cursor-not-allowed"
+                  }`}
+                  disabled={!enableTPSL}
+                  type="button"
+                  onClick={() => enableTPSL && setStopLossPct(String(p))}
+                >
+                  {p}%
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* — Trailing TP/SL Toggle — */}
@@ -583,15 +612,18 @@ export default function GridConfigForm({
 
           {/* — Dynamic‐Only: Retrain Interval — */}
           {mode === "dynamic" && (
-            <Input
-              required
-              label="Retrain Interval (ms)"
-              min={60000}
-              step={60000}
-              type="number"
-              value={retrainInterval}
-              onChange={(e) => setRetrainInterval(e.target.value)}
-            />
+            <div className="space-y-2">
+              <LabelTag id="retrainInterval" title="Retrain Interval (ms)" />
+              <Input
+                id="retrainInterval"
+                required
+                min={60000}
+                step={60000}
+                type="number"
+                value={retrainInterval}
+                onChange={(e) => setRetrainInterval(e.target.value)}
+              />
+            </div>
           )}
         </div>
 
