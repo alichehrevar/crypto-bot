@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 
-import TechnicalBotsList from "@/components/profile/bots/technical/TechnicalBotsList";
+import BotsList from "@/components/profile/bots/BotsList";
 import GridDeployBotSection from "@/components/profile/bots/deploy/GridDeployBotSection";
 import TradingViewAdvancedChart from "@/components/shared/charts/TradingViewAdvancedChart";
 
@@ -18,7 +18,7 @@ export default function TechnicalBotsPage() {
           {/*<MarketWatchChart />*/}
           <TradingViewAdvancedChart />
           <div className="grid grid-cols-1 dark:bg-[#161616] bg-white mt-4 rounded-2xl py-6 px-3 h-[32.2svh]">
-            <TechnicalBotsList refreshList={refreshBotsList} />
+            <BotsList refreshList={refreshBotsList} listType="grid" />
           </div>
         </div>
         <div className="w-full lg:w-[28%]">

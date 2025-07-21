@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 
-import TechnicalBotsList from "@/components/profile/bots/technical/TechnicalBotsList";
+import BotsList from "@/components/profile/bots/BotsList";
 import TradingViewAdvancedChart from "@/components/shared/charts/TradingViewAdvancedChart";
 import ManualTradeSection from "@/components/profile/bots/deploy/ManualTradeSection";
 import { OrderBook } from "@/components/shared/OrderBook";
@@ -29,7 +29,7 @@ export default function TechnicalBotsPage() {
             </div>
           </div>
           <div className="grid grid-cols-1 dark:bg-[#161616] bg-white mt-4 rounded-2xl py-6 px-3 h-[32.2svh]">
-            <TechnicalBotsList refreshList={refreshBotsList} />
+            <BotsList refreshList={refreshBotsList} />
           </div>
         </div>
         <div className="w-full lg:w-[28%]">

@@ -4,7 +4,7 @@ import React, { useState } from "react";
 
 import BotSelectionComponent from "@/components/profile/bots/BotSelectionComponent";
 import BotProgressChart from "@/components/shared/charts/BotProgressChart";
-import TechnicalBotsList from "@/components/profile/bots/technical/TechnicalBotsList";
+import BotsList from "@/components/profile/bots/BotsList";
 import { RecentBots } from "@/components/shared/RecentBots";
 
 export default function BotsPage() {
@@ -22,7 +22,7 @@ export default function BotsPage() {
           <RecentBots />
         </div>
         <div className="grid grid-cols-1 dark:bg-[#161616] bg-white mt-4 rounded-2xl lg:py-6 lg:px-3">
-          <TechnicalBotsList refreshList={refreshBotsList} />
+          <BotsList refreshList={refreshBotsList} />
         </div>
       </div>
     </div>

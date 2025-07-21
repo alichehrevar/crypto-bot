@@ -1,15 +1,15 @@
 import React, { useEffect, useState } from "react";
 import { addToast, Spinner } from "@heroui/react";
 
-import TradesList from "./TradesList";
-import CloseBotModal from "./modals/closeBotModal";
-import PlayPauseBotModal from "./modals/playPauseBotModal";
+import TradesList from "./technical/TradesList";
+import CloseBotModal from "./technical/modals/closeBotModal";
+import PlayPauseBotModal from "./technical/modals/playPauseBotModal";
 
 import { Bot } from "@/types/profile/bots/DeployedBots";
 import { getData } from "@/actions/get";
 import { ChevronDownIcon } from "@/utils/icons";
 
-export default function TechnicalBotsList({ refreshList }: { refreshList: boolean }) {
+export default function BotsList({ refreshList, listType }: { refreshList: boolean, listType?: string }) {
   // Shared state & loader
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [deployedBots, setDeployedBots] = useState<Bot[]>([]);
@@ -18,7 +18,7 @@ export default function TechnicalBotsList({ refreshList }: { refreshList: boolea
   const loadBots = async () => {
     setIsLoading(true);
     try {
-      const resp = await getData("/bots");
+      const resp = await getData(`/bots?botType=${listType}`);
 
       if (resp.success) setDeployedBots(resp.bots);
       else addToast({ title: resp.error || "Unknown error", color: "danger" })
@@ -69,7 +69,7 @@ export default function TechnicalBotsList({ refreshList }: { refreshList: boolea
   return (
     <>
       <div className="flex items-center justify-between">
-        <h3 className="text-xl font-bold ml-4 mb-4">Bots List</h3>
+        <h3 className="text-xl font-bold ml-4 mb-4">Active Bots</h3>
       </div>
 
       {/* ========== MOBILE (below lg) ========== */}
