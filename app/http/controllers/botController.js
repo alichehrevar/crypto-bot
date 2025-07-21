@@ -261,21 +261,23 @@ exports.deployBot = async (req, res) => {
  */
 exports.getBots = async (req, res) => {
     try {
-        const filter = { active: true, userId: req.user?.id };
-        const bots = await BotBase.find(filter).lean();
+        const filter = {active: true, userId: req.user?.id};
+        const botType = req.query.botType;
+        console.log('getBots type:', botType);
+        const bots = await BotBase.find(botType ? {...filter, botType} : filter).lean();
 
         const enriched = await Promise.all(bots.map(async bot => {
             const price = bot.marketInfo?.currentCandle?.price;
-            let pnl = { realized: 0, unrealized: 0, total: 0 };
+            let pnl = {realized: 0, unrealized: 0, total: 0};
             if (typeof price === 'number') {
                 pnl = await PnLService.getBotPnL(bot._id, price);
             }
             const base = bot.marketInfo?.baseFund || 1;
-            const pct  = base > 0 ? (pnl.total / base * 100) : 0;
+            const pct = base > 0 ? (pnl.total / base * 100) : 0;
 
             const trades = await Trade
-                .find({ bot: bot._id })
-                .sort({ timestamp: -1 })
+                .find({bot: bot._id})
+                .sort({timestamp: -1})
                 .lean();
 
             return {
