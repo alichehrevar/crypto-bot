@@ -57,14 +57,13 @@ export default function LogViewerPage() {
       try {
         setLoadingContent(true);
         setError('');
-        const resp = await fetch(`/api/logs/file/${selectedFile}`);
+        const resp = await getData(`/logs/file/${selectedFile}`, true);
 
         if (!resp.ok) {
           throw new Error(`Could not fetch ${selectedFile}`);
         }
-        const text = await resp.text();
 
-        setLogContent(text);
+        setLogContent(resp);
       } catch (err: any) {
         setError(err.message || 'Error fetching log content');
         setLogContent('');

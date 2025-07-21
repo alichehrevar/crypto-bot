@@ -13,7 +13,7 @@ import {
 import { getData } from '@/actions/get';
 import { ExchangeAccount, AccountsResponse } from '@/types/profile/AccountType';
 import { SymbolFilterResponse } from '@/types/profile/CurrencyType';
-import { WalletBalance, RawBalanceResponse } from "@/types/profile/WalletBalanceType";
+import { RawBalanceResponse } from "@/types/profile/WalletBalanceType";
 import { sendRequest } from '@/actions/post';
 import { BotProps } from '@/types/profile/bots/StrategyParams';
 import { DefaultBotConfigForm } from '@/types/profile/bots/defaultBotConfigForm';
@@ -26,10 +26,11 @@ interface Currency {
 
 export interface BotConfigFormProps {
   mode: 'default' | 'optimized' | 'dynamic';
+  selectedParentTab: string;
   onCloseAction: () => void;
 }
 
-export default function BotConfigForm({ mode, onCloseAction }: BotConfigFormProps) {
+export default function BotConfigForm({ mode, selectedParentTab, onCloseAction }: BotConfigFormProps) {
   // strategy & indicator metadata
   const [botProps, setBotProps] = useState<BotProps>({
     riskStrategyOptions: [],
@@ -167,7 +168,7 @@ export default function BotConfigForm({ mode, onCloseAction }: BotConfigFormProp
         return
       }
 
-      const soptEntry = getBalance.balance.find(b => b.accountType === 'sopt');
+      const soptEntry = selectedParentTab === 'spot' ? getBalance.balance.find(b => b.accountType === 'sopt') : getBalance.balance.find(b => b.accountType === 'stdFutures');
       const freeAmount = parseFloat(soptEntry?.usdtBalance ?? '0');
 
       setAvailableBalance(freeAmount);

@@ -86,12 +86,12 @@ export const RecentActivities = () => {
 
   return (
     <div className="rounded-xl">
-      <div className="flex items-center justify-between mb-6 px-4">
+      <div className="flex items-center justify-between mb-3 px-4">
         <h3 className="text-lg font-semibold text-white">Recent Trading Activities</h3>
 
-        <div className="flex bg-gray-900/80 rounded-lg p-1 backdrop-blur-sm border border-gray-700/30">
+        <div className="flex rounded-lg p-1 backdrop-blur-sm border border-gray-700/30">
           <button
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
+            className={`px-4 py-1 rounded-md text-sm font-medium transition-all duration-200 ${
               activeTab === 'open'
                 ? 'bg-white text-black shadow-sm'
                 : 'text-gray-400 hover:text-white hover:bg-gray-800/50'
@@ -101,7 +101,7 @@ export const RecentActivities = () => {
             Open
           </button>
           <button
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
+            className={`px-4 py-1 rounded-md text-sm font-medium transition-all duration-200 ${
               activeTab === 'close'
                 ? 'bg-white text-black shadow-sm'
                 : 'text-gray-400 hover:text-white hover:bg-gray-800/50'
@@ -118,14 +118,14 @@ export const RecentActivities = () => {
       }}>
         <TableHeader>
           <TableHeader className="border-gray-800/50">
-            <TableColumn className="text-gray-400 font-medium">Symbol</TableColumn>
-            <TableColumn className="text-gray-400 font-medium">Broker</TableColumn>
-            <TableColumn className="text-gray-400 font-medium">Execution</TableColumn>
-            <TableColumn className="text-gray-400 font-medium">Strategy</TableColumn>
-            <TableColumn className="text-gray-400 font-medium">Leverage</TableColumn>
-            <TableColumn className="text-gray-400 font-medium">TP/SL</TableColumn>
-            <TableColumn className="text-gray-400 font-medium">Unrealized Pnl</TableColumn>
-            <TableColumn className="text-gray-400 font-medium"><span /></TableColumn>
+            <TableColumn className="dark:text-white font-bold">Symbol</TableColumn>
+            <TableColumn className="dark:text-white font-bold">Broker</TableColumn>
+            <TableColumn className="dark:text-white font-bold">Execution</TableColumn>
+            <TableColumn className="dark:text-white font-bold">Strategy</TableColumn>
+            <TableColumn className="dark:text-white font-bold">Leverage</TableColumn>
+            <TableColumn className="dark:text-white font-bold">TP/SL</TableColumn>
+            <TableColumn className="dark:text-white font-bold">Unrealized Pnl</TableColumn>
+            <TableColumn className="dark:text-white font-bold"><span /></TableColumn>
           </TableHeader>
         </TableHeader>
         <TableBody>
@@ -142,8 +142,8 @@ export const RecentActivities = () => {
             }
             {!loading && pnLData && pnLData.open.length === 0 && (
               <TableRow>
-                <TableCell colSpan={8}>
-                  <div className="flex items-center justify-center h-24 bg-[#1A1A1A] rounded-2xl">
+                <TableCell colSpan={8} className="px-0">
+                  <div className="flex items-center justify-center h-[70px] bg-default-100 rounded-lg">
                     No active positions.
                   </div>
                 </TableCell>

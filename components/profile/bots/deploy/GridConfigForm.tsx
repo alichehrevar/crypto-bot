@@ -25,13 +25,15 @@ interface Currency {
 // Props for this form: which grid‐tab is active, and a callback for closing
 export interface GridConfigFormProps {
   mode: "standard" | "infinity" | "dynamic";
+  selectedParentTab: string;
   onCloseAction: () => void;
 }
 
 export default function GridConfigForm({
-                                         mode,
-                                         onCloseAction,
-                                       }: GridConfigFormProps) {
+   mode,
+   selectedParentTab,
+   onCloseAction,
+}: GridConfigFormProps) {
   //
   // ─── LOOKUPS & COMMON STATE ────────────────────────────────────────────
   //
@@ -178,7 +180,7 @@ export default function GridConfigForm({
       }
 
       if (res.balance) {
-        const soptEntry = res.balance.find(b => b.accountType === 'sopt');
+        const soptEntry = selectedParentTab === 'spot' ? res.balance.find(b => b.accountType === 'sopt') : res.balance.find(b => b.accountType === 'stdFutures');
         const free = parseFloat(soptEntry?.usdtBalance ?? '0');
 
         setAvailableBalance(free);

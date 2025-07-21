@@ -14,14 +14,37 @@ export default function TechnicalDeployBotSection ({
   onSuccessAction: () => void
 }) {
 
+  const parentTabs = [
+    { key: "spot", title: 'Spot Trading' },
+    { key: "futures", title: 'Futures Trading' }
+  ] as const;
+
   const tabs = [
     { key: "default",   title: "Default"   },
     { key: "optimized", title: "Optimized" },
-    { key: 'dynamic', title: 'Dynamic' }
+    { key: "dynamic", title: "Dynamic" }
   ] as const;
+
+  const [selectedParentTab, setSelectedParentTab] = React.useState("spot");
 
   return (
     <div className="flex w-full flex-col bg-white/10 backdrop-blur-md pt-4 px-4 rounded-2xl bot-config-form__tabs-screen-height">
+      <Tabs
+        fullWidth
+        aria-label="Options"
+        variant="underlined"
+        className="mb-4"
+        selectedKey={selectedParentTab}
+        onSelectionChange={(k) => setSelectedParentTab(k as string)}
+        classNames={{
+          cursor: "w-full",
+          tab: "h-10 px-0",
+        }}
+      >
+        {parentTabs.map(({ key, title }) => (
+          <Tab key={key} title={title} />
+        ))}
+      </Tabs>
       <Tabs
         fullWidth
         aria-label="Options"
@@ -35,7 +58,11 @@ export default function TechnicalDeployBotSection ({
       >
         {tabs.map(({ key, title }) => (
           <Tab key={key} title={title}>
-            <BotConfigForm mode={key} onCloseAction={() => onSuccessAction()} />
+            <BotConfigForm
+              mode={key}
+              selectedParentTab={selectedParentTab}
+              onCloseAction={() => onSuccessAction()}
+            />
           </Tab>
         ))}
       </Tabs>
