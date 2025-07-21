@@ -5,6 +5,7 @@ import React, { useState } from "react";
 import BotsList from "@/components/profile/bots/BotsList";
 import GridDeployBotSection from "@/components/profile/bots/deploy/GridDeployBotSection";
 import TradingViewAdvancedChart from "@/components/shared/charts/TradingViewAdvancedChart";
+import PageTitleSection from "@/components/shared/ui/PageTitleSection";
 
 
 export default function TechnicalBotsPage() {
@@ -13,7 +14,8 @@ export default function TechnicalBotsPage() {
 
   return (
     <div className="container mt-4 relative px-5">
-      <div className=" w-full flex items-start justify-center gap-6">
+      <PageTitleSection title="Grid Bots" imagePath="/images/profile/heikin_ashi-motion.png" />
+      <div className="w-full flex items-start justify-center gap-6 mt-6">
         <div className="w-full lg:w-[72%] h-[60svh]">
           {/*<MarketWatchChart />*/}
           <TradingViewAdvancedChart />
