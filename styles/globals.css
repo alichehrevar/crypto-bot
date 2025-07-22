@@ -121,6 +121,3 @@ section[role="dialog"] .overflow-y-auto::-webkit-scrollbar-track {
 .tradingview-widget-container iframe {
     height: 100% !important;
 }
-.order-book-parent .tradingview-widget-container {
-    height: 100% !important;
-}

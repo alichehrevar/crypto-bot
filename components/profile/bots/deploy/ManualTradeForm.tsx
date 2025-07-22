@@ -17,6 +17,7 @@ import { sendRequest } from "@/actions/post";
 import { ExchangeAccount } from "@/types/profile/AccountType";
 import { WalletBalance } from "@/types/profile/WalletBalanceType";
 import { SymbolFilterResponse } from "@/types/profile/CurrencyType";
+import LabelTag from "@/components/shared/ui/Label";
 
 interface Currency {
   _id: string;
@@ -285,7 +286,7 @@ export default function ManualTradeForm({
   // ─── RENDER FORM ──────────────────────────────────────────────────────────
   //
   return (
-    <div className="py-4 px-2 h-[100%]">
+    <div className="py-4 px-2 h-full">
       {/* ── MARKET / LIMIT TAB SWITCH ──────────────────────────────────────── */}
       <div className="flex justify-start mb-4 gap-4">
         <button
@@ -310,47 +311,52 @@ export default function ManualTradeForm({
 
       <form className="space-y-4 overflow-y-auto h-full" onSubmit={handleSubmit}>
         {/* — Account Dropdown — */}
-        <Autocomplete
-          id="Account"
-          isClearable={false}
-          items={accounts}
-          label="Account"
-          onSelectionChange={(k: Key | null) => handleAccountChange(k)}
-        >
-          {accounts.map((acc) => (
-            <React.Fragment key={acc._id}>
-              <AutocompleteItem key={acc._id} textValue={acc.name}>
-                {acc.name}
-              </AutocompleteItem>
-            </React.Fragment>
-          ))}
-        </Autocomplete>
+        <div className="space-y-2">
+          <LabelTag id="account" title="Account" />
+          <Autocomplete
+            id="account"
+            isClearable={false}
+            items={accounts}
+            onSelectionChange={(k: Key | null) => handleAccountChange(k)}
+          >
+            {accounts.map((acc) => (
+              <React.Fragment key={acc._id}>
+                <AutocompleteItem key={acc._id} textValue={acc.name}>
+                  {acc.name}
+                </AutocompleteItem>
+              </React.Fragment>
+            ))}
+          </Autocomplete>
+        </div>
 
         <p className="text-sm text-gray-600">
           Available balance: <b>{availableBalance.toFixed(2)} USDT</b>
         </p>
 
         {/* — Symbol Dropdown — */}
-        <Autocomplete
-          defaultItems={symbols}
-          id="Symbol"
-          isClearable={false}
-          label="Symbol"
-          onSelectionChange={(k) => k && setSelectedSymbol(k.toString())}
-        >
-          {symbols.map((s) => (
-            <AutocompleteItem key={s.symbol} textValue={s.symbol}>
-              {s.symbol}
-            </AutocompleteItem>
-          ))}
-        </Autocomplete>
+        <div className="space-y-2">
+          <LabelTag id="symbol" title="Symbol" />
+          <Autocomplete
+            defaultItems={symbols}
+            id="symbol"
+            isClearable={false}
+            onSelectionChange={(k) => k && setSelectedSymbol(k.toString())}
+          >
+            {symbols.map((s) => (
+              <AutocompleteItem key={s.symbol} textValue={s.symbol}>
+                {s.symbol}
+              </AutocompleteItem>
+            ))}
+          </Autocomplete>
+        </div>
 
         {/* ── LIMIT PRICE (only if mode="limit") ─────────────────────────────── */}
         {mode === "limit" && (
-          <div>
+          <div className="space-y-2">
+            <LabelTag id="price" title="Price (USDT)" />
             <Input
+              id="price"
               required
-              label="Price (USDT)"
               min={0.0001}
               placeholder="e.g. 30,000"
               step="0.01"
@@ -365,26 +371,29 @@ export default function ManualTradeForm({
         )}
 
         {/* ── QUANTITY INPUT ─────────────────────────────────────────────────── */}
-        <Input
-          required
-          label="Quantity"
-          min={0.000001}
-          placeholder="e.g. 0.01"
-          step="0.000001"
-          type="number"
-          value={quantity}
-          onChange={(e) => {
-            setQuantity(e.target.value);
-            setPercentQuickQty(null);
-          }}
-        />
+        <div className="space-y-2">
+          <LabelTag id="quantity" title="Quantity" />
+          <Input
+            id="quantity"
+            required
+            min={0.000001}
+            placeholder="e.g. 0.01"
+            step="0.000001"
+            type="number"
+            value={quantity}
+            onChange={(e) => {
+              setQuantity(e.target.value);
+              setPercentQuickQty(null);
+            }}
+          />
+        </div>
 
         {/* ── QUICK‐SELECT PERCENTAGE BUTTONS ────────────────────────────────── */}
         <div className="flex items-center gap-2">
           {[10, 25, 50, 75, 100].map((p) => (
             <button
               key={p}
-              className={`px-3 py-1 rounded-xl text-[12px] ${
+              className={`flex flex-1 items-center justify-center px-3 py-1 rounded-xl text-[12px] ${
                 percentQuickQty === p
                   ? "bg-blue-600 text-white"
                   : "bg-default-200 text-gray-200"
@@ -411,23 +420,26 @@ export default function ManualTradeForm({
         {/* ── TP & SL INPUTS + QUICK‐SELECT BUTTONS ──────────────────────────── */}
         <div className="space-y-2">
           {/* Take Profit */}
-          <Input
-            disabled={!enableTPSL}
-            label="Take Profit (%)"
-            max={500}
-            min={0.01}
-            placeholder="e.g. 5"
-            required={enableTPSL}
-            step={0.01}
-            type="number"
-            value={takeProfitPct}
-            onChange={(e) => setTakeProfitPct(e.target.value)}
-          />
+          <div className="space-y-2">
+            <LabelTag id="takeProfit" title="Take Profit (%)" />
+            <Input
+              id="takeProfit"
+              disabled={!enableTPSL}
+              max={500}
+              min={0.01}
+              placeholder="e.g. 5"
+              required={enableTPSL}
+              step={0.01}
+              type="number"
+              value={takeProfitPct}
+              onChange={(e) => setTakeProfitPct(e.target.value)}
+            />
+          </div>
           <div className="flex items-center gap-2 flex-wrap">
             {[5, 10, 25, 50, 100, 150].map((p) => (
               <button
                 key={p}
-                className={`px-2 py-1 rounded-2xl text-[12px] ${
+                className={`flex flex-1 items-center justify-center px-2 py-1 rounded-2xl text-[12px] ${
                   enableTPSL
                     ? "bg-default-200 text-gray-200"
                     : "bg-default-100 text-gray-400 cursor-not-allowed"
@@ -447,23 +459,26 @@ export default function ManualTradeForm({
           )}
 
           {/* Stop Loss */}
-          <Input
-            disabled={!enableTPSL}
-            label="Stop Loss (%)"
-            max={500}
-            min={0.01}
-            placeholder="e.g. 5"
-            required={enableTPSL}
-            step={0.01}
-            type="number"
-            value={stopLossPct}
-            onChange={(e) => setStopLossPct(e.target.value)}
-          />
+          <div className="space-y-2">
+            <LabelTag id="stopLoss" title="Stop Loss (%)" />
+            <Input
+              id="stopLoss"
+              disabled={!enableTPSL}
+              max={500}
+              min={0.01}
+              placeholder="e.g. 5"
+              required={enableTPSL}
+              step={0.01}
+              type="number"
+              value={stopLossPct}
+              onChange={(e) => setStopLossPct(e.target.value)}
+            />
+          </div>
           <div className="flex items-center gap-2 flex-wrap">
             {[20, 30, 40, 50, 60, 70].map((p) => (
               <button
                 key={p}
-                className={`px-2 py-1 rounded-2xl text-[12px] ${
+                className={`flex flex-1 items-center justify-center px-2 py-1 rounded-2xl text-[12px] ${
                   enableTPSL
                     ? "bg-default-200 text-gray-200"
                     : "bg-default-100 text-gray-400 cursor-not-allowed"
