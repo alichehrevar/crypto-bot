@@ -264,7 +264,7 @@ exports.getBots = async (req, res) => {
         const filter = {active: true, userId: req.user?.id};
         const botType = req.query.botType;
         console.log('getBots type:', botType);
-        const bots = await BotBase.find(botType ? {...filter, botType} : filter).lean();
+        const bots = await BotBase.find(botType && botType !== 'undefined' ? {...filter, botType} : filter).lean();
 
         const enriched = await Promise.all(bots.map(async bot => {
             const price = bot.marketInfo?.currentCandle?.price;
