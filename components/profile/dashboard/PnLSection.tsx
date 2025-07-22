@@ -89,24 +89,26 @@ export default function PnLSection() {
         </Tabs>
       </div>
       {/* Controls */}
-      <div className="flex items-center justify-end w-full">
-        <ul className="flex items-center gap-2">
-          {DURS.map((d) => (
-            <li key={d}>
-              <button
-                className={`
+      {tab === 'realized-pnl' &&
+        <div className="flex items-center justify-end w-full">
+          <ul className="flex items-center gap-2">
+            {DURS.map((d) => (
+              <li key={d}>
+                <button
+                  className={`
                   bg-default-100 w-[35px] text-center text-[12px] py-0.5 rounded-lg border
                   transition-colors duration-200
                   ${duration === d ? 'border-primary' : 'border-default-100'}
                 `}
-                onClick={() => setDuration(d)}
-              >
-                {d.toUpperCase()}
-              </button>
-            </li>
-          ))}
-        </ul>
-      </div>
+                  onClick={() => setDuration(d)}
+                >
+                  {d.toUpperCase()}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      }
 
       {/* Chart */}
       <div
