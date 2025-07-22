@@ -15,9 +15,6 @@ class BingXWS {
         this.maxReconnectAttempts = 10;
         this.subscriptions = new Map();
         this.pingInterval = null;
-        // Removed default credentials from environment.
-        // this.apiKey = process.env.BINGX_API_KEY;
-        // this.apiSecret = process.env.BINGX_API_SECRET;
     }
 
     /**
@@ -389,7 +386,6 @@ class BingXWS {
      * Fetch the account balance from BingX using REST API.
      * @param {Object} account - The account object containing API credentials.
      * @param all
-     * @returns {Promise<number>} The account balance.
      */
     async getBalance(account, { all = false } = {}) {
         const { apiKey, secretKey } = account;
@@ -435,13 +431,10 @@ class BingXWS {
 
         if (all) {
             // unchanged: filter for sopt & stdFutures
-            const wanted = new Set(['sopt', 'stdFutures']);
-            return raw
-                .filter(item => wanted.has(item.accountType))
-                .map(item => ({
-                    accountType: item.accountType,
-                    usdtBalance: item.usdtBalance,
-                }));
+            return raw.map(item => ({
+                accountType: item.accountType,
+                usdtBalance: item.usdtBalance,
+            }));
         } else {
             // —— NEW: spot-only case ——
             // find the USDT entry, sum available + frozen, and wrap in the same shape
