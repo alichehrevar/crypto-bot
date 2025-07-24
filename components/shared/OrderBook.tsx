@@ -200,25 +200,6 @@ export const OrderBook = () => {
                 </div>
               </div>
             </div>
-
-            {/* Current Price */}
-            <div className="text-center py-3 mb-3 bg-gray-800/30 rounded-lg">
-              <div className={`text-lg font-bold font-mono transition-colors duration-300 ${
-                priceChange > 0 ? 'text-green-400' : priceChange < 0 ? 'text-red-400' : 'text-white'
-              }`}>
-                {currentPrice.toFixed(1)}
-                {priceChange !== 0 && (
-                  <span className={`ml-2 text-sm ${priceChange > 0 ? 'text-green-400' : 'text-red-400'}`}>
-                    {priceChange > 0 ? '↑' : '↓'} {Math.abs(priceChange).toFixed(1)}
-                  </span>
-                )}
-              </div>
-              <div className="flex items-center justify-center gap-2 mt-1">
-                <span className="text-gray-400 text-xs">24h</span>
-                <span className="text-green-400 text-xs">+0.96%</span>
-                <span className="text-gray-400 text-xs">Vol 2,847</span>
-              </div>
-            </div>
           </>
         ) : (
           <>
