@@ -386,36 +386,47 @@ class BingXWS {
      * Fetch the account balance from BingX using REST API.
      * @param {Object} account - The account object containing API credentials.
      * @param all
+     * @param accountType
      */
-    async getBalance(account, { all = false } = {}) {
+    async getBalance(account, { all = false, accountType = '' } = {}) {
         const { apiKey, secretKey } = account;
         const timestamp = Date.now().toString();
+        const queryParams = new URLSearchParams({ timestamp });
 
-        const queryString = `timestamp=${timestamp}`;
+        // build & sign
+        const toSign = queryParams.toString();
         const signature = crypto
             .createHmac('sha256', secretKey)
-            .update(queryString)
+            .update(toSign)
             .digest('hex');
 
+        // for REST: append signature
+        queryParams.append('signature', signature);
+
+        // 1) Spot-only via WS
+        if (!all && accountType === 'spot') {
+            return this.getSpotBalance(account);
+        }
+
+        // 2) All-accounts or Fund-only (sopt) via REST
         const base = 'https://open-api.bingx.com/openApi';
-        const path = all
-            ? '/account/v1/allAccountBalance'
-            : '/spot/v1/account/balance';
-        const endpoint = `${base}${path}?${queryString}&signature=${signature}`;
+        const path = '/account/v1/allAccountBalance';
+        // if just fund, restrict to sopt
+        if (!all) queryParams.set('accountType', 'sopt');
+        const url = `${base}${path}?${queryParams.toString()}`;
 
         const headers = {
-            'Content-Type': 'application/json',
-            'X-BX-APIKEY': apiKey,
+            'Content-Type':  'application/json',
+            'X-BX-APIKEY':   apiKey,
             'X-BX-SIGNATURE': signature,
             'X-BX-TIMESTAMP': timestamp,
         };
 
-        const res = await fetch(endpoint, { method: 'GET', headers });
+        const res  = await fetch(url, { method: 'GET', headers });
         const text = await res.text();
         let json;
-        try {
-            json = JSON.parse(text);
-        } catch {
+        try { json = JSON.parse(text); }
+        catch {
             throw new Error(`Invalid JSON response: ${text}`);
         }
         if (!res.ok || json.code !== 0) {
@@ -423,32 +434,89 @@ class BingXWS {
             throw new Error(`BingX API error (${res.status||json.code}): ${msg}`);
         }
 
-        // pull out the raw array
-        const raw = all ? json.data : json.data?.balances;
+        const raw = json.data;
         if (!Array.isArray(raw)) {
             throw new Error('Unexpected response format from BingX API');
         }
 
-        if (all) {
-            // unchanged: filter for sopt & stdFutures
-            return raw.map(item => ({
-                accountType: item.accountType,
-                usdtBalance: item.usdtBalance,
-            }));
-        } else {
-            // —— NEW: spot-only case ——
-            // find the USDT entry, sum available + frozen, and wrap in the same shape
-            const entry = raw.find(b => b.asset === 'USDT');
-            const free   = parseFloat(entry?.availableBalance ?? 0);
-            const locked = parseFloat(entry?.freezeBalance     ?? 0);
-            return [
-                {
-                    accountType: 'spot',
-                    usdtBalance: (free + locked).toString()
-                }
-            ];
-        }
+        return raw.map(item => ({
+            accountType: item.accountType,
+            usdtBalance: item.usdtBalance,
+        }));
     }
+
+    async getSpotBalance(account) {
+        const { apiKey, secretKey } = account;
+        const timestamp = Date.now().toString();
+        const signature = crypto
+            .createHmac('sha256', secretKey)
+            .update(`timestamp=${timestamp}`)
+            .digest('hex');
+
+        // 1) create the WS
+        const ws = new WebSocket('wss://open-api-ws.bingx.com/ws/v1/spot');
+
+        // 2) helper to gunzip each incoming message
+        async function decompress(blob) {
+            const ds = new DecompressionStream('gzip');
+            const decompressed = blob.stream().pipeThrough(ds);
+            return new Response(decompressed).arrayBuffer();
+        }
+
+        return new Promise((resolve, reject) => {
+            // safety timeout
+            const timer = setTimeout(() => {
+                ws.terminate();
+                reject(new Error('Timeout waiting for spot INIT'));
+            }, 5000);
+
+            ws.on('open', () => {
+                ws.send(JSON.stringify({
+                    op:    'sub',
+                    topic: 'ACCOUNT_SPOT',
+                    params: { apiKey, timestamp, signature }
+                }));
+            });
+
+            // 3) replace your old ws.on('message') with this
+            ws.on('message', async (data) => {
+                try {
+                    // gzip → ArrayBuffer → string
+                    const buf = await decompress(data);
+                    const txt = new TextDecoder().decode(buf);
+
+                    // keep the ping/pong alive
+                    if (txt === 'Ping') {
+                        ws.send('Pong');
+                        return;
+                    }
+
+                    const msg = JSON.parse(txt);
+                    if (msg.topic === 'ACCOUNT_SPOT' && msg.type === 'INIT') {
+                        clearTimeout(timer);
+                        ws.close();
+                        const usdt = msg.data.find(x => x.asset === 'USDT') || {};
+                        const free   = parseFloat(usdt.availableBalance || '0');
+                        const frozen = parseFloat(usdt.freezeBalance     || '0');
+                        resolve([{
+                            accountType: 'spot',
+                            usdtBalance: (free + frozen).toString()
+                        }]);
+                    }
+                } catch (err) {
+                    clearTimeout(timer);
+                    ws.terminate();
+                    reject(err);
+                }
+            });
+
+            ws.once('error', err => {
+                clearTimeout(timer);
+                reject(err);
+            });
+        });
+    }
+
 
     async executeOrder(orderDetails, account) {
         // orderDetails might include properties such as:

@@ -177,6 +177,7 @@ exports.linkBingxAccount = async (req, res) => {
  */
 exports.getAccountBalance = async (req, res) => {
     const {accountId} = req.params;
+    const {accountType} = req.query;
     try {
         let account;
         let type = '';
@@ -208,7 +209,7 @@ exports.getAccountBalance = async (req, res) => {
                 balance = await OkxService.getBalance(account, { all: true });
                 break;
             case 'bingx':
-                balance = await BingxService.getBalance(account, { all: true });
+                balance = await BingxService.getBalance(account, { all: accountType !== 'spot', accountType });
                 break;
             default:
                 return res.status(400).json({error: 'Unsupported account type'});
