@@ -220,7 +220,7 @@ export default function StrategyTesterPage() {
         <div className="w-full flex flex-col lg:flex-row items-start gap-6">
 
           {/* Left Column: Chart */}
-          <div className="w-full lg:w-[65%] flex-shrink-0">
+          <div className="w-full lg:w-[70%]">
             <div className="bg-default-50 rounded-2xl p-2">
               {chartData ? (
                 <BacktestResultChart candles={chartData.candles} height={550} trades={chartData.trades} />
@@ -233,13 +233,13 @@ export default function StrategyTesterPage() {
           </div>
 
           {/* Right Column: Form */}
-          <div className="w-full lg:w-[35%] p-6 bg-default-50 rounded-2xl text-white">
+          <div className="w-full lg:w-[30%] p-6 bg-default-50 rounded-2xl text-white">
             <form className="space-y-6" onSubmit={handleSubmit}>
               <div className="flex items-center gap-2 mb-4">
                 <Cog8ToothIcon className="w-6 h-6" stroke="#60a5fa" />
                 <h3 className="text-lg font-semibold text-white">Strategy Parameters</h3>
               </div>
-              <div className="flex items-center justify-between flex-col-reverse gap-4 w-full border-b border-default-200 pb-4">
+              <div className="flex items-start justify-between flex-col-reverse gap-4 w-full border-b border-default-200 pb-4">
                 <Autocomplete
                   className="w-full"
                   defaultItems={symbols.map(s => ({ label: s, value: s }))}
@@ -250,8 +250,8 @@ export default function StrategyTesterPage() {
                 >
                   {(item: any) => <AutocompleteItem key={item.value}>{item.label}</AutocompleteItem>}
                 </Autocomplete>
-                <div className="flex items-center gap-4">
-                  <RadioGroup size="sm" orientation="horizontal" value={useRecent} onValueChange={setUseRecent}>
+                <div className="flex items-start justify-between w-full gap-4">
+                  <RadioGroup size="sm" orientation="vertical" value={useRecent} onValueChange={setUseRecent}>
                     <Radio value="recent-candles">Recent Candles</Radio>
                     <Radio value="time-range">Time Range</Radio>
                   </RadioGroup>
@@ -265,7 +265,7 @@ export default function StrategyTesterPage() {
                       onChange={e => setRecentCount(e.target.value)}
                     />
                   ) : (
-                    <DateRangePicker value={dateRangeValue} onChange={setDateRangeValue} />
+                    <DateRangePicker className="w-auto" value={dateRangeValue} onChange={setDateRangeValue} />
                   )}
                 </div>
               </div>

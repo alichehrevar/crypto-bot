@@ -159,7 +159,7 @@ export default function BotConfigForm({ mode, selectedParentTab, onCloseAction }
   async function handleAccountChange(accountId: Key | null) {
     setSelectedAccountId(accountId?.toString())
     try {
-      const getBalance: RawBalanceResponse = await getData(`/accounts/${accountId}/balance`);
+      const getBalance: RawBalanceResponse = await getData(`/accounts/${accountId}/balance?accountType=${selectedParentTab}`);
 
       if (!getBalance.success) {
         addToast({
