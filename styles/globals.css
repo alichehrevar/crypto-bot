@@ -6,6 +6,10 @@
     --text-color-light: #777777;
 }
 
+.bg-background, .bg-black {
+    background-color: #0A0908;
+}
+
 label[data-slot="label"]:after {
     display: none;
 }

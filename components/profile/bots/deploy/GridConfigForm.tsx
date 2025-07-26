@@ -535,7 +535,7 @@ export default function GridConfigForm({
               value={takeProfitPct}
               onChange={(e) => setTakeProfitPct(e.target.value)}
             />
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-2 flex-nowrap">
               {[5, 10, 25, 50, 100, 150].map((p) => (
                 <button
                   key={p}
@@ -567,7 +567,7 @@ export default function GridConfigForm({
               value={stopLossPct}
               onChange={(e) => setStopLossPct(e.target.value)}
             />
-            <div className="flex items-center flex-wrap gap-2">
+            <div className="flex items-center flex-nowrap gap-2">
               {[20, 30, 40, 50, 60, 70].map((p) => (
                 <button
                   key={p}
