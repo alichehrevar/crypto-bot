@@ -9,6 +9,10 @@ export const MenuItems = [
     link: '/profile/bots',
     children: [
       {
+        name: 'All Bots',
+        link: '/profile/bots',
+      },
+      {
         name: 'Technical Bots',
         link: '/profile/bots/technical',
       },
