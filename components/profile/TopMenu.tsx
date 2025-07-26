@@ -19,6 +19,7 @@ import {
 } from "@heroui/react";
 import { SearchIcon } from "@/components/shared/icons";
 import { siteConfig } from "@/config/site";
+import { ArrowLeftStartOnRectangle, Cog8ToothIcon } from "@/utils/icons";
 
 export default function TopMenu() {
 
@@ -33,21 +34,52 @@ export default function TopMenu() {
       <NavbarContent justify="start" className="flex flex-1">
         <NavbarBrand>
           <div className="w-[128px] h-[32px] flex items-center justify-center">
-            <Image
-              priority
-              alt={siteConfig.name}
-              height={32}
-              src="/images/logos/logotype-white.png"
-              width={128}
-            />
+            <Link href="/dashboard">
+              <Image
+                priority
+                alt={siteConfig.name}
+                height={32}
+                src="/images/logos/logotype-white.png"
+                width={128}
+              />
+            </Link>
           </div>
         </NavbarBrand>
         <NavbarContent className="flex items-center justify-center gap-5">
           {Object.values(MenuItems).map((menuItem, i) => {
             const isActive = menuItem.link === pathname || menuItem.children.some(c => c.link === pathname);
+            if (menuItem.children.length) {
+              return (
+                <Dropdown placement="bottom-start" key={i}>
+                  <DropdownTrigger>
+                    <span className={`text-[14px] font-light cursor-pointer ${isActive ? "text-primary" : ""}`}>
+                      {menuItem.name}
+                    </span>
+                  </DropdownTrigger>
+                  <DropdownMenu aria-label="Bots List" variant="flat">
+                    {menuItem.children.map((child, j) => {
+                      const childActive = pathname === child.link;
+
+                      return (
+                        <DropdownItem
+                          key={j}
+                          href={child.link}
+                          className={`flex items-center space-x-3 px-4 py-2 rounded-full hover:bg-none ${childActive ? "text-primary" : ""}`}
+                          classNames={{
+                            base: "text-sm data-[hover=true]:bg-unset data-[hover=true]:text-primary-200 data-[focus=true]:bg-unset data-[focus=true]:text-primary-200",
+                          }}
+                        >
+                          <span className="text-[14px]">{child.name}</span>
+                        </DropdownItem>
+                      );
+                    })}
+                  </DropdownMenu>
+                </Dropdown>
+              )
+            }
             return (
               <NavbarItem isActive={isActive} key={i}>
-                <Link color={isActive ? 'primary' : 'foreground'} href={menuItem.link} className="text-sm hover:text-primary-200">
+                <Link href={menuItem.link} className={`text-sm ${isActive ? 'text-primary' : 'hover:text-primary-200'}`}>
                   {menuItem.name}
                 </Link>
               </NavbarItem>
@@ -81,17 +113,16 @@ export default function TopMenu() {
               />
             </DropdownTrigger>
             <DropdownMenu aria-label="Profile Actions" variant="flat">
-              <DropdownItem key="profile" className="h-14 gap-2">
+              <DropdownItem key="profile" className="h-14 border-b-1 border-gray-700 pb-4 mb-2 rounded-none gap-2">
                 <p className="font-semibold">Signed in as</p>
                 <p className="font-semibold">zoey@example.com</p>
               </DropdownItem>
-              <DropdownItem key="settings">My Settings</DropdownItem>
-              <DropdownItem key="team_settings">Team Settings</DropdownItem>
-              <DropdownItem key="analytics">Analytics</DropdownItem>
-              <DropdownItem key="system">System</DropdownItem>
-              <DropdownItem key="configurations">Configurations</DropdownItem>
-              <DropdownItem key="help_and_feedback">Help & Feedback</DropdownItem>
-              <DropdownItem key="logout" color="danger">
+              <DropdownItem key="settings" startContent={<Cog8ToothIcon className="w-5 h-5" />}>
+                <Link href="/profile/settings">
+                  Settings
+                </Link>
+              </DropdownItem>
+              <DropdownItem key="logout" color="danger" startContent={<ArrowLeftStartOnRectangle className="w-5 h-5" />}>
                 Log Out
               </DropdownItem>
             </DropdownMenu>

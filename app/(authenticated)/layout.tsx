@@ -14,7 +14,7 @@ export default function ProfileLayout ({
           <TopMenu />
         </div>
         <div className="flex w-full">
-          <div className="flex items-start justify-start h-screen w-full flex-col gap-4 relative">
+          <div className="flex items-start justify-start h-full w-full flex-col gap-4 relative">
             {children}
           </div>
         </div>
