@@ -17,6 +17,18 @@ const config: Config = {
       },
       colors: {
         primary: {
+          DEFAULT: '#ffffff',
+          50: '#F5F5F5',
+          100: '#E5E5E5',
+          200: '#D4D4D4',
+          300: '#C4C4C4',
+          400: '#B3B3B3',
+          500: '#A3A3A3',
+          600: '#939393',
+          700: '#828282',
+          800: '#717171',
+        },
+        success: {
           DEFAULT: "#9EF01A",
           50: "#E6F9E6",
           100: "#C6F5C6",
