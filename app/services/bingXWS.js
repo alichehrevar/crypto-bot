@@ -1,4 +1,5 @@
 const WebSocket = require('ws');
+const CryptoJS = require('crypto-js');
 const crypto = require('crypto');
 const zlib = require('zlib');
 const Candle = require('../models/Candle');
@@ -445,78 +446,82 @@ class BingXWS {
         }));
     }
 
-    async getSpotBalance(account) {
-        const { apiKey, secretKey } = account;
-        const timestamp = Date.now().toString();
-        const signature = crypto
-            .createHmac('sha256', secretKey)
-            .update(`timestamp=${timestamp}`)
-            .digest('hex');
-
-        // 1) create the WS
-        const ws = new WebSocket('wss://open-api-ws.bingx.com/ws/v1/spot');
-
-        // 2) helper to gunzip each incoming message
-        async function decompress(blob) {
-            const ds = new DecompressionStream('gzip');
-            const decompressed = blob.stream().pipeThrough(ds);
-            return new Response(decompressed).arrayBuffer();
+    getParameters(API, timestamp, urlEncode) {
+        let parameters = ""
+        for (const key in API.payload) {
+            if (urlEncode) {
+                parameters += key + "=" + encodeURIComponent(API.payload[key]) + "&"
+            } else {
+                parameters += key + "=" + API.payload[key] + "&"
+            }
         }
-
-        return new Promise((resolve, reject) => {
-            // safety timeout
-            const timer = setTimeout(() => {
-                ws.terminate();
-                reject(new Error('Timeout waiting for spot INIT'));
-            }, 5000);
-
-            ws.on('open', () => {
-                ws.send(JSON.stringify({
-                    op:    'sub',
-                    topic: 'ACCOUNT_SPOT',
-                    params: { apiKey, timestamp, signature }
-                }));
-            });
-
-            // 3) replace your old ws.on('message') with this
-            ws.on('message', async (data) => {
-                try {
-                    // gzip → ArrayBuffer → string
-                    const buf = await decompress(data);
-                    const txt = new TextDecoder().decode(buf);
-
-                    // keep the ping/pong alive
-                    if (txt === 'Ping') {
-                        ws.send('Pong');
-                        return;
-                    }
-
-                    const msg = JSON.parse(txt);
-                    if (msg.topic === 'ACCOUNT_SPOT' && msg.type === 'INIT') {
-                        clearTimeout(timer);
-                        ws.close();
-                        const usdt = msg.data.find(x => x.asset === 'USDT') || {};
-                        const free   = parseFloat(usdt.availableBalance || '0');
-                        const frozen = parseFloat(usdt.freezeBalance     || '0');
-                        resolve([{
-                            accountType: 'spot',
-                            usdtBalance: (free + frozen).toString()
-                        }]);
-                    }
-                } catch (err) {
-                    clearTimeout(timer);
-                    ws.terminate();
-                    reject(err);
-                }
-            });
-
-            ws.once('error', err => {
-                clearTimeout(timer);
-                reject(err);
-            });
-        });
+        if (parameters) {
+            parameters = parameters.substring(0, parameters.length - 1)
+            parameters = parameters + "&timestamp=" + timestamp
+        } else {
+            parameters = "timestamp=" + timestamp
+        }
+        return parameters
     }
 
+    async getSpotBalance(account) {
+        const { apiKey, apiSecret: API_SECRET } = account;
+        const timestamp = Date.now().toString();
+
+        // 1) build your payload exactly like the sample
+        const payload = {
+            recvWindow: "60000",
+            timestamp
+        };
+
+        // 2) helper to turn payload → query string
+        function getParameters(payload, timestamp) {
+            let params = "";
+            for (const key in payload) {
+                params += `${key}=${encodeURIComponent(payload[key])}&`;
+            }
+            // strip trailing &
+            params = params.slice(0, -1);
+            // append timestamp param if missing (we already included it)
+            return params;
+        }
+        const paramString = getParameters(payload, timestamp);
+
+        // 3) sign it
+        const signature = CryptoJS.HmacSHA256(paramString, API_SECRET)
+            .toString(CryptoJS.enc.Hex);
+
+        // 4) full URL
+        const url = `https://open-api.bingx.com/openApi/spot/v1/account/balance?${paramString}&signature=${signature}`;
+
+        // 5) axios GET – keep raw transformResponse to avoid BigInt mangling
+        const resp = await axios.get(url, {
+            headers: { "X-BX-APIKEY": apiKey },
+            transformResponse: [data => data]
+        });
+
+        if (resp.status !== 200) {
+            throw new Error(`HTTP ${resp.status}`);
+        }
+
+        // 6) parse & error check
+        const json = JSON.parse(resp.data);
+        if (json.code !== 0) {
+            throw new Error(`BingX API error (${json.code}): ${json.msg||json.message}`);
+        }
+
+        // 7) extract USDT asset
+        const assets = json.data; // array of { asset, availableBalance, freezeBalance, … }
+        const usdt   = assets.find(a => a.asset === "USDT") || {};
+        const free   = parseFloat(usdt.availableBalance || "0");
+        const frozen = parseFloat(usdt.freezeBalance     || "0");
+
+        // 8) return in your usual shape
+        return [{
+            accountType: "spot",
+            usdtBalance: (free + frozen).toString()
+        }];
+    }
 
     async executeOrder(orderDetails, account) {
         // orderDetails might include properties such as:
