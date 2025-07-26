@@ -171,7 +171,7 @@ export const RecentActivities = () => {
                 <TableCell className={`text-sm font-medium ${getPnlColor(activity.unrealizedPnl)}`}>
                   {activity.unrealizedPnl}
                 </TableCell>
-                <TableCell>
+                <TableCell className="flex items-center justify-end">
                   <button
                     className="bg-white text-black hover:bg-gray-200 px-3 py-1 rounded text-xs font-medium transition-colors"
                     onClick={() => handleClosePosition(index)}
