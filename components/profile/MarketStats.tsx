@@ -6,7 +6,7 @@ export default function MarketStats() {
   const [selectedPair, setSelectedPair] = useState('BTC/USDT');
 
   return (
-    <div className="bg-gray-900/50 backdrop-blur-sm rounded-xl p-4 border border-gray-800/50">
+    <div className="bg-dark-gray backdrop-blur-sm rounded-xl p-4 border border-gray-800/50">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-3">

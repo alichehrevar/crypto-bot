@@ -221,7 +221,7 @@ export default function StrategyTesterPage() {
 
           {/* Left Column: Chart */}
           <div className="w-full lg:w-[70%]">
-            <div className="bg-default-50 rounded-2xl p-2">
+            <div className="bg-dark-gray rounded-2xl p-2">
               {chartData ? (
                 <BacktestResultChart candles={chartData.candles} height={550} trades={chartData.trades} />
               ) : (
@@ -233,7 +233,7 @@ export default function StrategyTesterPage() {
           </div>
 
           {/* Right Column: Form */}
-          <div className="w-full lg:w-[30%] p-6 bg-default-50 rounded-2xl text-white">
+          <div className="w-full lg:w-[30%] p-6 bg-dark-gray rounded-2xl text-white">
             <form className="space-y-6" onSubmit={handleSubmit}>
               <div className="flex items-center gap-2 mb-4">
                 <Cog8ToothIcon className="w-6 h-6" stroke="#60a5fa" />
@@ -327,7 +327,7 @@ export default function StrategyTesterPage() {
                 )}
               </div>
 
-              <Button fullWidth color="primary" disabled={loading} isLoading={loading} size="lg" type="submit">
+              <Button fullWidth color="primary" disabled={loading} isLoading={loading} size="lg" type="submit" className="text-black">
                 Start Backtester
               </Button>
             </form>

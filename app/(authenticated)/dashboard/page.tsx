@@ -19,20 +19,20 @@ export default function Dashboard() {
       <AssetSummary />
       <Divider className="my-10" />
       <div className="flex flex-row items-center lg:grid overflow-x-auto lg:grid-cols-3 gap-4 min-h-[220px]">
-        <div className="flex items-start justify-start flex-col dark:bg-[#161616] bg-white rounded-2xl p-6 gap-4 min-h-[250px]">
+        <div className="flex items-start justify-start flex-col bg-dark-gray rounded-2xl p-6 gap-4 min-h-[250px]">
           <AssetSection />
         </div>
-        <div className="flex items-start justify-start flex-col dark:bg-[#161616] bg-white rounded-2xl py-6 px-3 gap-4 min-h-[250px]">
+        <div className="flex items-start justify-start flex-col bg-dark-gray rounded-2xl py-6 px-3 gap-4 min-h-[250px]">
           <PnLSection />
         </div>
-        <div className="flex items-center justify-start flex-col dark:bg-[#161616] bg-white rounded-2xl py-6 px-3 gap-4 h-full min-h-[250px]">
+        <div className="flex items-center justify-start flex-col bg-dark-gray rounded-2xl py-6 px-3 gap-4 h-full min-h-[250px]">
           <TopMovers />
         </div>
       </div>
-      <div className="grid grid-cols-1 dark:bg-[#161616] bg-white mt-4 rounded-2xl py-6 px-3">
+      <div className="grid grid-cols-1 bg-dark-gray mt-4 rounded-2xl py-6 px-3">
         <BotsList refreshList={refreshBotsList} />
       </div>
-      <div className="grid grid-cols-1 dark:bg-[#161616] bg-white mt-4 rounded-2xl py-6 px-3">
+      <div className="grid grid-cols-1 bg-dark-gray mt-4 rounded-2xl py-6 px-3">
         <RecentActivities />
       </div>
     </section>

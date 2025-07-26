@@ -11,7 +11,7 @@ export default function TechnicalDeployBotSection ({
 }) {
 
   return (
-    <div className="flex w-full h-full flex-col bg-white/10 backdrop-blur-md rounded-2xl">
+    <div className="flex w-full h-full flex-col bg-dark-gray backdrop-blur-md rounded-2xl">
       <ManualTradeForm onTradeExecuted={() => onSuccessAction()} />
     </div>
   )

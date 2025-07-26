@@ -83,7 +83,7 @@ function TechnicalAnalysis() {
   };
 
   return (
-    <div className="bg-gray-900/50 backdrop-blur-sm rounded-xl border border-gray-800/50 h-full w-full flex flex-col justify-between gap-4">
+    <div className="bg-dark-gray backdrop-blur-sm rounded-xl border border-gray-800/50 h-full w-full flex flex-col justify-between gap-4">
       <div ref={container} className="tradingview-widget-container px-4 mt-4">
         <div className="tradingview-widget-container__widget" />
       </div>

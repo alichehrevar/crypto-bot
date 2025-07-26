@@ -36,7 +36,7 @@ export default function TechnicalBotsPage() {
           <ManualTradeSection onSuccessAction={() => setRefreshBotsList(true)} />
         </div>
       </div>
-      <div className="grid grid-cols-1 dark:bg-[#161616] bg-white mt-4 rounded-2xl py-6 px-3 h-[32.2svh]">
+      <div className="grid grid-cols-1 bg-dark-gray mt-4 rounded-2xl py-6 px-3 h-[32.2svh]">
         <BotsList refreshList={refreshBotsList} />
       </div>
     </div>

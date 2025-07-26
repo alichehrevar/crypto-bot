@@ -18,7 +18,7 @@ export default function TechnicalBotsPage() {
         <div className="w-full lg:w-[72%] h-[60svh]">
           {/*<MarketWatchChart />*/}
           <TradingViewAdvancedChart />
-          <div className="grid grid-cols-1 dark:bg-[#161616] bg-white mt-4 rounded-2xl py-6 px-3 h-[32.2svh]">
+          <div className="grid grid-cols-1 bg-dark-gray bg-white mt-4 rounded-2xl py-6 px-3 h-[32.2svh]">
             <BotsList refreshList={refreshBotsList} listType="indicator" />
           </div>
         </div>

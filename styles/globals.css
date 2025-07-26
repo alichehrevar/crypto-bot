@@ -17,6 +17,14 @@ html, body {
     background-color: #0A0908;
 }
 
+.dark .bg-dark-gray {
+    background-color: #141414FF;
+}
+
+.bg-dark-gray {
+    background-color: #F0F0F0FF;
+}
+
 label[data-slot="label"]:after {
     display: none;
 }

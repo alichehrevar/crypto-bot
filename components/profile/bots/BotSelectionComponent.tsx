@@ -54,7 +54,7 @@ export default function BotSelectionComponent() {
                     ${active
               ? 'border-1 border-primary'
               : 'border border-white/20'}
-                    bg-white/10 backdrop-blur-md cursor-pointer
+                    bg-dark-gray backdrop-blur-md cursor-pointer
                   `}
             onClick={() => setSelectedBot(bot.id)}
           >
