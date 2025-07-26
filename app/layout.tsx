@@ -17,7 +17,7 @@ export const metadata: Metadata = {
   },
   description: siteConfig.description,
   icons: {
-    icon: "/images/logos/favicon.ico",
+    icon: "/images/logos/white/favicon.ico",
   },
 };
 
@@ -37,12 +37,12 @@ export default function RootLayout({
     <html suppressHydrationWarning lang="en">
       <body
         className={clsx(
-          "min-h-screen bg-background font-sans antialiased",
+          "bg-background font-sans antialiased overflow-y-auto h-full relative",
           fontSans.variable,
         )}
       >
         <Providers themeProps={{ attribute: "class", defaultTheme: "dark" }}>
-          <div className="relative flex flex-col h-screen">
+          <div className="flex flex-col h-full overflow-x-hidden">
               {children}
           </div>
         </Providers>

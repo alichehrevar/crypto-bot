@@ -211,7 +211,7 @@ export default function StrategyTesterPage() {
 
   // --- RENDER ---
   return (
-    <div className="container mt-4 relative px-5 backtester-page">
+    <div className="w-full mt-4 relative px-5 backtester-page">
       <div className="w-full flex flex-col gap-6">
 
         <MarketStats />

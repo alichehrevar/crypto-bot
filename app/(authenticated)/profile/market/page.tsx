@@ -28,7 +28,7 @@ export default function MarketPage () {
   const [selected, setSelected] = React.useState(tabsList[0].key);
 
   return (
-    <div className="container mt-10 relative">
+    <div className="w-full mt-10 relative">
       <Tabs
         aria-label="Options"
         classNames={{

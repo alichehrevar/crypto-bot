@@ -53,7 +53,7 @@ export default function TabsList () {
   }, [searchParams]);
 
   return (
-    <div className="container mt-10 relative">
+    <div className="w-full mt-10 relative">
       <Tabs
         aria-label="Options"
         classNames={{

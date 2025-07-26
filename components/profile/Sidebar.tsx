@@ -24,7 +24,7 @@ export default function Sidebar() {
           alt="TradingX"
           className="object-contain"
           height={32}
-          src="/images/logos/logo.png"
+          src="/images/logos/logo-white.png"
           width={128}
         />
       </div>

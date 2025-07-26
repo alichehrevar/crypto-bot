@@ -12,7 +12,7 @@ export default function TechnicalBotsPage() {
   const [refreshBotsList, setRefreshBotsList] = useState<boolean>(false)
 
   return (
-    <div className="container mt-4 relative px-5">
+    <div className="w-full mt-4 relative px-5">
       <PageTitleSection title="Technical Bots" imagePath="/images/profile/heikin_ashi-motion.png" />
       <div className=" w-full flex items-start justify-center gap-6 mt-6">
         <div className="w-full lg:w-[72%] h-[60svh]">

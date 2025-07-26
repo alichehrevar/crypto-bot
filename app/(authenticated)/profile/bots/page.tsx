@@ -12,7 +12,7 @@ export default function BotsPage() {
   const [refreshBotsList, setRefreshBotsList] = useState<boolean>(false)
 
   return (
-    <div className="container mt-4 relative lg:px-5">
+    <div className="w-full mt-4 relative lg:px-5">
       <div className="flex items-center justify-center flex-col w-full gap-10">
         <div className="w-full flex flex-col lg:flex-row gap-4 lg:gap-6 items-start justify-center">
           <BotSelectionComponent />

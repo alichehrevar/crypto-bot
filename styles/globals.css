@@ -6,7 +6,14 @@
     --text-color-light: #777777;
 }
 
-.bg-background, .bg-black {
+html, body {
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    margin: 0;
+}
+
+.bg-background, .bg-black, .dark {
     background-color: #0A0908;
 }
 
