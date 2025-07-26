@@ -50,6 +50,38 @@ const todayBots = [
     trend: "up",
     apy: "7-day APY",
     minInvestment: "$68,500"
+  },
+  {
+    name: "Technical Bot Bot",
+    amount: "$103,000",
+    change: "+10.14%",
+    trend: "up",
+    apy: "7-day APY",
+    minInvestment: "$59,291"
+  },
+  {
+    name: "Technical Bot Bot",
+    amount: "$103,000",
+    change: "+5.2%",
+    trend: "up",
+    apy: "7-day APY",
+    minInvestment: "$52,291"
+  },
+  {
+    name: "DCA Bot Pro",
+    amount: "$87,500",
+    change: "+3.8%",
+    trend: "up",
+    apy: "7-day APY",
+    minInvestment: "$45,000"
+  },
+  {
+    name: "Grid Trading Bot",
+    amount: "$125,000",
+    change: "+7.2%",
+    trend: "up",
+    apy: "7-day APY",
+    minInvestment: "$68,500"
   }
 ];
 

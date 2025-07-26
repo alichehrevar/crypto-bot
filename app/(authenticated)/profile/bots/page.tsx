@@ -21,7 +21,7 @@ export default function BotsPage() {
         <div className="grid grid-cols-1 mt-4 rounded-2xl lg:py-6 lg:px-3">
           <RecentBots />
         </div>
-        <div className="grid grid-cols-1 dark:bg-[#161616] bg-white mt-4 rounded-2xl lg:py-6 lg:px-3">
+        <div className="grid grid-cols-1 dark:bg-[#161616] bg-white mt-4 rounded-2xl lg:py-6 lg:px-3 w-full">
           <BotsList refreshList={refreshBotsList} />
         </div>
       </div>

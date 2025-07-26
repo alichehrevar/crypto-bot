@@ -41,7 +41,7 @@ export default function RootLayout({
         )}
       >
         <Providers themeProps={{ attribute: "class", defaultTheme: "dark" }}>
-          <div className="flex flex-col h-full overflow-x-hidden">
+          <div className="flex flex-col h-full overflow-x-hidden pb-6">
               {children}
           </div>
         </Providers>
