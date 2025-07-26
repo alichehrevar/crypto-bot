@@ -3,14 +3,10 @@
 import React, { FormEvent, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Checkbox, Input, Button, Form, addToast } from "@heroui/react";
+import { Input, Button, Form, addToast } from "@heroui/react";
 
 import { sendRequest } from "@/actions/post";
 import { AuthResponse } from "@/types/auth";
-import { AppleIcon } from "@/utils/icons";
-import ProfileSetupForm from "@/components/auth/ProfileSetupForm";
-import OTPConfirmationForm from "@/components/auth/OTPConfirmationForm";
-import { ArrowLeftIcon } from "@heroui/shared-icons";
 
 export default function LoginForm () {
 
