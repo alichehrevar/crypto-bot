@@ -1,10 +1,9 @@
 export type Indicator = {
-  // Define based on actual structure if known, here's a placeholder:
   [key: string]: any;
 };
 
 export type Candle = {
-  [key: string]: any; // Replace with exact fields like `open`, `close`, `high`, `low`, etc.
+  [key: string]: any; // e.g. `open`, `close`, `high`, `low`, etc.
 };
 
 export type MarketInfo = {
@@ -62,6 +61,7 @@ export type Bot = {
     total: number;
   }
   accountType: string;
+  botType: string;
   strategy: string;
   riskStrategy: string;
   __v: number;

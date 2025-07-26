@@ -57,10 +57,8 @@ export default function BotsList({ refreshList, listType }: { refreshList: boole
     "Strategy",
     "Account",
     "Symbol",
-    "Trade Fund",
-    "Leverage",
-    "Risk Strategy",
-    "Technical Value",
+    "Investment",
+    "Trade Count",
     "Signal",
     "PnL",
     ""
@@ -142,10 +140,6 @@ export default function BotsList({ refreshList, listType }: { refreshList: boole
                     label="RISK STRATEGY"
                     value={bot.riskStrategy.replace(/([A-Z])/g, " $1").trim()}
                   />
-                  <DetailRow
-                    label="TECHNICAL VALUE"
-                    value={`${bot.indicators[0]?.name}: ${bot.indicators[0]?.params.period ?? "—"}`}
-                  />
                   <DetailRow label="SIGNAL" value={bot.marketInfo.lastSignal || "—"} />
                   <DetailRow
                     label="PNL"
@@ -174,7 +168,7 @@ export default function BotsList({ refreshList, listType }: { refreshList: boole
       {/* ========== DESKTOP (lg+) ========== */}
       <div className="hidden lg:flex flex-col w-full gap-2 p-4 rounded-md overflow-y-auto thin-scrollbar">
         {/* header row */}
-        <div className="grid grid-cols-11 font-semibold text-sm pb-2 mb-4">
+        <div className="grid grid-cols-9 font-semibold text-sm pb-2 mb-4 mx-4">
           {tableHeaderItems.map((item, ix) => (
             <div key={ix} className="truncate">
               {item}
@@ -188,7 +182,7 @@ export default function BotsList({ refreshList, listType }: { refreshList: boole
             <React.Fragment key={botIndex}>
               <div
                 aria-controls={`bot-content-${botIndex}`}
-                className="grid grid-cols-11 items-center text-[13px] dark:bg-[#1A1A1A] rounded-md px-4 py-3 cursor-pointer hover:shadow-lg transition-all duration-300"
+                className="grid grid-cols-9 items-center text-[13px] dark:bg-[#1A1A1A] rounded-md px-4 py-3 cursor-pointer hover:shadow-lg transition-all duration-300"
                 role="button"
                 tabIndex={0}
                 onClick={() => handleDesktopClick(botIndex)}
@@ -199,21 +193,19 @@ export default function BotsList({ refreshList, listType }: { refreshList: boole
                   }
                 }}
               >
-                <span>Indicator Bot</span>
+                <span className="capitalize">{bot.botType}</span>
                 <span className="capitalize">{bot.strategy}</span>
                 <span className="capitalize">{bot.accountType}</span>
                 <span>{bot.symbol}</span>
-                <span>{bot.marketInfo.tradeFund}</span>
-                <span>x{bot.tradeInfo.leverage}</span>
-                <span>{bot.riskStrategy}</span>
-                <span>{bot.indicators?.[0]?.name ?? "—"}</span>
+                <span>{bot.marketInfo.tradeFund} <small>USDT</small></span>
+                <span>{bot.trades ? bot.trades.length : 0}</span>
                 <span>{bot.marketInfo.lastSignal ?? "—"}</span>
                 <span
                   className={`${
                     bot.pnl.pct > 0 ? "text-green-500" : bot.pnl.pct < 0 ? "text-red-500" : ""
                   }`}
                 >
-                  x{bot.tradeInfo.leverage}({bot.pnl.pct}%)
+                  {bot.pnl.pct > 0 ? '+ ' : (bot.pnl.pct < 0 ? '- ' : '')}{bot.pnl.pct}%
                 </span>
                 <div className="flex space-x-2">
                   <PlayPauseBotModal botId={bot._id} />

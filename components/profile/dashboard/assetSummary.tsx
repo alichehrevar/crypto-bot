@@ -41,10 +41,12 @@ export default function AssetSummary() {
                   <Skeleton className="h-1 w-[20px] rounded-lg" />
                 </div>
               : <>
-                  <p className="font-extrabold text-[28px]">{`$ ${assetData?.totalBalance}`}</p>
-                  <span className={`text-[14px] font-bold mt-2.5 ${assetData && assetData.pctChange < 0 ? 'text-red-500' : 'text-success-500'}`}>
-                    {`${assetData?.pctChange}%`}
-                  </span>
+                  <p className="font-extrabold text-[28px]">{`$ ${assetData?.totalBalance === undefined ? 0.00 : assetData?.totalBalance}`}</p>
+                  {assetData && assetData.pctChange !== undefined &&
+                    <span className={`text-[14px] font-bold mt-2.5 ${assetData && assetData.pctChange < 0 ? 'text-red-500' : 'text-success-500'}`}>
+                      {`${assetData?.pctChange}%`}
+                    </span>
+                  }
                 </>
             }
           </div>
@@ -59,7 +61,7 @@ export default function AssetSummary() {
           {loading
             ? <Skeleton className="h-1.5 w-[40px] mt-2.5 rounded-lg" />
             : <span className="dark:text-white text-black font-semibold text-[14px]">
-              {`$ ${assetData?.portfolioBalance}`}
+              {`$ ${assetData?.portfolioBalance === undefined ? 0.00 : assetData?.portfolioBalance}`}
             </span>
           }
         </div>
@@ -70,7 +72,7 @@ export default function AssetSummary() {
           {loading
             ? <Skeleton className="h-1.5 w-[40px] mt-2.5 rounded-lg" />
             : <span className="dark:text-white text-black font-semibold text-[14px]">
-              {`$ ${assetData?.availableFunds}`}
+              {`$ ${assetData?.availableFunds === undefined ? 0.00 : assetData?.availableFunds}`}
             </span>
           }
         </div>
