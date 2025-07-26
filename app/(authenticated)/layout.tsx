@@ -1,6 +1,5 @@
 import React from "react";
 
-import Sidebar from "@/components/profile/Sidebar";
 import TopMenu from "@/components/profile/TopMenu";
 
 export default function ProfileLayout ({
