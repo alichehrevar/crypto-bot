@@ -1,12 +1,16 @@
 'use client'
 
-import { FormEvent, useState } from "react";
+import React, { FormEvent, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Checkbox, Input, Button, Form, addToast } from "@heroui/react";
 
 import { sendRequest } from "@/actions/post";
 import { AuthResponse } from "@/types/auth";
+import { AppleIcon } from "@/utils/icons";
+import ProfileSetupForm from "@/components/auth/ProfileSetupForm";
+import OTPConfirmationForm from "@/components/auth/OTPConfirmationForm";
+import { ArrowLeftIcon } from "@heroui/shared-icons";
 
 export default function LoginForm () {
 
@@ -47,52 +51,57 @@ export default function LoginForm () {
   }
 
   return (
-    <Form className="flex items-center justify-center flex-col gap-4 w-3/4 lg:w-1/2 mx-auto" onSubmit={handleLoginFormSubmission}>
-      <h3 className="flex justify-start w-full font-bold text-[24px] mb-3">Login</h3>
-      <Input
-        isRequired
-        classNames={{
-          inputWrapper: 'dark:border-white border-[1.4px] backdrop-blur-sm'
-        }}
-        label="Email"
-        name="email"
-        type="email"
-        variant="bordered"
-      />
-      <Input
-        isRequired
-        classNames={{
-          inputWrapper: 'dark:border-white border-[1.4px] backdrop-blur-sm'
-        }}
-        label="Password"
-        minLength={8}
-        name="password"
-        type="password"
-        validate={(value) => {
-          if (!value) {
-            return "Please fill out this field."
-          }
-          if (value.length < 8) {
-            return "Password must be at least 8 characters long";
-          }
-        }}
-        variant="bordered"
-      />
-      <div className="flex items-center justify-between w-full">
-        <Checkbox defaultSelected size="sm">
-          <span className="text-[13px]">
-            Remember Me
-          </span>
-        </Checkbox>
-        <Link className="text-[13px] dark:text-white light:text-[var(--text-color-light)]" href="/forgot-password">Forgot Password?</Link>
+    <>
+      <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center gap-4">
+          <h1 className="text-2xl font-bold text-white">
+            Login
+          </h1>
+        </div>
       </div>
-      <Button className="w-full mt-6 py-6 border-white" isLoading={FormLoading} type="submit" variant="bordered">
-        Login
-      </Button>
-      <div className="flex items-center gap-x-1.5">
-        <span className="font-light text-[13px]">Don&#39;t have an account? </span>
-        <Link className="dark:text-white text-[14px] font-bold" href="/register">Join Us</Link>
-      </div>
-    </Form>
+      <Form className="space-y-6" onSubmit={handleLoginFormSubmission}>
+        <div className="space-y-2 w-full">
+          <label className="text-white font-bold text-sm" htmlFor="email">Email</label>
+          <Input
+            required
+            className="border-gray-300 text-black placeholder:text-gray-500"
+            id="email"
+            name="email"
+            placeholder="Enter your Email"
+            size="md"
+            type="email"
+          />
+        </div>
+
+        <div className="space-y-2 w-full">
+          <label className="text-white font-bold text-sm" htmlFor="password">Password</label>
+          <Input
+            required
+            className="rounded-2xl text-black placeholder:text-gray-500"
+            id="password"
+            name="password"
+            placeholder="Enter your Password"
+            size="md"
+            type="password"
+          />
+        </div>
+
+        <Button
+          className="w-full bg-transparent border-2 border-white text-white hover:bg-white hover:text-black transition-colors"
+          disabled={FormLoading}
+          isLoading={FormLoading}
+          type="submit"
+        >
+          Login
+        </Button>
+
+        <div className="text-center text-white text-sm flex gap-1.5">
+          Don't have an Account?
+          <Link className="hover:underline transition-all duration-250 font-medium" href="/register">
+            Join Us
+          </Link>
+        </div>
+      </Form>
+    </>
   )
 }
