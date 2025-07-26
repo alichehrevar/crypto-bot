@@ -31,7 +31,6 @@ function TechnicalAnalysis() {
     container.current.appendChild(script);
   }, []);
 
-  const [selectedTimeframe, setSelectedTimeframe] = useState('1 minute');
   const [indicators, setIndicators] = useState({
     rsi: 65.4,
     macd: 0.234,
