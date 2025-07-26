@@ -16,6 +16,7 @@ import ProfileSetupForm from "@/components/auth/ProfileSetupForm";
 import OTPConfirmationForm from "@/components/auth/OTPConfirmationForm";
 import { sendRequest } from "@/actions/post";
 import { AuthResponse, checkEmailExistenceResponse } from "@/types/auth";
+import { siteConfig } from "@/config/site";
 
 const Register = () => {
 
@@ -126,7 +127,7 @@ const Register = () => {
         if (res.success) {
           addToast({
             title: "Registration successful !",
-            description: "Welcome to TradingX !",
+            description: `Welcome to ${siteConfig.name} !`,
             color: "success"
           });
           router.push("/dashboard");

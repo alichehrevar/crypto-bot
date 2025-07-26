@@ -11,6 +11,7 @@ import {
   Cog8ToothIcon
 } from "@/utils/icons";
 import { MenuItems } from "@/utils/menuItems";
+import { siteConfig } from "@/config/site";
 
 export default function Sidebar() {
   const pathname = usePathname();
@@ -21,7 +22,7 @@ export default function Sidebar() {
       <div className="flex-shrink-0 flex items-center justify-center h-16 mt-4">
         <Image
           priority
-          alt="TradingX"
+          alt={siteConfig.name}
           className="object-contain"
           height={32}
           src="/images/logos/logo-white.png"

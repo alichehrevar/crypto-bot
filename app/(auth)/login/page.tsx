@@ -2,13 +2,14 @@
 import Image from "next/image";
 
 import LoginForm from "@/components/auth/loginForm";
+import { siteConfig } from "@/config/site";
 
 export default function LoginPage() {
   return (
     <section className="h-screen w-screen relative">
       <Image
         fill
-        alt="tradingx"
+        alt={siteConfig.name}
         className="w-screen h-screen scale-x-[-1] z-0 absolute"
         src="/images/auth/auth-bg-nature.webp"
       />
