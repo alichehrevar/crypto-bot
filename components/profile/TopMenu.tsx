@@ -117,10 +117,8 @@ export default function TopMenu() {
                 <p className="font-semibold">Signed in as</p>
                 <p className="font-semibold">zoey@example.com</p>
               </DropdownItem>
-              <DropdownItem key="settings" startContent={<Cog8ToothIcon className="w-5 h-5" />}>
-                <Link href="/profile/settings">
-                  Settings
-                </Link>
+              <DropdownItem key="settings" startContent={<Cog8ToothIcon className="w-5 h-5" />} href="/profile/settings">
+                Settings
               </DropdownItem>
               <DropdownItem key="logout" color="danger" startContent={<ArrowLeftStartOnRectangle className="w-5 h-5" />}>
                 Log Out
