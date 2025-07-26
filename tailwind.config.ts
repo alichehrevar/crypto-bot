@@ -28,7 +28,7 @@ const config: Config = {
           700: '#828282',
           800: '#717171',
         },
-        success: {
+        green: {
           DEFAULT: "#9EF01A",
           50: "#E6F9E6",
           100: "#C6F5C6",
@@ -40,7 +40,7 @@ const config: Config = {
           700: "#26DF26",
           800: "#16DB16",
         },
-        accent: {
+        greenSecondary: {
           DEFAULT: "#4CAF50",
           50: "#E8F5E9",
           100: "#C8E6C9",
@@ -52,7 +52,7 @@ const config: Config = {
           700: "#38973D",
           800: "#2E8E34",
         },
-        secondary: {
+        greenDark: {
           DEFAULT: "#4E9B10",
           50: "#E8F5E9",
           100: "#C8E6C9",
