@@ -15,8 +15,8 @@ export default function TechnicalDeployBotSection ({
 }) {
 
   const parentTabs = [
-    { key: "spot", title: 'Spot Trading' },
-    { key: "futures", title: 'Futures Trading' }
+    { key: "spot", title: 'Spot' },
+    { key: "futures", title: 'Futures' }
   ] as const;
 
   const tabs = [

@@ -12,13 +12,13 @@ export default function BotsPage() {
   const [refreshBotsList, setRefreshBotsList] = useState<boolean>(false)
 
   return (
-    <div className="w-full mt-4 relative lg:px-5">
+    <div className="container mx-auto mt-4 relative lg:px-5">
       <div className="flex items-center justify-center flex-col w-full gap-10">
-        <div className="w-full flex flex-col lg:flex-row gap-4 lg:gap-6 items-start justify-center">
+        <div className="w-full flex flex-col lg:flex-row gap-4 lg:gap-52 items-start justify-center">
           <BotSelectionComponent />
           <BotProgressChart />
         </div>
-        <div className="grid grid-cols-1 mt-4 rounded-2xl lg:py-6 lg:px-3">
+        <div className="grid grid-cols-1 mt-4 rounded-2xl lg:py-6">
           <RecentBots />
         </div>
         <div className="grid grid-cols-1 bg-dark-gray mt-4 rounded-2xl lg:py-6 lg:px-3 w-full">

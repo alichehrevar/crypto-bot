@@ -15,14 +15,14 @@ export default function TechnicalBotsPage() {
     <div className="w-full mt-4 relative px-5">
       <PageTitleSection title="Technical Bots" imagePath="/images/profile/heikin_ashi-motion.png" />
       <div className=" w-full flex items-start justify-center gap-6 mt-6">
-        <div className="w-full lg:w-[72%] h-[60svh]">
+        <div className="w-full lg:w-[76%] h-[60svh]">
           {/*<MarketWatchChart />*/}
           <TradingViewAdvancedChart />
           <div className="grid grid-cols-1 bg-dark-gray bg-white mt-4 rounded-2xl py-6 px-3 h-[32.2svh]">
             <BotsList refreshList={refreshBotsList} listType="indicator" />
           </div>
         </div>
-        <div className="w-full lg:w-[28%]">
+        <div className="w-full lg:w-[24%]">
           {/* New Bot button */}
           <TechnicalDeployBotSection onSuccessAction={() => setRefreshBotsList(true)} />
         </div>

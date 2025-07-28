@@ -45,7 +45,7 @@ export default function TopMenu() {
             </Link>
           </div>
         </NavbarBrand>
-        <NavbarContent className="flex items-center justify-center gap-5">
+        <NavbarContent className="flex items-center justify-center gap-8">
           {Object.values(MenuItems).map((menuItem, i) => {
             const isActive = menuItem.link === pathname || menuItem.children.some(c => c.link === pathname);
             if (menuItem.children.length) {
@@ -120,7 +120,10 @@ export default function TopMenu() {
               <DropdownItem key="settings" startContent={<Cog8ToothIcon className="w-5 h-5" />} href="/profile/settings">
                 Settings
               </DropdownItem>
-              <DropdownItem key="logout" color="danger" startContent={<ArrowLeftStartOnRectangle className="w-5 h-5" />}>
+              <DropdownItem key="help" startContent={<Cog8ToothIcon className="w-5 h-5" />} href="/profile/settings">
+                Help
+              </DropdownItem>
+              <DropdownItem key="logout" startContent={<ArrowLeftStartOnRectangle className="w-5 h-5" />}>
                 Log Out
               </DropdownItem>
             </DropdownMenu>

@@ -1,7 +1,7 @@
 import React from 'react';
 import { LineChart, Line, ResponsiveContainer } from 'recharts';
 import { Swiper, SwiperSlide } from 'swiper/react';
-import { EffectCoverflow, Pagination } from "swiper/modules";
+import { EffectCoverflow, Navigation, Pagination } from "swiper/modules";
 
 // Import Swiper styles
 import 'swiper/css';
@@ -96,12 +96,13 @@ export const RecentBots = () => {
   };
 
   return (
-    <div className="bg-black rounded-xl p-6 border border-gray-900/50 shadow-xl backdrop-blur-sm">
+    <div className="bg-black rounded-xl py-6 shadow-xl backdrop-blur-sm">
       <h3 className="text-xl font-semibold text-white mb-6">Today Bots</h3>
 
       <Swiper
         centeredSlides={true}
         className="today-bots-swiper"
+        loop={true}
         coverflowEffect={{
           rotate: 50,
           stretch: 0,
@@ -109,9 +110,10 @@ export const RecentBots = () => {
           modifier: 1,
           slideShadows: true,
         }}
+        navigation={true}
         effect={'coverflow'}
         grabCursor={true}
-        modules={[EffectCoverflow, Pagination]}
+        modules={[EffectCoverflow, Pagination, Navigation]}
         pagination={pagination}
         slidesPerView={'auto'}
       >
