@@ -501,7 +501,7 @@ export default function ManualTradeForm({
         {/* ── BUY / SELL BUTTONS ─────────────────────────────────────────────── */}
         <div className="flex gap-4 mt-4">
           <Button
-            className="flex-1 bg-green-600 hover:bg-green-700 text-white rounded-2xl py-3"
+            className="flex-1 bg-success hover:bg-success-400 text-white rounded-2xl py-3"
             disabled={loading || Boolean(costError)}
             isLoading={loading}
             type="submit"
@@ -510,7 +510,7 @@ export default function ManualTradeForm({
             Buy
           </Button>
           <Button
-            className="flex-1 bg-red-600 hover:bg-red-700 text-white rounded-2xl py-3"
+            className="flex-1 bg-danger hover:bg-danger-400 text-white rounded-2xl py-3"
             disabled={loading || Boolean(costError)}
             isLoading={loading}
             type="submit"

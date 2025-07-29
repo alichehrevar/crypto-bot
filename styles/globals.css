@@ -141,7 +141,6 @@ section[role="dialog"] .overflow-y-auto::-webkit-scrollbar-track {
     height: 100% !important;
 }
 
-
 @media (min-width: 1400px) {
     .container {
         max-width: 1400px;
