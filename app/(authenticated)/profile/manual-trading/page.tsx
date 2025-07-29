@@ -10,7 +10,7 @@ import TechnicalAnalysis from "@/components/shared/TechnicalAnalysis";
 import PageTitleSection from "@/components/shared/ui/PageTitleSection";
 import SymbolInfoWidget from "@/components/shared/SymbolInfoWidget";
 
-export default function TechnicalBotsPage() {
+export default function ManualTradingPage() {
 
     const [refreshBotsList, setRefreshBotsList] = useState<boolean>(false)
 

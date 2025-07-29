@@ -10,7 +10,7 @@ import { getData } from "@/actions/get";
 import { ChevronDownIcon } from "@/utils/icons";
 
 export default function BotsList({ refreshList, listType }: { refreshList: boolean, listType?: string }) {
-  // Shared state & loader
+  // Shared state and loader
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [deployedBots, setDeployedBots] = useState<Bot[]>([]);
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
