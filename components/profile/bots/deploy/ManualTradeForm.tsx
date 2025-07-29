@@ -355,8 +355,8 @@ export default function ManualTradeForm({
           <div className="space-y-2">
             <LabelTag id="price" title="Price (USDT)" />
             <Input
-              id="price"
               required
+              id="price"
               min={0.0001}
               placeholder="e.g. 30,000"
               step="0.01"
@@ -374,8 +374,8 @@ export default function ManualTradeForm({
         <div className="space-y-2">
           <LabelTag id="quantity" title="Quantity" />
           <Input
-            id="quantity"
             required
+            id="quantity"
             min={0.000001}
             placeholder="e.g. 0.01"
             step="0.000001"
@@ -423,8 +423,8 @@ export default function ManualTradeForm({
           <div className="space-y-2">
             <LabelTag id="takeProfit" title="Take Profit (%)" />
             <Input
-              id="takeProfit"
               disabled={!enableTPSL}
+              id="takeProfit"
               max={500}
               min={0.01}
               placeholder="e.g. 5"
@@ -462,8 +462,8 @@ export default function ManualTradeForm({
           <div className="space-y-2">
             <LabelTag id="stopLoss" title="Stop Loss (%)" />
             <Input
-              id="stopLoss"
               disabled={!enableTPSL}
+              id="stopLoss"
               max={500}
               min={0.01}
               placeholder="e.g. 5"
