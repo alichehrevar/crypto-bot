@@ -21,7 +21,7 @@ import { parseDate } from "@internationalized/date";
 
 import { getData } from "@/actions/get";
 import { sendRequest } from "@/actions/post";
-import { Cog8ToothIcon, XIcon } from "@/utils/icons";
+import { XIcon } from "@/utils/icons";
 import BacktestResultChart from "@/components/shared/charts/BacktestResultChart";
 import TradingViewAdvancedChart from "@/components/shared/charts/TradingViewAdvancedChart";
 import MarketStats from "@/components/profile/MarketStats";
@@ -90,11 +90,11 @@ export default function StrategyTesterPage() {
   const [optMethod, setOptMethod] = useState<"grid" | "bayesian" | "ann">("grid");
   const [minAccuracy, setMinAccuracy] = useState("1");
   const [minTrades, setMinTrades] = useState("1");
-  const [useRisk, setUseRisk] = useState(false);
-  const [investment, setInvestment] = useState("100");
-  const [leverage, setLeverage] = useState("1");
-  const [takeProfit, setTakeProfit] = useState("2");
-  const [stopLoss, setStopLoss] = useState("2");
+  // const [useRisk, setUseRisk] = useState(false);
+  // const [investment, setInvestment] = useState("100");
+  // const [leverage, setLeverage] = useState("1");
+  // const [takeProfit, setTakeProfit] = useState("2");
+  // const [stopLoss, setStopLoss] = useState("2");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [chartData, setChartData] = useState<ChartData | null>(null);
@@ -166,7 +166,7 @@ export default function StrategyTesterPage() {
       optimizationMethod: optimize ? optMethod : undefined,
       minAccuracy: optimize ? +minAccuracy : undefined,
       minTrades: optimize ? +minTrades : undefined,
-      risk: useRisk ? { investment: +investment, leverage: +leverage, takeProfitPct: +takeProfit, stopLossPct: +stopLoss } : undefined
+      // risk: useRisk ? { investment: +investment, leverage: +leverage, takeProfitPct: +takeProfit, stopLossPct: +stopLoss } : undefined
     };
 
     setLoading(true);
@@ -236,7 +236,6 @@ export default function StrategyTesterPage() {
           <div className="w-full lg:w-[30%] p-6 bg-dark-gray rounded-2xl text-white">
             <form className="space-y-6" onSubmit={handleSubmit}>
               <div className="flex items-center gap-2 mb-4">
-                <Cog8ToothIcon className="w-6 h-6" stroke="#60a5fa" />
                 <h3 className="text-lg font-semibold text-white">Strategy Parameters</h3>
               </div>
               <div className="flex items-start justify-between flex-col-reverse gap-4 w-full border-b border-default-200 pb-4">
@@ -312,20 +311,20 @@ export default function StrategyTesterPage() {
                 )}
               </div>
 
-              <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <p className="font-medium text-lg">Risk Parameters</p>
-                  <Switch color="success" isSelected={useRisk} onValueChange={setUseRisk} />
-                </div>
-                {useRisk && (
-                  <div className="grid grid-cols-2 gap-4 mt-2">
-                    <Input label="Investment" min={0.01} type="number" value={investment} onChange={e => setInvestment(e.target.value)} />
-                    <Input label="Leverage" min={1} type="number" value={leverage} onChange={e => setLeverage(e.target.value)} />
-                    <Input label="Take Profit (%)" min={0} type="number" value={takeProfit} onChange={e => setTakeProfit(e.target.value)} />
-                    <Input label="Stop Loss (%)" min={0} type="number" value={stopLoss} onChange={e => setStopLoss(e.target.value)} />
-                  </div>
-                )}
-              </div>
+              {/*<div className="space-y-4">*/}
+              {/*  <div className="flex justify-between items-center">*/}
+              {/*    <p className="font-medium text-lg">Risk Parameters</p>*/}
+              {/*    <Switch color="success" isSelected={useRisk} onValueChange={setUseRisk} />*/}
+              {/*  </div>*/}
+              {/*  {useRisk && (*/}
+              {/*    <div className="grid grid-cols-2 gap-4 mt-2">*/}
+              {/*      <Input label="Investment" min={0.01} type="number" value={investment} onChange={e => setInvestment(e.target.value)} />*/}
+              {/*      <Input label="Leverage" min={1} type="number" value={leverage} onChange={e => setLeverage(e.target.value)} />*/}
+              {/*      <Input label="Take Profit (%)" min={0} type="number" value={takeProfit} onChange={e => setTakeProfit(e.target.value)} />*/}
+              {/*      <Input label="Stop Loss (%)" min={0} type="number" value={stopLoss} onChange={e => setStopLoss(e.target.value)} />*/}
+              {/*    </div>*/}
+              {/*  )}*/}
+              {/*</div>*/}
 
               <Button fullWidth className="text-black" color="primary" disabled={loading} isLoading={loading} size="lg" type="submit">
                 Start Backtester
