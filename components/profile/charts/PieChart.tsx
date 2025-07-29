@@ -4,6 +4,7 @@ import type { PieChartType } from '@/types/profile/ChartTypes';
 
 import React, { useEffect, useState } from 'react';
 import { ResponsivePie } from '@nivo/pie';
+import {addToast} from "@heroui/react";
 
 import { getData } from '@/actions/get';
 
@@ -36,11 +37,17 @@ export default function AssetsPieChart() {
 
           setData(chartData);
         } else {
-          console.error('Failed to load assets distribution:', res.error);
+          addToast({
+            title: `Failed to load assets distribution: ${res.error}`,
+            color: 'danger'
+          })
         }
       })
       .catch((err) => {
-        console.error('Error fetching assets distribution:', err);
+        addToast({
+          title: `Error fetching assets distribution: ${err}`,
+          color: 'danger'
+        })
       })
       .finally(() => {
         setLoading(false);
@@ -78,7 +85,6 @@ export default function AssetsPieChart() {
             ]
           }}
           arcLinkLabelsColor={{ from: 'color' }}
-          motionConfig="wobbly"
           arcLinkLabelsSkipAngle={10}
           arcLinkLabelsTextColor="#333333"
           arcLinkLabelsThickness={3}
@@ -119,6 +125,7 @@ export default function AssetsPieChart() {
           enableArcLinkLabels={false}
           innerRadius={0.4}
           legends={[]}
+          motionConfig="wobbly"
           padAngle={2}
         />
       </div>

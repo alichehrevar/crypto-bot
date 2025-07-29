@@ -177,6 +177,7 @@ export default function GridConfigForm({
           title: res.error,
           color: "danger"
         })
+
         return
       }
 
@@ -353,8 +354,8 @@ export default function GridConfigForm({
         <div className="space-y-2">
           <LabelTag id="botName" title="Bot Name" />
           <Input
-            id="botName"
             required
+            id="botName"
             value={name}
             onChange={(e) => setName(e.target.value)}
           />
@@ -403,8 +404,8 @@ export default function GridConfigForm({
         <div className="space-y-2">
           <LabelTag id="baseFund" title="Base Fund (USDT)" />
           <Input
-            id="baseFund"
             required
+            id="baseFund"
             max={availableBalance}
             min={0}
             step="0.01"
@@ -441,8 +442,8 @@ export default function GridConfigForm({
               <div className="space-y-2">
                 <LabelTag id="lowerPrice" title="Lower Price (USDT)" />
                 <Input
-                  id="lowerPrice"
                   required
+                  id="lowerPrice"
                   step="0.01"
                   type="number"
                   value={lowerPrice}
@@ -454,8 +455,8 @@ export default function GridConfigForm({
               <div className="space-y-2">
                 <LabelTag id="upperPrice" title="Upper Price (USDT)" />
                 <Input
-                  id="upperPrice"
                   required
+                  id="upperPrice"
                   step="0.01"
                   type="number"
                   value={upperPrice}
@@ -474,8 +475,8 @@ export default function GridConfigForm({
           <div className="space-y-2">
             <LabelTag id="numberOfGrids" title="Number of Grids" />
             <Input
-              id="numberOfGrids"
               required
+              id="numberOfGrids"
               min={1}
               step={1}
               type="number"
@@ -499,8 +500,8 @@ export default function GridConfigForm({
           <div className="space-y-2">
             <LabelTag id="investment" title="Investment (%)" />
             <Input
-              id="investment"
               disabled={!usePercentage}
+              id="investment"
               max={100}
               min={1}
               required={usePercentage}
@@ -525,8 +526,8 @@ export default function GridConfigForm({
           <div className="space-y-2">
             <LabelTag id="takeProfit" title="Take Profit (%)" />
             <Input
-              id="takeProfit"
               disabled={!enableTPSL}
+              id="takeProfit"
               max={500}
               min={0.1}
               required={enableTPSL}
@@ -557,8 +558,8 @@ export default function GridConfigForm({
           <div className="space-y-2">
             <LabelTag id="stopLoss" title="Stop Loss (%)" />
             <Input
-              id="stopLoss"
               disabled={!enableTPSL}
+              id="stopLoss"
               max={500}
               min={0.1}
               required={enableTPSL}
@@ -615,8 +616,8 @@ export default function GridConfigForm({
             <div className="space-y-2">
               <LabelTag id="retrainInterval" title="Retrain Interval (ms)" />
               <Input
-                id="retrainInterval"
                 required
+                id="retrainInterval"
                 min={60000}
                 step={60000}
                 type="number"

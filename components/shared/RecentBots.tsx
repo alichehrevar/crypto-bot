@@ -102,7 +102,6 @@ export const RecentBots = () => {
       <Swiper
         centeredSlides={true}
         className="today-bots-swiper"
-        loop={true}
         coverflowEffect={{
           rotate: 50,
           stretch: 0,
@@ -110,10 +109,11 @@ export const RecentBots = () => {
           modifier: 1,
           slideShadows: true,
         }}
-        navigation={true}
         effect={'coverflow'}
         grabCursor={true}
+        loop={true}
         modules={[EffectCoverflow, Pagination, Navigation]}
+        navigation={true}
         pagination={pagination}
         slidesPerView={'auto'}
       >

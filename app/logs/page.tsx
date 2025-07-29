@@ -38,7 +38,7 @@ export default function LogViewerPage() {
         } else {
           setError(res.error || 'Failed to load log file list');
         }
-      } catch (err) {
+      } catch {
         setError('Failed to load log file list');
       } finally {
         setLoadingFiles(false);
@@ -64,6 +64,7 @@ export default function LogViewerPage() {
             title: `Could not fetch ${selectedFile}`,
             color: 'danger'
           })
+
           return;
         }
 

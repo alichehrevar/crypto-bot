@@ -1,9 +1,9 @@
 'use client'
 
 import React, { useState } from 'react'
+import Link from "next/link";
 
 import { TechnicalChartIcon, DcaChartIcon, GridChartIcon } from '@/utils/icons'
-import Link from "next/link";
 
 const technicalBots = [
   {
@@ -86,7 +86,7 @@ export default function BotSelectionComponent() {
                 ↗ +{bot.changePct}% vs previous week
               </div>
               {/* create link */}
-              <Link href={bot.link} className="pt-2 flex text-sm text-white font-medium">
+              <Link className="pt-2 flex text-sm text-white font-medium" href={bot.link}>
                 Create →
               </Link>
             </div>

@@ -32,14 +32,14 @@ export default function TechnicalDeployBotSection ({
       <Tabs
         fullWidth
         aria-label="Options"
-        variant="underlined"
         className="mb-4"
-        selectedKey={selectedParentTab}
-        onSelectionChange={(k) => setSelectedParentTab(k as string)}
         classNames={{
           cursor: "w-full",
           tab: "h-10 px-0",
         }}
+        selectedKey={selectedParentTab}
+        variant="underlined"
+        onSelectionChange={(k) => setSelectedParentTab(k as string)}
       >
         {parentTabs.map(({ key, title }) => (
           <Tab key={key} title={title} />

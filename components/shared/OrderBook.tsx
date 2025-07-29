@@ -184,7 +184,7 @@ export const OrderBook = () => {
                   ))}
                 </div>
               </div>
-              <Divider orientation="vertical" className="h-full" />
+              <Divider className="h-full" orientation="vertical" />
               <div className="flex items-center justify-start flex-col gap-3 w-full">
                 {/* Headers */}
                 <div className="grid grid-cols-3 gap-2 text-xs text-gray-400 mb-2 font-medium w-full">

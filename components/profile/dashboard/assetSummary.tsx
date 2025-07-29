@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import Image from "next/image";
-import { Skeleton } from "@heroui/react";
+import {addToast, Skeleton} from "@heroui/react";
 
 import { AssetSummaryResponse, Summary } from "@/types/profile/AssetSummary";
 import { getData } from "@/actions/get";
@@ -13,11 +13,13 @@ export default function AssetSummary() {
   useEffect(() => {
     fetchAssetSummary()
       .then((response: AssetSummaryResponse) => {
-        console.log(response);
         setAssetData(response.summary)
       })
       .catch((err) => {
-        console.error('Error fetching assets distribution:', err);
+        addToast({
+          title: `Error fetching assets distribution: ${err}`,
+          color: 'danger'
+        })
       })
       .finally(() => {
         setLoading(false);

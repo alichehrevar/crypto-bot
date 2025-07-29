@@ -92,7 +92,7 @@ export default function LoginForm () {
         </Button>
 
         <div className="text-center text-white text-sm flex gap-1.5">
-          Don't have an Account?
+          Don&#39;t have an Account?
           <Link className="hover:underline transition-all duration-250 font-medium" href="/register">
             Join Us
           </Link>

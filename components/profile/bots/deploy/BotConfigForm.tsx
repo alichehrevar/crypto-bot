@@ -166,6 +166,7 @@ export default function BotConfigForm({ mode, selectedParentTab, onCloseAction }
           title: getBalance.error,
           color: "danger"
         })
+
         return
       }
 
@@ -248,9 +249,9 @@ export default function BotConfigForm({ mode, selectedParentTab, onCloseAction }
         <div className="space-y-2">
           <LabelTag id="botName" title="Bot Name" />
           <Input
-            id="botName"
-            className="mt-0"
             required
+            className="mt-0"
+            id="botName"
             value={name}
             onChange={e => setName(e.target.value)}
           />
@@ -301,8 +302,8 @@ export default function BotConfigForm({ mode, selectedParentTab, onCloseAction }
         <div className="space-y-2">
           <LabelTag id="tradeFund" title="Trade Fund (%)" />
           <Input
-            id="tradeFund"
             required
+            id="tradeFund"
             max={100}
             min={1}
             type="number"
@@ -497,8 +498,8 @@ export default function BotConfigForm({ mode, selectedParentTab, onCloseAction }
             <div className="space-y-2">
               <LabelTag id="minimumOptimizationAccuracy" title="Minimum optimization accuracy (%)" />
               <Input
-                id="minimumOptimizationAccuracy"
                 required
+                id="minimumOptimizationAccuracy"
                 min={1}
                 step={1}
                 type="number"
@@ -510,8 +511,8 @@ export default function BotConfigForm({ mode, selectedParentTab, onCloseAction }
             <div className="space-y-2">
               <LabelTag id="minimumSimulatedTrades" title="Minimum Simulated Trades" />
               <Input
-                id="minimumSimulatedTrades"
                 required
+                id="minimumSimulatedTrades"
                 min={1}
                 type="number"
                 value={minSimTrades.toString()}
@@ -526,8 +527,8 @@ export default function BotConfigForm({ mode, selectedParentTab, onCloseAction }
           <div className="space-y-2">
             <LabelTag id="minimumBotAccuracy" title="Minimum bot accuracy (%)" />
             <Input
-              id="minimumBotAccuracy"
               required
+              id="minimumBotAccuracy"
               min={1}
               type="number"
               value={minBotAccuracy.toString()}

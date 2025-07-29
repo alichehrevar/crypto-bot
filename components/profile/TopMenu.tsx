@@ -3,7 +3,6 @@
 import React from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { MenuItems } from "@/utils/menuItems";
 import { usePathname } from "next/navigation";
 import {
   Navbar,
@@ -17,6 +16,8 @@ import {
   DropdownMenu,
   Avatar,
 } from "@heroui/react";
+
+import { MenuItems } from "@/utils/menuItems";
 import { SearchIcon } from "@/components/shared/icons";
 import { siteConfig } from "@/config/site";
 import { ArrowLeftStartOnRectangle, Cog8ToothIcon } from "@/utils/icons";
@@ -31,7 +32,7 @@ export default function TopMenu() {
       shouldHideOnScroll
       maxWidth="full"
     >
-      <NavbarContent justify="start" className="flex flex-1">
+      <NavbarContent className="flex flex-1" justify="start">
         <NavbarBrand>
           <div className="w-[128px] h-[32px] flex items-center justify-center">
             <Link href="/dashboard">
@@ -48,9 +49,10 @@ export default function TopMenu() {
         <NavbarContent className="flex items-center justify-center gap-8">
           {Object.values(MenuItems).map((menuItem, i) => {
             const isActive = menuItem.link === pathname || menuItem.children.some(c => c.link === pathname);
+
             if (menuItem.children.length) {
               return (
-                <Dropdown placement="bottom-start" key={i}>
+                <Dropdown key={i} placement="bottom-start">
                   <DropdownTrigger>
                     <span className={`text-[14px] font-light cursor-pointer ${isActive ? "text-primary" : ""}`}>
                       {menuItem.name}
@@ -63,11 +65,11 @@ export default function TopMenu() {
                       return (
                         <DropdownItem
                           key={j}
-                          href={child.link}
                           className={`flex items-center space-x-3 px-4 py-2 rounded-full hover:bg-none ${childActive ? "text-primary" : ""}`}
                           classNames={{
                             base: "text-sm data-[hover=true]:bg-unset data-[hover=true]:text-primary-200 data-[focus=true]:bg-unset data-[focus=true]:text-primary-200",
                           }}
+                          href={child.link}
                         >
                           <span className="text-[14px]">{child.name}</span>
                         </DropdownItem>
@@ -77,9 +79,10 @@ export default function TopMenu() {
                 </Dropdown>
               )
             }
+
             return (
-              <NavbarItem isActive={isActive} key={i}>
-                <Link href={menuItem.link} className={`text-sm ${isActive ? 'text-primary' : 'hover:text-primary-200'}`}>
+              <NavbarItem key={i} isActive={isActive}>
+                <Link className={`text-sm ${isActive ? 'text-primary' : 'hover:text-primary-200'}`} href={menuItem.link}>
                   {menuItem.name}
                 </Link>
               </NavbarItem>
@@ -117,10 +120,10 @@ export default function TopMenu() {
                 <p className="font-semibold">Signed in as</p>
                 <p className="font-semibold">zoey@example.com</p>
               </DropdownItem>
-              <DropdownItem key="settings" startContent={<Cog8ToothIcon className="w-5 h-5" />} href="/profile/settings">
+              <DropdownItem key="settings" href="/profile/settings" startContent={<Cog8ToothIcon className="w-5 h-5" />}>
                 Settings
               </DropdownItem>
-              <DropdownItem key="help" startContent={<Cog8ToothIcon className="w-5 h-5" />} href="/profile/settings">
+              <DropdownItem key="help" href="/profile/settings" startContent={<Cog8ToothIcon className="w-5 h-5" />}>
                 Help
               </DropdownItem>
               <DropdownItem key="logout" startContent={<ArrowLeftStartOnRectangle className="w-5 h-5" />}>

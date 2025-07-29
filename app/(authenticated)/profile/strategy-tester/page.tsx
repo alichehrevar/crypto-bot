@@ -251,7 +251,7 @@ export default function StrategyTesterPage() {
                   {(item: any) => <AutocompleteItem key={item.value}>{item.label}</AutocompleteItem>}
                 </Autocomplete>
                 <div className="flex items-start justify-between w-full gap-4">
-                  <RadioGroup size="sm" orientation="vertical" value={useRecent} onValueChange={setUseRecent}>
+                  <RadioGroup orientation="vertical" size="sm" value={useRecent} onValueChange={setUseRecent}>
                     <Radio value="recent-candles">Recent Candles</Radio>
                     <Radio value="time-range">Time Range</Radio>
                   </RadioGroup>
@@ -297,9 +297,9 @@ export default function StrategyTesterPage() {
                 </div>
                 {optimize && (
                   <>
-                    <RadioGroup size="sm" className="justify-between" classNames={{
+                    <RadioGroup className="justify-between" classNames={{
                       wrapper: 'flex w-full gap-5'
-                    }} orientation="horizontal" value={optMethod} onValueChange={(v) => setOptMethod(v as any)}>
+                    }} orientation="horizontal" size="sm" value={optMethod} onValueChange={(v) => setOptMethod(v as any)}>
                       <Radio value="grid">Grid</Radio>
                       <Radio value="bayesian">Bayesian</Radio>
                       <Radio value="ann">ANN</Radio>
@@ -327,7 +327,7 @@ export default function StrategyTesterPage() {
                 )}
               </div>
 
-              <Button fullWidth color="primary" disabled={loading} isLoading={loading} size="lg" type="submit" className="text-black">
+              <Button fullWidth className="text-black" color="primary" disabled={loading} isLoading={loading} size="lg" type="submit">
                 Start Backtester
               </Button>
             </form>

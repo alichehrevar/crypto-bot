@@ -78,6 +78,7 @@ function TechnicalAnalysis() {
   const getRSIColor = (rsi: number) => {
     if (rsi > 70) return 'text-red-400';
     if (rsi < 30) return 'text-green-400';
+
     return 'text-yellow-400';
   };
 
@@ -91,7 +92,7 @@ function TechnicalAnalysis() {
           <div className="bg-gray-800/30 rounded-lg p-3">
             <div className="flex items-center justify-between mb-1">
               <span className="text-xs text-gray-400">RSI (14)</span>
-              <div className={`w-2 h-2 rounded-full ${indicators.rsi > 70 ? 'bg-red-400' : indicators.rsi < 30 ? 'bg-green-400' : 'bg-yellow-400'} animate-pulse`}></div>
+              <div className={`w-2 h-2 rounded-full ${indicators.rsi > 70 ? 'bg-red-400' : indicators.rsi < 30 ? 'bg-green-400' : 'bg-yellow-400'} animate-pulse`} />
             </div>
             <div className={`text-lg font-bold ${getRSIColor(indicators.rsi)} transition-colors duration-300`}>
               {indicators.rsi.toFixed(1)}
@@ -157,7 +158,7 @@ function TechnicalAnalysis() {
                     indicators.momentum === 'Bearish' ? 'bg-red-400' : 'bg-gray-400'
                 }`}
                 style={{ width: `${Math.min(100, (indicators.volume / 1000000) * 100)}%` }}
-              ></div>
+               />
             </div>
             <span className="text-xs text-gray-500">vs Avg</span>
           </div>

@@ -110,13 +110,6 @@ const Register = () => {
   };
 
   const handleOTPConfirmation = (otp: string) => {
-    console.log("Registration completed:", {
-      email,
-      password,
-      ...profileData,
-      otp
-    });
-
     register({
       email,
       password,

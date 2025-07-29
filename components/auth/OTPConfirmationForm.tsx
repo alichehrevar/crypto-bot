@@ -7,7 +7,7 @@ interface OTPConfirmationFormProps {
   onBack: () => void;
 }
 
-const OTPConfirmationForm = ({ onSubmit, onBack }: OTPConfirmationFormProps) => {
+const OTPConfirmationForm = ({ onSubmit }: OTPConfirmationFormProps) => {
   const [otp, setOtp] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {

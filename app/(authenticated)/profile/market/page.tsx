@@ -2,6 +2,7 @@
 
 import React from "react";
 import { Tab, Tabs } from "@heroui/react";
+
 import HeatMapWidget from "@/components/profile/market/HeatMap";
 import TopMoversList from "@/components/profile/market/TopMoversList";
 

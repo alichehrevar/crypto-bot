@@ -15,7 +15,7 @@ interface ProfileSetupFormProps {
   onBack: () => void;
 }
 
-const ProfileSetupForm = ({ onSubmit, onBack }: ProfileSetupFormProps) => {
+const ProfileSetupForm = ({ onSubmit}: ProfileSetupFormProps) => {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [birthday, setBirthday] = React.useState<DateValue | null>(parseDate("2024-03-07"));

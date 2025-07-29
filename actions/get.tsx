@@ -9,6 +9,7 @@ export async function getData (url: string, isLogFile: boolean = false) {
     const headers: Record<string,string> = {
         Authorization: `Bearer ${nextCookies?.get('token')?.value}`
     };
+
     // only send JSON content‐type if *not* a log file
     if (!isLogFile) {
         headers['Content-Type'] = 'application/json';

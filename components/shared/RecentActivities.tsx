@@ -8,6 +8,7 @@ import {
   TableRow,
   TableCell, addToast, Spinner
 } from "@heroui/react";
+
 import { getData } from "@/actions/get";
 import { AllPnLData, PnLData } from "@/types/profile/PnLTypes";
 
@@ -142,7 +143,7 @@ export const RecentActivities = () => {
             }
             {!loading && pnLData && pnLData.open.length === 0 && (
               <TableRow>
-                <TableCell colSpan={8} className="px-0">
+                <TableCell className="px-0" colSpan={8}>
                   <div className="flex items-center justify-center h-[70px] bg-default-100 rounded-lg">
                     No active positions.
                   </div>

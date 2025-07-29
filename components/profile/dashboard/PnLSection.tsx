@@ -45,7 +45,6 @@ export default function PnLSection() {
 
             return;
           }
-          console.log('realized-pnl' ,res)
           setRealizedData(res.data);
         } else {
           const res: UnrealizedPnLResponse = await getData(`/pnl/unrealized?period=${period}`);
@@ -58,7 +57,6 @@ export default function PnLSection() {
 
             return;
           }
-          console.log('unrealized-pnl' ,res)
           setUnrealizedData(res.data);
         }
       } catch (err: any) {
