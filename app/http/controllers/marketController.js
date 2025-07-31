@@ -2,6 +2,7 @@
 
 const MarketService = require('../../services/marketService');
 const Currency      = require('../../models/Currency');
+const MarketSnapshot = require('../../models/MarketSnapshot');
 const logger = require("../../../logs/logger");
 
 /**
@@ -44,5 +45,15 @@ exports.getTopMovers = async (req, res) => {
         console.error('getTopMovers error:', err);
         logger.error(`getTopMovers error: ${err.message}`, { stack: err.stack });
         res.status(500).json({ success: false, error: err.message });
+    }
+};
+
+exports.getMarketList = async (req, res) => {
+    try {
+        const coins = await MarketSnapshot.find().sort({ rank: 1 });
+        res.status(200).json(coins);
+    } catch (error) {
+        console.error('Market list error:', error);
+        res.status(500).json({ message: 'Failed to load market list' });
     }
 };

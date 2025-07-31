@@ -1,6 +1,8 @@
 // services/MarketService.js
 
 const axios = require('axios');
+const MarketSnapshot = require('../models/MarketSnapshot');
+const IMAGE_CDN = 'https://static.coinpaprika.com/coin';
 
 /**
  * Pulls Binance 24 h ticker data and returns top gainers or losers.
@@ -39,6 +41,38 @@ async function getTopMovers(limit = 5, direction = 'desc') {
     return filtered;
 }
 
+async function fetchAndStoreMarketData () {
+    const res = await fetch('https://api.coinpaprika.com/v1/tickers');
+    if (!res.ok) throw new Error('Failed to fetch market data');
+
+    const coins = await res.json();
+
+    for (const coin of coins) {
+        await MarketSnapshot.updateOne(
+            { id: coin.id },
+            {
+                id:         coin.id,
+                name:       coin.name,
+                symbol:     coin.symbol,
+                rank:       coin.rank,
+                circulating_supply: coin.circulating_supply,
+                total_supply:       coin.total_supply,
+                max_supply:         coin.max_supply,
+                beta_value:         coin.beta_value,
+                first_data_at:      coin.first_data_at,
+                last_updated:       coin.last_updated,
+                quotes:             coin.quotes,
+                imageUrl:           `${IMAGE_CDN}/${coin.id}/logo.png`,
+                updatedAt:          new Date()
+            },
+            { upsert: true }
+        );
+    }
+
+    console.log(`[Market] ✅ Synced ${coins.length} coins from CoinPaprika`);
+};
+
 module.exports = {
     getTopMovers,
+    fetchAndStoreMarketData
 };

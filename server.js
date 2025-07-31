@@ -6,6 +6,7 @@ const mongoose = require('mongoose');
 const http = require('http');
 const { WebSocketServer } = require('ws');
 const cron = require('node-cron');
+const { runInitialMarketUpdate, scheduleMarketUpdate } = require('./cron/updateMarketData');
 
 const connectDB = require('./config/db');
 const User = require('./app/models/User');
@@ -212,6 +213,11 @@ cron.schedule('0 * * * *', () => {
         console.error('[AssetSnapshot] failed:', err);
     });
 });
+
+(async () => {
+    await runInitialMarketUpdate();   // Fetch immediately on startup
+    scheduleMarketUpdate();           // Then schedule cron job
+})();
 
 // Start server
 const PORT = process.env.PORT || 8000;
