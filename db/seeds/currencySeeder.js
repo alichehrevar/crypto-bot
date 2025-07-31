@@ -1,51 +1,40 @@
-// services/currencySeeder.js
-const ccxt     = require('ccxt');
+const axios = require('axios');
 const Currency = require('../../app/models/Currency');
 
 async function seedSymbols() {
-    const exchange = new ccxt.binance();
-    await exchange.loadMarkets();
+    const COINS_API = 'https://api.coinpaprika.com/v1/coins';
+    const IMAGE_CDN = 'https://static.coinpaprika.com/coin';
 
-    // this is the jsDelivr URL for the "color" set of 128px icons
-    const ICON_CDN = 'https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color';
+    try {
+        const { data: coins } = await axios.get(COINS_API);
 
-    const ops = [];
-
-    for (let market of Object.values(exchange.markets)) {
-        // we only want to spot USDT/USDC markets, adjust as needed
-        if (!market.active || !market.symbol.endsWith('/USDT')) continue;
-
-        const base = market.base.toLowerCase();
-
-        ops.push({
-            updateOne: {
-                filter: { symbol: market.symbol },
-                update: {
-                    symbol:      market.symbol,
-                    baseAsset:   market.base,
-                    quoteAsset:  market.quote,
-                    precision:   market.precision?.amount ?? 8,
-                    lotSize: {
-                        min:  market.limits.amount.min,
-                        step: market.limits.amount.step
+        const ops = coins
+            .map(coin => ({
+                updateOne: {
+                    filter: { id: coin.id },
+                    update: {
+                        id:         coin.id,
+                        name:       coin.name,
+                        symbol:     coin.symbol,
+                        rank:       coin.rank,
+                        is_new:     coin.is_new,
+                        is_active:  coin.is_active,
+                        type:       coin.type,
+                        imageUrl:   `${IMAGE_CDN}/${coin.id}/logo.png`
                     },
-                    priceFilter: {
-                        min:  market.limits.price.min,
-                        tick: market.limits.price.step
-                    },
-                    minNotional: market.limits.cost.min,
-                    exchange:    'binance',
-                    active:      true,
-                    imageUrl:    `${ICON_CDN}/${base}.png`
-                },
-                upsert: true
-            }
-        });
-    }
+                    upsert: true
+                }
+            }));
 
-    if (ops.length) {
-        await Currency.bulkWrite(ops);
-        console.log(`Seeded ${ops.length} symbols into currencies collection`);
+        if (ops.length) {
+            await Currency.syncIndexes();
+            await Currency.bulkWrite(ops);
+            console.log(`✅ Seeded ${ops.length} currencies from CoinPaprika`);
+        } else {
+            console.log('⚠️ No currencies found to seed.');
+        }
+    } catch (err) {
+        console.error('❌ Error seeding currencies:', err.message || err);
     }
 }
 
