@@ -17,13 +17,13 @@ async function getTopMovers(limit = 5, direction = 'desc') {
     const all = resp.data; // array of { symbol, priceChangePercent, ... }
 
     // 2) Filter to USDT pairs, map to { symbol, name, changePct }
-    const filtered = all
+    return all
         .filter(t => t.symbol.endsWith('USDT'))
         .map(t => {
             const base = t.symbol.slice(0, -4);
             return {
                 symbol: `${base}/USDT`,
-                name:   base,
+                name: base,
                 changePct: parseFloat(t.priceChangePercent)
             };
         })
@@ -37,8 +37,6 @@ async function getTopMovers(limit = 5, direction = 'desc') {
         )
         // 5) Limit
         .slice(0, limit);
-
-    return filtered;
 }
 
 async function fetchAndStoreMarketData () {
@@ -70,7 +68,7 @@ async function fetchAndStoreMarketData () {
     }
 
     console.log(`[Market] ✅ Synced ${coins.length} coins from CoinPaprika`);
-};
+}
 
 module.exports = {
     getTopMovers,
