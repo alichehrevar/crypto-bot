@@ -4,7 +4,7 @@ const { fetchAndStoreMarketData } = require('../app/services/marketService');
 // Run every 24 hours at 00:00
 const scheduleMarketUpdate = () => {
     // Run every 24 hours at midnight
-    cron.schedule('0 0 * * *', async () => {
+    cron.schedule('0 * * * *', async () => {
         try {
             console.log('[Cron] Updating market data (scheduled)…');
             await fetchAndStoreMarketData();
