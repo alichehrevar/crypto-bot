@@ -18,11 +18,14 @@ export default function BotsPage() {
           <BotSelectionComponent />
           <BotProgressChart />
         </div>
-        <div className="grid grid-cols-1 mt-4 rounded-2xl lg:py-6">
+        <div className="grid grid-cols-1 rounded-2xl lg:py-6">
           <RecentBots />
         </div>
-        <div className="grid grid-cols-1 bg-dark-gray mt-4 rounded-2xl lg:py-6 lg:px-3 w-full">
+        <div className="grid grid-cols-1 bg-dark-gray rounded-2xl lg:py-6 lg:px-3 w-full">
           <BotsList refreshList={refreshBotsList} />
+        </div>
+        <div className="grid grid-cols-1 bg-dark-gray rounded-2xl lg:py-6 lg:px-3 w-full">
+          <BotsList active={false} refreshList={refreshBotsList} title="Recent Bots" />
         </div>
       </div>
     </div>

@@ -9,8 +9,9 @@ import {Bot, DeployedBotsResponse} from "@/types/profile/bots/DeployedBots";
 import {getData} from "@/actions/get";
 import {ChevronDownIcon} from "@/utils/icons";
 
-export default function BotsList({refreshList, listType, active = true}: {
+export default function BotsList({refreshList, title = "Active Bots", listType, active = true}: {
     refreshList: boolean,
+    title?: string,
     listType?: string,
     active?: boolean
 }) {
@@ -75,7 +76,7 @@ export default function BotsList({refreshList, listType, active = true}: {
     return (
         <>
             <div className="flex items-center justify-between">
-                <h3 className="text-xl font-bold ml-4 mb-4">Active Bots</h3>
+                <h3 className="text-xl font-bold ml-4 mb-4">{title}</h3>
             </div>
 
             {/* ========== MOBILE (below lg) ========== */}
@@ -176,7 +177,7 @@ export default function BotsList({refreshList, listType, active = true}: {
             {/* ========== DESKTOP (lg+) ========== */}
             <div className="hidden lg:flex flex-col w-full gap-2 p-4 rounded-md overflow-y-auto thin-scrollbar">
                 {/* header row */}
-                <div className="grid grid-cols-9 font-semibold text-sm pb-2 mb-4 mx-4">
+                <div className={`grid ${active ? 'grid-cols-9' : 'grid-cols-8'} font-semibold text-sm pb-2 mb-4 mx-4`}>
                     {tableHeaderItems.map((item, ix) => (
                         <div key={ix} className="truncate">
                             {item}
@@ -190,7 +191,7 @@ export default function BotsList({refreshList, listType, active = true}: {
                         <React.Fragment key={botIndex}>
                             <div
                                 aria-controls={`bot-content-${botIndex}`}
-                                className="grid grid-cols-9 items-center text-[13px] dark:bg-[#1A1A1A] rounded-md px-4 py-3 cursor-pointer hover:shadow-lg transition-all duration-300"
+                                className={`grid ${active ? 'grid-cols-9' : 'grid-cols-8 min-h-14'} items-center text-[13px] dark:bg-[#1A1A1A] rounded-md px-4 py-3 cursor-pointer hover:shadow-lg transition-all duration-300`}
                                 role="button"
                                 tabIndex={0}
                                 onClick={() => handleDesktopClick(botIndex)}
@@ -213,12 +214,14 @@ export default function BotsList({refreshList, listType, active = true}: {
                                         bot.pnl.pct > 0 ? "text-green-500" : bot.pnl.pct < 0 ? "text-red-500" : ""
                                     }`}
                                 >
-                  {bot.pnl.pct}%
-                </span>
-                                <div className="flex space-x-2 justify-end items-center">
-                                    <PlayPauseBotModal botId={bot._id}/>
-                                    <CloseBotModal botId={bot._id} refreshBotsList={loadBots}/>
-                                </div>
+                                  {bot.pnl.pct}%
+                                </span>
+                                {active &&
+                                    <div className="flex space-x-2 justify-end items-center">
+                                        <PlayPauseBotModal botId={bot._id}/>
+                                        <CloseBotModal botId={bot._id} refreshBotsList={loadBots}/>
+                                    </div>
+                                }
                             </div>
 
                             <div

@@ -96,7 +96,7 @@ export const RecentBots = () => {
   };
 
   return (
-    <div className="bg-black rounded-xl py-6 shadow-xl backdrop-blur-sm">
+    <div className=" shadow-xl backdrop-blur-sm">
       <h3 className="text-xl font-semibold text-white mb-6">Today Bots</h3>
 
       <Swiper
