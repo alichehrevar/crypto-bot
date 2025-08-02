@@ -32,6 +32,7 @@ const logsRouter         = require('./routes/logs');
 const marketRoutes = require('./routes/market')
 const pnlRoutes = require('./routes/pnl');
 const ordersRouter = require("./routes/orders");
+const coinRoutes = require('./routes/coin');
 
 const app = express();
 
@@ -136,6 +137,8 @@ app.use('/api/market', marketRoutes)
 app.use('/api/pnl', pnlRoutes);
 app.use('/api/orders', ordersRouter);
 app.use('/api/asset', ordersRouter);
+app.use('/api/coins', coinRoutes)
+
 
 // Logs REST endpoint
 app.use('/api/logs', logsRouter);
