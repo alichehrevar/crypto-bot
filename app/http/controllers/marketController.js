@@ -51,9 +51,9 @@ exports.getTopMovers = async (req, res) => {
 exports.getMarketList = async (req, res) => {
     try {
         const coins = await MarketSnapshot.find().sort({ rank: 1 });
-        res.status(200).json(coins);
+        res.status(200).json({data: coins, success: true});
     } catch (error) {
         console.error('Market list error:', error);
-        res.status(500).json({ message: 'Failed to load market list' });
+        res.status(500).json({ message: 'Failed to load market list', success: false });
     }
 };

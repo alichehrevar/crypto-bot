@@ -1,73 +1,82 @@
 // services/MarketService.js
 
-const axios = require('axios');
 const MarketSnapshot = require('../models/MarketSnapshot');
 const IMAGE_CDN = 'https://static.coinpaprika.com/coin';
 
 /**
- * Pulls Binance 24 h ticker data and returns top gainers or losers.
+ * Get top movers from the DB.
  *
- * @param {number} limit      Number of symbols to return
- * @param {'asc'|'desc'} direction  'desc' ⇒ biggest positive % moves; 'asc' ⇒ biggest negative
- * @returns {Promise<Array<{symbol:string, name:string, changePct:number}>>}
+ * @param {number} limit     how many movers to return (1–100)
+ * @param {'asc'|'desc'} direction  'desc' → biggest gainers, 'asc' → biggest losers
  */
 async function getTopMovers(limit = 5, direction = 'desc') {
-    // 1) Fetch all 24 h tickers
-    const resp = await axios.get('https://api.binance.com/api/v3/ticker/24hr');
-    const all = resp.data; // array of { symbol, priceChangePercent, ... }
+    const lim = Math.max(1, Math.min(100, limit));
+    const dir = direction === 'asc' ? 'asc' : 'desc';
 
-    // 2) Filter to USDT pairs, map to { symbol, name, changePct }
-    return all
-        .filter(t => t.symbol.endsWith('USDT'))
-        .map(t => {
-            const base = t.symbol.slice(0, -4);
-            return {
-                symbol: `${base}/USDT`,
-                name: base,
-                changePct: parseFloat(t.priceChangePercent)
-            };
-        })
-        // 3) Keep only the desired direction
-        .filter(m => (direction === 'desc' ? m.changePct > 0 : m.changePct < 0))
-        // 4) Sort
-        .sort((a, b) =>
-            direction === 'desc'
-                ? b.changePct - a.changePct
-                : a.changePct - b.changePct
-        )
-        // 5) Limit
-        .slice(0, limit);
+    const match = {
+        type: 'coin',                                   // ← only real coins
+        'quotes.USD.percent_change_24h': dir === 'desc'
+            ? { $gt: 0 }
+            : { $lt: 0 }
+    };
+
+    const sortOrder = {
+        'quotes.USD.percent_change_24h': dir === 'desc' ? -1 : 1
+    };
+
+    const docs = await MarketSnapshot
+        .find(match)
+        .sort(sortOrder)
+        .limit(lim)
+        .select('symbol name imageUrl quotes.USD.percent_change_24h');
+
+    return docs.map(d => ({
+        symbol:    d.symbol,
+        name:      d.name,
+        imageUrl:  d.imageUrl,
+        changePct: d.quotes.USD.percent_change_24h
+    }));
 }
 
-async function fetchAndStoreMarketData () {
-    const res = await fetch('https://api.coinpaprika.com/v1/tickers');
-    if (!res.ok) throw new Error('Failed to fetch market data');
+async function fetchAndStoreMarketData() {
+    // 1) get all coins for their types
+    const coinsRes   = await fetch('https://api.coinpaprika.com/v1/coins');
+    const coinsList  = await coinsRes.json();
+    const typeMap    = coinsList.reduce((map, c) => {
+        map[c.id] = c.type;
+        return map;
+    }, {});
 
-    const coins = await res.json();
+    // 2) fetch all tickers
+    const tickersRes = await fetch('https://api.coinpaprika.com/v1/tickers');
+    const tickers    = await tickersRes.json();
 
-    for (const coin of coins) {
+    // 3) upsert each ticker + type
+    for (const t of tickers) {
+        const coinType = typeMap[t.id] || 'coin';
         await MarketSnapshot.updateOne(
-            { id: coin.id },
+            { id: t.id },
             {
-                id:         coin.id,
-                name:       coin.name,
-                symbol:     coin.symbol,
-                rank:       coin.rank,
-                circulating_supply: coin.circulating_supply,
-                total_supply:       coin.total_supply,
-                max_supply:         coin.max_supply,
-                beta_value:         coin.beta_value,
-                first_data_at:      coin.first_data_at,
-                last_updated:       coin.last_updated,
-                quotes:             coin.quotes,
-                imageUrl:           `${IMAGE_CDN}/${coin.id}/logo.png`,
+                id:         t.id,
+                name:       t.name,
+                symbol:     t.symbol,
+                rank:       t.rank,
+                type:       coinType,                           // ← store it
+                circulating_supply: t.circulating_supply,
+                total_supply:       t.total_supply,
+                max_supply:         t.max_supply,
+                beta_value:         t.beta_value,
+                first_data_at:      t.first_data_at,
+                last_updated:       t.last_updated,
+                quotes:             t.quotes,
+                imageUrl:           `${IMAGE_CDN}/${t.id}/logo.png`,
                 updatedAt:          new Date()
             },
             { upsert: true }
         );
     }
 
-    console.log(`[Market] ✅ Synced ${coins.length} coins from CoinPaprika`);
+    console.log(`[Market] Synced ${tickers.length} entries with types`);
 }
 
 module.exports = {

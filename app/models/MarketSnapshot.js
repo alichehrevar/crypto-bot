@@ -15,6 +15,7 @@ const MarketSnapshotSchema = new Schema({
     name:       { type: String },
     symbol:     { type: String },
     rank:       { type: Number },
+    type:       { type: String },
     circulating_supply: { type: Number },
     total_supply:       { type: Number },
     max_supply:         { type: Number },
