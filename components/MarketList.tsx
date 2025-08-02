@@ -44,7 +44,7 @@ const MarketList: React.FC = () => {
 
 
     return (
-        <div className="bg-dark-gray text-white w-full rounded-lg p-2">
+        <div className="bg-dark-gray text-white w-full h-full rounded-lg p-2">
             {/* Search Input */}
             <div className="mb-3">
                 <input
@@ -62,7 +62,7 @@ const MarketList: React.FC = () => {
             </div>
 
             {/* Coin Rows */}
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-2 h-[84%] overflow-y-auto">
                 {filteredCoins.map((coin) => (
                     <div key={coin.id} className="flex items-center justify-between text-sm py-1">
                         {/* Symbol and Logo */}
