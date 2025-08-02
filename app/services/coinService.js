@@ -1,6 +1,7 @@
 // app/services/coinService.js
 const axios = require('axios');
 const BASE  = 'https://api.coinpaprika.com/v1';
+const IMAGE_CDN = 'https://static.coinpaprika.com/coin';
 
 async function getCoinSummary(coinId) {
     // 1) fetch ticker and today’s OHLCV in parallel
@@ -36,7 +37,9 @@ async function getCoinSummary(coinId) {
 
         // 52-week data not available on free plan
         week52_high: null,
-        week52_low:  null
+        week52_low:  null,
+
+        imageUrl: `${IMAGE_CDN}/${ticker.id}/logo.png`,
     };
 }
 
