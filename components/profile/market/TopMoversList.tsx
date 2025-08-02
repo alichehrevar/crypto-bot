@@ -68,11 +68,11 @@ export default function TopMovers() {
             >
               {/* Left: icon + name */}
               <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 relative">
+                <div className="w-8 h-8 relative rounded-full">
                   <Image
                     fill
                     alt={item.symbol}
-                    className="w-8 h-8"
+                    className="w-8 h-8 rounded-full"
                     src={item.imageUrl}
                     onError={(e) => {
                       e.currentTarget.src = '/images/icons/default.svg';

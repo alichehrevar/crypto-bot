@@ -118,26 +118,34 @@ export const ArrowLeftStartOnRectangle = ({ className = "size-4" }) => (
   </svg>
 );
 
-export function FilterIcon(props: SVGProps<SVGSVGElement>) {
-  return (
-    <svg
-      {...props}
-      fill="none"
-      stroke="currentColor"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={2}
-      viewBox="0 0 24 24"
-    >
-      <polygon points="3 4 21 4 14 11 14 19 10 16 10 11 3 4" />
+export const StarIcon = ({ className = "size-4", stroke = "currentColor", fill = "none" }) => (
+    <svg className={className} fill={fill} stroke={stroke} strokeWidth="1.5" viewBox="0 0 24 24"
+         xmlns="http://www.w3.org/2000/svg">
+        <path d="M11.48 3.499a.562.562 0 0 1 1.04 0l2.125 5.111a.563.563 0 0 0 .475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 0 0-.182.557l1.285 5.385a.562.562 0 0 1-.84.61l-4.725-2.885a.562.562 0 0 0-.586 0L6.982 20.54a.562.562 0 0 1-.84-.61l1.285-5.386a.562.562 0 0 0-.182-.557l-4.204-3.602a.562.562 0 0 1 .321-.988l5.518-.442a.563.563 0 0 0 .475-.345L11.48 3.5Z" strokeLinecap="round"
+              strokeLinejoin="round"/>
     </svg>
-  );
+);
+
+export function FilterIcon(props: SVGProps<SVGSVGElement>) {
+    return (
+        <svg
+            {...props}
+            fill="none"
+            stroke="currentColor"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            viewBox="0 0 24 24"
+        >
+            <polygon points="3 4 21 4 14 11 14 19 10 16 10 11 3 4"/>
+        </svg>
+    );
 }
 
 export const GmailIcon = () => (
-  <svg fill="none" height="48" viewBox="0 0 48 48" width="48" xmlns="http://www.w3.org/2000/svg">
-    <g clipPath="url(#clip0_5_11420)">
-      <path d="M3.27273 42.009H10.9091V23.4636L0 15.2817V38.7363C0 40.5472 1.46727 42.009 3.27273 42.009Z"
+    <svg fill="none" height="48" viewBox="0 0 48 48" width="48" xmlns="http://www.w3.org/2000/svg">
+        <g clipPath="url(#clip0_5_11420)">
+            <path d="M3.27273 42.009H10.9091V23.4636L0 15.2817V38.7363C0 40.5472 1.46727 42.009 3.27273 42.009Z"
             fill="#4285F4" />
       <path d="M37.0918 42.009H44.7282C46.5391 42.009 48.0009 40.5417 48.0009 38.7363V15.2817L37.0918 23.4636"
             fill="#34A853" />
@@ -217,17 +225,25 @@ export const AppleIcon = ({ className = "size-4"}) => (
   </svg>
 );
 
-export const EyeFilledIcon = ({ className = "size-4"}) => (
-  <svg
-    aria-hidden="true"
-    className={className}
-    fill="none"
-    focusable="false"
-    role="presentation"
-    viewBox="0 0 24 24"
-  >
-    <path
-      d="M21.25 9.14969C18.94 5.51969 15.56 3.42969 12 3.42969C10.22 3.42969 8.49 3.94969 6.91 4.91969C5.33 5.89969 3.91 7.32969 2.75 9.14969C1.75 10.7197 1.75 13.2697 2.75 14.8397C5.06 18.4797 8.44 20.5597 12 20.5597C13.78 20.5597 15.51 20.0397 17.09 19.0697C18.67 18.0897 20.09 16.6597 21.25 14.8397C22.25 13.2797 22.25 10.7197 21.25 9.14969ZM12 16.0397C9.76 16.0397 7.96 14.2297 7.96 11.9997C7.96 9.76969 9.76 7.95969 12 7.95969C14.24 7.95969 16.04 9.76969 16.04 11.9997C16.04 14.2297 14.24 16.0397 12 16.0397Z"
+export const ChatBubbleOvalLeftEllipsis = ({ className = "size-4"}) => (
+    <svg className={className} fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"
+         xmlns="http://www.w3.org/2000/svg">
+        <path d="M8.625 12a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 0 1-2.555-.337A5.972 5.972 0 0 1 5.41 20.97a5.969 5.969 0 0 1-.474-.065 4.48 4.48 0 0 0 .978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25Z" strokeLinecap="round"
+              strokeLinejoin="round"/>
+    </svg>
+);
+
+export const EyeFilledIcon = ({className = "size-4"}) => (
+    <svg
+        aria-hidden="true"
+        className={className}
+        fill="none"
+        focusable="false"
+        role="presentation"
+        viewBox="0 0 24 24"
+    >
+        <path
+            d="M21.25 9.14969C18.94 5.51969 15.56 3.42969 12 3.42969C10.22 3.42969 8.49 3.94969 6.91 4.91969C5.33 5.89969 3.91 7.32969 2.75 9.14969C1.75 10.7197 1.75 13.2697 2.75 14.8397C5.06 18.4797 8.44 20.5597 12 20.5597C13.78 20.5597 15.51 20.0397 17.09 19.0697C18.67 18.0897 20.09 16.6597 21.25 14.8397C22.25 13.2797 22.25 10.7197 21.25 9.14969ZM12 16.0397C9.76 16.0397 7.96 14.2297 7.96 11.9997C7.96 9.76969 9.76 7.95969 12 7.95969C14.24 7.95969 16.04 9.76969 16.04 11.9997C16.04 14.2297 14.24 16.0397 12 16.0397Z"
       fill="currentColor"
     />
     <path

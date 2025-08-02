@@ -20,7 +20,7 @@ import {
 import { MenuItems } from "@/utils/menuItems";
 import { SearchIcon } from "@/components/shared/icons";
 import { siteConfig } from "@/config/site";
-import { ArrowLeftStartOnRectangle, Cog8ToothIcon } from "@/utils/icons";
+import {ArrowLeftStartOnRectangle, ChatBubbleOvalLeftEllipsis, Cog8ToothIcon} from "@/utils/icons";
 
 export default function TopMenu() {
 
@@ -123,7 +123,7 @@ export default function TopMenu() {
               <DropdownItem key="settings" href="/profile/settings" startContent={<Cog8ToothIcon className="w-5 h-5" />}>
                 Settings
               </DropdownItem>
-              <DropdownItem key="help" href="/profile/settings" startContent={<Cog8ToothIcon className="w-5 h-5" />}>
+              <DropdownItem key="help" href="/profile/settings" startContent={<ChatBubbleOvalLeftEllipsis className="w-5 h-5" />}>
                 Help
               </DropdownItem>
               <DropdownItem key="logout" startContent={<ArrowLeftStartOnRectangle className="w-5 h-5" />}>

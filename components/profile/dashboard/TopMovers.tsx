@@ -84,7 +84,7 @@ export default function TopMovers() {
             const isUp = pct >= 0
 
             return (
-              <div key={item.symbol} className="flex flex-col items-center">
+              <div key={item.symbol} className="flex flex-col items-center hover:scale-105 transition-all duration-250 cursor-pointer">
                 {/* percentage */}
                 <span
                   className={`mb-2 text-sm font-semibold ${
@@ -109,7 +109,7 @@ export default function TopMovers() {
                 {/* icon */}
                 <Image
                   alt={item.symbol}
-                  className="w-6 h-6 mt-3"
+                  className="w-6 h-6 mt-3 rounded-full"
                   height={24}
                   src={item.imageUrl}
                   width={24}
