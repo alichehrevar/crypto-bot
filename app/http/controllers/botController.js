@@ -369,17 +369,22 @@ exports.updateBot = async (req, res) => {
 };
 
 /**
- * Delete a bot completely.
+ * Stop a bot completely.
  */
-exports.deleteBot = async (req, res) => {
+exports.stopBot = async (req, res) => {
     try {
-        const bot = await BotBase.findByIdAndDelete(req.params.id);
+        const bot = await BotBase.findByIdAndUpdate(
+            req.params.id,
+            { active: false },
+            { new: true }           // return the updated document
+        );
+
         if (!bot) {
             return res.status(404).json({ success: false, error: 'Bot not found' });
         }
 
-        BotService.removeBot(bot);
-        return res.json({ success: true, message: `"${bot.name}" deleted.` });
+        BotService.deactivateBot(bot);
+        return res.json({ success: true, message: `"${bot.name}" deactivated.` });
     }
     catch (err) {
         console.error('deleteBot error:', err);

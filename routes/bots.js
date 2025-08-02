@@ -29,7 +29,7 @@ router.post('/:id/pause', authenticate,  botController.pauseBot);
 router.post('/:id/resume', authenticate, botController.resumeBot);
 
 // Delete a bot
-router.delete('/:id', authenticate, botController.deleteBot);
+router.delete('/:id', authenticate, botController.stopBot);
 
 // Close a trade for a given bot
 router.post('/:botId/trades/:tradeId/close', authenticate, botController.closeTrade);

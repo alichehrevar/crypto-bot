@@ -40,8 +40,8 @@ class BotService {
         );
     }
 
-    /** Remove a bot (on delete or deactivate) */
-    removeBot(bot) {
+    /** Deactivate a bot (on deactivate) */
+    deactivateBot(bot) {
         const key = `${bot.symbol.toUpperCase()}-${bot.timeframe.toLowerCase()}`;
         if (!this.activeBots.has(key)) return;
         this.activeBots.set(
