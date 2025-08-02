@@ -363,7 +363,7 @@ export default function StrategyTesterPage() {
                         </span>
                     </td>
                     <td className="py-3 px-4">
-                      <Button size="sm" variant="bordered" onPress={() => onCopySetting(row)}>Copy Setting</Button>
+                      <Button color="primary" className="text-black hover:scale-105 transition-all duration-250" size="sm" onPress={() => onCopySetting(row)}>Copy Setting</Button>
                     </td>
                   </tr>
                 ))}
