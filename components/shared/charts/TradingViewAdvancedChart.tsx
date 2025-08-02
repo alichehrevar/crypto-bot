@@ -52,7 +52,7 @@ function TradingViewAdvancedChart() {
   }, []);
 
   return (
-    <div className="bg-dark-gray rounded-lg p-1.5 h-full">
+    <div className="bg-dark-gray rounded-lg p-1.5 h-full w-full">
       <div ref={container} className="tradingview-widget-container h-full">
         <div className="tradingview-widget-container__widget h-full" />
       </div>

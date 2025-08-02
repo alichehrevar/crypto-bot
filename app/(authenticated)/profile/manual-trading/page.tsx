@@ -9,6 +9,7 @@ import {OrderBook} from "@/components/shared/OrderBook";
 import TechnicalAnalysis from "@/components/shared/TechnicalAnalysis";
 import PageTitleSection from "@/components/shared/ui/PageTitleSection";
 import SymbolInfoWidget from "@/components/shared/SymbolInfoWidget";
+import CoinSummarySection from "@/components/shared/CoinSummarySection";
 
 export default function ManualTradingPage() {
 
@@ -17,15 +18,15 @@ export default function ManualTradingPage() {
     return (
         <div className="w-full mt-4 relative px-5 pb-5">
             <PageTitleSection title="Manual Trading"/>
-            <div className="flex items-center justify-between w-full gap-6 bg-dark-gray backdrop-blur-sm rounded-xl p-4 border border-gray-800/50 min-h-[80px] mt-5">
-                <SymbolInfoWidget />
+            <div className="flex items-center justify-between w-full gap-6 bg-dark-gray backdrop-blur-sm rounded-xl p-4 border border-gray-800/50 min-h-[80px] mt-2">
+                <CoinSummarySection coinId="btc-bitcoin" />
             </div>
-            <div className=" w-full flex items-start justify-center gap-6 mt-6">
+            <div className=" w-full flex items-start justify-center gap-2 mt-2">
                 <div className="w-full lg:w-[75%]">
                     {/*<MarketWatchChart />*/}
-                    <div className="grid grid-cols-1 lg:grid-cols-[35%_64.5%] gap-4">
+                    <div className="grid grid-cols-1 lg:grid-cols-[35%_64.5%] gap-2">
                         <TechnicalAnalysis/>
-                        <div className="flex items-center justify-center flex-col gap-4">
+                        <div className="flex items-center justify-center flex-col gap-2">
                             <div className="flex w-full h-[400px]">
                                 <TradingViewAdvancedChart/>
                             </div>

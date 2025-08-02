@@ -7,14 +7,16 @@ import TechnicalDeployBotSection from "@/components/profile/bots/deploy/Technica
 import TradingViewAdvancedChart from "@/components/shared/charts/TradingViewAdvancedChart";
 import PageTitleSection from "@/components/shared/ui/PageTitleSection";
 import MarketList from "@/components/MarketList";
+import CoinSummarySection from "@/components/shared/CoinSummarySection";
 
 export default function TechnicalBotsPage() {
 
   const [refreshBotsList, setRefreshBotsList] = useState<boolean>(false)
 
   return (
-    <div className="w-full mt-4 relative px-5">
+    <div className="w-full mt-4 relative px-5 space-y-2">
       <PageTitleSection imagePath="/images/profile/heikin_ashi-motion.png" title="Technical Bots" />
+      <CoinSummarySection coinId="btc-bitcoin" />
       <div className=" w-full flex items-start justify-center gap-2 mt-2 lg:h-[900px]">
         <div className="w-full lg:w-[76%] self-stretch">
           <div className="flex items-start justify-center gap-2 h-[65%]">

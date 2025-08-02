@@ -205,7 +205,7 @@ export default function BotsList({ refreshList, listType }: { refreshList: boole
                     bot.pnl.pct > 0 ? "text-green-500" : bot.pnl.pct < 0 ? "text-red-500" : ""
                   }`}
                 >
-                  {bot.pnl.pct > 0 ? '+ ' : (bot.pnl.pct < 0 ? '- ' : '')}{bot.pnl.pct}%
+                  {bot.pnl.pct}%
                 </span>
                 <div className="flex space-x-2 justify-end items-center">
                   <PlayPauseBotModal botId={bot._id} />
