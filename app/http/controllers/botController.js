@@ -260,8 +260,12 @@ exports.deployBot = async (req, res) => {
  * Retrieve all bots (indicator + grid) for the current user, enriched with PnL and trades.
  */
 exports.getBots = async (req, res) => {
+
+    const { active } = req.query;
+    console.log('getBots active:', active)
+
     try {
-        const filter = {active: true, userId: req.user?.id};
+        const filter = {active: active, userId: req.user?.id};
         const botType = req.query.botType;
         console.log('getBots type:', botType);
         const bots = await BotBase.find(botType && botType !== 'undefined' ? {...filter, botType} : filter).lean();
