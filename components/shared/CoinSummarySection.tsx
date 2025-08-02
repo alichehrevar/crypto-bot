@@ -54,9 +54,9 @@ export default function CoinSummarySection({ coinId }: { coinId: string }) {
 
     return (
         <div className="bg-dark-gray text-white rounded-xl p-2 w-full mx-auto flex flex-col lg:flex-row justify-between">
-            <div className="lg:w-5/6">
+            <div className="lg:w-5/6 space-y-2">
                 {/* Header */}
-                <div className="flex flex-col items-start justify-between mb-2">
+                <div className="flex flex-col items-start justify-between">
                     <div className="flex items-center justify-center gap-2">
                         <div className="w-6 h-6 relative">
                             <Image
