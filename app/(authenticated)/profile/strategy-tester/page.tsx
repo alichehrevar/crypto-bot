@@ -220,12 +220,12 @@ export default function StrategyTesterPage() {
         <div className="w-full flex flex-col lg:flex-row items-start gap-6">
 
           {/* Left Column: Chart */}
-          <div className="w-full lg:w-[70%]">
-            <div className="bg-dark-gray rounded-2xl p-2">
+          <div className="flex self-stretch w-full lg:w-[72%]">
+            <div className="bg-dark-gray rounded-2xl p-2 w-full">
               {chartData ? (
                 <BacktestResultChart candles={chartData.candles} height={550} trades={chartData.trades} />
               ) : (
-                <div className="h-[480px]">
+                <div className="h-full">
                   <TradingViewAdvancedChart />
                 </div>
               )}
@@ -233,7 +233,7 @@ export default function StrategyTesterPage() {
           </div>
 
           {/* Right Column: Form */}
-          <div className="w-full lg:w-[30%] p-6 bg-dark-gray rounded-2xl text-white">
+          <div className="w-full lg:w-[28%] p-6 bg-dark-gray rounded-2xl text-white">
             <form className="space-y-6" onSubmit={handleSubmit}>
               <div className="flex items-center gap-2 mb-4">
                 <h3 className="text-lg font-semibold text-white">Strategy Parameters</h3>
