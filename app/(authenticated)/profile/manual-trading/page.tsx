@@ -8,7 +8,6 @@ import ManualTradeSection from "@/components/profile/bots/deploy/ManualTradeSect
 import {OrderBook} from "@/components/shared/OrderBook";
 import TechnicalAnalysis from "@/components/shared/TechnicalAnalysis";
 import PageTitleSection from "@/components/shared/ui/PageTitleSection";
-import SymbolInfoWidget from "@/components/shared/SymbolInfoWidget";
 import CoinSummarySection from "@/components/shared/CoinSummarySection";
 
 export default function ManualTradingPage() {
