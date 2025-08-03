@@ -30,11 +30,11 @@ export default function MarketPulse({className}: {className?: string}) {
             }));
 
             // Update overall signal based on indicators
-            const rsiSignal = indicators.rsi > 70 ? -0.3 : indicators.rsi < 30 ? 0.3 : 0;
-            const macdSignal = indicators.macd > 0 ? 0.2 : -0.2;
-            const stochSignal = indicators.stochastic > 80 ? -0.2 : indicators.stochastic < 20 ? 0.2 : 0;
+            // const rsiSignal = indicators.rsi > 70 ? -0.3 : indicators.rsi < 30 ? 0.3 : 0;
+            // const macdSignal = indicators.macd > 0 ? 0.2 : -0.2;
+            // const stochSignal = indicators.stochastic > 80 ? -0.2 : indicators.stochastic < 20 ? 0.2 : 0;
 
-            const newStrength = Math.max(-1, Math.min(1, (rsiSignal + macdSignal + stochSignal) + (Math.random() - 0.5) * 0.3));
+            // const newStrength = Math.max(-1, Math.min(1, (rsiSignal + macdSignal + stochSignal) + (Math.random() - 0.5) * 0.3));
 
             // setSignals({
             //     overall: newStrength > 0.2 ? 'Strong Buy' : newStrength > 0.05 ? 'Buy' : newStrength < -0.2 ? 'Strong Sell' : newStrength < -0.05 ? 'Sell' : 'Neutral',
