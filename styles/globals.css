@@ -115,14 +115,21 @@ section[role="dialog"] .overflow-y-auto::-webkit-scrollbar-track {
 
 .today-bots-swiper .swiper-button-next,
 .today-bots-swiper .swiper-button-prev {
-    color: #10B981;
-    width: 30px;
-    height: 30px;
+    color: #929aac;
+    background-color: rgba(146, 154, 172, 0.1);
+    width: 24px;
+    height: 24px;
     margin-top: -15px;
+    border-radius: 50%;
+    transition: all 0.3s;
+}
+.today-bots-swiper .swiper-button-next:hover,
+.today-bots-swiper .swiper-button-prev:hover {
+    background-color: rgba(146, 154, 172, 0.3);
 }
 .today-bots-swiper .swiper-button-next:after,
 .today-bots-swiper .swiper-button-prev:after {
-    font-size: 14px;
+    font-size: 10px;
     font-weight: bold;
 }
 .today-bots-swiper .swiper-pagination-bullet {
