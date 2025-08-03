@@ -70,7 +70,11 @@ export default function CommunityBotList () {
             >
                 {bots.map((bot, idx) => (
                     <SwiperSlide key={idx}>
-                        <CommunityBotCard {...bot} />
+                        <CommunityBotCard onChangeSettings={function (): void {
+                            throw new Error("Function not implemented.");
+                        }} onDeploy={function (): void {
+                            throw new Error("Function not implemented.");
+                        }} {...bot} />
                     </SwiperSlide>
                 ))}
             </Swiper>
