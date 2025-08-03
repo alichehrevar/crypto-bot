@@ -42,7 +42,7 @@ export default function CoinSummarySection({ coinId }: { coinId: string }) {
 
     if (loading) return <CoinSummarySectionLoading />;
 
-    if (!coin) return <div className="flex items-center justify-center min-h-[130px] w-full font-extrabold text-gray-400">No Coin Summary</div>;
+    if (!coin) return <div className="bg-dark-gray flex items-center justify-center min-h-[130px] w-full font-extrabold text-gray-400 rounded-xl">No Coin Summary</div>;
 
     // format helpers
     const fmtNum = (n: number) => n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
