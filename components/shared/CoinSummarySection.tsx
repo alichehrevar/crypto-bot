@@ -6,6 +6,7 @@ import Image from "next/image";
 import { CoinSummaryData, CoinSummaryResponse } from "@/types/CoinSummaryType";
 import { getData } from "@/actions/get";
 import { compactNumber } from "@/utils/functions";
+import CoinSummarySectionLoading from "@/components/loading/CoinSummarySectionLoading";
 
 export default function CoinSummarySection({ coinId }: { coinId: string }) {
     const [coin, setCoin] = useState<CoinSummaryData | null>(null);
@@ -39,9 +40,9 @@ export default function CoinSummarySection({ coinId }: { coinId: string }) {
         return getData(`/coins/${coinId}/summary`)
     }
 
-    if (loading) return <div className="text-gray-400">Loading…</div>;
+    if (loading) return <CoinSummarySectionLoading />;
 
-    if (!coin) return <div className="text-gray-400">No Data Found</div>;
+    if (!coin) return <div className="flex items-center justify-center min-h-[130px] w-full font-extrabold text-gray-400">No Coin Summary</div>;
 
     // format helpers
     const fmtNum = (n: number) => n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
