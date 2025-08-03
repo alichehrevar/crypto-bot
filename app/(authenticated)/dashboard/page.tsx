@@ -33,8 +33,9 @@ export default function Dashboard() {
                     <TopMovers/>
                 </div>
             </div>
-            <CommunityBotList  />
-            <CommunityBotList  />
+            <div className="grid grid-cols-1 rounded-2xl lg:py-6">
+                <CommunityBotList  />
+            </div>
             <div className="grid grid-cols-1 bg-dark-gray mt-4 rounded-2xl py-6 px-3">
                 <BotsList refreshList={refreshBotsList}/>
             </div>
