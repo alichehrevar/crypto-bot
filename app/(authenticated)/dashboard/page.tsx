@@ -10,6 +10,7 @@ import BotsList from "@/components/profile/bots/BotsList";
 import AssetSummary from "@/components/profile/dashboard/assetSummary";
 import {RecentActivities} from "@/components/shared/RecentActivities";
 import CommunityBotList from "@/components/shared/communityBot/CommunityBotList";
+import TopCreators from "@/components/shared/TopCreators";
 
 export default function Dashboard() {
 
@@ -35,6 +36,9 @@ export default function Dashboard() {
             </div>
             <div className="grid grid-cols-1 rounded-2xl lg:py-6">
                 <CommunityBotList  />
+            </div>
+            <div className="grid grid-cols-1 rounded-2xl lg:py-6">
+                <TopCreators />
             </div>
             <div className="grid grid-cols-1 bg-dark-gray mt-4 rounded-2xl py-6 px-3">
                 <BotsList refreshList={refreshBotsList}/>
