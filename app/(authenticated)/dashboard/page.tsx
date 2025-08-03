@@ -1,40 +1,49 @@
 'use client'
 
-import React, { useState } from "react";
-import { Divider } from "@heroui/react";
+import React, {useState} from "react";
+import {Divider} from "@heroui/react";
 
 import AssetSection from "@/components/profile/dashboard/AssetSection";
 import PnLSection from "@/components/profile/dashboard/PnLSection";
 import TopMovers from "@/components/profile/dashboard/TopMovers";
 import BotsList from "@/components/profile/bots/BotsList";
 import AssetSummary from "@/components/profile/dashboard/assetSummary";
-import { RecentActivities } from "@/components/shared/RecentActivities";
+import {RecentActivities} from "@/components/shared/RecentActivities";
+import CommunityBotList from "@/components/shared/communityBot/CommunityBotList";
 
 export default function Dashboard() {
 
-  const [refreshBotsList, setRefreshBotsList] = useState<boolean>(false)
+    const [refreshBotsList, setRefreshBotsList] = useState<boolean>(false)
 
-  return (
-    <section className="px-2 lg:px-8 mt-16 mx-auto w-full">
-      <AssetSummary />
-      <Divider className="my-10" />
-      <div className="flex flex-row items-center lg:grid overflow-x-auto lg:grid-cols-3 gap-4 min-h-[220px]">
-        <div className="flex items-start justify-start flex-col bg-dark-gray rounded-2xl p-6 gap-4 min-h-[250px]">
-          <AssetSection />
-        </div>
-        <div className="flex items-start justify-start flex-col bg-dark-gray rounded-2xl py-6 px-3 gap-4 min-h-[250px]">
-          <PnLSection />
-        </div>
-        <div className="flex items-center justify-start flex-col bg-dark-gray rounded-2xl py-6 px-3 gap-4 h-full min-h-[250px]">
-          <TopMovers />
-        </div>
-      </div>
-      <div className="grid grid-cols-1 bg-dark-gray mt-4 rounded-2xl py-6 px-3">
-        <BotsList refreshList={refreshBotsList} />
-      </div>
-      <div className="grid grid-cols-1 bg-dark-gray mt-4 rounded-2xl py-6 px-3">
-        <RecentActivities />
-      </div>
-    </section>
-  )
+    return (
+        <section className="px-2 lg:px-8 mt-16 mx-auto w-full">
+            <AssetSummary/>
+            <Divider className="my-10"/>
+            <div className="flex flex-row items-center lg:grid overflow-x-auto lg:grid-cols-3 gap-4 min-h-[220px]">
+                <div
+                    className="flex items-start justify-start flex-col bg-dark-gray rounded-2xl p-6 gap-4 min-h-[250px]">
+                    <AssetSection/>
+                </div>
+                <div
+                    className="flex items-start justify-start flex-col bg-dark-gray rounded-2xl py-6 px-3 gap-4 min-h-[250px]">
+                    <PnLSection/>
+                </div>
+                <div
+                    className="flex items-center justify-start flex-col bg-dark-gray rounded-2xl py-6 px-3 gap-4 h-full min-h-[250px]">
+                    <TopMovers/>
+                </div>
+            </div>
+            <CommunityBotList  />
+            <CommunityBotList  />
+            <div className="grid grid-cols-1 bg-dark-gray mt-4 rounded-2xl py-6 px-3">
+                <BotsList refreshList={refreshBotsList}/>
+            </div>
+            <div className="grid grid-cols-1 bg-dark-gray mt-4 rounded-2xl py-6 px-3">
+                <BotsList active={false} refreshList={refreshBotsList} title="Recent Bots" />
+            </div>
+            <div className="grid grid-cols-1 bg-dark-gray mt-4 rounded-2xl py-6 px-3">
+                <RecentActivities/>
+            </div>
+        </section>
+    )
 }

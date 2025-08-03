@@ -20,7 +20,7 @@ const data = [
 
 const todayBots = [
   {
-    name: "Technical Bot Bot",
+    name: "Technical Bot",
     amount: "$103,000",
     change: "+10.14%",
     trend: "up",
@@ -28,7 +28,7 @@ const todayBots = [
     minInvestment: "$59,291"
   },
   {
-    name: "Technical Bot Bot",
+    name: "Technical Bot",
     amount: "$103,000",
     change: "+5.2%",
     trend: "up",
@@ -52,7 +52,7 @@ const todayBots = [
     minInvestment: "$68,500"
   },
   {
-    name: "Technical Bot Bot",
+    name: "Technical Bot",
     amount: "$103,000",
     change: "+10.14%",
     trend: "up",
@@ -60,7 +60,7 @@ const todayBots = [
     minInvestment: "$59,291"
   },
   {
-    name: "Technical Bot Bot",
+    name: "Technical Bot",
     amount: "$103,000",
     change: "+5.2%",
     trend: "up",
