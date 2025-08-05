@@ -1,9 +1,19 @@
 import React, { useEffect, useState } from "react";
-import Image from "next/image";
 import {addToast, Skeleton} from "@heroui/react";
 
 import { AssetSummaryResponse, Summary } from "@/types/profile/AssetSummary";
 import { getData } from "@/actions/get";
+import ReusableAreaChart from "@/components/shared/charts/ReusableAreaChart";
+
+const mockData = [
+  { date: '10 Dec', value: 25000 }, { date: '11 Dec', value: 45000 },
+  { date: '12 Dec', value: 35000 }, { date: '13 Dec', value: 55000 },
+  { date: '14 Dec', value: 20000 }, { date: '15 Dec', value: 65000 },
+  { date: '16 Dec', value: 89000 }, { date: '17 Dec', value: 32000 },
+  { date: '18 Dec', value: 72000 }, { date: '19 Dec', value: 68000 },
+  { date: '20 Dec', value: 85000 }, { date: '21 Dec', value: 99475 },
+  { date: '22 Dec', value: 95000 },
+]
 
 export default function AssetSummary() {
 
@@ -52,31 +62,33 @@ export default function AssetSummary() {
                 </>
             }
           </div>
-        </div>
-        <Image alt="Overview" className="object-cover" height={120} src="/images/profile/overview.png" width={500} />
-      </div>
-      <div className="flex space-x-4">
-        <div className="flex items-start justify-center flex-col gap-1 text-gray-400">
+          <div className="flex space-x-4">
+            <div className="flex items-start justify-center flex-col gap-1 text-gray-400">
           <span className="text-[13px]">
             Portfolio Balance
           </span>
-          {loading
-            ? <Skeleton className="h-1.5 w-[40px] mt-2.5 rounded-lg" />
-            : <span className="dark:text-white text-black font-semibold text-[14px]">
+              {loading
+                  ? <Skeleton className="h-1.5 w-[40px] mt-2.5 rounded-lg" />
+                  : <span className="dark:text-white text-black font-semibold text-[14px]">
               {`$ ${assetData?.portfolioBalance === undefined ? 0.00 : assetData?.portfolioBalance}`}
             </span>
-          }
-        </div>
-        <div className="flex items-start justify-center flex-col gap-1 text-gray-400">
+              }
+            </div>
+            <div className="flex items-start justify-center flex-col gap-1 text-gray-400">
           <span className="text-[13px]">
             Available Funds
           </span>
-          {loading
-            ? <Skeleton className="h-1.5 w-[40px] mt-2.5 rounded-lg" />
-            : <span className="dark:text-white text-black font-semibold text-[14px]">
+              {loading
+                  ? <Skeleton className="h-1.5 w-[40px] mt-2.5 rounded-lg" />
+                  : <span className="dark:text-white text-black font-semibold text-[14px]">
               {`$ ${assetData?.availableFunds === undefined ? 0.00 : assetData?.availableFunds}`}
             </span>
-          }
+              }
+            </div>
+          </div>
+        </div>
+        <div className="w-[500px] h-[180px]">
+          <ReusableAreaChart data={mockData} />
         </div>
       </div>
     </>

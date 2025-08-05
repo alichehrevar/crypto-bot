@@ -17,9 +17,9 @@ export default function Dashboard() {
     const [refreshBotsList, setRefreshBotsList] = useState<boolean>(false)
 
     return (
-        <section className="px-2 lg:px-8 mt-16 mx-auto w-full">
+        <section className="px-2 lg:px-8 mt-8 mx-auto w-full">
             <AssetSummary/>
-            <Divider className="my-10"/>
+            <Divider className="my-8"/>
             <div className="flex flex-row items-center lg:grid overflow-x-auto lg:grid-cols-3 gap-4 min-h-[220px]">
                 <div
                     className="flex items-start justify-start flex-col bg-dark-gray rounded-2xl p-6 gap-4 min-h-[250px]">
