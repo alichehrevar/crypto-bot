@@ -135,11 +135,11 @@ export default function ReusableAreaChart({ data }: { data: ChartData }) {
                     <Tooltip
                         content={<CustomTooltip />}
                         cursor={false} // Hides the default cursor line
-                        wrapperStyle={{ outline: 'none' }}
                         position={{
                             x: 0,
                             y: 0
                         }} // Position will be handled by the custom tooltip logic if needed, but Recharts handles placement
+                        wrapperStyle={{ outline: 'none' }}
                     />
 
                     {/* Area/Line Configuration */}
