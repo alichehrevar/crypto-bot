@@ -214,9 +214,9 @@ export default function BotProgressChart() {
               <Tooltip
                   content={<CustomTooltip />}
                   cursor={false} // Hides the default cursor line
-                  wrapperStyle={{ outline: 'none' }}
                   // This calculation ensures the tooltip is centered and its bottom is always above the dot
                   position={{ x: 0, y: 0 }} // Position will be handled by the custom tooltip logic if needed, but Recharts handles placement
+                  wrapperStyle={{ outline: 'none' }}
               />
 
               {/* Area/Line Configuration */}
