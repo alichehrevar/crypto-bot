@@ -141,7 +141,7 @@ export const RecentActivities = () => {
                 </TableCell>
               </TableRow>
             }
-            {!loading && pnLData && pnLData.open.length === 0 && (
+            {!loading && activeTab === 'open' && pnLData && pnLData.open.length === 0 && (
               <TableRow>
                 <TableCell className="px-0" colSpan={8}>
                   <div className="flex items-center justify-center h-[70px] bg-default-100 rounded-lg">
@@ -150,7 +150,7 @@ export const RecentActivities = () => {
                 </TableCell>
               </TableRow>
             )}
-            {pnLData && pnLData.open.map((activity, index) => (
+            {!loading && activeTab === 'open' && pnLData && pnLData.open.map((activity, index) => (
               <TableRow key={index} className={`border-gray-800/30 hover:bg-gray-900/40 ${index === 0 ? 'font-bold' : ''}`}>
                 <TableCell className="text-white text-sm">
                   <div className="flex items-center gap-2">
@@ -181,6 +181,48 @@ export const RecentActivities = () => {
                   </button>
                 </TableCell>
               </TableRow>
+            ))}
+
+            {!loading && activeTab === 'close' && pnLData && pnLData.closed.length === 0 && (
+                <TableRow>
+                  <TableCell className="px-0" colSpan={8}>
+                    <div className="flex items-center justify-center h-[70px] bg-default-100 rounded-lg">
+                      No active positions.
+                    </div>
+                  </TableCell>
+                </TableRow>
+            )}
+            {!loading && activeTab === 'close' && pnLData && pnLData.closed.map((activity, index) => (
+                <TableRow key={index} className={`border-gray-800/30 hover:bg-gray-900/40 ${index === 0 ? 'font-bold' : ''}`}>
+                  <TableCell className="text-white text-sm">
+                    <div className="flex items-center gap-2">
+                  <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${getCryptoColor(activity.symbol)} bg-gray-800`}>
+                    {getCryptoIcon(activity.symbol)}
+                  </span>
+                      {activity.symbol}
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-gray-400 text-sm capitalize">{activity.broker}</TableCell>
+                  <TableCell className="text-white text-sm">{activity.execution}</TableCell>
+                  <TableCell className="text-gray-400 text-sm capitalize">{activity.strategy}</TableCell>
+                  <TableCell className="text-white text-sm">{activity.leverage}</TableCell>
+                  <TableCell className="text-sm">
+                    <span className="text-green-400">{ activity.tpsl.split('/')[0] }</span>
+                    <span className="text-gray-400"> / </span>
+                    <span className="text-red-400">{ activity.tpsl.split('/')[1] }</span>
+                  </TableCell>
+                  <TableCell className={`text-sm font-medium ${getPnlColor(activity.unrealizedPnl)}`}>
+                    {activity.unrealizedPnl}
+                  </TableCell>
+                  <TableCell className="flex items-center justify-end">
+                    <button
+                        className="bg-white text-black hover:bg-gray-200 px-3 py-1 rounded text-xs font-medium transition-colors"
+                        onClick={() => handleClosePosition(index)}
+                    >
+                      Close
+                    </button>
+                  </TableCell>
+                </TableRow>
             ))}
           </>
         </TableBody>
