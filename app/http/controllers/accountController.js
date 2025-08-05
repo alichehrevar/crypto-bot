@@ -4,6 +4,7 @@ const axios = require("axios");
 const BinanceAccount = require('../../models/BinanceAccount');
 const OkxAccount = require('../../models/OkxAccount');
 const BingxAccount = require('../../models/BingxAccount');
+const AssetSnapshot = require('../../models/AssetSnapshot');
 
 // Import services that handle the API calls for each exchange.
 const BinanceService = require('../../services/binanceWS');
