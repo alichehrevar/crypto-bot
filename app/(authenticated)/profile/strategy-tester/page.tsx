@@ -222,11 +222,11 @@ export default function StrategyTesterPage() {
                 <MarketStats/>
 
                 {/* Main Content: Chart (Left) and Form (Right) */}
-                <div className="w-full flex flex-col lg:flex-row items-start gap-6">
+                <div className="w-full flex flex-col lg:flex-row items-start gap-2">
 
                     {/* Left Column: Chart */}
                     <div className="flex self-stretch w-full lg:w-[72%]">
-                        <div className="bg-dark-gray rounded-2xl p-2 w-full">
+                        <div className="bg-dark-gray rounded-2xl p-0.5 w-full">
                             {chartData ? (
                                 <BacktestResultChart candles={chartData.candles} height={550}
                                                      trades={chartData.trades}/>
