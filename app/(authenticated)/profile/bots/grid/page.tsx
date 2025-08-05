@@ -5,7 +5,6 @@ import React, { useState } from "react";
 import BotsList from "@/components/profile/bots/BotsList";
 import GridDeployBotSection from "@/components/profile/bots/deploy/GridDeployBotSection";
 import TradingViewAdvancedChart from "@/components/shared/charts/TradingViewAdvancedChart";
-import PageTitleSection from "@/components/shared/ui/PageTitleSection";
 
 
 export default function TechnicalBotsPage() {
