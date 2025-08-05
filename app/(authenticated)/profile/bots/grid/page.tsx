@@ -14,7 +14,6 @@ export default function TechnicalBotsPage() {
 
   return (
     <div className="w-full mt-4 relative px-5">
-      <PageTitleSection imagePath="/images/profile/heikin_ashi-motion.png" title="Grid Bots" />
       <div className="w-full flex items-start justify-center gap-6 mt-6">
         <div className="w-full lg:w-[72%] h-[60svh]">
           {/*<MarketWatchChart />*/}
