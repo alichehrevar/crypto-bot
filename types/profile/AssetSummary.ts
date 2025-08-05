@@ -1,7 +1,11 @@
+import {ChartData} from "@/types/chart";
 
 export type AssetSummaryResponse = {
   success: boolean,
-  summary: Summary
+  data: {
+    summary: Summary,
+    history: ChartData
+  }
 };
 
 export type Summary = {
