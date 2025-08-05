@@ -16,8 +16,8 @@ export default function ManualTradingPage() {
 
     return (
         <div className="w-full mt-4 relative px-5 pb-5">
-            <PageTitleSection title="Manual Trading"/>
-            <div className="flex items-center justify-between w-full gap-6 bg-dark-gray backdrop-blur-sm rounded-xl p-4 border border-gray-800/50 min-h-[80px] mt-2">
+            {/*<PageTitleSection title="Manual Trading"/>*/}
+            <div className="flex items-center justify-between w-full gap-6 backdrop-blur-sm rounded-xl p-4min-h-[80px]">
                 <CoinSummarySection coinId="btc-bitcoin" />
             </div>
             <div className=" w-full flex items-start justify-center gap-2 mt-2">
