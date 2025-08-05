@@ -9,7 +9,6 @@ import {
     NavbarBrand,
     NavbarContent,
     NavbarItem,
-    Input,
     DropdownItem,
     DropdownTrigger,
     Dropdown,
@@ -18,9 +17,8 @@ import {
 } from "@heroui/react";
 
 import {MenuItems} from "@/utils/menuItems";
-import {SearchIcon} from "@/components/shared/icons";
 import {siteConfig} from "@/config/site";
-import {ArrowLeftStartOnRectangle, ChatBubbleOvalLeftEllipsis, Cog8ToothIcon} from "@/utils/icons";
+import {ArrowLeftStartOnRectangle, ChatBubbleOvalLeftEllipsis, Cog8ToothIcon, MagnifyingGlass} from "@/utils/icons";
 
 export default function TopMenu() {
 
@@ -99,19 +97,6 @@ export default function TopMenu() {
                     })}
                 </NavbarContent>
                 <NavbarContent as="div" className="items-center" justify="end">
-                    <Input
-                        classNames={{
-                            base: "max-w-full sm:max-w-[12rem] h-10",
-                            mainWrapper: "h-full",
-                            input: "text-small",
-                            inputWrapper:
-                                "h-full font-normal text-default-500 bg-default-400/20 dark:bg-default-500/20",
-                        }}
-                        placeholder="Type to search..."
-                        size="sm"
-                        startContent={<SearchIcon/>}
-                        type="search"
-                    />
                     <Dropdown placement="bottom-end">
                         <DropdownTrigger>
                             <Avatar
@@ -125,20 +110,37 @@ export default function TopMenu() {
                             />
                         </DropdownTrigger>
                         <DropdownMenu aria-label="Profile Actions" variant="flat">
-                            <DropdownItem key="profile"
-                                          className="h-14 border-b-1 border-gray-700 pb-4 mb-2 rounded-none gap-2">
+                            <DropdownItem
+                                key="profile"
+                                className="h-14 border-b-1 border-gray-700 pb-4 mb-2 rounded-none gap-2"
+                            >
                                 <p className="font-semibold">Signed in as</p>
                                 <p className="font-semibold">zoey@example.com</p>
                             </DropdownItem>
-                            <DropdownItem key="settings" href="/profile/settings"
-                                          startContent={<Cog8ToothIcon className="w-5 h-5"/>}>
+                            <DropdownItem
+                                key="search"
+                                startContent={<MagnifyingGlass className="w-5 h-5"/>}
+                            >
+                                Search
+                            </DropdownItem>
+                            <DropdownItem
+                                key="settings"
+                                href="/profile/settings"
+                                startContent={<Cog8ToothIcon className="w-5 h-5"/>}
+                            >
                                 Settings
                             </DropdownItem>
-                            <DropdownItem key="help" href="/profile/settings"
-                                          startContent={<ChatBubbleOvalLeftEllipsis className="w-5 h-5"/>}>
+                            <DropdownItem
+                                key="help"
+                                href="/profile/settings"
+                                startContent={<ChatBubbleOvalLeftEllipsis className="w-5 h-5"/>}
+                            >
                                 Help
                             </DropdownItem>
-                            <DropdownItem key="logout" startContent={<ArrowLeftStartOnRectangle className="w-5 h-5"/>}>
+                            <DropdownItem
+                                key="logout"
+                                startContent={<ArrowLeftStartOnRectangle className="w-5 h-5"/>}
+                            >
                                 Log Out
                             </DropdownItem>
                         </DropdownMenu>
