@@ -1,5 +1,4 @@
 const WebSocket = require('ws');
-const CryptoJS = require('crypto-js');
 const crypto = require('crypto');
 const zlib = require('zlib');
 const Candle = require('../models/Candle');
@@ -34,11 +33,6 @@ class BingXWS {
 
     connect() {
         if (this.ws) return;
-
-        const timestamp = Date.now().toString();
-        // When connecting, you'll need to supply the appropriate credentials.
-        // For now, we leave the signature blank. Later, you can update this to pass the user's credentials.
-        const signature = ''; // You might call: this.generateSignature(timestamp, userProvidedSecret)
 
         // BingX Perpetual Swap WebSocket endpoint with authentication.
         const endpoint = `wss://open-api-swap.bingx.com/swap-market`;
@@ -577,10 +571,6 @@ class BingXWS {
             }
         });
         return resp.data;
-    }
-
-    async getHistoricalBalance(account, timestamp) {
-        return this.getBalance(account);
     }
 
     /**
