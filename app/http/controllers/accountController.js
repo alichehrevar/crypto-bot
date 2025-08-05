@@ -176,49 +176,55 @@ exports.linkBingxAccount = async (req, res) => {
  * Fetches the balance for the specified account.
  */
 exports.getAccountBalance = async (req, res) => {
-    const {accountId} = req.params;
-    const {accountType} = req.query;
+    const { accountId } = req.params;
+    // Default accountType to 'spot' if not provided. This makes '?accountType=spot' optional for spot balances.
+    const { accountType = 'spot' } = req.query;
+
     try {
         let account;
-        let type = '';
+        let service;
 
-        // Attempt to find the account in each model.
-        account = await BinanceAccount.findById(accountId);
+        // Attempt to find the account in each model and assign the corresponding pre-imported service.
+        account = await BinanceAccount.findById(accountId).lean();
         if (account) {
-            type = 'binance';
-        }
-        if (!account) {
-            account = await OkxAccount.findById(accountId);
-            if (account) type = 'okx';
-        }
-        if (!account) {
-            account = await BingxAccount.findById(accountId);
-            if (account) type = 'bingx';
-        }
-        if (!account) {
-            return res.status(404).json({error: 'Account not found'});
+            service = BinanceService;
+        } else {
+            account = await OkxAccount.findById(accountId).lean();
+            if (account) {
+                service = OkxService;
+            } else {
+                account = await BingxAccount.findById(accountId).lean();
+                if (account) {
+                    service = BingxService;
+                }
+            }
         }
 
-        let balance;
-        // Depending on the account type, use the corresponding service.
-        switch (type) {
-            case 'binance':
-                balance = await BinanceService.getBalance(account, { all: true });
-                break;
-            case 'okx':
-                balance = await OkxService.getBalance(account, { all: true });
-                break;
-            case 'bingx':
-                balance = await BingxService.getBalance(account, { all: accountType !== 'spot', accountType });
-                break;
-            default:
-                return res.status(400).json({error: 'Unsupported account type'});
+        // If no account was found in any of the collections.
+        if (!account) {
+            return res.status(404).json({ success: false, error: 'Account not found' });
         }
-        return res.json({ success: true, balance});
+
+        // Define the options for the getBalance call based on the query parameter.
+        // If accountType is 'spot', `all` will be false.
+        // If accountType is 'futures' or anything else, `all` will be true.
+        const options = {
+            all: false,
+            accountType: accountType
+        };
+
+        // Call the getBalance method from the dynamically assigned service.
+        const balanceData = await service.getBalance(account, options);
+
+        // Return the standardized success response.
+        return res.json({ success: true, data: balanceData });
+
     } catch (error) {
         console.error('Error fetching account balance:', error.message);
-        logger.error(`Error fetching account balance: ${error.message}`, { stack: error.stack });
-        return res.status(500).json({error: 'Error fetching account balance', success: false});
+        // logger.error(`Error fetching account balance: ${error.message}`, { stack: error.stack });
+
+        // Return the standardized error response.
+        return res.status(500).json({ success: false, error: 'Internal server error while fetching account balance' });
     }
 };
 

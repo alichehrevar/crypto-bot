@@ -384,66 +384,126 @@ class BingXWS {
     }
 
     /**
-     * Fetch the account balance from BingX using REST API.
-     * @param {Object} account - The account object containing API credentials.
-     * @param all
-     * @param accountType
+     * Fetches the Spot (Fund) Account Balance.
+     * This hits the /spot/v1/account/balance endpoint.
+     * @param {object} account - User's account with apiKey and secretKey.
+     * @returns {Promise<number>} - The free USDT balance in the spot account.
      */
-    async getBalance(account, { all = false, accountType = '' } = {}) {
+    async getSpotBalance(account) {
         const { apiKey, secretKey } = account;
         const timestamp = Date.now().toString();
+        const base = 'https://open-api.bingx.com';
+        const path = '/openApi/spot/v1/account/balance';
+
         const queryParams = new URLSearchParams({ timestamp });
-
-        // build & sign
         const toSign = queryParams.toString();
-        const signature = crypto
-            .createHmac('sha256', secretKey)
-            .update(toSign)
-            .digest('hex');
-
-        // for REST: append signature
+        const signature = crypto.createHmac('sha256', secretKey).update(toSign).digest('hex');
         queryParams.append('signature', signature);
 
-        // 1) Spot-only via WS
-        if (!all && accountType === 'spot') {
-            return this.getSpotBalance(account);
-        }
-
-        // 2) All-accounts or Fund-only (sopt) via REST
-        const base = 'https://open-api.bingx.com/openApi';
-        const path = '/account/v1/allAccountBalance';
-        // if just fund, restrict to sopt
-        if (!all) queryParams.set('accountType', 'sopt');
         const url = `${base}${path}?${queryParams.toString()}`;
 
-        const headers = {
-            'Content-Type':  'application/json',
-            'X-BX-APIKEY':   apiKey,
-            'X-BX-SIGNATURE': signature,
-            'X-BX-TIMESTAMP': timestamp,
-        };
+        try {
+            const resp = await axios.get(url, { headers: { "X-BX-APIKEY": apiKey } });
+            const json = resp.data;
 
-        const res  = await fetch(url, { method: 'GET', headers });
-        const text = await res.text();
-        let json;
-        try { json = JSON.parse(text); }
-        catch {
-            throw new Error(`Invalid JSON response: ${text}`);
-        }
-        if (!res.ok || json.code !== 0) {
-            const msg = json.msg || json.message || 'Unknown error';
-            throw new Error(`BingX API error (${res.status||json.code}): ${msg}`);
-        }
+            if (json.code !== 0) {
+                throw new Error(`BingX Spot Balance Error (${json.code}): ${json.msg}`);
+            }
 
-        const raw = json.data;
-        if (!Array.isArray(raw)) {
-            throw new Error('Unexpected response format from BingX API');
-        }
+            const usdtAsset = json.data.balances.find(b => b.asset === 'USDT');
+            return usdtAsset ? parseFloat(usdtAsset.free) : 0;
 
-        return raw.map(item => ({
-            accountType: item.accountType,
-            usdtBalance: item.usdtBalance,
-        }));
+        } catch (err) {
+            const errorMessage = err.response?.data?.msg || err.message;
+            console.error('[BingXWS] getSpotBalance Error:', errorMessage);
+            throw new Error(errorMessage);
+        }
+    }
+
+    /**
+     * Fetches the Perpetual Futures Account Balance.
+     * This hits the /swap/v2/balance endpoint.
+     * @param {object} account - User's account with apiKey and secretKey.
+     * @returns {Promise<number>} - The USDT balance in the futures account.
+     */
+    async getFuturesBalance(account) {
+        const { apiKey, secretKey } = account;
+        const timestamp = Date.now().toString();
+        const base = 'https://open-api.bingx.com';
+
+        // THIS IS THE CORRECTED LINE:
+        const path = '/openApi/swap/v2/user/balance';
+
+        const queryParams = new URLSearchParams({ timestamp });
+        const toSign = queryParams.toString();
+        const signature = crypto.createHmac('sha256', secretKey).update(toSign).digest('hex');
+        queryParams.append('signature', signature);
+
+        const url = `${base}${path}?${queryParams.toString()}`;
+
+        try {
+            const resp = await axios.get(url, { headers: { 'X-BX-APIKEY': apiKey } });
+            const json = resp.data;
+
+            if (json.code !== 0) {
+                throw new Error(`BingX Futures Balance Error (${json.code}): ${json.msg}`);
+            }
+
+            // The response structure for this endpoint has the balance details under data.balance
+            const usdtAsset = json.data.balance;
+            return usdtAsset ? parseFloat(usdtAsset.balance) : 0;
+
+        } catch (err) {
+            const errorMessage = err.response?.data?.msg || err.message;
+            console.error('[BingXWS] getFuturesBalance Error:', errorMessage);
+            throw new Error(errorMessage);
+        }
+    }
+
+    /**
+     * Main getBalance function with updated logic for the 'accountType' parameter.
+     * @param {object} account - User's account credentials.
+     * @param {object} options - Contains 'all' and 'accountType' flags.
+     * @returns {Promise<Array<{accountType: string, usdtBalance: string}>>}
+     */
+    async getBalance(account, { all = false, accountType = '' } = {}) {
+        console.log(`[BingXWS] getBalance called with accountType: ${all} ${accountType}`);
+        try {
+            // Case 1: `all` is true, so we get the combined total of spot and futures.
+            if (all) {
+                const [spotBalance, futuresBalance] = await Promise.all([
+                    this.getSpotBalance(account),
+                    this.getFuturesBalance(account)
+                ]);
+
+                const totalBalance = spotBalance + futuresBalance;
+                return [{
+                    accountType: 'total', // A combined type
+                    usdtBalance: totalBalance.toString()
+                }];
+            }
+
+            // Case 2: `all` is false, so we check the specific accountType requested.
+            if (accountType === 'futures') {
+                const futuresBalance = await this.getFuturesBalance(account);
+                return [{
+                    accountType: 'futures',
+                    usdtBalance: futuresBalance.toString()
+                }];
+            }
+
+            // Default Case: If `all` is false and `accountType` is 'spot' or empty, return spot balance.
+            const spotBalance = await this.getSpotBalance(account);
+            return [{
+                accountType: 'spot',
+                usdtBalance: spotBalance.toString()
+            }];
+
+        } catch (err) {
+            console.error(`[BingXWS] Main getBalance orchestrator failed:`, err.message);
+            // Return a zero balance on failure to prevent crashing the entire summary.
+            return [{ accountType: 'error', usdtBalance: '0' }];
+        }
     }
 
     getParameters(API, timestamp, urlEncode) {
@@ -462,65 +522,6 @@ class BingXWS {
             parameters = "timestamp=" + timestamp
         }
         return parameters
-    }
-
-    async getSpotBalance(account) {
-        const { apiKey, apiSecret: API_SECRET } = account;
-        const timestamp = Date.now().toString();
-
-        // 1) build your payload exactly like the sample
-        const payload = {
-            recvWindow: "60000",
-            timestamp
-        };
-
-        // 2) helper to turn payload → query string
-        function getParameters(payload, timestamp) {
-            let params = "";
-            for (const key in payload) {
-                params += `${key}=${encodeURIComponent(payload[key])}&`;
-            }
-            // strip trailing &
-            params = params.slice(0, -1);
-            // append timestamp param if missing (we already included it)
-            return params;
-        }
-        const paramString = getParameters(payload, timestamp);
-
-        // 3) sign it
-        const signature = CryptoJS.HmacSHA256(paramString, API_SECRET)
-            .toString(CryptoJS.enc.Hex);
-
-        // 4) full URL
-        const url = `https://open-api.bingx.com/openApi/spot/v1/account/balance?${paramString}&signature=${signature}`;
-
-        // 5) axios GET – keep raw transformResponse to avoid BigInt mangling
-        const resp = await axios.get(url, {
-            headers: { "X-BX-APIKEY": apiKey },
-            transformResponse: [data => data]
-        });
-
-        if (resp.status !== 200) {
-            throw new Error(`HTTP ${resp.status}`);
-        }
-
-        // 6) parse & error check
-        const json = JSON.parse(resp.data);
-        if (json.code !== 0) {
-            throw new Error(`BingX API error (${json.code}): ${json.msg||json.message}`);
-        }
-
-        // 7) extract USDT asset
-        const assets = json.data; // array of { asset, availableBalance, freezeBalance, … }
-        const usdt   = assets.find(a => a.asset === "USDT") || {};
-        const free   = parseFloat(usdt.availableBalance || "0");
-        const frozen = parseFloat(usdt.freezeBalance     || "0");
-
-        // 8) return in your usual shape
-        return [{
-            accountType: "spot",
-            usdtBalance: (free + frozen).toString()
-        }];
     }
 
     async executeOrder(orderDetails, account) {
