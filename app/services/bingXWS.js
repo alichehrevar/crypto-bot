@@ -574,6 +574,20 @@ class BingXWS {
     }
 
     /**
+     * @description Placeholder for fetching historical balance. BingX API does not currently support
+     * fetching a total account balance for a specific past date.
+     * @param {object} account The user's BingX account credentials.
+     * @param {Date} date The date for which to fetch the balance.
+     * @returns {Promise<number>} Always returns 0 as this feature is not supported by the API.
+     */
+    async getHistoricalBalance(account, date) {
+        console.log(`[BingXWS] NOTE: getHistoricalBalance is not supported by the BingX API. Returning 0 for date ${date.toISOString().slice(0,10)}.`);
+        // This function must exist for the cron job to run without errors, but it returns 0.
+        // The cron job will only get BingX balances for the CURRENT day using the getBalance({ all: true }) method.
+        return Promise.resolve(0);
+    }
+
+    /**
      * BingX swapV2 exec-list (closed trades). Returns up to `days` days of realized PnL.
      * Shape: [ { timestamp: ms, profit: number }, … ]
      */

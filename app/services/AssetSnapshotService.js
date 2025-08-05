@@ -1,85 +1,124 @@
 /**
- * @file Service for creating daily snapshots of user asset balances.
+ * @file Service for backfilling, synchronizing, and retrieving daily snapshots of user asset balances.
+ * @author Your Name
  */
-const User            = require('../models/User');
-const BinanceAccount  = require('../models/BinanceAccount');
-const OkxAccount      = require('../models/OkxAccount');
-const BingxAccount    = require('../models/BingxAccount');
-const AssetSnapshot   = require('../models/AssetSnapshot');
-const BinanceService  = require('./binanceWS');
-const OkxService      = require('./okxWS');
-const BingxService    = require('./bingXWS');
+const User = require('../models/User');
+const AssetSnapshot = require('../models/AssetSnapshot');
+const BinanceAccount = require('../models/BinanceAccount');
+const OkxAccount = require('../models/OkxAccount');
+const BingxAccount = require('../models/BingxAccount');
+const BinanceService = require('./binanceWS');
+const OkxService = require('./okxWS');
+const BingxService = require('./bingXWS');
 
 /**
- * @description Calculates the total balance for a single user across all their linked exchange accounts.
- * It fetches the complete portfolio value (Spot + Futures).
- * @param {ObjectId} userId The ID of the user.
- * @returns {Promise<object>} An object containing balances per exchange and a total.
+ * @description The main cron job service. It ensures the last 7 days of snapshots
+ * exist for each active user, backfilling any missing days.
  */
-async function sumBalancesForUser(userId) {
-    const [binAccs, okxAccs, bingxAccs] = await Promise.all([
-        BinanceAccount.find({ userId }).lean(),
-        OkxAccount.find({ userId }).lean(),
-        BingxAccount.find({ userId }).lean(),
-    ]);
-
-    // Helper to sum balances for an array of accounts using a given service.
-    async function sumFor(accts, svc) {
-        let sum = 0;
-        for (const acct of accts) {
-            // CRITICAL FIX: Pass { all: true } to get the TOTAL portfolio balance (Spot + Futures).
-            // CRITICAL FIX 2: Correctly parse the array of balance objects returned by getBalance.
-            const balanceArray = await svc.getBalance(acct, { all: true });
-            if (balanceArray && balanceArray.length > 0) {
-                sum += balanceArray.reduce((acc, curr) => acc + parseFloat(curr.usdtBalance || '0'), 0);
-            }
-        }
-        return sum;
-    }
-
-    const [b, o, x] = await Promise.all([
-        sumFor(binAccs, BinanceService),
-        sumFor(okxAccs, OkxService),
-        sumFor(bingxAccs, BingxService)
-    ]);
-
-    return { binance: b, okx: o, bingx: x, total: b + o + x };
-}
-
-/**
- * @description Iterates through all users and creates a daily balance snapshot for each.
- * Designed to be run as a scheduled cron job. Uses a sequential loop for safety.
- */
-async function takeSnapshotAllUsers() {
-    console.log('Starting daily asset snapshot generation...');
+async function backfillAndSyncSnapshots() {
+    console.log('[Snapshot Service] Starting backfill and sync job...');
     const users = await User.find().select('_id').lean();
+    const today = new Date();
+    today.setUTCHours(0, 0, 0, 0);
 
-    // Use a sequential for...of loop to avoid overwhelming services.
     for (const user of users) {
         try {
-            const { binance, okx, bingx, total } = await sumBalancesForUser(user._id);
+            const sevenDaysAgo = new Date(today);
+            sevenDaysAgo.setDate(today.getDate() - 7);
 
-            // Use today's date but set the time to midnight UTC for daily consistency.
-            const snapshotDate = new Date();
-            snapshotDate.setUTCHours(0, 0, 0, 0);
+            const [binanceAccts, okxAccts, bingxAccts] = await Promise.all([
+                BinanceAccount.find({ userId: user._id }).lean(),
+                OkxAccount.find({ userId: user._id }).lean(),
+                BingxAccount.find({ userId: user._id }).lean(),
+            ]);
 
-            // Use updateOne with upsert to create or update today's snapshot, preventing duplicates.
-            await AssetSnapshot.updateOne(
-                { userId: user._id, timestamp: snapshotDate },
-                {
-                    $set: {
-                        balances: { binance, okx, bingx },
-                        total
-                    }
-                },
-                { upsert: true } // Creates the document if it doesn't exist
+            if (binanceAccts.length === 0 && okxAccts.length === 0 && bingxAccts.length === 0) {
+                console.log(`[Snapshot Service] Skipping user ${user._id}, no accounts linked.`);
+                continue;
+            }
+
+            const existingSnapshots = await AssetSnapshot.find({
+                userId: user._id,
+                timestamp: { $gte: sevenDaysAgo }
+            }).lean();
+            const existingDates = new Set(
+                existingSnapshots.map(s => new Date(s.timestamp).toISOString().split('T')[0])
             );
-            console.log(`[AssetSnapshot] Snapshot for user ${user._id} completed.`);
+
+            for (let i = 0; i < 7; i++) {
+                const dateToCheck = new Date(sevenDaysAgo);
+                dateToCheck.setDate(dateToCheck.getDate() + i);
+                const dateString = dateToCheck.toISOString().split('T')[0];
+
+                if (!existingDates.has(dateString) && dateToCheck < today) {
+                    console.log(`[Snapshot Service] Missing snapshot for user ${user._id} on ${dateString}. Backfilling...`);
+
+                    const [binanceHist, okxHist] = await Promise.all([
+                        Promise.all(binanceAccts.map(acc => BinanceService.getHistoricalBalance(acc, dateToCheck))).then(r => r.reduce((a, b) => a + b, 0)),
+                        Promise.all(okxAccts.map(acc => OkxService.getHistoricalBalance(acc, dateToCheck))).then(r => r.reduce((a, b) => a + b, 0)),
+                    ]);
+
+                    const total = binanceHist + okxHist;
+
+                    if (total > 0) {
+                        await AssetSnapshot.create({
+                            userId: user._id,
+                            timestamp: dateToCheck,
+                            balances: { binance: binanceHist, okx: okxHist, bingx: 0 },
+                            total,
+                        });
+                        console.log(`[Snapshot Service] Backfilled snapshot for ${user._id} on ${dateString} with total: ${total}`);
+                    }
+                }
+            }
+
+            const [liveBinance, liveOkx, liveBingx] = await Promise.all([
+                Promise.all(binanceAccts.map(acc => BinanceService.getBalance(acc, { all: true }))).then(r => r.flat().reduce((sum, bal) => sum + parseFloat(bal.usdtBalance), 0)),
+                Promise.all(okxAccts.map(acc => OkxService.getBalance(acc, { all: true }))).then(r => r.flat().reduce((sum, bal) => sum + parseFloat(bal.usdtBalance), 0)),
+                Promise.all(bingxAccts.map(acc => BingxService.getBalance(acc, { all: true }))).then(r => r.flat().reduce((sum, bal) => sum + parseFloat(bal.usdtBalance), 0))
+            ]);
+
+            const liveTotal = liveBinance + liveOkx + liveBingx;
+
+            if (liveTotal > 0) {
+                await AssetSnapshot.updateOne(
+                    { userId: user._id, timestamp: today },
+                    { $set: { balances: { binance: liveBinance, okx: liveOkx, bingx: liveBingx }, total: liveTotal } },
+                    { upsert: true }
+                );
+                console.log(`[Snapshot Service] Synced TODAY's snapshot for ${user._id} with total: ${liveTotal}`);
+            }
+
         } catch (error) {
-            console.error(`[AssetSnapshot] Failed to create snapshot for user ${user._id}:`, error.message);
+            console.error(`[Snapshot Service] Failed to process snapshots for user ${user._id}:`, error.message);
         }
     }
-    console.log(`[AssetSnapshot] Finished processing ${users.length} users.`);
+    console.log('[Snapshot Service] Finished backfill and sync job.');
 }
 
-module.exports = { takeSnapshotAllUsers };
+/**
+ * @description Retrieves the last 7 days of asset snapshots for a given user.
+ * This is the function used by the assetSnapshotController.
+ * @param {ObjectId} userId The ID of the user for whom to retrieve snapshots.
+ * @returns {Promise<Array<object>>} A promise that resolves to an array of snapshot documents.
+ */
+async function getRecentSnapshotsForUser(userId) {
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    const snapshots = await AssetSnapshot
+        .find({
+            userId,
+            timestamp: { $gte: sevenDaysAgo }
+        })
+        .sort({ timestamp: 'asc' }) // Sort ascending for a proper time-series
+        .lean();
+
+    return snapshots;
+}
+
+// Export both functions so they can be used by the cron job and the controller.
+module.exports = {
+    backfillAndSyncSnapshots,
+    getRecentSnapshotsForUser
+};

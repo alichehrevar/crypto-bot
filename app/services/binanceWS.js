@@ -238,31 +238,56 @@ class BinanceWS {
         }
     }
 
-    async getHistoricalBalance(account, timestamp) {
-        // snapshots are in millis, we ask for SPOT snapshot nearest that time:
+    /**
+     * @description Fetches the total SPOT account balance from a daily account snapshot for a specific past date.
+     * Note: The Binance Snapshot API only provides data for SPOT accounts. Futures history is not included.
+     * @param {object} account The user's Binance account credentials.
+     * @param {Date} date The specific date for which to fetch the balance.
+     * @returns {Promise<number>} The total USDT value (free + locked) for that day.
+     */
+    async getHistoricalBalance(account, date) {
         const { apiKey, secretKey } = account;
+        // Binance expects timestamps in milliseconds. We'll define a 24-hour window for the requested date.
+        const startTime = new Date(date);
+        startTime.setUTCHours(0, 0, 0, 0);
+
+        const endTime = new Date(date);
+        endTime.setUTCHours(23, 59, 59, 999);
+
         const params = {
             type: 'SPOT',
-            startTime: timestamp,
-            endTime:   timestamp,
-            limit:     1,
-            recvWindow: 60000,
+            startTime: startTime.getTime(),
+            endTime: endTime.getTime(),
+            limit: 1, // We only need one snapshot within the 24-hour window.
             timestamp: Date.now()
         };
-        const qs = this._sign(params, secretKey);
-        const resp = await axios.get(
-            `${this.base}/sapi/v1/accountSnapshot?${qs}`,
-            { headers: { 'X-MBX-APIKEY': apiKey } }
-        );
-        // pick the first snapshotVos entry
-        const snap = resp.data.snapshotVos?.[0]?.data?.balances || [];
-        // normalize to { asset, free, locked }
-        return snap.map(b => ({
-            asset:  b.asset,
-            free:   parseFloat(b.free),
-            locked: parseFloat(b.locked)
-        }));
+
+        const queryString = new URLSearchParams(params).toString();
+        const signature = crypto.createHmac('sha256', secretKey).update(queryString).digest('hex');
+        const url = `https://api.binance.com/sapi/v1/accountSnapshot?${queryString}&signature=${signature}`;
+
+        try {
+            const resp = await axios.get(url, { headers: { 'X-MBX-APIKEY': apiKey } });
+
+            // Check if any snapshots were returned for that day.
+            if (!resp.data || !resp.data.snapshotVos || resp.data.snapshotVos.length === 0) {
+                console.log(`[BinanceWS] No snapshot found for date ${date.toISOString().slice(0,10)}`);
+                return 0;
+            }
+
+            // Extract the balances from the first snapshot found.
+            const snapshotBalances = resp.data.snapshotVos[0].data.balances;
+            const usdtAsset = snapshotBalances.find(b => b.asset === 'USDT');
+
+            // Sum the free and locked amounts to get the total balance for that asset.
+            return usdtAsset ? parseFloat(usdtAsset.free) + parseFloat(usdtAsset.locked) : 0;
+        } catch (error) {
+            console.error(`[BinanceWS] getHistoricalBalance failed:`, error.response?.data || error.message);
+            // Return 0 on error to allow the cron job to continue with other users/exchanges.
+            return 0;
+        }
     }
+
     /**
      * Returns up to `days` days of realized PnL from Binance USDT‐M futures income history.
      * Shape: [ { timestamp: ms, profit: number }, … ]

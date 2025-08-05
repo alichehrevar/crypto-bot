@@ -3,7 +3,7 @@
  * It also provides a function to run the job immediately on application startup.
  */
 const cron = require('node-cron');
-const { takeSnapshotAllUsers } = require('../app/services/AssetSnapshotService');
+const { backfillAndSyncSnapshots } = require('../app/services/AssetSnapshotService');
 
 /**
  * @description Schedules the `takeSnapshotAllUsers` service to run on a recurring basis.
@@ -13,7 +13,7 @@ const scheduleSnapshots = () => {
     // This schedule runs at the beginning of every hour.
     cron.schedule('0 * * * *', () => {
         console.log('[Snapshot Cron] ⏳ Running hourly snapshot job…');
-        takeSnapshotAllUsers().catch(err => {
+        backfillAndSyncSnapshots().catch(err => {
             console.error('[Snapshot Cron] ❌ Hourly snapshot job failed:', err);
         });
     }, {
@@ -31,7 +31,7 @@ const scheduleSnapshots = () => {
 const runInitialSnapshot = async () => {
     try {
         console.log('[Snapshot Startup] ⏳ Fetching initial asset snapshot on startup…');
-        await takeSnapshotAllUsers();
+        await backfillAndSyncSnapshots();
         console.log('[Snapshot Startup] ✅ Initial asset snapshot completed successfully.');
     } catch (err) {
         console.error('[Snapshot Startup] ❌ Failed to run initial asset snapshot:', err.message);

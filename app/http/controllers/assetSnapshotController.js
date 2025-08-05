@@ -1,32 +1,25 @@
 /**
  * @file Controller for handling asset snapshot related API requests.
  */
-const AssetSnapshot = require('../../models/AssetSnapshot');
+const AssetSnapshotService = require('../../services/AssetSnapshotService');
 
 /**
- * @description Lists the last 30 days of snapshots for the authenticated user,
- * formatted for use in a chart.
+ * @description Lists the last 7 days of snapshots for the authenticated user by calling the service.
  * @param {object} req - Express request object.
  * @param {object} res - Express response object.
  */
 exports.listMySnapshots = async (req, res) => {
     try {
         const userId = req.user.id;
-        const thirtyDaysAgo = new Date();
-        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-        const snapshots = await AssetSnapshot
-            .find({
-                userId,
-                timestamp: { $gte: thirtyDaysAgo }
-            })
-            .sort({ timestamp: 'asc' }) // Sort ascending for a proper time-series chart
-            .lean();
+        // Call the service to get the raw snapshot data.
+        const snapshots = await AssetSnapshotService.getRecentSnapshotsForUser(userId);
 
-        // Format the data into the structure the frontend chart component expects
+        // Format the data specifically for the API response.
         const formattedData = snapshots.map(snap => ({
             date: new Date(snap.timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-            value: snap.total
+            total: snap.total,
+            balances: snap.balances
         }));
 
         return res.json({ success: true, data: formattedData });

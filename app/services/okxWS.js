@@ -141,9 +141,52 @@ class OKXWS {
         ];
     }
 
-    async getHistoricalBalance(account, timestamp) {
-        return this.getBalance(account);
+    /**
+     * @description Fetches the total account equity from OKX's balance history for a specific past date.
+     * This endpoint provides a snapshot of total account value.
+     * @param {object} account The user's OKX account credentials.
+     * @param {Date} date The specific date for which to fetch the balance.
+     * @returns {Promise<number>} The total USDT equity for that day.
+     */
+    async getHistoricalBalance(account, date) {
+        const { apiKey, apiSecret, passphrase } = account;
+        const timestamp = new Date().toISOString();
+        const method = 'GET';
+
+        // We want the snapshot at the very end of the requested day.
+        const endOfDayTimestamp = new Date(date).setUTCHours(23, 59, 59, 999);
+        const requestPath = `/api/v5/account/account-balance-history?after=${endOfDayTimestamp}&limit=1`;
+
+        const prehash = timestamp + method + requestPath;
+        const signature = crypto.createHmac('sha256', apiSecret).update(prehash).digest('base64');
+
+        const headers = {
+            'OK-ACCESS-KEY': apiKey,
+            'OK-ACCESS-SIGN': signature,
+            'OK-ACCESS-TIMESTAMP': timestamp,
+            'OK-ACCESS-PASSPHRASE': passphrase,
+            'Content-Type': 'application/json',
+        };
+
+        const url = `https://www.okx.com${requestPath}`;
+
+        try {
+            const res = await axios.get(url, { headers });
+            if (res.data.code !== '0' || !res.data.data || res.data.data.length === 0) {
+                console.log(`[OKXWS] No snapshot found for date ${date.toISOString().slice(0,10)}`);
+                return 0;
+            }
+
+            // The 'details' array contains balances for various account types (spot, futures, etc.).
+            // We sum the 'eq' (total equity) of all of them to get the total portfolio value.
+            const details = res.data.data[0].details;
+            return details ? details.reduce((sum, item) => sum + parseFloat(item.eq), 0) : 0;
+        } catch (error) {
+            console.error(`[OKXWS] getHistoricalBalance failed:`, error.response?.data || error.message);
+            return 0;
+        }
     }
+
     /**
      * Fetch up to `days` days of realized PnL from OKX’s income-history.
      * Shape: [ { timestamp: ms, profit: number }, … ]
