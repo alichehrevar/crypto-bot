@@ -175,7 +175,7 @@ exports.getAllPnL = async (req, res) => {
         const userId = req.user.id;
 
         // 1) load all this user’s bots
-        const bots = await Bot.find({ userId }).lean();
+        const bots = await Bot.find({ userId, active: true }).lean();
         const botMap = bots.reduce((m, b) => {
             m[b._id.toString()] = b;
             return m;
