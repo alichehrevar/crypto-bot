@@ -368,85 +368,102 @@ exports.getAssetsDistribution = async (req, res) => {
 
 
 /**
- * GET /api/accounts/summary
- *
- * Returns:
- * {
- *   success: true,
- *   summary: {
- *     totalBalance: number,
- *     availableFunds: number,
- *     pctChange: number
- *   }
- * }
+ * @description Fetches a summary of the user's accounts. It calculates the live total balance,
+ * compares it against the most recent historical snapshot to get the percentage change,
+ * and retrieves the last 7 days of history for the chart.
+ * @param {object} req - Express request object, containing the authenticated user's ID.
+ * @param {object} res - Express response object.
  */
 exports.getSummary = async (req, res) => {
     try {
         const userId = req.user.id;
 
-        // 1) Load accounts
+        // --- Step 1: Fetch the LIVE Total Balance in real-time ---
+
+        // Find all accounts for the user across the three exchanges
         const [binanceAccts, okxAccts, bingxAccts] = await Promise.all([
             BinanceAccount.find({ userId }).lean(),
             OkxAccount.find({ userId }).lean(),
             BingxAccount.find({ userId }).lean(),
         ]);
 
-        // Helper: sum USDT in either spot-only or spot+futures
-        async function sumUsdt(accounts, service, all) {
-            let total = 0;
-            for (const acct of accounts) {
-                const arr = await service.getBalance(acct, { all });
-                for (const b of arr) {
-                    total += parseFloat(b.usdtBalance);
-                }
-            }
-            return total;
+        // Helper function to sum the total balance from an array of accounts for a specific service
+        const sumTotalBalance = async (accounts, Service) => {
+            if (!accounts || accounts.length === 0) return 0;
+            // Use Promise.all to fetch balances for multiple accounts of the same exchange in parallel
+            const balances = await Promise.all(accounts.map(acc => Service.getBalance(acc, { all: true })));
+            // The getBalance function returns an array, so we flatten it and sum the usdtBalance property
+            return balances.flat().reduce((sum, bal) => sum + parseFloat(bal.usdtBalance || '0'), 0);
+        };
+
+        // Fetch live balances from all exchanges concurrently
+        const [binanceBalance, okxBalance, bingxBalance] = await Promise.all([
+            sumTotalBalance(binanceAccts, BinanceService),
+            sumTotalBalance(okxAccts, OkxService),
+            sumTotalBalance(bingxAccts, BingxService)
+        ]);
+
+        // Sum the balances from all exchanges to get the final live portfolio balance
+        const livePortfolioBalance = binanceBalance + okxBalance + bingxBalance;
+
+
+        // --- Step 2: Fetch the most recent snapshot from a PREVIOUS day ---
+
+        // Get today's date and set the time to the beginning of the day (midnight UTC)
+        const today = new Date();
+        today.setUTCHours(0, 0, 0, 0);
+
+        // Query the database for the latest snapshot that is older than today
+        const lastSnapshot = await AssetSnapshot.findOne({
+            userId,
+            timestamp: { $lt: today } // Find snapshots with a timestamp before today
+        }).sort({ timestamp: -1 });  // Sort descending to get the most recent one first
+
+
+        // --- Step 3: Calculate the Percentage Change ---
+
+        let pctChange = 0;
+        // Check if a previous snapshot exists and its total is not zero to avoid division-by-zero errors
+        if (lastSnapshot && lastSnapshot.total > 0) {
+            const previousBalance = lastSnapshot.total;
+            pctChange = ((livePortfolioBalance - previousBalance) / previousBalance) * 100;
         }
 
-        // 2) Kick off all nine sums in parallel (spot/full/then × 3 services)
-        const promises = [
-            // spot-now
-            sumUsdt(binanceAccts, BinanceService, false),
-            sumUsdt(okxAccts,     OkxService,     false),
-            sumUsdt(bingxAccts,   BingxService,   false),
+        // --- Step 4: Fetch 7-day history for the chart ---
 
-            // full-now
-            sumUsdt(binanceAccts, BinanceService, true),
-            sumUsdt(okxAccts,     OkxService,     true),
-            sumUsdt(bingxAccts,   BingxService,   true),
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-            // full-then (placeholder – wire to your snapshot logic)
-            sumUsdt(binanceAccts, BinanceService, true),
-            sumUsdt(okxAccts,     OkxService,     true),
-            sumUsdt(bingxAccts,   BingxService,   true),
-        ];
+        const recentSnapshots = await AssetSnapshot.find({
+            userId,
+            timestamp: { $gte: sevenDaysAgo }
+        }).sort({ timestamp: 'asc' }).lean();
 
-        const [
-            spotBin, spotOkx, spotBingx,
-            fullBin, fullOkx, fullBingx,
-            thenBin, thenOkx, thenBingx
-        ] = await Promise.all(promises);
+        const historyForChart = recentSnapshots.map(snap => ({
+            date: new Date(snap.timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+            value: snap.total,
+        }));
 
-        // 3) Compute aggregates
-        const availableFunds    = spotBin  + spotOkx  + spotBingx;
-        const portfolioBalance  = fullBin  + fullOkx  + fullBingx;
-        const totalBalance      = portfolioBalance;
-        const thenTotal         = thenBin  + thenOkx  + thenBingx || 1;
-        const pctChange         = ((portfolioBalance - thenTotal) / thenTotal) * 100;
 
-        // 4) Return four clean numeric fields
+        // --- Step 5: Format and return the final API response ---
+
         return res.json({
             success: true,
-            summary: {
-                portfolioBalance: parseFloat(portfolioBalance.toFixed(2)),
-                availableFunds:   parseFloat(availableFunds.toFixed(2)),
-                totalBalance:     parseFloat(totalBalance.toFixed(2)),
-                pctChange:        parseFloat(pctChange.toFixed(2)),
+            data: {
+                summary: {
+                    // For the main summary, portfolio and total balance are the same
+                    portfolioBalance: parseFloat(livePortfolioBalance.toFixed(2)),
+                    availableFunds: parseFloat(livePortfolioBalance.toFixed(2)), // Can be adjusted if you have separate logic for available funds
+                    totalBalance: parseFloat(livePortfolioBalance.toFixed(2)),
+                    pctChange: parseFloat(pctChange.toFixed(2)),
+                },
+                history: historyForChart,
             }
         });
+
     } catch (err) {
-        console.error('accountsController.getSummary', err);
-        return res.status(500).json({ success: false, error: err.message });
+        console.error('getSummary controller error:', err.message);
+        return res.status(500).json({ success: false, error: 'Internal server error while fetching summary' });
     }
 };
 
