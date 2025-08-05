@@ -7,7 +7,6 @@ import TradingViewAdvancedChart from "@/components/shared/charts/TradingViewAdva
 import ManualTradeSection from "@/components/profile/bots/deploy/ManualTradeSection";
 import {OrderBook} from "@/components/shared/OrderBook";
 import TechnicalAnalysis from "@/components/shared/TechnicalAnalysis";
-import PageTitleSection from "@/components/shared/ui/PageTitleSection";
 import CoinSummarySection from "@/components/shared/CoinSummarySection";
 
 export default function ManualTradingPage() {
