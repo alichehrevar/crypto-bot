@@ -180,14 +180,14 @@ export default function BotProgressChart() {
     }, [activeTab, chartDataSets])
 
     return (
-        <div className="p-6 rounded-2xl shadow-2xl w-full max-w-[584px] mx-auto">
+        <div className="rounded-2xl shadow-2xl w-full mx-auto self-stretch flex flex-col items-end mt-2">
             {/* Header section with tab navigation */}
             <div className="flex justify-end mb-4">
                 <ChartTabs activeTab={activeTab} setActiveTab={setActiveTab} tabKeys={tabKeys}/>
             </div>
 
             {/* Chart container */}
-            <div className="w-full h-[350px]">
+            <div className="w-full h-full">
                 <ResponsiveContainer height="100%" width="100%">
                     <AreaChart
                         data={currentChartData}
