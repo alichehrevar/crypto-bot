@@ -7,6 +7,7 @@ const http = require('http');
 const { WebSocketServer } = require('ws');
 const cron = require('node-cron');
 const { runInitialMarketUpdate, scheduleMarketUpdate } = require('./cron/updateMarketData');
+const { runInitialSnapshot, scheduleSnapshots } = require('./cron/snapshotJob');
 
 const connectDB = require('./config/db');
 const User = require('./app/models/User');
@@ -210,17 +211,18 @@ server.on('upgrade', (request, socket, head) => {
     }
 });
 
-cron.schedule('0 * * * *', () => {
-    console.log('[AssetSnapshot] running hourly snapshot…');
-    takeSnapshotAllUsers().catch(err => {
-        console.error('[AssetSnapshot] failed:', err);
-    });
-});
-
+// IIFE to run startup tasks
 (async () => {
-    await runInitialMarketUpdate();   // Fetch immediately on startup
-    scheduleMarketUpdate();           // Then schedule cron job
+    // First, run the market data update
+    await runInitialMarketUpdate();
+    scheduleMarketUpdate();
+
+    // Then, run the asset snapshot
+    await runInitialSnapshot();
+    scheduleSnapshots();
 })();
+
+scheduleSnapshots();
 
 // Start server
 const PORT = process.env.PORT || 8000;
