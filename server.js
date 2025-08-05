@@ -5,7 +5,6 @@ const cors = require('cors');
 const mongoose = require('mongoose');
 const http = require('http');
 const { WebSocketServer } = require('ws');
-const cron = require('node-cron');
 const { runInitialMarketUpdate, scheduleMarketUpdate } = require('./cron/updateMarketData');
 const { runInitialSnapshot, scheduleSnapshots } = require('./cron/snapshotJob');
 
@@ -16,7 +15,6 @@ const tradingViewWS = require('./app/services/TradingViewWS');
 const bingXWS = require('./app/services/bingXWS');
 const botService = require('./app/services/botService/BotService');
 const wsServer = require('./app/services/WebSocketServer');
-const { takeSnapshotAllUsers } = require('./app/services/AssetSnapshotService');
 const seedSymbols = require('./db/seeds/currencySeeder');
 const { logEmitter, originalConsoleLog } = require('./logs/logEmitter');
 
