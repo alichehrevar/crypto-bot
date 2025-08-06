@@ -1,7 +1,8 @@
 const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const User = require('../../models/User');
 const UserInfo = require('../../models/UserInfo');
+const AuthToken = require('../../models/AuthToken');
 const logger = require("../../../logs/logger");
 
 exports.checkEmailExistence = async (req, res) => {
@@ -22,54 +23,55 @@ exports.checkEmailExistence = async (req, res) => {
     }
 }
 
+/**
+ * @description Handles user login. Verifies credentials and creates a new, stateful auth token.
+ * @param {object} req - Express request object.
+ * @param {object} res - Express response object.
+ */
 exports.login = async (req, res) => {
     try {
-        const {email, password} = req.body;
+        const { email, password } = req.body;
         if (!email || !password) {
-            return res.status(400).json({error: 'Email and password are required.'});
+            return res.status(400).json({ success: false, error: 'Email and password are required.' });
         }
 
-        // 1) Normalize
-        const normalized = email.trim().toLowerCase();
+        const user = await User.findOne({ email: email.trim().toLowerCase() });
 
-        // 2) Try exact lowercase lookup
-        let user = await User.findOne({email: normalized});
-
-        // 3) If not found, try case-insensitive regex lookup
-        if (!user) {
-            console.warn(`No exact match for "${normalized}", trying case-insensitive…`);
-            user = await User.findOne({
-                email: {$regex: `^${normalized}$`, $options: 'i'}
-            });
+        if (!user || !(await bcrypt.compare(password, user.password))) {
+            return res.status(401).json({ success: false, error: 'Invalid email or password.' });
         }
 
-        // 4) If still not found, bail
-        if (!user) {
-            console.warn(`Login failed: no user for "${normalized}"`);
-            return res.status(401).json({error: 'Invalid email or password.'});
-        }
+        // 1. Generate a secure, random token string.
+        const tokenString = crypto.randomBytes(40).toString('hex');
 
-        // 5) Compare password
-        const ok = await bcrypt.compare(password, user.password);
-        if (!ok) {
-            console.warn(`Login failed: wrong password for "${normalized}"`);
-            return res.status(401).json({error: 'Invalid email or password.'});
-        }
+        // 2. Set an expiration date (e.g., 30 days from now).
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + 30);
 
-        // 6) Good! Issue token
-        const token = jwt.sign(
-            {id: user._id},
-            process.env.JWT_SECRET,
-            {expiresIn: '1y'}
-        );
-        return res.json({token});
+        // 3. Create the token record in the database.
+        await AuthToken.create({
+            token: tokenString,
+            userId: user._id,
+            expiresAt,
+            userAgent: req.headers['user-agent'],
+            ipAddress: req.ip,
+        });
+
+        // 4. Return the new token string to the client.
+        return res.json({ success: true, token: tokenString });
+
     } catch (err) {
         console.error('Error in login:', err);
-        logger.error(`getAssetsDistribution error: ${err.message}`, {stack: err.stack});
-        return res.status(500).json({error: 'Internal server error.'});
+        logger.error(`Login error: ${err.message}`, { stack: err.stack });
+        return res.status(500).json({ success: false, error: 'Internal server error.' });
     }
 };
 
+/**
+ * @description Handles new user registration. Creates User and UserInfo, then creates a new auth token.
+ * @param {object} req - Express request object.
+ * @param {object} res - Express response object.
+ */
 exports.register = async (req, res) => {
     try {
         // Extract email and password from the request body.
@@ -119,21 +121,43 @@ exports.register = async (req, res) => {
                 return res.status(500).json({success: false, error: 'Failed to create user !'});
             });
 
-        // Registered successfully, create a JWT.
-        const token = jwt.sign({id: user._id}, process.env.JWT_SECRET, {expiresIn: '1y'});
-        // Return the token to the client.
-        res.json({success: true, token});
+        // --- NEW TOKEN LOGIC (after user is successfully created) ---
+        const tokenString = crypto.randomBytes(40).toString('hex');
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + 30);
+
+        await AuthToken.create({
+            token: tokenString,
+            userId: user._id, // 'user' is the newly created user document
+            expiresAt,
+            userAgent: req.headers['user-agent'],
+            ipAddress: req.ip,
+        });
+
+        // Return the token to the client to log them in immediately.
+        res.json({ success: true, token: tokenString });
     } catch (error) {
         logger.error(`getAssetsDistribution error: ${error.message}`, {stack: error.stack});
         res.status(500).json({success: false, error: error.message});
     }
 }
 
-exports.logout = (req, res) => {
+/**
+ * @description Handles user logout by deleting the auth token from the database.
+ * @param {object} req - Express request object. Expects `req.user` and `req.token` from auth middleware.
+ * @param {object} res - Express response object.
+ */
+exports.logout = async (req, res) => {
     try {
+        // The auth token is attached to the request by our new middleware (see Step 4).
+        const token = req.token;
+        if (token) {
+            // Find and delete the token document. This immediately invalidates the session.
+            await AuthToken.deleteOne({ token });
+        }
         res.json({ success: true, message: 'Logged out successfully.' });
     } catch (error) {
-        logger.error(`Logout error: ${error.message}`, {stack: error.stack});
-        res.status(500).json({success: false, error: 'Internal server error during logout.'});
+        logger.error(`Logout error: ${error.message}`, { stack: error.stack });
+        res.status(500).json({ success: false, error: 'Internal server error during logout.' });
     }
-}
+};
