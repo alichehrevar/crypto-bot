@@ -37,33 +37,35 @@ export default function TopCreators() {
     }, [])
 
     return (
-        <section className="px-4 py-6 bg-dark-gray rounded-xl">
+        <section>
             <h2 className="text-white text-xl font-bold mb-4">
                 Top creators
             </h2>
-            <Swiper
-                centeredSlides={false}
-                className="today-bots-swiper top-creators-swiper h-[80px]"
-                grabCursor={true}
-                loop={true}
-                modules={[Pagination, Navigation]}
-                navigation={true}
-                pagination={pagination}
-                slidesPerView={'auto'}
-                spaceBetween={12}
-            >
-                {creators.map((c) => (
-                    <SwiperSlide key={c.id}>
-                        <TopCreatorCard {...c} onToggleFollow={() => {
-                            setCreators((prev) =>
-                                prev.map((x) =>
-                                    x.id === c.id ? { ...x, isFollowing: !x.isFollowing } : x
+            <div className="px-4 pt-4 bg-dark-gray rounded-xl">
+                <Swiper
+                    centeredSlides={false}
+                    className="today-bots-swiper top-creators-swiper h-[80px]"
+                    grabCursor={true}
+                    loop={true}
+                    modules={[Pagination, Navigation]}
+                    navigation={true}
+                    pagination={pagination}
+                    slidesPerView={'auto'}
+                    spaceBetween={12}
+                >
+                    {creators.map((c) => (
+                        <SwiperSlide key={c.id}>
+                            <TopCreatorCard {...c} onToggleFollow={() => {
+                                setCreators((prev) =>
+                                    prev.map((x) =>
+                                        x.id === c.id ? { ...x, isFollowing: !x.isFollowing } : x
+                                    )
                                 )
-                            )
-                        }} />
-                    </SwiperSlide>
-                ))}
-            </Swiper>
+                            }} />
+                        </SwiperSlide>
+                    ))}
+                </Swiper>
+            </div>
         </section>
     )
 }
