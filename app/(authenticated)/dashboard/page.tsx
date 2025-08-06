@@ -44,9 +44,6 @@ export default function Dashboard() {
                 <BotsList refreshList={refreshBotsList}/>
             </div>
             <div className="grid grid-cols-1 bg-dark-gray mt-4 rounded-2xl py-6 px-3">
-                <BotsList active={false} refreshList={refreshBotsList} title="Recent Bots" />
-            </div>
-            <div className="grid grid-cols-1 bg-dark-gray mt-4 rounded-2xl py-6 px-3">
                 <RecentActivities/>
             </div>
         </section>
