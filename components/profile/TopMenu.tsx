@@ -160,7 +160,7 @@ export default function TopMenu() {
                                 key="logout"
                                 startContent={<ArrowLeftStartOnRectangle className="w-5 h-5"/>}
                             >
-                                <button onClick={() => logout()}>Log Out</button>
+                                <button className="w-full text-left" onClick={() => logout()}>Log Out</button>
                             </DropdownItem>
                         </DropdownMenu>
                     </Dropdown>
