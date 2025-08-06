@@ -16,9 +16,6 @@ export default function AccountSettingsTab() {
             <span>9612570</span>
           </div>
         </div>
-        <Button color="danger" variant="flat">
-          Close Account
-        </Button>
       </div>
       <div className="flex items-start justify-center flex-col gap-4 mt-6">
         <h2 className="text-left font-bold">Account Details</h2>
