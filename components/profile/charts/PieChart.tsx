@@ -3,10 +3,12 @@
 import type { PieChartType } from '@/types/profile/ChartTypes';
 
 import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { ResponsivePie } from '@nivo/pie';
 import {addToast} from "@heroui/react";
 
 import { getData } from '@/actions/get';
+import {ChevronRightIcon} from "@/utils/icons";
 
 interface Distribution {
   exchange: string;
@@ -64,7 +66,13 @@ export default function AssetsPieChart() {
 
   if (data.length === 0) {
     return (
-      <span className="text-center flex items-center justify-center h-full w-full text-sm">No assets found</span>
+      <div className="flex items-center justify-center h-full w-full flex-col gap-3">
+          <span className="text-center text-sm">No assets found</span>
+          <Link className="flex items-center gap-1 hover:scale-105 transition-all duration-300 bg-gray-800 py-1 px-2 rounded-xl" href="/profile/settings?tab=connect-broker">
+              <span className="text-xs">Connect Broker</span>
+              <ChevronRightIcon className="size-3" />
+          </Link>
+      </div>
     )
   }
 
