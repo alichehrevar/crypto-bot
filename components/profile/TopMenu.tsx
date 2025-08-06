@@ -32,14 +32,14 @@ export default function TopMenu() {
         >
             <NavbarContent className="flex flex-1" justify="start">
                 <NavbarBrand>
-                    <div className="w-[128px] h-[32px] flex items-center justify-center">
-                        <Link href="/dashboard">
+                    <div className="w-[160px] h-[68px] flex items-center justify-center">
+                        <Link className="w-[160px] h-[68px] relative" href="/dashboard">
                             <Image
+                                fill
                                 priority
                                 alt={siteConfig.name}
-                                height={32}
+                                className="object-contain"
                                 src="/images/logos/logotype-white.png"
-                                width={128}
                             />
                         </Link>
                     </div>
