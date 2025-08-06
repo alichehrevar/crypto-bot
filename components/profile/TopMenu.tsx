@@ -18,7 +18,13 @@ import {
 
 import {MenuItems} from "@/utils/menuItems";
 import {siteConfig} from "@/config/site";
-import {ArrowLeftStartOnRectangle, ChatBubbleOvalLeftEllipsis, Cog8ToothIcon, MagnifyingGlass} from "@/utils/icons";
+import {
+    ArrowLeftStartOnRectangle,
+    ChatBubbleOvalLeftEllipsis,
+    Cog8ToothIcon,
+    MagnifyingGlass,
+    SupportIcon
+} from "@/utils/icons";
 
 export default function TopMenu() {
 
@@ -133,7 +139,7 @@ export default function TopMenu() {
                             <DropdownItem
                                 key="help"
                                 href="/profile/settings"
-                                startContent={<ChatBubbleOvalLeftEllipsis className="w-5 h-5"/>}
+                                startContent={<SupportIcon className="w-5 h-5" stroke="#ffffff" />}
                             >
                                 Help
                             </DropdownItem>
