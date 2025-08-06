@@ -20,7 +20,6 @@ import {MenuItems} from "@/utils/menuItems";
 import {siteConfig} from "@/config/site";
 import {
     ArrowLeftStartOnRectangle,
-    ChatBubbleOvalLeftEllipsis,
     Cog8ToothIcon,
     MagnifyingGlass,
     SupportIcon
