@@ -23,12 +23,31 @@ export async function sendRequest(body: { [p: string]: File | string }, url: str
             cookieStore.set('token', responseJson.token, {
                 httpOnly: false,
                 secure: process.env.NODE_ENV === 'production',
-                maxAge: 60 * 60 * 24 * 180, // 6 months
+                maxAge: 60 * 60 * 24, // 1 month
                 path: '/'
             })
         }
 
         return responseJson
+    } catch (error) {
+        throw error
+    }
+}
+
+export async function logoutAction(url: string) {
+    const nextCookies = await cookies();
+
+    try {
+        const response = await fetch(process.env.API_URL! + '/api' + url, {
+            method: 'POST',
+            headers: {
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${nextCookies?.get('token')?.value}`,
+            },
+        })
+
+        return response.json()
     } catch (error) {
         throw error
     }

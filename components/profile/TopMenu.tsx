@@ -13,7 +13,7 @@ import {
     DropdownTrigger,
     Dropdown,
     DropdownMenu,
-    Avatar,
+    Avatar, addToast,
 } from "@heroui/react";
 
 import {MenuItems} from "@/utils/menuItems";
@@ -24,10 +24,24 @@ import {
     MagnifyingGlass,
     SupportIcon
 } from "@/utils/icons";
+import {logoutAction} from "@/actions/post";
 
 export default function TopMenu() {
 
     const pathname = usePathname();
+
+    function logout () {
+        logoutAction('/logout')
+            .then(() => {
+                window.location.href = '/login'
+            })
+            .catch(err => {
+                addToast({
+                    title: err.message,
+                    color: 'danger'
+                })
+            })
+    }
 
     return (
         <Navbar
@@ -146,7 +160,7 @@ export default function TopMenu() {
                                 key="logout"
                                 startContent={<ArrowLeftStartOnRectangle className="w-5 h-5"/>}
                             >
-                                Log Out
+                                <button onClick={() => logout()}>Log Out</button>
                             </DropdownItem>
                         </DropdownMenu>
                     </Dropdown>
