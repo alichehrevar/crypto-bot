@@ -3,7 +3,6 @@
  * @author Your Name
  */
 const mongoose = require('mongoose');
-const crypto = require('crypto');
 
 /**
  * @description Schema for a stateful authentication token. Each document represents an active user session.
