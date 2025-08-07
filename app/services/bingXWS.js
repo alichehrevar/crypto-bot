@@ -4,9 +4,6 @@ const zlib = require('zlib');
 const Candle = require('../models/Candle');
 const axios = require("axios");
 
-// For Node 18+ the global fetch API is available. If not, you may need to require node-fetch.
-// const fetch = require('node-fetch');
-
 class BingXWS {
     constructor() {
         this.ws = null;
@@ -588,85 +585,120 @@ class BingXWS {
     }
 
     /**
-     * BingX swapV2 exec-list (closed trades). Returns up to `days` days of realized PnL.
-     * Shape: [ { timestamp: ms, profit: number }, … ]
+     * @description Fetches realized PnL from BingX USDT-M futures income history for a specified number of days.
+     * @param {object} account The user's account credentials.
+     * @param {object} options Contains the number of days of history to fetch.
+     * @returns {Promise<Array<{timestamp: number, profit: number}>>} A promise resolving to an array of daily PnL objects.
      */
     async getHistoricalRealizedPnL(account, { days }) {
         const { apiKey, secretKey } = account;
-        const ts  = Date.now().toString();
-        const qs  = `timestamp=${ts}`;
-        const sig = crypto.createHmac('sha256', secretKey).update(qs).digest('hex');
-        const url = `https://open-api.bingx.com/openApi/swap/v2/exec-list?${qs}&signature=${sig}`;
+        const endTime = Date.now();
+        const startTime = endTime - (days * 24 * 60 * 60 * 1000);
 
-        const res  = await fetch(url, {
-            headers: {
-                'X-BX-APIKEY':    apiKey,
-                'X-BX-SIGNATURE': sig,
-                'X-BX-TIMESTAMP': ts
+        const params = {
+            incomeType: 'REALIZED_PNL',
+            startTime: startTime,
+            endTime: endTime,
+            limit: 1000, // Max limit
+            timestamp: Date.now().toString()
+        };
+
+        const queryString = new URLSearchParams(params).toString();
+        const signature = crypto.createHmac('sha256', secretKey).update(queryString).digest('hex');
+
+        // Use the correct endpoint for income history
+        const url = `https://open-api.bingx.com/openApi/swap/v2/user/income?${queryString}&signature=${signature}`;
+
+        try {
+            const res = await fetch(url, { headers: { 'X-BX-APIKEY': apiKey } });
+            const json = await res.json();
+
+            if (json.code !== 0) {
+                throw new Error(`BingX Realized PnL Error: ${json.msg || json.message}`);
             }
-        });
-        const json = await res.json();
-        if (json.code !== 0) {
-            throw new Error(`BingX error: ${json.msg || json.message}`);
-        }
 
-        // the list of closed trades may live in json.data.list or json.data itself
-        const list = Array.isArray(json.data.list)
-            ? json.data.list
-            : Array.isArray(json.data)
-                ? json.data
-                : [];
-        const groups = {};
-        for (const tr of list) {
-            if (!tr.closeTime) continue;
-            const dateKey = new Date(tr.closeTime).toISOString().slice(0,10);
-            const pnl     = parseFloat(tr.pnl || tr.profit || 0);
-            groups[dateKey] = (groups[dateKey]||0) + pnl;
-        }
+            const incomeRecords = Array.isArray(json.data?.income) ? json.data.income : [];
 
-        return Object.entries(groups)
-            .map(([date, profit]) => ({
+            // Group the records by UTC date and sum the profit for each day
+            const dailyGroups = {};
+            for (const record of incomeRecords) {
+                const dateKey = new Date(parseInt(record.time, 10)).toISOString().slice(0, 10);
+                const pnl = parseFloat(record.income || 0);
+                dailyGroups[dateKey] = (dailyGroups[dateKey] || 0) + pnl;
+            }
+
+            // Convert the grouped data into the final array format
+            return Object.entries(dailyGroups).map(([date, profit]) => ({
                 timestamp: new Date(`${date}T00:00:00Z`).getTime(),
                 profit
-            }))
-            .sort((a,b) => b.timestamp - a.timestamp)
-            .slice(0, days);
+            }));
+        } catch (err) {
+            console.error('[BingXWS] getHistoricalRealizedPnL Error:', err.message);
+            return []; // Return empty array on failure
+        }
     }
 
     /**
-     * BingX swapV2 pos-list (open positions). Single‐point unrealized PnL snapshot.
-     * Shape: [ { timestamp: ms, pct: number } ]
+     * @description Fetches all open positions to calculate unrealized PnL.
+     * This has been updated to use the correct endpoint and return a detailed array of positions.
+     * @param {object} account The user's account credentials.
+     * @returns {Promise<Array<object>>} An array of open position objects.
      */
     async getUnrealizedPnLHistory(account, { days }) {
         const { apiKey, secretKey } = account;
-        const ts  = Date.now().toString();
-        const qs  = `timestamp=${ts}`;
+        const ts = Date.now().toString();
+        const qs = `timestamp=${ts}`;
         const sig = crypto.createHmac('sha256', secretKey).update(qs).digest('hex');
-        const url = `https://open-api.bingx.com/openApi/swap/v2/pos-list?${qs}&signature=${sig}`;
 
-        const res  = await fetch(url, {
-            headers: {
-                'X-BX-APIKEY':    apiKey,
-                'X-BX-SIGNATURE': sig,
-                'X-BX-TIMESTAMP': ts
+        // =================================================================
+        // CORRECTED API PATH
+        // =================================================================
+        const url = `https://open-api.bingx.com/openApi/swap/v2/user/positions?${qs}&signature=${sig}`;
+
+        try {
+            const res = await fetch(url, {
+                headers: {
+                    'X-BX-APIKEY': apiKey,
+                }
+            });
+
+            const json = await res.json();
+
+            console.log('[BingXWS] getUnrealizedPnLHistory response:', json);
+            if (json.code !== 0) {
+                throw new Error(`BingX error: ${json.msg || json.message}`);
             }
-        });
-        const json = await res.json();
-        if (json.code !== 0) {
-            throw new Error(`BingX error: ${json.msg || json.message}`);
+
+            // =================================================================
+            // CORRECTED DATA SHAPE
+            // The API returns an array of positions in json.data. We process each one.
+            // =================================================================
+            const positions = Array.isArray(json.data) ? json.data : [];
+
+            return positions.map(pos => {
+                const unrealizedPnl = parseFloat(pos.unrealizedPnl || 0);
+                const initialMargin = parseFloat(pos.initialMargin || 0);
+
+                // Calculate PnL as a percentage of the initial margin.
+                const pnlPercentage = (initialMargin > 0)
+                    ? (unrealizedPnl / initialMargin) * 100
+                    : 0;
+
+                // Return a detailed object that the pnlController can use.
+                return {
+                    symbol: pos.symbol,
+                    leverage: pos.leverage,
+                    unrealizedPnl: unrealizedPnl.toFixed(2), // The absolute PnL value
+                    pct: parseFloat(pnlPercentage.toFixed(2)), // The percentage PnL
+                    timestamp: parseInt(pos.positionTimestamp, 10) || Date.now(),
+                };
+            });
+
+        } catch (err) {
+            console.error('[BingXWS] getUnrealizedPnLHistory Error:', err.message);
+            // Return empty array on failure so Promise.all doesn't break.
+            return [];
         }
-
-        // data is an array of positions
-        const arr = Array.isArray(json.data) ? json.data : [];
-        const total = arr.reduce(
-            (sum, pos) => sum + parseFloat(pos.unrealizedPnl || pos.pnl || 0),
-            0
-        );
-
-        return [{
-            timestamp: Date.now(),
-            pct: parseFloat(total.toFixed(2))
-        }];
     }
 }
 

@@ -334,21 +334,32 @@ class BinanceWS {
         const qs         = `timestamp=${timestamp}`;
         const signature  = crypto.createHmac('sha256', secretKey).update(qs).digest('hex');
         const url        = `https://fapi.binance.com/fapi/v2/positionRisk?${qs}&signature=${signature}`;
-        const res        = await axios.get(url, { headers: { 'X-MBX-APIKEY': apiKey } });
 
-        if (!Array.isArray(res.data)) {
-            throw new Error('Unexpected Binance positionRisk response');
+        try {
+            const res = await axios.get(url, { headers: { 'X-MBX-APIKEY': apiKey } });
+            if (!Array.isArray(res.data)) {
+                throw new Error('Unexpected Binance positionRisk response');
+            }
+
+            // Map over the response to create a standardized object
+            return res.data.map(pos => {
+                const unrealizedPnl = parseFloat(pos.unrealizedProfit || 0);
+                const initialMargin = parseFloat(pos.initialMargin || 0);
+                const pnlPercentage = initialMargin > 0 ? (unrealizedPnl / initialMargin) * 100 : 0;
+
+                return {
+                    symbol: pos.symbol,
+                    leverage: pos.leverage,
+                    unrealizedPnl: unrealizedPnl.toFixed(2),
+                    pct: parseFloat(pnlPercentage.toFixed(2)),
+                    // IMPORTANT: We use `updateTime` as the timestamp for filtering by period
+                    timestamp: pos.updateTime
+                };
+            });
+        } catch(err) {
+            console.error('[BinanceWS] getUnrealizedPnLHistory Error:', err.response?.data || err.message);
+            return [];
         }
-
-        const totalUnreal = res.data.reduce(
-            (sum, pos) => sum + parseFloat(pos.unrealizedProfit || 0),
-            0
-        );
-
-        return [{
-            timestamp,
-            pct: parseFloat(totalUnreal.toFixed(2))
-        }];
     }
 }
 

@@ -233,33 +233,45 @@ class OKXWS {
      * Shape: [ { timestamp: ms, pct: number } ]
      */
     async getUnrealizedPnLHistory(account, { days }) {
+
         const { apiKey, apiSecret, passphrase } = account;
         const timestamp = new Date().toISOString();
         const method    = 'GET';
-        const requestPath = '/api/v5/account/positions?instType=FUTURES';
+        const requestPath = '/api/v5/account/positions?instType=SWAP'; // Use SWAP for futures
         const preSign      = timestamp + method + requestPath;
         const signature    = crypto.createHmac('sha256', apiSecret).update(preSign).digest('base64');
-
         const url = `https://www.okx.com${requestPath}`;
-        const res = await axios.get(url, {
-            headers: {
-                'OK-ACCESS-KEY':        apiKey,
-                'OK-ACCESS-SIGN':       signature,
-                'OK-ACCESS-TIMESTAMP':  timestamp,
-                'OK-ACCESS-PASSPHRASE': passphrase
-            }
-        });
 
-        const arr = Array.isArray(res.data.data) ? res.data.data : [];
-        const total = arr.reduce(
-            (sum, pos) => sum + parseFloat(pos.upl || pos.unrealizedPnl || 0),
-            0
-        );
+        try {
+            const res = await axios.get(url, {
+                headers: {
+                    'OK-ACCESS-KEY':        apiKey,
+                    'OK-ACCESS-SIGN':       signature,
+                    'OK-ACCESS-TIMESTAMP':  timestamp,
+                    'OK-ACCESS-PASSPHRASE': passphrase
+                }
+            });
 
-        return [{
-            timestamp: Date.now(),
-            pct: parseFloat(total.toFixed(2))
-        }];
+            const positions = Array.isArray(res.data.data) ? res.data.data : [];
+
+            return positions.map(pos => {
+                const unrealizedPnl = parseFloat(pos.upl || 0);
+                const initialMargin = parseFloat(pos.imr || 0);
+                const pnlPercentage = initialMargin > 0 ? (unrealizedPnl / initialMargin) * 100 : 0;
+
+                return {
+                    symbol: pos.instId,
+                    leverage: pos.lever,
+                    unrealizedPnl: unrealizedPnl.toFixed(2),
+                    pct: parseFloat(pnlPercentage.toFixed(2)),
+                    // IMPORTANT: We use `cTime` (creation time) as the timestamp
+                    timestamp: parseInt(pos.cTime, 10)
+                };
+            });
+        } catch(err) {
+            console.error('[OKXWS] getUnrealizedPnLHistory Error:', err.response?.data || err.message);
+            return [];
+        }
     }
 }
 
