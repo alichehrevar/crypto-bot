@@ -1,6 +1,7 @@
 import React from 'react';
 import {Line, LineChart, ResponsiveContainer} from "recharts";
 import {Avatar, Button, Divider} from "@heroui/react";
+import {HeartIcon, UsersIcon} from "@/utils/icons";
 
 export type CommunityBotCardProps = {
     name: string;
@@ -90,11 +91,13 @@ export const CommunityBotCard: React.FC<CommunityBotCardProps> = ({
                 </div>
                 <div className="flex items-center gap-3 text-gray-400 text-sm">
                     <div className="flex items-center gap-1">
-                        ❤️<span>{likes}</span>
+                        <HeartIcon className="size-4 hover:text-red-500 hover:fill-red-500 cursor-pointer transition-all duration-300" />
+                        <span>{likes}</span>
                     </div>
                     <Divider className="h-3 bg-gray-400" orientation="vertical" />
                     <div className="flex items-center gap-1">
-                        👥<span>{followers}</span>
+                        <UsersIcon />
+                        <span>{followers}</span>
                     </div>
                 </div>
             </div>
