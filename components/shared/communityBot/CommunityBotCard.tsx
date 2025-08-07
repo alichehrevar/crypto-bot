@@ -1,6 +1,7 @@
 import React from 'react';
 import {Line, LineChart, ResponsiveContainer} from "recharts";
 import {Avatar, Button, Divider} from "@heroui/react";
+
 import {HeartIcon, UsersIcon} from "@/utils/icons";
 
 export type CommunityBotCardProps = {
