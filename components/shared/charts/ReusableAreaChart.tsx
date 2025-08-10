@@ -75,8 +75,6 @@ const CustomizedActiveDot = ({ cx, cy }: any) => (
 // =================================================================================================
 export default function ReusableAreaChart({ data }: { data: ChartData }) {
 
-    console.log(data)
-
     // State for the labels displayed on the X-axis
     const [ticks, setTicks] = useState<string[]>([])
 
