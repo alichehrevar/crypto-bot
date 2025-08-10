@@ -15,6 +15,7 @@ const tradingViewWS = require('./app/services/TradingViewWS');
 const bingXWS = require('./app/services/bingXWS');
 const botService = require('./app/services/botService/BotService');
 const wsServer = require('./app/services/WebSocketServer');
+const { seedAdminUser } = require('./db/seeds/adminUserSeeder');
 const seedSymbols = require('./db/seeds/currencySeeder');
 const { logEmitter, originalConsoleLog } = require('./logs/logEmitter');
 
@@ -69,19 +70,9 @@ app.use(cors({
 
 // Connect to Mongo
 connectDB().then(async () => {
-    // Ensure default admin user exists
-    const admin = await User.findOne({ email: 'admin@tradingx.com' });
-    if (!admin) {
-        const user = await User.create({
-            email: 'admin@tradingx.com',
-            password: 'password123123'
-        });
-        console.log('Default user created:', user.email);
-    } else {
-        admin.password = 'password123123';
-        await admin.save();
-        console.log('Default user updated:', admin.email);
-    }
+
+    // seed admin user
+    await seedAdminUser();
 
     // Start WS services
     binanceWS.connect();
