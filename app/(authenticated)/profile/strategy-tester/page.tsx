@@ -128,7 +128,7 @@ async function fetchCandlesWithFallback(args: {
             if (out.length) return out;
             throw new Error('range empty');
         }
-    } catch (e) {
+    } catch {
         // fallback: always try recent 500 to draw *something*
         try {
             const url = `${base}?symbol=${symbol}&interval=${interval}&limit=500`;
