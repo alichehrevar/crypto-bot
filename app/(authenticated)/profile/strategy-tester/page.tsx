@@ -2,7 +2,7 @@
 
 import type { BotProps } from '@/types/profile/bots/StrategyParams';
 
-import React, { FormEvent, useEffect, useMemo, useState } from 'react';
+import React, { FormEvent, useEffect, useState } from 'react';
 import {
     Autocomplete,
     AutocompleteItem,
@@ -65,85 +65,6 @@ interface ChartData {
     params?: Record<string, any>;
 }
 
-const toSec = (t: number) => (t > 1e11 ? Math.floor(t / 1000) : t);
-const toBinanceSymbol = (s: string) => s.replace('/', '');
-const tfMap = (tf: string) => {
-    const m = tf.toLowerCase();
-
-    if (['1m','3m','5m','15m','30m','1h','2h','4h','6h','8h','12h','1d','3d','1w','1m'].includes(m)) return m;
-    if (m === 'd') return '1d';
-
-    return m;
-};
-
-// Fetch candles from Binance with a fallback attempt
-async function fetchCandlesWithFallback(args: {
-    symbol: string; interval: string; mode: 'recent' | 'range'; recentCount?: number; start?: number; end?: number;
-}) {
-    const base = 'https://api.binance.com/api/v3/klines';
-    const symbol = toBinanceSymbol(args.symbol);
-    const interval = tfMap(args.interval);
-
-    const map = (rows: any[]) =>
-        rows.map((k: any[]) => ({
-            time: Math.floor(k[0] / 1000),
-            open: parseFloat(k[1]),
-            high: parseFloat(k[2]),
-            low: parseFloat(k[3]),
-            close: parseFloat(k[4]),
-        }));
-
-    try {
-        if (args.mode === 'recent') {
-            const url = `${base}?symbol=${symbol}&interval=${interval}&limit=${Math.max(10, Math.min(args.recentCount || 500, 1000))}`;
-            const r = await fetch(url);
-
-            if (!r.ok) throw new Error('recent fetch failed');
-            const data = await r.json();
-            const out = map(data || []);
-
-            if (out.length) return out;
-            throw new Error('recent empty');
-        } else {
-            // range mode (limited loops to avoid long waits)
-            const end = args.end ?? Date.now();
-            let start = args.start ?? end - 1000 * 1000;
-            const out: any[] = [];
-            let guard = 0;
-
-            while (start < end && guard < 10) {
-                const url = `${base}?symbol=${symbol}&interval=${interval}&startTime=${start}&endTime=${end}&limit=1000`;
-                const r = await fetch(url);
-
-                if (!r.ok) break;
-                const batch = await r.json();
-
-                if (!batch || batch.length === 0) break;
-                out.push(...map(batch));
-                const last = batch[batch.length - 1][0];
-
-                start = last + 1;
-                guard++;
-            }
-            if (out.length) return out;
-            throw new Error('range empty');
-        }
-    } catch {
-        // fallback: always try recent 500 to draw *something*
-        try {
-            const url = `${base}?symbol=${symbol}&interval=${interval}&limit=500`;
-            const r = await fetch(url);
-
-            if (!r.ok) throw new Error('fallback recent failed');
-            const data = await r.json();
-
-            return map(data || []);
-        } catch {
-            return [];
-        }
-    }
-}
-
 // ---------------- page ----------------
 export default function StrategyTesterPage() {
     const [symbols, setSymbols] = useState<SymbolFilter[]>([]);
@@ -176,8 +97,6 @@ export default function StrategyTesterPage() {
     const [loading, setLoading] = useState(false);
     const [result, setResult] = useState<any>(null);
     const [chartData, setChartData] = useState<ChartData | null>(null);
-
-    const firstRequestedTimeframe = useMemo(() => indicators[0]?.timeframe || '30m', [indicators]);
 
     const onCopySetting = (row: StrategyResult) => {
         const payload = { indicators: [{ indicator: row.indicator, timeframe: row.timeframe, params: row.params }] };
@@ -239,46 +158,39 @@ export default function StrategyTesterPage() {
             const res = await sendRequest(body, '/backtest/run');
 
             if (!res.success) {
-                addToast({ title: res.error || 'Backtest failed', color: 'danger' });
+                addToast({ title: res.error || "Backtest failed", color: "danger" });
+            } else {
+                setResult(res.result);
+                addToast({ title: "Backtest complete!", color: "success" });
 
-                return;
-            }
+                const first = res?.result?.strategies?.[0];
 
-            setResult(res.result);
-            addToast({ title: 'Backtest complete!', color: 'success' });
-
-            // 1) TRADES from run
-            let trades: any[] = [];
-
-            if (res?.result?.runId) {
-                const fullRunData = await getData(`/backtest/runs/${res.result.runId}`);
-
-                if (fullRunData.success && fullRunData.run) {
-                    trades = (fullRunData.run.trades || []).map((t: any) => ({
-                        ...t,
-                        entryTime: toSec(new Date(t.entryTime).getTime()),
-                        exitTime: toSec(new Date(t.exitTime).getTime()),
+                if (first) {
+                    // backend sends ms; chart wants seconds
+                    const formattedCandles = (first.candles || []).map((c: any) => ({
+                        time: Math.floor(c.time / 1000),
+                        open: c.open,
+                        high: c.high,
+                        low:  c.low,
+                        close: c.close,
                     }));
+
+                    const formattedTrades = (first.trades || []).map((t: any) => ({
+                        ...t,
+                        entryTime: Math.floor(new Date(t.entryTime).getTime() / 1000),
+                        exitTime:  Math.floor(new Date(t.exitTime).getTime() / 1000),
+                    }));
+
+                    setChartData({
+                        candles: formattedCandles,
+                        trades: formattedTrades,
+                        indicator: first.indicator,
+                        params: first.params,
+                    });
+                } else {
+                    setChartData(null);
                 }
             }
-
-            // 2) STRATEGY (first one to display)
-            const first = res?.result?.strategies?.[0];
-            const chartIndicator = first?.indicator;
-            const chartParams = first?.params || {};
-            const usedTimeframe = first?.timeframe || firstRequestedTimeframe;
-
-            // 3) CANDLES with fallback
-            let candles: any[] = await fetchCandlesWithFallback({
-                symbol: selectedSymbol,
-                interval: usedTimeframe,
-                mode: payload.mode,
-                recentCount: payload.recentCount,
-                start: payload.startDate ? Date.parse(payload.startDate) : undefined,
-                end: payload.endDate ? Date.parse(payload.endDate) : undefined,
-            });
-
-            setChartData({ candles, trades, indicator: chartIndicator, params: chartParams });
         } catch (err: any) {
             addToast({ title: err.message || 'Error running backtest', color: 'danger' });
         } finally {
@@ -300,16 +212,18 @@ export default function StrategyTesterPage() {
                             {chartData && chartData.candles.length > 0 ? (
                                 <BacktestResultChart
                                     candles={chartData.candles}
+                                    trades={chartData.trades}
                                     height={550}
                                     overlay={
                                         chartData.indicator === 'SMA_CROSS'
                                             ? { type: 'SMA_CROSS', fast: chartData.params?.fast, slow: chartData.params?.slow }
                                             : { type: 'NONE' }
                                     }
-                                    trades={chartData.trades}
                                 />
                             ) : (
-                                <TradingViewAdvancedChart />
+                                <div className="h-full">
+                                    <TradingViewAdvancedChart />
+                                </div>
                             )}
                         </div>
                     </div>
