@@ -212,13 +212,13 @@ export default function StrategyTesterPage() {
                             {chartData && chartData.candles.length > 0 ? (
                                 <BacktestResultChart
                                     candles={chartData.candles}
-                                    trades={chartData.trades}
                                     height={550}
                                     overlay={
                                         chartData.indicator === 'SMA_CROSS'
                                             ? { type: 'SMA_CROSS', fast: chartData.params?.fast, slow: chartData.params?.slow }
                                             : { type: 'NONE' }
                                     }
+                                    trades={chartData.trades}
                                 />
                             ) : (
                                 <div className="h-full">
