@@ -229,83 +229,104 @@ exports.getAccountBalance = async (req, res) => {
     }
 };
 
+/**
+ * @description Gets the available leverage options for a given symbol and account.
+ * Differentiates between 'spot' (Margin Trading) and 'futures' markets via a query parameter.
+ * @example GET /api/accounts/:accountId/leverage-options?symbol=BTC/USDT&marketType=futures
+ * @param {object} req - Express request object.
+ * @param {object} res - Express response object.
+ */
 exports.getLeverageOptions = async (req, res) => {
     const { accountId } = req.params;
-    const { symbol }    = req.query;
+    const { symbol, marketType = 'futures' } = req.query; // Default to 'futures' if not specified
 
-
-    // 1) find which account
-    let account, type;
-    account = await BinanceAccount.findById(accountId);
-    if (account) type = 'binance';
+    // 1) Find the account to determine the exchange
+    let account, exchangeType;
+    // This can be optimized, but we'll keep the existing logic for now.
+    account = await BinanceAccount.findById(accountId).lean();
+    if (account) exchangeType = 'binance';
     else {
-        account = await OkxAccount.findById(accountId);
-        if (account) type = 'okx';
+        account = await OkxAccount.findById(accountId).lean();
+        if (account) exchangeType = 'okx';
         else {
-            account = await BingxAccount.findById(accountId);
-            if (account) type = 'bingx';
+            account = await BingxAccount.findById(accountId).lean();
+            if (account) exchangeType = 'bingx';
         }
     }
-    if (!account) return res.status(404).json({ error: 'Account not found' });
+    if (!account) {
+        return res.status(404).json({ success: false, error: 'Account not found' });
+    }
 
     try {
         let leverages = [];
-        switch (type) {
-            case 'binance':
-                // Binance FUTURES exchangeInfo
-            {
-                const resp = await axios.get('https://fapi.binance.com/fapi/v1/exchangeInfo');
-                const s = resp.data.symbols.find(s => s.symbol === symbol.replace('/',''));
-                if (s) {
-                    const filt = s.filters.find(f=>f.filterType==='LEVERAGE_BRACKET');
-                    // filterType may be different; you may need LEVERAGE or MARKET_LOT_SIZE
-                    const maxLev = +s.marginAsset === 1 ? 125 : 20; // example
-                    for (let l = 1; l <= (filt?.brackets?.[0]?.initialLeverage || maxLev); l++) {
-                        leverages.push(l);
-                    }
+
+        if (marketType === 'spot') {
+            // --- LOGIC FOR SPOT MARGIN TRADING ---
+            console.log(`[Leverage] Fetching SPOT margin options for ${exchangeType} and symbol ${symbol}`);
+            switch (exchangeType) {
+                case 'binance': {
+                    // For Binance Spot Margin, max leverage is typically 3x for Cross and 10x for Isolated.
+                    // The /sapi/v1/margin/isolated/pair endpoint can confirm if a pair is available for 10x.
+                    // For simplicity, we'll offer a common range up to 10x.
+                    leverages = Array.from({ length: 10 }, (_, i) => i + 1);
+                    break;
+                }
+                case 'okx': {
+                    // OKX provides max leverage for spot margin via its public config endpoint.
+                    const resp = await axios.get('https://www.okx.com/api/v5/public/margin-config', {
+                        params: { instId: symbol.replace('/', '-') }
+                    });
+                    const maxLev = parseInt(resp.data.data[0]?.lever || '3', 10); // Default to 3x if not found
+                    leverages = Array.from({ length: maxLev }, (_, i) => i + 1);
+                    break;
+                }
+                case 'bingx': {
+                    // BingX Spot Margin leverage is typically fixed. For example, 10x for most pairs.
+                    // As their API doesn't provide a dynamic endpoint for this, we'll return a sensible default.
+                    leverages = Array.from({ length: 10 }, (_, i) => i + 1);
+                    break;
                 }
             }
-                break;
-
-            case 'okx':
-                // OKX API
-                {
-                    const resp = await axios.get('https://www.okx.com/api/v5/public/instruments', {
-                        params: { instType:'SWAP', uly: symbol.replace('/USDT','') }
+        } else {
+            // --- LOGIC FOR FUTURES TRADING (Original logic, but cleaned up) ---
+            console.log(`[Leverage] Fetching FUTURES leverage options for ${exchangeType} and symbol ${symbol}`);
+            switch (exchangeType) {
+                case 'binance': {
+                    const resp = await axios.get('https://fapi.binance.com/fapi/v1/leverageBracket', {
+                        params: { symbol: symbol.replace('/', '') }
                     });
-                    const inst = resp.data.data[0];
-                    const maxLev = +inst.maxLvg;
-                    leverages = Array.from({length: maxLev}, (_,i)=>i+1);
+                    const maxLev = parseInt(resp.data[0]?.brackets[0]?.initialLeverage || '20', 10);
+                    leverages = Array.from({ length: maxLev }, (_, i) => i + 1);
+                    break;
                 }
-                break;
-
-            case 'bingx':
-                // BingX – your own wrapper
-                // 1) fetch all perpetual symbols
-                const resp = await axios.get('https://api.bingx.com/api/v1/market/symbols');
-                // 2) unwrap to the array
-                const all = resp.data?.data?.result || [];
-                // 3) ticker_id is like "BTC-USDT", so convert from "BTC/USDT"
-                const tickerId = symbol.replace('/', '-');
-                const info     = all.find(t => t.ticker_id === tickerId);
-                if (!info) {
-                    return res.status(404).json({ error: `Symbol ${symbol} not found on BingX` });
+                case 'okx': {
+                    const resp = await axios.get('https://www.okx.com/api/v5/public/instruments', {
+                        params: { instType: 'SWAP', instId: symbol.replace('/', '-') }
+                    });
+                    const maxLev = parseInt(resp.data.data[0]?.maxLvr || '20', 10);
+                    leverages = Array.from({ length: maxLev }, (_, i) => i + 1);
+                    break;
                 }
+                case 'bingx': {
+                    // BingX doesn't have a dedicated leverage bracket endpoint,
+                    // but we can query the contract details.
+                    const resp = await axios.get('https://open-api.bingx.com/openApi/swap/v2/quote/contracts');
+                    const contract = resp.data.data.find(c => c.symbol === symbol.replace('/', '-'));
+                    if (!contract) return res.status(404).json({ error: `Symbol ${symbol} not found on BingX Futures` });
 
-                // 4) BingX doesn't explicitly return maxLeverage here,
-                //    so you’ll need to pick a sensible default or call a different endpoint.
-                //    For example, you might assume 50× by default:
-                const maxLev = info.max_leverage ?? 50;
-
-                leverages = Array.from({ length: maxLev }, (_, i) => i + 1);
-                break;
+                    const maxLev = parseInt(contract.maxLeverage || '50', 10);
+                    leverages = Array.from({ length: maxLev }, (_, i) => i + 1);
+                    break;
+                }
+            }
         }
 
         return res.json({ success: true, leverages });
     } catch (err) {
-        console.error('getLeverageOptions error', err);
+        console.error('getLeverageOptions error:', err.response?.data || err.message);
         logger.error(`getLeverageOptions error: ${err.message}`, { stack: err.stack });
-        return res.status(500).json({ success: false, error: err.message });
+        const errorMessage = err.response?.data?.msg || err.message;
+        return res.status(500).json({ success: false, error: errorMessage });
     }
 };
 
