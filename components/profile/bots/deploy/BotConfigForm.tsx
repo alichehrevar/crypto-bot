@@ -12,18 +12,13 @@ import {
 
 import { getData } from '@/actions/get';
 import { ExchangeAccount, AccountsResponse } from '@/types/profile/AccountType';
-import { SymbolFilterResponse } from '@/types/profile/CurrencyType';
+import {SymbolFilter, SymbolFilterResponse} from '@/types/profile/CurrencyType';
 import { RawBalanceResponse } from "@/types/profile/WalletBalanceType";
 import { sendRequest } from '@/actions/post';
 import { BotProps } from '@/types/profile/bots/StrategyParams';
 import { DefaultBotConfigForm } from '@/types/profile/bots/defaultBotConfigForm';
 import { PlusIcon } from '@/utils/icons';
 import LabelTag from "@/components/shared/ui/Label";
-
-interface Currency {
-  _id: string;
-  symbol: string;
-}
 
 export interface BotConfigFormProps {
   mode: 'default' | 'optimized' | 'dynamic';
@@ -61,7 +56,7 @@ export default function BotConfigForm({ mode, selectedParentTab, onCloseAction }
   const [additional, setAdditional] = useState<
     Array<{ indicator: string; timeframe: string }>
   >([]);
-  const [symbols, setSymbols] = useState<Currency[]>([]);
+  const [symbols, setSymbols] = useState<SymbolFilter[]>([]);
   const [loading, setLoading] = useState(false);
 
   // optimized-dynamic state
@@ -170,8 +165,8 @@ export default function BotConfigForm({ mode, selectedParentTab, onCloseAction }
         return
       }
 
-      const soptEntry = selectedParentTab === 'spot' ? getBalance.balance.find(b => b.accountType === 'sopt') : getBalance.balance.find(b => b.accountType === 'stdFutures');
-      const freeAmount = parseFloat(soptEntry?.usdtBalance ?? '0');
+      const spotEntry = selectedParentTab === 'spot' ? getBalance.data.find(b => b.accountType === 'spot') : getBalance.data.find(b => b.accountType === 'futures');
+      const freeAmount = parseFloat(spotEntry?.usdtBalance ?? '0');
 
       setAvailableBalance(freeAmount);
       setBaseFund(freeAmount);
@@ -288,7 +283,7 @@ export default function BotConfigForm({ mode, selectedParentTab, onCloseAction }
             onSelectionChange={k => k && setSymbol(k.toString())}
           >
             {symbols.map(s => (
-              <AutocompleteItem key={s.symbol} textValue={s.symbol}>
+              <AutocompleteItem key={s.id} textValue={s.symbol}>
                 {s.symbol}
               </AutocompleteItem>
             ))}
@@ -420,7 +415,7 @@ export default function BotConfigForm({ mode, selectedParentTab, onCloseAction }
         </div>
 
         {/* Additional Indicators */}
-        {additional.map((ai, i) => (
+        {additional.map((_, i) => (
           <div key={i} className="flex items-center gap-4">
             <div className="space-y-2 flex flex-col w-2/3">
               <LabelTag id={`indicator${i}`} title="Indicator" />

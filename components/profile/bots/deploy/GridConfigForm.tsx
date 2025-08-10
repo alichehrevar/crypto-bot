@@ -13,15 +13,10 @@ import {
 import { getData } from "@/actions/get";
 import { sendRequest } from "@/actions/post";
 import { ExchangeAccount } from "@/types/profile/AccountType";
-import { SymbolFilterResponse } from "@/types/profile/CurrencyType";
+import {SymbolFilter, SymbolFilterResponse} from "@/types/profile/CurrencyType";
 import { RawBalanceResponse } from "@/types/profile/WalletBalanceType";
 import { BotProps } from "@/types/profile/bots/StrategyParams";
 import LabelTag from "@/components/shared/ui/Label";
-
-interface Currency {
-  _id: string;
-  symbol: string;
-}
 
 // Props for this form: which grid‐tab is active, and a callback for closing
 export interface GridConfigFormProps {
@@ -50,7 +45,7 @@ export default function GridConfigForm({
   const [selectedAccountId, setSelectedAccountId] = useState<Key>();
   const [availableBalance, setAvailableBalance] = useState<number>(0);
 
-  const [symbols, setSymbols] = useState<Currency[]>([]);
+  const [symbols, setSymbols] = useState<SymbolFilter[]>([]);
   const [selectedSymbol, setSelectedSymbol] = useState<string>("BTC/USDT");
 
   // Common Bot fields
@@ -181,9 +176,9 @@ export default function GridConfigForm({
         return
       }
 
-      if (res.balance) {
-        const soptEntry = selectedParentTab === 'spot' ? res.balance.find(b => b.accountType === 'sopt') : res.balance.find(b => b.accountType === 'stdFutures');
-        const free = parseFloat(soptEntry?.usdtBalance ?? '0');
+      if (res.data) {
+        const spotEntry = selectedParentTab === 'spot' ? res.data.find(b => b.accountType === 'spot') : res.data.find(b => b.accountType === 'futures');
+        const free = parseFloat(spotEntry?.usdtBalance ?? '0');
 
         setAvailableBalance(free);
         setBaseFund(free.toString());
@@ -390,7 +385,7 @@ export default function GridConfigForm({
             onSelectionChange={(k) => k && setSelectedSymbol(k.toString())}
           >
             {symbols.map((s) => (
-              <AutocompleteItem key={s.symbol} textValue={s.symbol}>
+              <AutocompleteItem key={s.id} textValue={s.symbol}>
                 {s.symbol}
               </AutocompleteItem>
             ))}

@@ -12,7 +12,7 @@ export type RawBalance = {
 
 export type RawBalanceResponse = {
   success: boolean,
-  balance: RawBalance[],
+  data: RawBalance[],
   error: string
 }
 
