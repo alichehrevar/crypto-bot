@@ -74,6 +74,9 @@ const CustomizedActiveDot = ({ cx, cy }: any) => (
 // for the data it receives via props. It is completely independent of tabs or other controls.
 // =================================================================================================
 export default function ReusableAreaChart({ data }: { data: ChartData }) {
+
+    console.log(data)
+
     // State for the labels displayed on the X-axis
     const [ticks, setTicks] = useState<string[]>([])
 
@@ -129,6 +132,10 @@ export default function ReusableAreaChart({ data }: { data: ChartData }) {
                     />
 
                     {/* Y-Axis is hidden for aesthetic purposes */}
+                    <YAxis
+                        domain={[(dataMin: number) => (dataMin * 0.95),( dataMax: number) => (dataMax * 1.05)]}
+                        hide={true}
+                    />
                     <YAxis domain={['dataMin - 20000', 'dataMax + 20000']} hide={true} />
 
                     {/* Tooltip Configuration */}
