@@ -1,7 +1,4 @@
-// File: app/services/backtestService/BacktestService.js
-/**
- * @file Orchestrates candle fetching, simulation, optimization, and metrics calculation.
- */
+// app/services/backtestService/BacktestService.js
 const BacktestOrderSimulator  = require('./BacktestOrderSimulator');
 const BacktestSignalProcessor = require('./BacktestSignalProcessor');
 const calculateMetrics        = require('./BacktestMetricsCalculator');
@@ -25,6 +22,7 @@ class BacktestService {
 
         for (const strat of strategies) {
             let { indicator, timeframe, params = {}, riskParams = {}, paramSpace = {} } = strat;
+
             const candles = await this.candleProvider(symbol, timeframe, from, to);
             if (!candles || candles.length === 0) {
                 console.warn(`[BacktestService] No candles for ${symbol} on ${timeframe}.`);
@@ -33,24 +31,24 @@ class BacktestService {
 
             let bestParams = params;
             if (optimize) {
-                console.log(`[BacktestService] Optimizing parameters for ${indicator}...`);
                 const optimizationOptions = { initialBalance, risk: riskParams, minAccuracy, minTrades };
                 const optimized = await BacktestRiskManager.optimizeParameters(
-                    symbol, [{ indicator, timeframe, params, paramSpace }],
-                    optimizationMethod, candles, optimizationOptions
+                    symbol,
+                    [{ indicator, timeframe, params, paramSpace }],
+                    optimizationMethod,
+                    candles,
+                    optimizationOptions
                 );
                 bestParams = { ...params, ...optimized };
-                console.log(`[BacktestService] Optimization complete. Best parameters:`, bestParams);
             }
 
             const signaler  = new BacktestSignalProcessor(indicator, bestParams);
-            const simulator = new BacktestOrderSimulator({
-                initialBalance, riskParams, equityCurve: [initialBalance]
-            });
+            const simulator = new BacktestOrderSimulator({ initialBalance, riskParams, equityCurve: [initialBalance] });
 
             for (const candle of candles) {
                 const signal = signaler.next(candle);
                 simulator.step(candle, signal);
+
                 const unreal = simulator.equityCurve[simulator.equityCurve.length - 1] - simulator.balance;
                 const keepTrading = enforceRiskLimits(
                     simulator.trades, riskParams, simulator.equityCurve, new Date(candle.time), unreal
@@ -65,8 +63,14 @@ class BacktestService {
                 trades: simulator.trades, equityCurve: simulator.equityCurve, initialBalance
             });
 
+            // 👉 include candles + the (possibly) optimized params
             results.push({
-                indicator, timeframe, params: bestParams, metrics, trades: simulator.trades
+                indicator,
+                timeframe,
+                params: bestParams,
+                metrics,
+                trades: simulator.trades,
+                candles,                     // <— added
             });
         }
 
@@ -79,7 +83,7 @@ class BacktestService {
             indicators: strategies.map(s => ({ indicator: s.indicator, timeframe: s.timeframe, params: s.params })),
             optimize, optimizationMethod, minAccuracy, minTrades, useRisk: !!risk, riskOptions: risk,
             initialBalance, finalBalance: finalMetrics.finalBalance || initialBalance,
-            metrics: finalMetrics, trades: finalTrades,
+            metrics: finalMetrics, trades: finalTrades, // (don’t store candles in DB to keep it light)
         });
 
         return { runId: runRecord._id, strategies: results };
