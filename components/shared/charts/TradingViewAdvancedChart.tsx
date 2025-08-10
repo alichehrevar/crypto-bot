@@ -31,7 +31,7 @@ function TradingViewAdvancedChart() {
         "locale": "en",
         "save_image": true,
         "style": "1",
-        "symbol": "NASDAQ:AAPL",
+        "symbol": "BTCUSD",
         "theme": "dark",
         "timezone": "Etc/UTC",
         "backgroundColor": "#000000",
