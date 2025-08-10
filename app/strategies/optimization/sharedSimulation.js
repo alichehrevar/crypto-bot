@@ -1,66 +1,75 @@
-// app/strategies/optimization/sharedSimulation.js
+/**
+ * @file A shared simulation function for the optimization engine,
+ * updated to be fully compatible with the new class-based components.
+ * @author Your Name
+ */
 
-const { processSignal } = require('../../services/backtestService/BacktestSignalProcessor');
-const { simulateOrder, closeFinal } = require('../../services/backtestService/BacktestOrderSimulator');
-const { calculateMetrics } = require('../../services/backtestService/BacktestMetricsCalculator');
-const riskUtils = require('../../services/backtestService/riskUtils');
+// Import the class-based and functional modules
+const BacktestOrderSimulator  = require('../../services/backtestService/BacktestOrderSimulator');
+const BacktestSignalProcessor = require('../../services/backtestService/BacktestSignalProcessor');
+const calculateMetrics        = require('../../services/backtestService/BacktestMetricsCalculator');
+const { enforceRiskLimits }   = require('../../services/backtestService/riskUtils');
 
-function simulateWholeStrategy(indicatorName, params, candles, options = {}) {
+/**
+ * @description Runs a full simulation for a single set of parameters and returns the result.
+ * This is the core function called repeatedly by the optimizer. It now correctly
+ * uses the class-based architecture.
+ * @param {string} indicator - The name of the indicator (e.g., 'RSI').
+ * @param {object} params - The parameters for the indicator (e.g., { period: 14 }).
+ * @param {Array<object>} candles - The historical candle data.
+ * @param {object} options - Options including initialBalance and risk parameters.
+ * @returns {object} The final metrics and trade list for the simulation run.
+ */
+function simulateWholeStrategy(indicator, params, candles, options) {
     const { initialBalance = 10000, risk = {} } = options;
-    let balance = initialBalance;
-    let openPos = null;
-    const trades = [];
 
-    let warmUp = 1;
-    if (indicatorName === 'RSI') {
-        warmUp = (params.period || 14) + 1;
-    } else if (indicatorName === 'MACD') {
-        warmUp = (params.shortPeriod || 12) + (params.longPeriod || 26) + (params.signalPeriod || 9);
-    }
-    if (candles.length <= warmUp) {
-        return { totalPnL: 0, totalTrades: 0, winRate: 0, avgTradeDuration: 0 };
-    }
+    // 1. Instantiate the new, class-based components.
+    const signaler  = new BacktestSignalProcessor(indicator, params);
+    const simulator = new BacktestOrderSimulator({
+        initialBalance,
+        riskParams: risk,
+        equityCurve: [initialBalance]
+    });
 
-    for (let i = warmUp; i < candles.length; i++) {
-        const slice = candles.slice(0, i + 1);
-        const now = candles[i].timestamp;
-        const price = candles[i].close;
+    // 2. Loop through each candle and run the simulation step.
+    for (const candle of candles) {
+        // Call the instance methods correctly.
+        const signal = signaler.next(candle);
+        simulator.step(candle, signal);
 
-        if (!riskUtils.enforceRiskLimits(trades, risk, balance)) {
+        // Risk limits are optional during optimization for speed, but can be included.
+        const unreal = simulator.equityCurve[simulator.equityCurve.length - 1] - simulator.balance;
+        const keepTrading = enforceRiskLimits(
+            simulator.trades,
+            risk,
+            simulator.equityCurve,
+            new Date(candle.time),
+            unreal
+        );
+        if (!keepTrading) {
             break;
         }
-
-        const signal = processSignal(slice, indicatorName, params);
-
-        const calculatePositionSize = () => riskUtils.calculatePositionSize(risk, balance, price);
-        const calculateTPSL = entryPrice => riskUtils.calculateTPSL({ ...params, ...risk }, entryPrice);
-
-        const { openPosition: nextPos, balance: nextBal, tradeRecord } =
-            simulateOrder({
-                balance,
-                currentPrice: price,
-                currentTime: now,
-                signal,
-                openPosition: openPos,
-                calculatePositionSize,
-                calculateTPSL
-            });
-
-        openPos = nextPos;
-        balance = nextBal;
-        if (tradeRecord) trades.push(tradeRecord);
     }
 
-    const lastCandle = candles[candles.length - 1];
-    const { newBalance: pnlFromClose = 0, tradeRecord: finalTrade } =
-        closeFinal(openPos, lastCandle.close, lastCandle.timestamp);
+    // 3. Close any final position.
+    const last = candles[candles.length - 1];
+    simulator.closeFinal(last.close, last.time);
 
-    if (finalTrade) {
-        balance += pnlFromClose;
-        trades.push(finalTrade);
-    }
+    // 4. Calculate metrics and return the result.
+    const metrics = calculateMetrics({
+        trades:       simulator.trades,
+        equityCurve:  simulator.equityCurve,
+        initialBalance
+    });
 
-    return calculateMetrics(trades, balance);
+    // The optimizer expects the total PnL as a direct property for scoring.
+    return {
+        metrics,
+        trades: simulator.trades,
+        totalPnL: metrics.totalPnL
+    };
 }
 
-module.exports = { simulateWholeStrategy };
+module.exports = {
+    simulateWholeStrategy,
+};

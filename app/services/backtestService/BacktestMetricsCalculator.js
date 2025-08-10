@@ -1,38 +1,29 @@
-// app/services/backtestService/BacktestMetricsCalculator.js
-
+// File: app/services/backtestService/BacktestMetricsCalculator.js
 /**
- * calculateMetrics
- *
- * @param {Array<Object>} trades             – all trade records (may include unrealized)
- * @param {Number}       endingBalance       – final account balance after last close
- * @returns {Object} metrics including finalBalance
+ * @file Converts a series of trades and an equity curve into headline performance statistics.
  */
-function calculateMetrics(trades, endingBalance) {
-    // ignore any in-flight/unclosed trades
-    const realTrades = trades.filter(t => !t.unrealized);
+function calculateMetrics({ trades, equityCurve, initialBalance }) {
+    const totalTrades = trades.length;
+    const totalPnL = trades.reduce((sum, t) => sum + t.profit, 0);
+    const wins = trades.filter(t => t.profit > 0).length;
 
-    const totalTrades    = realTrades.length;
-    const wins           = realTrades.filter(t => t.profit > 0).length;
-    const totalPnL       = realTrades.reduce((sum, t) => sum + t.profit, 0);
-    const totalDuration  = realTrades.reduce((sum, t) => sum + (t.duration || 0), 0);
-
-    // avoid divide-by-zero
-    const winRate          = totalTrades > 0 ? wins / totalTrades : 0;
-    const avgProfit        = totalTrades > 0 ? totalPnL / totalTrades  : 0;
-    const avgTradeDuration = totalTrades > 0 ? totalDuration / totalTrades : 0;
-
-    // placeholder for a proper max drawdown calculation if you add one later
-    const maxDrawdown = 0;
+    let peak = initialBalance;
+    let maxDD = 0;
+    for (const eq of equityCurve) {
+        if (eq > peak) peak = eq;
+        const dd = (peak - eq) / peak;
+        if (dd > maxDD) maxDD = dd;
+    }
 
     return {
         totalTrades,
+        winRate: totalTrades ? wins / totalTrades : 0,
         totalPnL,
-        winRate,
-        avgProfit,
-        avgTradeDuration,
-        maxDrawdown,
-        finalBalance: endingBalance
+        avgProfit: totalTrades ? totalPnL / totalTrades : 0,
+        avgTradeDuration: totalTrades ? trades.reduce((s, t) => s + t.duration, 0) / totalTrades : 0,
+        maxDrawdown: maxDD,
+        finalBalance: equityCurve.length > 0 ? equityCurve[equityCurve.length - 1] : initialBalance,
     };
 }
 
-module.exports = { calculateMetrics };
+module.exports = calculateMetrics;

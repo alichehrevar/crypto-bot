@@ -1,101 +1,104 @@
 // app/http/controllers/backtestController.js
 
 const BacktestService  = require('../../services/backtestService/BacktestService');
+const { getDefaultRisk } = require('../../services/backtestService/riskUtils');
 const BacktestRun = require('../../models/BacktestRun');
 const paramBounds = require('../../../config/indicatorParamBounds');
 const User             = require('../../models/User');
+const axios = require('axios');
 
+/**
+ * @description Handles the initiation of a backtest run. It validates parameters,
+ * translates the incoming symbol, instantiates the service, provides a candle
+ * provider, and executes the backtest.
+ * @param {object} req - Express request object containing backtest parameters in the body.
+ * @param {object} res - Express response object.
+ */
 exports.run = async (req, res) => {
-    console.log('Running Backtest Service...');
-    console.log(req.body.indicators)
     try {
-        // 1) Authenticate
         const user = await User.findById(req.user.id);
         if (!user) {
             return res.status(401).json({ success: false, error: 'User not found.' });
         }
 
-        // 2) Parse JSON-encoded fields from the form
         const {
-            symbol,
-            mode,
-            recentCount,
-            startDate,
-            endDate,
-            initialBalance,
-            optimize,
-            optimizationMethod,
-            minAccuracy,
-            minTrades,
+            symbol, mode, recentCount, startDate, endDate, initialBalance,
+            optimize, optimizationMethod, minAccuracy, minTrades,
         } = req.body;
 
-        console.log(typeof req.body.indicators)
-        let indicators;
+        let strategies;
         try {
-            // 1. Determine the source of the indicators payload
-            let indicatorsPayload = req.body.indicators;
-
-            // 2. If the payload is a string, parse it.
-            if (typeof indicatorsPayload === 'string') {
-                indicatorsPayload = JSON.parse(indicatorsPayload);
-            }
-
-            // 3. Ensure the result is an array before mapping. This is a crucial validation step.
-            if (!Array.isArray(indicatorsPayload)) {
-                // Throw a specific error to be caught by the catch block.
-                return res.status(400).json({ success: false, error: 'Indicators payload must be an array.' });
-            }
-
-            // 4. Now, map over the correctly parsed/referenced array.
-            indicators = indicatorsPayload.map(ind => ({
-                ...ind,
-                // attach search space for this indicator, if defined
-                paramSpace: paramBounds[ind.indicator] || {}
-            }));
-
+            let payload = req.body.indicators;
+            if (typeof payload === 'string') payload = JSON.parse(payload);
+            if (!Array.isArray(payload)) return res.status(400).json({ success: false, error: 'Indicators payload must be an array.' });
+            strategies = payload.map(ind => ({ ...ind, paramSpace: paramBounds[ind.indicator] || {} }));
         } catch (error) {
-            // The catch block will now handle errors from JSON.parse() OR the Array.isArray check.
-            // You can optionally log the 'error' variable for debugging.
             return res.status(400).json({ success: false, error: 'Invalid indicators payload.' });
         }
 
-        let risk;
-        if (req.body.risk) {
+        let risk = getDefaultRisk(); // defaults if frontend sends nothing
+
+        if (typeof req.body.risk !== 'undefined') {
             try {
-                risk = JSON.parse(req.body.risk);
+                // accept both JSON string and plain object
+                const incoming = typeof req.body.risk === 'string'
+                    ? JSON.parse(req.body.risk)
+                    : req.body.risk;
+
+                if (incoming && typeof incoming === 'object') {
+                    risk = { ...risk, ...incoming };
+                } else {
+                    return res.status(400).json({ success: false, error: 'Invalid risk payload.' });
+                }
             } catch {
                 return res.status(400).json({ success: false, error: 'Invalid risk payload.' });
             }
         }
 
-        // 3) Call the service, passing userId along
-        const result = await BacktestService.run({
-            userId:             user._id,
-            symbol,
-            mode,
-            recentCount:        mode === 'recent' ? Number(recentCount) : undefined,
-            startDate:          mode === 'range'  ? new Date(startDate) : undefined,
-            endDate:            mode === 'range'  ? new Date(endDate)   : undefined,
-            indicators,
-            initialBalance:     initialBalance != null ? Number(initialBalance) : 10000,
-            optimize:           optimize === 'true' || optimize === true,
-            optimizationMethod: optimizationMethod || undefined,
-            minAccuracy:        minAccuracy != null ? Number(minAccuracy) : undefined,
-            minTrades:          minTrades   != null ? Number(minTrades)   : undefined,
+        if (!symbol || typeof symbol !== 'string') {
+            return res.status(400).json({ success: false, error: 'A valid symbol is required.' });
+        }
+        const baseAsset = symbol.split('-')[0].toUpperCase();
+        const binanceSymbol = `${baseAsset}USDT`;
+
+        const candleProvider = async (symbol, timeframe, from, to) => {
+            const url = 'https://api.binance.com/api/v3/klines';
+            let allCandles = [];
+            if (mode === 'recent') {
+                const { data } = await axios.get(url, { params: { symbol, interval: timeframe, limit: Number(recentCount) || 1000 } });
+                allCandles = data.map(k => ({ time: k[0], open: parseFloat(k[1]), high: parseFloat(k[2]), low: parseFloat(k[3]), close: parseFloat(k[4]), volume: parseFloat(k[5]) }));
+            } else {
+                let startTime = from;
+                while (startTime < to) {
+                    const { data } = await axios.get(url, { params: { symbol, interval: timeframe, startTime, endTime: to, limit: 1000 } });
+                    if (!data || data.length === 0) break;
+                    const batch = data.map(k => ({ time: k[0], open: parseFloat(k[1]), high: parseFloat(k[2]), low: parseFloat(k[3]), close: parseFloat(k[4]), volume: parseFloat(k[5]) }));
+                    allCandles.push(...batch);
+                    startTime = batch[batch.length - 1].time + 1;
+                }
+            }
+            return allCandles;
+        };
+
+        const backtestServiceInstance = new BacktestService({ candleProvider });
+
+        const result = await backtestServiceInstance.run({
+            userId: user._id,
+            symbol: binanceSymbol,
+            strategies: strategies.map(ind => ({ ...ind, riskParams: risk })),
+            initialBalance: Number(initialBalance) || 10000,
+            from: mode === 'range' ? new Date(startDate).getTime() : undefined,
+            to: mode === 'range' ? new Date(endDate).getTime() : undefined,
+            mode, recentCount, optimize: optimize === 'true' || optimize === true,
+            optimizationMethod, minAccuracy: minAccuracy != null ? Number(minAccuracy) : undefined,
+            minTrades: minTrades != null ? Number(minTrades) : undefined,
             risk,
         });
 
-        // 4) Return success + the persisted runId + service result
-        return res.json({
-            success:   true,
-            backtestId: result.runId,
-            result
-        });
+        return res.json({ success: true, result });
     } catch (err) {
         console.error('backtestController.run error', err);
-        return res
-            .status(500)
-            .json({ success: false, error: err.message || 'Backtest failed.' });
+        return res.status(500).json({ success: false, error: err.message || 'Backtest failed.' });
     }
 };
 
