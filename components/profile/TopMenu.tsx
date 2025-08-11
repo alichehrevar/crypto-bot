@@ -25,23 +25,11 @@ import {
     SupportIcon
 } from "@/utils/icons";
 import {logoutAction} from "@/actions/post";
+import UserDropDown from "@/components/UserDropDown";
 
 export default function TopMenu() {
 
     const pathname = usePathname();
-
-    function logout () {
-        logoutAction('/logout')
-            .then(() => {
-                window.location.href = '/login'
-            })
-            .catch(err => {
-                addToast({
-                    title: err.message,
-                    color: 'danger'
-                })
-            })
-    }
 
     return (
         <Navbar
@@ -116,54 +104,7 @@ export default function TopMenu() {
                     })}
                 </NavbarContent>
                 <NavbarContent as="div" className="items-center" justify="end">
-                    <Dropdown placement="bottom-end">
-                        <DropdownTrigger>
-                            <Avatar
-                                isBordered
-                                as="button"
-                                className="transition-transform"
-                                color="primary"
-                                name="Jason Hughes"
-                                size="sm"
-                                src="https://i.pravatar.cc/150?u=a042581f4e29026704d"
-                            />
-                        </DropdownTrigger>
-                        <DropdownMenu aria-label="Profile Actions" variant="flat">
-                            <DropdownItem
-                                key="profile"
-                                className="h-14 border-b-1 border-gray-700 pb-4 mb-2 rounded-none gap-2"
-                            >
-                                <p className="font-semibold">Signed in as</p>
-                                <p className="font-semibold">zoey@example.com</p>
-                            </DropdownItem>
-                            <DropdownItem
-                                key="search"
-                                startContent={<MagnifyingGlass className="w-5 h-5"/>}
-                            >
-                                Search
-                            </DropdownItem>
-                            <DropdownItem
-                                key="settings"
-                                href="/profile/settings"
-                                startContent={<Cog8ToothIcon className="w-5 h-5"/>}
-                            >
-                                Settings
-                            </DropdownItem>
-                            <DropdownItem
-                                key="help"
-                                href="/profile/settings"
-                                startContent={<SupportIcon className="w-5 h-5" stroke="#ffffff" />}
-                            >
-                                Help
-                            </DropdownItem>
-                            <DropdownItem
-                                key="logout"
-                                startContent={<ArrowLeftStartOnRectangle className="w-5 h-5"/>}
-                            >
-                                <button className="w-full text-left" onClick={() => logout()}>Log Out</button>
-                            </DropdownItem>
-                        </DropdownMenu>
-                    </Dropdown>
+                    <UserDropDown />
                 </NavbarContent>
             </NavbarContent>
 
