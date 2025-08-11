@@ -1,6 +1,6 @@
 import { makeObservable, observable, action } from 'mobx';
 
-import {User} from "@/types/UserType";
+import {User, UserResponse} from "@/types/UserType";
 import {getData} from "@/actions/get";
 
 class UserStore {
@@ -22,9 +22,9 @@ class UserStore {
 
     async fetchUserFromAPI() {
         try {
-            const userData = await getData('/user/profile')
+            const userData: UserResponse = await getData('/user/info')
 
-            return userData.data.user;
+            return userData.data;
         } catch {
             return null;
         }
