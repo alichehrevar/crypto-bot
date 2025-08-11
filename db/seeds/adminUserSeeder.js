@@ -1,52 +1,65 @@
 /**
  * @file Seeder script to ensure the default admin user exists and is up-to-date.
- * @author Your Name
  */
 const bcrypt = require('bcryptjs');
-const User = require('../../app/models/User'); // Adjust path to your User model if needed
+const User = require('../../app/models/User');
+const UserInfo = require('../../app/models/UserInfo'); // <-- add this
 
-/**
- * @description Creates or updates the default admin user using an atomic "upsert" operation.
- * This prevents race conditions in clustered environments.
- * It explicitly hashes the password because Mongoose 'pre-save' hooks are not
- * triggered by findOneAndUpdate by default.
- */
 const seedAdminUser = async () => {
     try {
-        console.log('[Seeder] Checking for default admin user...');
+        console.log('[Seeder] Ensuring default admin user…');
         const adminEmail = 'admin@tradingx.com';
         const adminPassword = 'password123123';
 
-        // 1. Hash the default password.
+        // 1) Hash password
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(adminPassword, salt);
 
-        // 2. Use findOneAndUpdate with `upsert: true`.
-        // This is an atomic operation: it finds and updates, OR it creates if not found.
-        // This completely prevents the race condition.
-        const result = await User.findOneAndUpdate(
-            { email: adminEmail }, // Find document by email
+        // 2) Upsert the user atomically — use updateOne to get raw result (created vs updated)
+        const userUpsert = await User.updateOne(
+            { email: adminEmail },
             {
-                $set: { password: hashedPassword }, // Update these fields
-                $setOnInsert: { email: adminEmail } // Only set email on initial creation
+                $set: { password: hashedPassword },
+                $setOnInsert: { email: adminEmail },
             },
-            {
-                upsert: true,  // <-- Creates the document if it doesn't exist
-                new: true,     // <-- Returns the new/updated document
-                runValidators: true,
-            }
+            { upsert: true }
         );
 
-        // The 'upsertedId' property exists only when a new document was created.
-        if (result.upsertedId) {
-            console.log('[Seeder] Default admin user created:', result.email);
+        // 3) Fetch the user doc (we need _id for UserInfo)
+        const user = await User.findOne({ email: adminEmail }).lean();
+        if (!user) throw new Error('Admin user not found after upsert');
+
+        if (userUpsert.upsertedId) {
+            console.log('[Seeder] Admin user created:', adminEmail);
         } else {
-            console.log('[Seeder] Default admin user password updated:', result.email);
+            console.log('[Seeder] Admin user password updated:', adminEmail);
+        }
+
+        // 4) Ensure a matching UserInfo exists (atomic upsert that only inserts when absent)
+        const defaultInfo = {
+            firstName: 'Admin',
+            lastName: 'User',
+            gender: 'other',
+            phoneCountry: 'US',
+            phoneNumber: '0000000000',
+            birthday: new Date('1990-01-01'),
+            // avatar: '',               // optional
+        };
+
+        const infoUpsert = await UserInfo.updateOne(
+            { userId: user._id },
+            { $setOnInsert: { userId: user._id, ...defaultInfo } },
+            { upsert: true }
+        );
+
+        if (infoUpsert.upsertedId) {
+            console.log('[Seeder] Admin UserInfo created for:', adminEmail);
+        } else {
+            console.log('[Seeder] Admin UserInfo already exists for:', adminEmail);
         }
 
     } catch (error) {
         console.error('[Seeder] Error ensuring admin user exists:', error.message);
-        // We throw the error so the startup process can be halted if seeding is critical.
         throw error;
     }
 };
