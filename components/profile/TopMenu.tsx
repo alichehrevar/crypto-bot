@@ -13,18 +13,10 @@ import {
     DropdownTrigger,
     Dropdown,
     DropdownMenu,
-    Avatar, addToast,
 } from "@heroui/react";
 
 import {MenuItems} from "@/utils/menuItems";
 import {siteConfig} from "@/config/site";
-import {
-    ArrowLeftStartOnRectangle,
-    Cog8ToothIcon,
-    MagnifyingGlass,
-    SupportIcon
-} from "@/utils/icons";
-import {logoutAction} from "@/actions/post";
 import UserDropDown from "@/components/UserDropDown";
 
 export default function TopMenu() {
