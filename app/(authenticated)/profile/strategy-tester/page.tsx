@@ -68,7 +68,7 @@ interface ChartData {
 // ---------------- page ----------------
 export default function StrategyTesterPage() {
     const [symbols, setSymbols] = useState<SymbolFilter[]>([]);
-    const [selectedSymbol, setSelectedSymbol] = useState<string>('BTC/USDT');
+    const [selectedSymbol, setSelectedSymbol] = useState<string>('btc-bitcoin');
 
     const [botProps, setBotProps] = useState<BotProps>({
         riskStrategyOptions: [],
@@ -201,7 +201,7 @@ export default function StrategyTesterPage() {
     return (
         <div className="w-full mt-4 relative px-5 backtester-page">
             <div className="w-full flex flex-col gap-6">
-                <MarketStats />
+                <MarketStats symbolId={selectedSymbol ?? undefined} />
 
                 {/* Main Content */}
                 <div className="w-full flex flex-col lg:flex-row items-start gap-2">

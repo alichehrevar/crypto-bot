@@ -21,3 +21,23 @@ export type symbolDataResponse = {
     volume: string;
     weightedAvgPrice: string;
 }
+
+export type SymbolDetailsResponse = {
+    success: boolean,
+    data: SymbolDetails,
+    message: string
+}
+
+export type SymbolDetails = {
+    coinId: string,
+    name: string,
+    symbol: string,
+    quote: string,
+    price: number,
+    percentChange24h: number,
+    absoluteChange24h: number,
+    volume24h: number,
+    high24h: number,
+    low24h: number,
+    imageUrl: string
+}
