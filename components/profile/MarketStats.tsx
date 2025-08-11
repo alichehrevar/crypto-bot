@@ -45,7 +45,7 @@ export default function MarketStats({ symbolId }: Props) {
     }, [symbolId]);
 
     return (
-        <div className="bg-dark-gray backdrop-blur-sm rounded-xl p-4 border border-gray-800/50">
+        <div className="backdrop-blur-sm rounded-xl p-4">
             <div className="flex items-center justify-between">
                 {loading && <MarketStatsLoading />}
                 {!loading && symbolData &&
