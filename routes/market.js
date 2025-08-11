@@ -5,5 +5,6 @@ const marketController = require('../app/http/controllers/marketController')
 
 router.get('/top-movers', marketController.getTopMovers)
 router.get('/market-list', marketController.getMarketList)
+router.get('/ticker-details', marketController.getTickerDetails)
 
 module.exports = router
