@@ -1,18 +1,12 @@
 // ───────────────────────────────────────────────────────────────────────────────
-// app/(authenticated)/profile/market/page.tsx
+// components/market/shared/NivoTooltip.tsx
 // ───────────────────────────────────────────────────────────────────────────────
-
 'use client';
 
 import React from 'react';
-import dynamic from 'next/dynamic';
 
-// Lazy-load the heavy dashboard to reduce initial route JS
-const MarketDashboard = dynamic(() => import('@/components/market/MarketDashboard'), {
-    ssr: false,
-    loading: () => <div className="p-8 text-gray-400">Loading Market Dashboard…</div>,
-});
+import { nivoDarkTheme } from './NivoTheme';
 
-export default function Page() {
-    return <MarketDashboard />;
+export default function NivoTooltip({ children }: { children: React.ReactNode }) {
+    return <div style={nivoDarkTheme.tooltip.container as React.CSSProperties}>{children}</div>;
 }
