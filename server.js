@@ -9,7 +9,6 @@ const { runInitialMarketUpdate, scheduleMarketUpdate } = require('./cron/updateM
 const { runInitialSnapshot, scheduleSnapshots } = require('./cron/snapshotJob');
 
 const connectDB = require('./config/db');
-const User = require('./app/models/User');
 const binanceWS = require('./app/services/binanceWS');
 const tradingViewWS = require('./app/services/TradingViewWS');
 const bingXWS = require('./app/services/bingXWS');
@@ -33,6 +32,7 @@ const marketRoutes = require('./routes/market')
 const pnlRoutes = require('./routes/pnl');
 const ordersRouter = require("./routes/orders");
 const coinRoutes = require('./routes/coin');
+const userRoutes = require('./routes/user');
 
 const app = express();
 
@@ -128,6 +128,7 @@ app.use('/api/pnl', pnlRoutes);
 app.use('/api/orders', ordersRouter);
 app.use('/api/asset', ordersRouter);
 app.use('/api/coins', coinRoutes)
+app.use('/api/user', userRoutes)
 
 
 // Logs REST endpoint
