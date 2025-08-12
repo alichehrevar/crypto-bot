@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, {useState, useEffect, useRef} from 'react'
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 
 import { ChartData } from '@/types/chart'
@@ -77,6 +77,12 @@ export default function ReusableAreaChart({ data }: { data: ChartData }) {
 
     // State for the labels displayed on the X-axis
     const [ticks, setTicks] = useState<string[]>([])
+    const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number }>()
+    const containerRef = useRef<HTMLDivElement>(null)
+
+    // constants for tooltip sizing & offset
+    const TOOLTIP_H = 140
+    const GAP_X = 12
 
     // This effect hook calculates the X-axis ticks whenever the data prop changes.
     useEffect(() => {
@@ -105,11 +111,19 @@ export default function ReusableAreaChart({ data }: { data: ChartData }) {
     }, [data]) // Re-run this effect when the data prop changes
 
     return (
-        <div className="w-full h-full">
+        <div ref={containerRef} className="w-full h-full">
             <ResponsiveContainer height="100%" width="100%">
                 <AreaChart
                     data={data}
                     margin={{ top: 20, right: 20, left: 20, bottom: 20 }}
+                    onMouseLeave={() => setTooltipPos(undefined)}
+                    onMouseMove={(state: any) => {
+                        if (!state?.isTooltipActive) return
+                        const x = (state.chartX ?? 0) + GAP_X // always to the right of mouse
+                        const y = (state.chartY ?? 0) - TOOLTIP_H / 2 // roughly centered vertically
+
+                        setTooltipPos({ x, y })
+                    }}
                 >
                     {/* Defines the SVG gradient for the area fill */}
                     <defs>
@@ -138,13 +152,11 @@ export default function ReusableAreaChart({ data }: { data: ChartData }) {
 
                     {/* Tooltip Configuration */}
                     <Tooltip
+                        allowEscapeViewBox={{ x: true, y: true }}
                         content={<CustomTooltip />}
                         cursor={false} // Hides the default cursor line
-                        position={{
-                            x: 0,
-                            y: 0
-                        }} // Position will be handled by the custom tooltip logic if needed, but Recharts handles placement
-                        wrapperStyle={{ outline: 'none' }}
+                        position={tooltipPos} // Position will be handled by the custom tooltip logic if needed, but Recharts handles placement
+                        wrapperStyle={{ outline: 'none', pointerEvents: 'none' }}
                     />
 
                     {/* Area/Line Configuration */}
