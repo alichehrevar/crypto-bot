@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
+import {Tab, Tabs} from "@heroui/react";
 
 import { ChartDataSets } from '@/types/chart'
 import ReusableAreaChart from '@/components/shared/charts/ReusableAreaChart'
@@ -53,20 +54,21 @@ const ChartTabs = ({ activeTab, setActiveTab, tabKeys }: {
     setActiveTab: (tab: string) => void;
     tabKeys: string[]
 }) => {
+
     return (
-        <div className="bg-dark-gray p-1 rounded-xl inline-flex items-center border border-gray-800">
+        <Tabs
+            aria-label="chart-tabs"
+            classNames={{
+                tab: 'pb-4'
+            }}
+            selectedKey={activeTab}
+            variant="underlined"
+            onSelectionChange={(tab) => setActiveTab(tab as string)}
+        >
             {tabKeys.map(tab => (
-                <button
-                    key={tab}
-                    className={`px-4 py-1.5 text-sm font-medium rounded-lg transition-all duration-300 ease-in-out focus:outline-none ${
-                        activeTab === tab ? 'bg-primary text-black shadow-sm' : 'text-gray-400 hover:text-white'
-                    }`}
-                    onClick={() => setActiveTab(tab)}
-                >
-                    {tab}
-                </button>
+                <Tab key={tab} title={tab} />
             ))}
-        </div>
+        </Tabs>
     )
 }
 
