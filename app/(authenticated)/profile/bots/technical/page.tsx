@@ -5,8 +5,8 @@ import React, { useState } from "react";
 import BotsList from "@/components/profile/bots/BotsList";
 import TechnicalDeployBotSection from "@/components/profile/bots/deploy/TechnicalDeployBotSection";
 import TradingViewAdvancedChart from "@/components/shared/charts/TradingViewAdvancedChart";
-import MarketList from "@/components/MarketList";
 import CoinSummarySection from "@/components/shared/CoinSummarySection";
+import MarketListWithSearch from "@/components/MarketListWithSearch";
 
 export default function TechnicalBotsPage() {
 
@@ -21,7 +21,7 @@ export default function TechnicalBotsPage() {
           <div className="flex items-start justify-center gap-2 h-[65%]">
             <div className="w-1/3 h-full">
               {/* MarketList */}
-              <MarketList />
+              <MarketListWithSearch />
             </div>
             <div className="w-2/3 h-full">
               {/*<MarketWatchChart />*/}
