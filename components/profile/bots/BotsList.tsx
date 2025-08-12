@@ -10,11 +10,12 @@ import {Bot, DeployedBotsResponse} from "@/types/profile/bots/DeployedBots";
 import {getData} from "@/actions/get";
 import {ChevronDownIcon, ChevronRightIcon, OrderIcon} from "@/utils/icons";
 
-export default function BotsList({refreshList, title = "Active Bots", listType, active = true}: {
+export default function BotsList({refreshList, title = "Active Bots", listType, active = true, showTitle = true}: {
     refreshList: boolean,
     title?: string,
     listType?: string,
-    active?: boolean
+    active?: boolean,
+    showTitle?: boolean,
 }) {
     // Shared state and loader
     const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -68,9 +69,11 @@ export default function BotsList({refreshList, title = "Active Bots", listType, 
 
     return (
         <>
-            <div className="flex items-center justify-between">
-                <h3 className="text-xl font-bold ml-4 mb-4">{title}</h3>
-            </div>
+            {showTitle &&
+                <div className="flex items-center justify-between">
+                    <h3 className="text-xl font-bold ml-4 mb-4">{title}</h3>
+                </div>
+            }
 
             {/* ========== No Data ========== */}
             {!isLoading && deployedBots.length === 0 &&
