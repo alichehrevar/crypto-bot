@@ -139,7 +139,7 @@ export default function AssetsPieChart() {
       </div>
       <div className="flex flex-col justify-center items-center w-[140px]">
         <div className="space-y-3 w-full">
-          {data.map((item, index) => (
+          {data.sort((a, b) => b.value - a.value).map((item, index) => (
             <div key={item.id} className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div
