@@ -3,6 +3,8 @@
 import React from 'react'
 import Link from 'next/link'
 
+import {ArrowRight} from "@/utils/icons";
+
 // =================================================================================================
 // SVG ICONS
 // New stateless functional components for rendering icons as per the new design.
@@ -130,9 +132,7 @@ const BotCard = ({ name, count, volume, roi, icon: Icon }: BotCardProps) => {
         </div>
 
         {/* Far Right: Click indicator arrow. */}
-        <div className="text-white text-3xl font-light self-center">
-          &rarr;
-        </div>
+        <ArrowRight />
       </div>
   )
 }
