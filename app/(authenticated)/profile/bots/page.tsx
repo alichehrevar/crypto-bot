@@ -1,6 +1,6 @@
 'use client'
 
-import React, {useState} from "react";
+import React from "react";
 import {Tab, Tabs} from "@heroui/react";
 
 import BotSelectionComponent from "@/components/profile/bots/BotSelectionComponent";

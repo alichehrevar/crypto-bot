@@ -1,6 +1,6 @@
 'use client'
 
-import React, {useState} from "react";
+import React from "react";
 import {Divider} from "@heroui/react";
 
 import AssetSection from "@/components/profile/dashboard/AssetSection";
