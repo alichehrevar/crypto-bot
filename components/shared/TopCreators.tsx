@@ -29,7 +29,7 @@ export default function TopCreators() {
                 Top creators
             </h2>
             <div className="px-4 pt-4">
-                <Marquee pauseOnHover={true}>
+                <Marquee pauseOnHover={true} speed={20}>
                     {creators.map((c) => (
                         <TopCreatorCard key={c.id} {...c} onToggleFollow={() => {
                             setCreators((prev) =>
