@@ -26,7 +26,7 @@ const CustomTooltip = ({ active, payload }: any) => {
             <div className="relative">
                 {/* Tooltip Body */}
                 <div
-                    className="w-[143px] h-[61px] rounded-lg p-2.5 flex flex-col justify-center"
+                    className="w-[143px] h-[61px] rounded-tl-lg rounded-tr-lg rounded-br-lg p-2.5 flex flex-col justify-center"
                     style={{
                         backgroundColor: 'rgba(76, 175, 80, 0.05)',
                         backdropFilter: 'blur(12px)',
@@ -42,14 +42,14 @@ const CustomTooltip = ({ active, payload }: any) => {
                     </div>
                 </div>
                 {/* Tooltip Pointer */}
-                <div
-                    className="absolute left-1/2 -translate-x-1/2 w-0 h-0"
-                    style={{
-                        borderLeft: '6px solid transparent',
-                        borderRight: '6px solid transparent',
-                        borderTop: '6px solid rgba(76, 175, 80, 0.1)',
-                    }}
-                />
+                {/*<div*/}
+                {/*    className="absolute left-1/2 -translate-x-1/2 w-0 h-0"*/}
+                {/*    style={{*/}
+                {/*        borderLeft: '6px solid transparent',*/}
+                {/*        borderRight: '6px solid transparent',*/}
+                {/*        borderTop: '6px solid rgba(76, 175, 80, 0.1)',*/}
+                {/*    }}*/}
+                {/*/>*/}
             </div>
         )
     }
