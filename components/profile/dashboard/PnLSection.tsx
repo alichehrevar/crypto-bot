@@ -13,13 +13,6 @@ import {
   UnrealizedPoint,
 } from '@/types/profile/PnLTypes';
 
-const DURS = ['1d', '1w', '1m', '1y'] as const;
-const PERIOD_MAP: Record<typeof DURS[number], string> = {
-  '1d': '1D',
-  '1w': '1W',
-  '1m': '1M',
-  '1y': '1Y',
-};
 
 export default function PnLSection() {
   const [tab, setTab] = useState<'realized-pnl' | 'unrealized-pnl'>('realized-pnl');
@@ -30,7 +23,7 @@ export default function PnLSection() {
   useEffect(() => {
     async function loadData() {
       setLoading(true);
-      const period = '1d';
+      const period = '1D';
 
       try {
         if (tab === 'realized-pnl') {
