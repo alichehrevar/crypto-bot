@@ -115,24 +115,29 @@ section[role="dialog"] .overflow-y-auto::-webkit-scrollbar-track {
     background: white !important;
 }
 
+.today-bots-swiper .swiper-button-next {
+    right: 0;
+}
+.today-bots-swiper .swiper-button-prev {
+    left: 0;
+}
 .today-bots-swiper .swiper-button-next,
 .today-bots-swiper .swiper-button-prev {
-    color: #929aac;
-    background-color: rgba(146, 154, 172, 0.1);
-    width: 24px;
-    height: 24px;
-    margin-top: -15px;
-    border-radius: 50%;
+    color: white;
+    background-color: rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(1px);
+    width: 48px;
+    height: 100%;
+    margin-top: -8%;
     transition: all 0.3s;
 }
 .today-bots-swiper .swiper-button-next:hover,
 .today-bots-swiper .swiper-button-prev:hover {
-    background-color: rgba(146, 154, 172, 0.3);
+    background-color: rgba(0, 0, 0, 0.5);
 }
 .today-bots-swiper .swiper-button-next:after,
 .today-bots-swiper .swiper-button-prev:after {
-    font-size: 10px;
-    font-weight: bold;
+    font-size: 18px;
 }
 .today-bots-swiper .swiper-pagination-bullet {
     background: #374151;
@@ -144,6 +149,7 @@ section[role="dialog"] .overflow-y-auto::-webkit-scrollbar-track {
 .today-bots-swiper .swiper-pagination {
     bottom: -10px;
 }
+
 /******************** End: Recent Bots Swiper Styles *********************/
 
 /******************** Start: Recent Bots Swiper Styles *********************/
