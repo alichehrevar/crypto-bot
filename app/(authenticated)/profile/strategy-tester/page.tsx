@@ -27,6 +27,7 @@ import TradingViewAdvancedChart from '@/components/shared/charts/TradingViewAdva
 import MarketStats from '@/components/profile/MarketStats';
 import LabelTag from '@/components/shared/ui/Label';
 import { SymbolFilter, SymbolFilterResponse } from '@/types/profile/CurrencyType';
+import MarketListWithSearch from "@/components/MarketListWithSearch";
 
 // ---------------- helpers ----------------
 function formatDuration(mins: number) {
@@ -204,10 +205,14 @@ export default function StrategyTesterPage() {
                 <MarketStats symbolId={selectedSymbol ?? undefined} />
 
                 {/* Main Content */}
-                <div className="w-full flex flex-col lg:flex-row items-start gap-2">
+                <div className="w-full flex flex-col lg:flex-row items-start gap-2 lg:h-[650px]">
                     {/* Left: Chart */}
-                    <div className="flex self-stretch w-full lg:w-[72%]">
-                        <div className="bg-dark-gray rounded-2xl p-0.5 w-full">
+                    <div className="flex self-stretch w-full gap-2 lg:w-[76%] h-full">
+                        <div className="w-1/3 h-full">
+                            {/* MarketList */}
+                            <MarketListWithSearch />
+                        </div>
+                        <div className="bg-dark-gray rounded-2xl p-0.5 w-2/3 h-full">
                             {/* RENDER THE NEW CHART WHENEVER WE HAVE chartData (even if candles are empty) */}
                             {chartData && chartData.candles.length > 0 ? (
                                 <BacktestResultChart
@@ -229,7 +234,7 @@ export default function StrategyTesterPage() {
                     </div>
 
                     {/* Right: Form */}
-                    <div className="w-full lg:w-[28%] p-6 bg-dark-gray rounded-2xl text-white">
+                    <div className="w-full lg:w-[24%] h-full p-6 bg-dark-gray rounded-2xl text-white">
                         <form className="space-y-6" onSubmit={handleSubmit}>
                             <div className="flex items-center gap-2 mb-4">
                                 <h3 className="text-lg font-semibold text-white">Strategy Parameters</h3>
