@@ -10,8 +10,8 @@ import {Bot, DeployedBotsResponse} from "@/types/profile/bots/DeployedBots";
 import {getData} from "@/actions/get";
 import {ChevronDownIcon, ChevronRightIcon, OrderIcon} from "@/utils/icons";
 
-export default function BotsList({refreshList, title = "Active Bots", listType, active = true, showTitle = true}: {
-    refreshList: boolean,
+export default function BotsList({refreshList = false, title = "Active Bots", listType, active = true, showTitle = true}: {
+    refreshList?: boolean,
     title?: string,
     listType?: string,
     active?: boolean,

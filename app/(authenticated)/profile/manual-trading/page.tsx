@@ -40,7 +40,7 @@ export default function ManualTradingPage() {
                 </div>
             </div>
             <div className="grid grid-cols-1 bg-dark-gray mt-4 rounded-2xl py-6 px-3 h-[32.2svh]">
-                <BotsList refreshList={refreshBotsList}/>
+                <BotsList refreshList={refreshBotsList} />
             </div>
         </div>
     )

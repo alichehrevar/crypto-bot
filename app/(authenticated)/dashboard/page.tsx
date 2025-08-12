@@ -14,8 +14,6 @@ import TopCreators from "@/components/shared/TopCreators";
 
 export default function Dashboard() {
 
-    const [refreshBotsList, setRefreshBotsList] = useState<boolean>(false)
-
     return (
         <section className="px-2 lg:px-8 mt-8 mx-auto w-full">
             <AssetSummary/>
@@ -41,7 +39,7 @@ export default function Dashboard() {
                 <TopCreators />
             </div>
             <div className="grid grid-cols-1 bg-dark-gray mt-4 rounded-2xl py-6 px-3">
-                <BotsList refreshList={refreshBotsList}/>
+                <BotsList />
             </div>
             <div className="grid grid-cols-1 bg-dark-gray mt-4 rounded-2xl py-6 px-3">
                 <RecentActivities/>

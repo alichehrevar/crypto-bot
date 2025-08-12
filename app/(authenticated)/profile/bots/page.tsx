@@ -10,8 +10,6 @@ import {RecentBots} from "@/components/shared/RecentBots";
 
 export default function BotsPage() {
 
-    const [refreshBotsList, setRefreshBotsList] = useState<boolean>(false)
-
     return (
         <div className="container mx-auto mt-4 relative lg:px-5">
             <div className="flex items-center justify-center flex-col w-full gap-10">
@@ -31,10 +29,10 @@ export default function BotsPage() {
                         variant="underlined"
                     >
                         <Tab key="active-bots" title="Active Bots">
-                            <BotsList refreshList={refreshBotsList} showTitle={false}/>
+                            <BotsList showTitle={false}/>
                         </Tab>
                         <Tab key="recent-bots" title="Recent Bots">
-                            <BotsList active={false} refreshList={refreshBotsList} showTitle={false} />
+                            <BotsList active={false} showTitle={false} />
                         </Tab>
                     </Tabs>
                 </div>
