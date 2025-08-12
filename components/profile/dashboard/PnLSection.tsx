@@ -22,7 +22,6 @@ const PERIOD_MAP: Record<typeof DURS[number], string> = {
 };
 
 export default function PnLSection() {
-  const [duration, setDuration] = useState<typeof DURS[number]>('1d');
   const [tab, setTab] = useState<'realized-pnl' | 'unrealized-pnl'>('realized-pnl');
   const [realizedData, setRealizedData] = useState<RealizedPoint[]>([]);
   const [unrealizedData, setUnrealizedData] = useState<UnrealizedPoint[]>([]);
@@ -31,7 +30,7 @@ export default function PnLSection() {
   useEffect(() => {
     async function loadData() {
       setLoading(true);
-      const period = PERIOD_MAP[duration];
+      const period = '1d';
 
       try {
         if (tab === 'realized-pnl') {
@@ -67,7 +66,7 @@ export default function PnLSection() {
     }
 
     loadData();
-  }, [duration, tab]);
+  }, [tab]);
 
   return (
     <div className="space-y-4 w-full">
@@ -86,32 +85,11 @@ export default function PnLSection() {
           <Tab key="unrealized-pnl" title={<span className="text-[12px]">Unrealized</span>} />
         </Tabs>
       </div>
-      {/* Controls */}
-      {tab === 'realized-pnl' &&
-        <div className="flex items-center justify-end w-full">
-          <ul className="flex items-center gap-2">
-            {DURS.map((d) => (
-              <li key={d}>
-                <button
-                  className={`
-                  bg-default-100 w-[35px] text-center text-[12px] py-0.5 rounded-lg border
-                  transition-colors duration-200
-                  ${duration === d ? 'border-primary' : 'border-default-100'}
-                `}
-                  onClick={() => setDuration(d)}
-                >
-                  {d.toUpperCase()}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
-      }
 
       {/* Chart */}
       <div
         className={`
-          w-full h-[120px] transition-all duration-200
+          w-full h-[150px] transition-all duration-200
           ${tab === 'unrealized-pnl' ? 'ml-[-35px] overflow-x-hidden' : ''}
         `}
       >
