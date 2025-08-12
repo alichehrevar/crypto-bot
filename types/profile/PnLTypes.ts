@@ -33,8 +33,7 @@ export interface AllPnLData {
 }
 
 export interface PnLData {
-  open: PnLDetails[],
-  closed: PnLDetails[]
+  [key: string]: PnLDetails[], // key: open or closed
 }
 
 export interface PnLDetails {

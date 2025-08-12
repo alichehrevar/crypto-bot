@@ -1,5 +1,6 @@
 import React, {useEffect, useState} from "react";
 import {addToast, Spinner} from "@heroui/react";
+import Link from "next/link";
 
 import TradesList from "./technical/TradesList";
 import CloseBotModal from "./technical/modals/closeBotModal";
@@ -7,7 +8,7 @@ import PlayPauseBotModal from "./technical/modals/playPauseBotModal";
 
 import {Bot, DeployedBotsResponse} from "@/types/profile/bots/DeployedBots";
 import {getData} from "@/actions/get";
-import {ChevronDownIcon} from "@/utils/icons";
+import {ChevronDownIcon, ChevronRightIcon, OrderIcon} from "@/utils/icons";
 
 export default function BotsList({refreshList, title = "Active Bots", listType, active = true}: {
     refreshList: boolean,
@@ -45,14 +46,6 @@ export default function BotsList({refreshList, title = "Active Bots", listType, 
     // Desktop toggle
     function handleDesktopClick(botIndex: number) {
         setExpandedIndex(expandedIndex === botIndex ? null : botIndex);
-        // const botContent = document.getElementById(`bot-content-${botIndex}`);
-        //
-        // if (botContent && deployedBots[botIndex].trades.length > 0) {
-        //   botContent.classList.toggle("max-h-0");
-        //   botContent.classList.toggle("max-h-120");
-        //   botContent.classList.toggle("opacity-0");
-        //   botContent.classList.toggle("opacity-100");
-        // }
     }
 
     // Mobile toggle
@@ -78,6 +71,17 @@ export default function BotsList({refreshList, title = "Active Bots", listType, 
             <div className="flex items-center justify-between">
                 <h3 className="text-xl font-bold ml-4 mb-4">{title}</h3>
             </div>
+
+            {/* ========== No Data ========== */}
+            {!isLoading && deployedBots.length === 0 &&
+                <div className="flex items-center justify-center flex-col gap-2 w-full">
+                    <OrderIcon className="w-[120px] h-[120px]" />
+                    <Link className="flex items-center gap-1 hover:scale-105 transition-all duration-300 bg-white text-black border-1 border-white py-1.5 px-3 rounded-xl" href="/profile/bots">
+                        <span className="text-xs">Deploy Bot</span>
+                        <ChevronRightIcon className="size-3" />
+                    </Link>
+                </div>
+            }
 
             {/* ========== MOBILE (below lg) ========== */}
             <div className="space-y-4 lg:hidden">
@@ -175,19 +179,19 @@ export default function BotsList({refreshList, title = "Active Bots", listType, 
             </div>
 
             {/* ========== DESKTOP (lg+) ========== */}
-            <div className="hidden lg:flex flex-col w-full gap-2 p-4 rounded-md overflow-y-auto thin-scrollbar">
-                {/* header row */}
-                <div className={`grid ${active ? 'grid-cols-9' : 'grid-cols-8'} font-semibold text-sm pb-2 mb-4 mx-4`}>
-                    {tableHeaderItems.map((item, ix) => (
-                        <div key={ix} className="truncate">
-                            {item}
-                        </div>
-                    ))}
-                </div>
+            {!isLoading && deployedBots.length > 0 &&
+                <div className="hidden lg:flex flex-col w-full gap-2 p-4 rounded-md overflow-y-auto thin-scrollbar">
+                    {/* header row */}
+                    <div className={`grid ${active ? 'grid-cols-9' : 'grid-cols-8'} font-semibold text-sm pb-2 mb-4 mx-4`}>
+                        {tableHeaderItems.map((item, ix) => (
+                            <div key={ix} className="truncate">
+                                {item}
+                            </div>
+                        ))}
+                    </div>
 
-                {/* bots list */}
-                {deployedBots.length > 0 &&
-                    deployedBots.map((bot, botIndex) => (
+                    {/* bots list */}
+                    {deployedBots.map((bot, botIndex) => (
                         <React.Fragment key={botIndex}>
                             <div
                                 aria-controls={`bot-content-${botIndex}`}
@@ -236,19 +240,20 @@ export default function BotsList({refreshList, title = "Active Bots", listType, 
                         </React.Fragment>
                     ))}
 
-                {/* loading / empty states */}
-                {isLoading && (
-                    <div className="flex items-center justify-center bg-default-100 rounded-2xl h-[70px]">
-                        <span>Loading deployed bots</span>
-                        <Spinner className="ml-3 mb-2" color="primary" size={'sm'} variant="wave"/>
-                    </div>
-                )}
-                {!isLoading && deployedBots.length === 0 && (
-                    <div className="flex items-center justify-center bg-default-100 rounded-2xl h-[70px]">
-                        No bots deployed yet.
-                    </div>
-                )}
-            </div>
+                    {/* loading / empty states */}
+                    {isLoading && (
+                        <div className="flex items-center justify-center bg-default-100 rounded-2xl h-[70px]">
+                            <span>Loading deployed bots</span>
+                            <Spinner className="ml-3 mb-2" color="primary" size={'sm'} variant="wave"/>
+                        </div>
+                    )}
+                    {!isLoading && deployedBots.length === 0 && (
+                        <div className="flex items-center justify-center bg-default-100 rounded-2xl h-[70px]">
+                            No bots deployed yet.
+                        </div>
+                    )}
+                </div>
+            }
         </>
     );
 }
