@@ -4,6 +4,8 @@
 
 :root {
     --text-color-light: #777777;
+    --normal-green: #459782FF;
+    --normal-red: #DF484CFF;
 }
 
 html, body {

@@ -41,7 +41,7 @@ export const CommunityBotCard: React.FC<CommunityBotCardProps> = ({
   followers,
 }) => {
     const statusText = active ? 'Active' : 'Inactive';
-    const changeColor = changePct >= 0 ? 'text-green-400' : 'text-red-400';
+    const changeColor = changePct >= 0 ? 'text-[var(--normal-green)]' : 'text-[var(--normal-red)]';
 
     return (
         <div className="bg-dark-gray rounded-xl px-6 py-3 w-full lg:w-[400px]">
@@ -71,7 +71,7 @@ export const CommunityBotCard: React.FC<CommunityBotCardProps> = ({
                                 <Line
                                     dataKey="value"
                                     dot={false}
-                                    stroke="#10B981"
+                                    stroke={changePct >=0 ? 'var(--normal-green)' : 'var(--normal-red)'}
                                     strokeWidth={2}
                                     type="monotone"
                                 />
