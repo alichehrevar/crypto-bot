@@ -3,11 +3,11 @@
 import React, {useState} from "react";
 
 import BotsList from "@/components/profile/bots/BotsList";
-import TradingViewAdvancedChart from "@/components/shared/charts/TradingViewAdvancedChart";
 import ManualTradeSection from "@/components/profile/bots/deploy/ManualTradeSection";
 import {OrderBook} from "@/components/shared/OrderBook";
 import TechnicalAnalysis from "@/components/shared/TechnicalAnalysis";
 import CoinSummarySection from "@/components/shared/CoinSummarySection";
+import TradingViewLightweightChart from "@/components/shared/charts/TradingViewLightweightChart";
 
 export default function ManualTradingPage() {
 
@@ -26,7 +26,7 @@ export default function ManualTradingPage() {
                         <TechnicalAnalysis/>
                         <div className="flex items-center justify-center flex-col gap-2">
                             <div className="flex w-full h-[400px]">
-                                <TradingViewAdvancedChart/>
+                                <TradingViewLightweightChart interval="1m" symbol="BTCUSDT" />
                             </div>
                             <div className="flex w-full flex-1 technical-analysis">
                                 <OrderBook/>
