@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef, useState, useCallback } from 'react'; // Import useState and useCallback
+import React, { useEffect, useRef } from 'react'; // Import useState and useCallback
 import {
     IChartApi,
     ISeriesApi,
