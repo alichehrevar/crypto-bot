@@ -115,7 +115,7 @@ const TechnicalAnalysis: FC = () => {
     };
 
     return (
-        <div className="bg-dark-gray rounded-2xl p-6 max-w-sm w-full shadow-lg relative mx-auto">
+        <div className="bg-dark-gray rounded-2xl p-6 w-full shadow-lg relative mx-auto">
             {/* Time selector */}
             <div className="relative grid grid-cols-[1fr_1fr_1fr_auto] gap-2 mb-8 items-center">
                 {visibleButtons().map(i => (

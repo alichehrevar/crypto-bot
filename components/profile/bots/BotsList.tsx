@@ -10,12 +10,13 @@ import {Bot, DeployedBotsResponse} from "@/types/profile/bots/DeployedBots";
 import {getData} from "@/actions/get";
 import {ChevronDownIcon, ChevronRightIcon, OrderIcon} from "@/utils/icons";
 
-export default function BotsList({refreshList = false, title = "Active Bots", listType, active = true, showTitle = true}: {
+export default function BotsList({refreshList = false, title = "Active Bots", listType, active = true, showTitle = true, showDeployButton = true}: {
     refreshList?: boolean,
     title?: string,
     listType?: string,
     active?: boolean,
     showTitle?: boolean,
+    showDeployButton?: boolean,
 }) {
     // Shared state and loader
     const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -77,12 +78,15 @@ export default function BotsList({refreshList = false, title = "Active Bots", li
 
             {/* ========== No Data ========== */}
             {!isLoading && deployedBots.length === 0 &&
-                <div className="flex items-center justify-center flex-col gap-2 w-full">
+                <div className={`flex items-center justify-center flex-col w-full ${showDeployButton ? 'gap-2' : ''}`}>
                     <OrderIcon className="w-[120px] h-[120px]" />
-                    <Link className="flex items-center gap-1 hover:scale-105 transition-all duration-300 bg-white text-black border-1 border-white py-1.5 px-3 rounded-xl" href="/profile/bots">
-                        <span className="text-xs">Deploy Bot</span>
-                        <ChevronRightIcon className="size-3" />
-                    </Link>
+                    {showDeployButton
+                        ? <Link className="flex items-center gap-1 hover:scale-105 transition-all duration-300 bg-white text-black border-1 border-white py-1.5 px-3 rounded-xl" href="/profile/bots">
+                            <span className="text-xs">Deploy Bot</span>
+                            <ChevronRightIcon className="size-3" />
+                        </Link>
+                        : <span className="text-gray-600 text-sm">No Data</span>
+                    }
                 </div>
             }
 
