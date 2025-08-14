@@ -58,11 +58,12 @@ export default function TabsList () {
         aria-label="Options"
         classNames={{
           base: 'w-full px-4',
-          tabList: 'w-3/5 mx-auto',
-          tab: 'h-10',
+          tabList: 'w-full mx-auto border-b-1 border-default-100',
+          tab: 'h-10 pb-4 font-bold text-[14px]',
           panel: "w-full flex items-center justify-center mt-4"
         }}
         selectedKey={selected}
+        variant="underlined"
         onSelectionChange={(e) => setSelected(e.toString())}
       >
         {tabsList.map((tab) => {

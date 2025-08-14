@@ -124,16 +124,8 @@ export default function CoinSummarySection({ coinId }: { coinId: string }) {
                     <div className="text-white">{compactNumber(coin.volume_24h)}</div>
                 </div>
                 <div className="flex items-center justify-between">
-                    <div className="text-gray-400">Shares Outstanding</div>
-                    <div className="text-white">—</div>
-                </div>
-                <div className="flex items-center justify-between">
                     <div className="text-gray-400">Mkt Cap</div>
                     <div className="text-white">{compactNumber(coin.market_cap)}</div>
-                </div>
-                <div className="flex items-center justify-between">
-                    <div className="text-gray-400">Div Yield</div>
-                    <div className="text-white">—</div>
                 </div>
             </div>
         </div>
