@@ -1,5 +1,5 @@
 const nextConfig = {
-  reactStrictMode: true, // Enable React strict mode for improved error handling
+  reactStrictMode: false, // Enable React strict mode for improved error handling
   compiler: {
     removeConsole: process.env.NODE_ENV !== "development",  // Remove console.log in production
   },

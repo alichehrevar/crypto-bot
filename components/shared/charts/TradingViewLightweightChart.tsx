@@ -1,172 +1,280 @@
 'use client';
 
-import React, { useEffect, useRef } from 'react'; // Import useState and useCallback
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
     IChartApi,
     ISeriesApi,
     CandlestickData,
     UTCTimestamp,
-    ColorType // Import ColorType for theme
-} from "lightweight-charts";
+    ColorType,
+} from 'lightweight-charts';
+import {Spinner} from "@heroui/react";
 
 interface RealTimeCandlestickChartProps {
-    symbol?: string;      // e.g. "BTCUSDT"
-    interval?: string;    // e.g. "1m", "5m", "1h"
+    symbol?: string;                       // e.g. "BTCUSDT"
+    interval?: '1m' | '5m' | '15m' | '30m';
+    timeZone?: 'UTC' | 'local' | string;   // e.g. 'Europe/Helsinki'
+    locale?: string;                       // e.g. 'en-US', 'fa-IR'
 }
+
+const THEME = {
+    dark: {
+        chart: { background: { type: ColorType.Solid, color: '#1A1A1A' }, textColor: 'rgba(255,255,255,0.9)' },
+        grid: { vertLines: { color: '#2A2A2A' }, horzLines: { color: '#2A2A2A' } },
+        timeScale: { borderColor: '#444' },
+        rightPriceScale: { borderVisible: false },
+    },
+} as const;
 
 export default function RealTimeCandlestickChart({
                                                      symbol = 'BTCUSDT',
                                                      interval = '1m',
+                                                     timeZone = 'UTC',
+                                                     locale,
                                                  }: RealTimeCandlestickChartProps) {
     const containerRef = useRef<HTMLDivElement>(null);
-    const chartRef     = useRef<IChartApi>();
-    const seriesRef    = useRef<ISeriesApi<'Candlestick'>>();
-    const hasInjected = useRef(false)
+    const chartRef = useRef<IChartApi>();
+    const seriesRef = useRef<ISeriesApi<'Candlestick'>>();
+    const wsRef = useRef<WebSocket | null>(null);
 
+    // Toolbar state (starts from prop)
+    const [currentInterval, setCurrentInterval] = useState<'1m' | '5m' | '15m' | '30m'>(interval);
 
-    // Define theme configurations
-    const themes = {
-        dark: {
-            chart: {
-                background: { type: ColorType.Solid, color: '#1A1A1A' }, // Use ColorType.Solid for background
-                textColor:  'rgba(255,255,255,0.9)',
-            },
-            grid: {
-                vertLines: { color: '#2A2A2A' },
-                horzLines: { color: '#2A2A2A' },
-            },
-            timeScale: { borderColor: '#444' },
-            rightPriceScale: { borderVisible: false },
-        },
-        light: {
-            chart: {
-                background: { type: ColorType.Solid, color: '#FFFFFF' },
-                textColor:  'rgba(0,0,0,0.9)',
-            },
-            grid: {
-                vertLines: { color: '#E0E0E0' },
-                horzLines: { color: '#E0E0E0' },
-            },
-            timeScale: { borderColor: '#B0B0B0' },
-            rightPriceScale: { borderVisible: false },
-        },
-    };
+    // Ensures data effect runs only after chart + series exist
+    const [isReady, setIsReady] = useState(false);
 
+    const wantsSeconds = useMemo(
+        () => ['1s', '3s', '5s', '10s', '15s', '30s'].includes(currentInterval),
+        [currentInterval]
+    );
+
+    // TIME-ONLY for x-axis
+    const formatTsShort = (tsSec: number) =>
+        new Intl.DateTimeFormat(locale, {
+            timeZone: timeZone === 'local' ? undefined : timeZone,
+            hour: '2-digit',
+            minute: '2-digit',
+            second: wantsSeconds ? '2-digit' : undefined,
+            hour12: true,
+        }).format(new Date(tsSec * 1000));
+
+    // DATE + TIME for crosshair
+    const formatTsFull = (tsSec: number) =>
+        new Intl.DateTimeFormat(locale, {
+            timeZone: timeZone === 'local' ? undefined : timeZone,
+            year: 'numeric',
+            month: 'short',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: wantsSeconds ? '2-digit' : undefined,
+            hour12: true,
+        }).format(new Date(tsSec * 1000));
+
+    /* 1) Create chart + series ONCE. StrictMode-safe with real cleanup. */
     useEffect(() => {
-        if (!chartRef.current) return;
-    }, []);
+        let handleResize: (() => void) | null = null;
+        let chart: IChartApi | undefined;
+        let series: ISeriesApi<'Candlestick'> | undefined;
 
-    useEffect(() => {
-        let ws: WebSocket | null = null;
-
-        async function init() {
-            if (hasInjected.current) return; // Prevent re-initialization
-            hasInjected.current = true;
-
+        (async () => {
             if (!containerRef.current) return;
-
             const { createChart, CandlestickSeries } = await import('lightweight-charts');
 
-            const chart = createChart(containerRef.current, {
-                width:  containerRef.current.clientWidth,
+            chart = createChart(containerRef.current, {
+                width: containerRef.current.clientWidth,
                 height: containerRef.current.clientHeight || 300,
-                // Apply initial theme based on currentTheme state
-                layout: themes['dark'].chart,
-                grid: themes['dark'].grid,
-                timeScale: themes['dark'].timeScale,
-                rightPriceScale: themes['dark'].rightPriceScale,
+                layout: THEME.dark.chart,
+                grid: THEME.dark.grid,
+                rightPriceScale: THEME.dark.rightPriceScale,
+                timeScale: {
+                    borderColor: THEME.dark.timeScale.borderColor,
+                    timeVisible: true,
+                    secondsVisible: wantsSeconds,
+                    tickMarkFormatter: (time: number | any) => {
+                        const t =
+                            typeof time === 'number'
+                                ? time
+                                : Date.UTC(time.year, time.month - 1, time.day) / 1000;
+
+                        return formatTsShort(t); // time-only on axis
+                    },
+                },
+                localization: {
+                    locale,
+                    timeFormatter: (time: number | any) => {
+                        const t =
+                            typeof time === 'number'
+                                ? time
+                                : Date.UTC(time.year, time.month - 1, time.day) / 1000;
+
+                        return formatTsFull(t); // date+time on crosshair
+                    },
+                },
+            });
+
+            series = chart.addSeries(CandlestickSeries, {
+                upColor: '#26a69a',
+                downColor: '#ef5350',
+                borderUpColor: '#26a69a',
+                borderDownColor: '#ef5350',
+                wickUpColor: '#26a69a',
+                wickDownColor: '#ef5350',
             });
 
             chartRef.current = chart;
-
-            const series = chart.addSeries(CandlestickSeries, {
-                upColor:        '#26a69a',
-                downColor:      '#ef5350',
-                borderUpColor:   '#26a69a',
-                borderDownColor: '#ef5350',
-                wickUpColor:     '#26a69a',
-                wickDownColor:   '#ef5350',
-            });
-
             seriesRef.current = series;
 
-            // ... (rest of your existing data fetching and websocket logic) ...
-            // 4) Fetch initial history
-            const url = `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=1000`;
-            const resp = await fetch(url);
-            const raw  = await resp.json();
-            const initialData: CandlestickData[] = raw.map((d: any[]) => ({
-                time:   (Math.floor(d[0] / 1000)) as UTCTimestamp,
-                open:   parseFloat(d[1]),
-                high:   parseFloat(d[2]),
-                low:    parseFloat(d[3]),
-                close:  parseFloat(d[4]),
-            }));
-
-            series.setData(initialData);
-
-            // 5) Open WebSocket for live updates
-            ws = new WebSocket(
-                `wss://stream.binance.com:9443/ws/${symbol.toLowerCase()}@kline_${interval}`
-            );
-            ws.onmessage = (event) => {
-                const msg = JSON.parse(event.data);
-                const k   = msg.k;
-                const time = (k.t / 1000) as UTCTimestamp;
-                const tick: CandlestickData = {
-                    time,
-                    open:  parseFloat(k.o),
-                    high:  parseFloat(k.h),
-                    low:   parseFloat(k.l),
-                    close: parseFloat(k.c),
-                };
-
-                if (k.x) {
-                    // candle closed → append
-                    series.update(tick);
-                } else {
-                    // candle still forming → update last bar
-                }
+            handleResize = () => {
+                if (!containerRef.current || !chartRef.current) return;
+                chartRef.current.applyOptions({
+                    width: containerRef.current.clientWidth,
+                    height: containerRef.current.clientHeight || 300,
+                });
             };
-
-
-            // 6) Resize handler
-            const handleResize = () => {
-                if (containerRef.current && chartRef.current) {
-                    chartRef.current.applyOptions({ width: containerRef.current.clientWidth });
-                }
-            };
-
             window.addEventListener('resize', handleResize);
 
-            // Cleanup
-            return () => {
-                ws?.close();
-                window.removeEventListener('resize', handleResize);
-                chartRef.current?.remove();
-            };
-        }
+            // Allow data effect to run
+            setIsReady(true);
+        })();
 
-        init();
+        // ✅ Proper cleanup runs on StrictMode re-mount and on unmount
+        return () => {
+            if (handleResize) window.removeEventListener('resize', handleResize);
+            if (chart) chart.remove();
+            chartRef.current = undefined;
+            seriesRef.current = undefined;
+        };
+        // deps intentionally [] so it runs exactly once per mount-cycle
+        // React StrictMode will mount->cleanup->mount in dev, which is OK because we clean up.
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-        // Re-run init if symbol or interval changes
-    }, [symbol, interval]);
-
+    /* 2) Keep formats in sync if tz/locale/seconds toggle changes */
     useEffect(() => {
-        if (chartRef.current) {
-            chartRef.current.applyOptions({
-                layout: themes['dark'].chart,
-                grid: themes['dark'].grid,
-                timeScale: themes['dark'].timeScale,
-                rightPriceScale: themes['dark'].rightPriceScale,
-            });
-        }
-    }, [themes]); // Add themes to dependency array as it's defined outside
+        if (!chartRef.current) return;
+        chartRef.current.applyOptions({
+            timeScale: {
+                borderColor: THEME.dark.timeScale.borderColor,
+                timeVisible: true,
+                secondsVisible: wantsSeconds,
+                tickMarkFormatter: (time: number | any) => {
+                    const t =
+                        typeof time === 'number'
+                            ? time
+                            : Date.UTC(time.year, time.month - 1, time.day) / 1000;
+
+                    return formatTsShort(t);
+                },
+            },
+            localization: {
+                locale,
+                timeFormatter: (time: number | any) => {
+                    const t =
+                        typeof time === 'number'
+                            ? time
+                            : Date.UTC(time.year, time.month - 1, time.day) / 1000;
+
+                    return formatTsFull(t);
+                },
+            },
+        });
+    }, [locale, timeZone, wantsSeconds]);
+
+    /* 3) Load history + live updates AFTER chart is ready, and on interval/symbol change */
+    useEffect(() => {
+        if (!isReady || !seriesRef.current) return;
+
+        const series = seriesRef.current;
+        let active = true;
+
+        // Close previous stream
+        wsRef.current?.close();
+
+        // Fetch initial history
+        (async () => {
+            const url = `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${currentInterval}&limit=1000`;
+            const resp = await fetch(url);
+            const raw = await resp.json();
+
+            if (!active) return;
+
+            const initial: CandlestickData[] = raw.map((d: any[]) => ({
+                time: Math.floor(d[0] / 1000) as UTCTimestamp,
+                open: +d[1],
+                high: +d[2],
+                low: +d[3],
+                close: +d[4],
+            }));
+
+            series.setData(initial);
+        })();
+
+        // Subscribe to live updates
+        const ws = new WebSocket(
+            `wss://stream.binance.com:9443/ws/${symbol.toLowerCase()}@kline_${currentInterval}`
+        );
+
+        wsRef.current = ws;
+
+        ws.onmessage = (event) => {
+            if (!active) return;
+            const k = JSON.parse(event.data).k;
+            const tick: CandlestickData = {
+                time: (k.t / 1000) as UTCTimestamp,
+                open: +k.o,
+                high: +k.h,
+                low: +k.l,
+                close: +k.c,
+            };
+
+            series.update(tick); // updates forming bar or appends on close
+        };
+
+        return () => {
+            active = false;
+            ws.close();
+        };
+    }, [symbol, currentInterval, isReady]);
+
+    const intervals: Array<'1m' | '5m' | '15m' | '30m'> = ['1m', '5m', '15m', '30m'];
 
     return (
         <div
             ref={containerRef}
-            className="live-candlestick-chart w-full flex-grow h-full rounded-lg"
-        />
+            className="relative w-full h-full flex-grow rounded-lg min-h-[320px]"
+        >
+            {/* Glassmorphism Interval Toolbar */}
+            <div className="absolute top-0 right-0 left-0 z-10 backdrop-blur-md bg-white/10 dark:bg-black/30 shadow-lg p-2 flex gap-1">
+                {intervals.map((iv) => {
+                    const active = iv === currentInterval;
+
+                    return (
+                        <button
+                            key={iv}
+                            className={[
+                                'px-3 py-1.5 text-xs font-medium transition',
+                                active
+                                    ? 'text-white border-b-2 border-white'
+                                    : 'text-white/60 hover:text-white/80',
+                            ].join(' ')}
+                            type="button"
+                            onClick={() => setCurrentInterval(iv)}
+                        >
+                            {iv}
+                        </button>
+                    );
+                })}
+            </div>
+
+            {/* 👇 --- NEW: Loading Indicator --- 👇 */}
+            {!isReady && (
+                <div className="absolute inset-0 flex items-center justify-center bg-[#1A1A1A] rounded-lg">
+                    <span className="text-gray-400 font-medium">Loading Chart</span>
+                    <Spinner className="ml-2" color="primary" size="sm" variant="wave"/>
+                </div>
+            )}
+            {/* The chart library will attach its canvas to the containerRef element.
+                This loading indicator will appear on top until isReady becomes true. */}
+        </div>
     );
 }
