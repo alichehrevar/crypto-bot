@@ -21,6 +21,8 @@ export default function RealTimeCandlestickChart({
     const containerRef = useRef<HTMLDivElement>(null);
     const chartRef     = useRef<IChartApi>();
     const seriesRef    = useRef<ISeriesApi<'Candlestick'>>();
+    const hasInjected = useRef(false)
+
 
     // Define theme configurations
     const themes = {
@@ -51,9 +53,16 @@ export default function RealTimeCandlestickChart({
     };
 
     useEffect(() => {
+        if (!chartRef.current) return;
+    }, []);
+
+    useEffect(() => {
         let ws: WebSocket | null = null;
 
         async function init() {
+            if (hasInjected.current) return; // Prevent re-initialization
+            hasInjected.current = true;
+
             if (!containerRef.current) return;
 
             const { createChart, CandlestickSeries } = await import('lightweight-charts');
