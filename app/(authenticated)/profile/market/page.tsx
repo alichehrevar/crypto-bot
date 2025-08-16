@@ -1,15 +1,16 @@
 'use client';
 
-import React, { useState, useEffect } from 'react'; // Import useState and useEffect
+import React, { useState, useEffect } from 'react';
 
 import ComparativeSectorRotation from "@/components/shared/charts/ComparativeSectorRotation";
 import SectorPerformanceRanking from "@/components/shared/charts/SectorPerformanceRanking";
 import ExchangeNetFlowCard from "@/components/shared/charts/ExchangeNetFlowCard";
 import EventCalendar, { CalendarData } from "@/components/shared/charts/EventCalendar";
+import UpcomingListings, { ListingsData } from '@/components/shared/charts/UpcomingListings';
+import LaunchPerformanceTracker, { PerformanceTrackerData } from '@/components/shared/charts/LaunchPerformanceTracker';
 
 // =====================================================================
-// --- TYPE DEFINITIONS & MOCK DATA GENERATION ---
-// (These helpers can remain unchanged)
+// --- TYPE DEFINITIONS ---
 // =====================================================================
 
 // Types for SectorPerformanceRanking
@@ -38,6 +39,17 @@ interface NetFlowsData {
     };
 }
 
+// Combined type for new listings data
+interface NewListingsData {
+    upcoming: ListingsData['upcoming'];
+    recent: PerformanceTrackerData['recent'];
+}
+
+
+// =====================================================================
+// --- MOCK DATA GENERATION ---
+// =====================================================================
+
 const random = (min: number, max: number): number => Math.random() * (max - min) + min;
 
 // Generator for SectorPerformanceRanking
@@ -47,7 +59,6 @@ const generateSectorsData = (): SectorData => {
         sector,
         performance1D: random(-4, 8),
     })).sort((a, b) => b.performance1D - a.performance1D);
-
     return { performance };
 };
 
@@ -55,13 +66,11 @@ const generateSectorsData = (): SectorData => {
 const generateLiquidityFlowsData = (): NetFlowsData => {
     const baseHistory = Array.from({ length: 17 }, (_, i) => {
         const date = new Date();
-
         date.setDate(date.getDate() - (16 - i));
         const inflow = random(100, 800);
         const outflow = random(100, 800) * -1;
-
         return {
-            day: date.toLocaleString('en-US', { month: 'short', day: 'numeric' }),
+            day: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
             inflow,
             outflow,
             totalNetFlow: inflow + outflow,
@@ -74,10 +83,8 @@ const generateLiquidityFlowsData = (): NetFlowsData => {
         if (index < 6) return { ...item, sevenDayMA: null };
         const sevenDaySlice = arr.slice(index - 6, index + 1);
         const sum = sevenDaySlice.reduce((acc, curr) => acc + curr.totalNetFlow, 0);
-
         return { ...item, sevenDayMA: sum / 7 };
     }).slice(7);
-
     return { netFlows: { history: netFlowsHistory } };
 };
 
@@ -95,27 +102,42 @@ const generateSentimentData = (): CalendarData => {
     };
 };
 
+// Generator for Listings Components
+const generateNewListingsData = (): NewListingsData => ({
+    upcoming: [
+        { date: '2025-08-18 12:00 UTC', asset: 'ZKSync (ZK)', type: 'Token Generation Event (TGE)', exchange: 'Multiple' },
+        { date: '2025-08-22 14:00 UTC', asset: 'LayerZero (ZRO)', type: 'Listing', exchange: 'Binance, Coinbase' },
+        { date: '2025-09-01 10:00 UTC', asset: 'Blast L2 (BLAST)', type: 'Airdrop Claim Opens', exchange: 'N/A' },
+    ],
+    recent: [
+        { asset: 'Wormhole (W)', launchDate: '2025-07-10', launchPrice: 1.25, currentPrice: 0.95, velocity: 'Medium' },
+        { asset: 'Ethena (ENA)', launchDate: '2025-07-15', launchPrice: 0.60, currentPrice: 1.80, velocity: 'Very High' },
+        { asset: 'Tensor (TNSR)', launchDate: '2025-08-01', launchPrice: 1.50, currentPrice: 1.65, velocity: 'High' },
+    ]
+});
+
 
 // =====================================================================
 // --- PAGE COMPONENT ---
 // =====================================================================
 
 export default function Page() {
-    // [1] Initialize data states to null.
     const [sectorsData, setSectorsData] = useState<SectorData | null>(null);
     const [netFlowData, setNetFlowData] = useState<NetFlowsData | null>(null);
     const [calendarData, setCalendarData] = useState<CalendarData | null>(null);
+    const [listingsData, setListingsData] = useState<NewListingsData | null>(null);
 
-    // [2] Generate data on the client *after* the component has mounted.
     useEffect(() => {
-        // This block only runs on the client, ensuring no mismatch.
         setSectorsData(generateSectorsData());
         setNetFlowData(generateLiquidityFlowsData());
         setCalendarData(generateSentimentData());
-    }, []); // The empty array [] ensures this effect runs only once.
+        setListingsData(generateNewListingsData());
+    }, []);
 
     return (
-        <div className="grid grid-cols-2 w-full gap-6 mt-8">
+        <div className="grid grid-cols-2 w-full px-2 lg:px-4 gap-6 mt-8">
+            <UpcomingListings data={listingsData} />
+            <LaunchPerformanceTracker data={listingsData} />
             <ComparativeSectorRotation height={340} />
             <SectorPerformanceRanking data={sectorsData} />
             <ExchangeNetFlowCard data={netFlowData} />
