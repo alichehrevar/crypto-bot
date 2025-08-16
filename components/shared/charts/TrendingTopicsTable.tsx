@@ -49,6 +49,7 @@ const SentimentCell: React.FC<{ value: TrendingTopic['sentiment'] }> = ({ value 
         Negative: 'text-red-500',
         Neutral: 'text-gray-400',
     };
+
     return <span className={sentimentColor[value]}>{value}</span>;
 };
 
@@ -97,9 +98,9 @@ const TrendingTopicsTable: React.FC<{ data: TrendingTopicsData | null }> = ({ da
                             </td>
                             <td className="p-3 border-b border-white/10">{topic.linkedAssets.join(', ')}</td>
                             <td className="p-3 border-b border-white/10">
-                                <ResponsiveContainer width={100} height={30}>
+                                <ResponsiveContainer height={30} width={100}>
                                     <LineChart data={topic.sparkline}>
-                                        <Line type="monotone" dataKey="mentions" stroke={topic.mentionChange >= 0 ? '#4CAF50' : '#F44336'} strokeWidth={2} dot={false} />
+                                        <Line dataKey="mentions" dot={false} stroke={topic.mentionChange >= 0 ? '#4CAF50' : '#F44336'} strokeWidth={2} type="monotone" />
                                     </LineChart>
                                 </ResponsiveContainer>
                             </td>
