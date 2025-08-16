@@ -43,6 +43,10 @@ export default function RealTimeCandlestickChart({
     // Ensures data effect runs only after chart + series exist
     const [isReady, setIsReady] = useState(false);
 
+    // 👇 --- State for data loading --- 👇
+    const [isDataLoading, setIsDataLoading] = useState(true);
+
+
     const wantsSeconds = useMemo(
         () => ['1s', '3s', '5s', '10s', '15s', '30s'].includes(currentInterval),
         [currentInterval]
@@ -187,6 +191,9 @@ export default function RealTimeCandlestickChart({
         const series = seriesRef.current;
         let active = true;
 
+        // 1. Set loading to true when interval changes
+        setIsDataLoading(true);
+
         // Close previous stream
         wsRef.current?.close();
 
@@ -207,6 +214,9 @@ export default function RealTimeCandlestickChart({
             }));
 
             series.setData(initial);
+
+            // 2. Set loading to false after data is loaded
+            setIsDataLoading(false);
         })();
 
         // Subscribe to live updates
@@ -266,8 +276,8 @@ export default function RealTimeCandlestickChart({
                 })}
             </div>
 
-            {/* 👇 --- NEW: Loading Indicator --- 👇 */}
-            {!isReady && (
+            {/* 👇 --- Loading Indicator --- 👇 */}
+            {(!isReady || isDataLoading) && (
                 <div className="absolute inset-0 flex items-center justify-center bg-[#1A1A1A] rounded-lg">
                     <span className="text-gray-400 font-medium">Loading Chart</span>
                     <Spinner className="ml-2" color="primary" size="sm" variant="wave"/>
