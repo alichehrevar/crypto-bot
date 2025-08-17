@@ -99,7 +99,7 @@ const TechnicalAnalysis: FC = () => {
 
     // --- RENDER ---
     return (
-        <div className="bg-[#1a1a1a] rounded-3xl p-6 w-full max-w-[360px] shadow-2xl shadow-black/30 border border-white/10 relative mx-auto font-sans">
+        <div className="bg-dark-gray rounded-3xl p-6 w-full relative">
             {/* Time Selector */}
             <div ref={dropdownRef} className="relative grid grid-cols-[1fr_1fr_1fr_auto] gap-2 mb-8 items-center">
                 {visibleButtons.map(i => (

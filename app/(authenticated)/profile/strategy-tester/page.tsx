@@ -23,11 +23,11 @@ import { getData } from '@/actions/get';
 import { sendRequest } from '@/actions/post';
 import { XIcon } from '@/utils/icons';
 import BacktestResultChart from '@/components/shared/charts/BacktestResultChart';
-import TradingViewAdvancedChart from '@/components/shared/charts/TradingViewAdvancedChart';
 import MarketStats from '@/components/profile/MarketStats';
 import LabelTag from '@/components/shared/ui/Label';
 import { SymbolFilter, SymbolFilterResponse } from '@/types/profile/CurrencyType';
 import MarketListWithSearch from "@/components/MarketListWithSearch";
+import RealTimeCandlestickChart from "@/components/shared/charts/TradingViewLightweightChart";
 
 // ---------------- helpers ----------------
 function formatDuration(mins: number) {
@@ -227,7 +227,7 @@ export default function StrategyTesterPage() {
                                 />
                             ) : (
                                 <div className="h-full">
-                                    <TradingViewAdvancedChart />
+                                    <RealTimeCandlestickChart interval="1m" symbol="BTCUSDT" timeZone="local" />
                                 </div>
                             )}
                         </div>

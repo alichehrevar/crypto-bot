@@ -96,7 +96,7 @@ export default function Page() {
     }, []);
 
     return (
-        <div className="grid grid-cols-2 gap-6 mt-8 px-2 lg:px-4">
+        <div className="grid grid-cols-2 mx-auto gap-6 mt-8 px-2 lg:px-4">
             <UpcomingListings data={listingsData} />
             <LaunchPerformanceTracker data={listingsData} />
             <MoversAndVolatility data={moversData} />

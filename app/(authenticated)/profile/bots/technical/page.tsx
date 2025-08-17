@@ -4,9 +4,9 @@ import React, { useState } from "react";
 
 import BotsList from "@/components/profile/bots/BotsList";
 import TechnicalDeployBotSection from "@/components/profile/bots/deploy/TechnicalDeployBotSection";
-import TradingViewAdvancedChart from "@/components/shared/charts/TradingViewAdvancedChart";
 import CoinSummarySection from "@/components/shared/CoinSummarySection";
 import MarketListWithSearch from "@/components/MarketListWithSearch";
+import RealTimeCandlestickChart from "@/components/shared/charts/TradingViewLightweightChart";
 
 export default function TechnicalBotsPage() {
 
@@ -24,8 +24,7 @@ export default function TechnicalBotsPage() {
               <MarketListWithSearch />
             </div>
             <div className="w-2/3 h-full">
-              {/*<MarketWatchChart />*/}
-              <TradingViewAdvancedChart />
+                <RealTimeCandlestickChart interval="1m" symbol="BTCUSDT" timeZone="local" />
             </div>
           </div>
 

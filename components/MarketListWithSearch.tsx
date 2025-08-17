@@ -352,7 +352,7 @@ export default function MarketListWithSearch() {
     // --- RENDER ---
     return (
         <>
-            <div className="bg-dark-gray text-white font-sans w-full h-full max-w-sm mx-auto rounded-lg overflow-hidden shadow-2xl flex flex-col">
+            <div className="bg-dark-gray text-white w-full h-full rounded-lg shadow-2xl flex flex-col">
                 <div className="p-4">
                     <SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
                 </div>

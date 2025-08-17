@@ -1,6 +1,6 @@
 import React from 'react';
 import {Line, LineChart, ResponsiveContainer} from "recharts";
-import {Avatar, Button, Divider} from "@heroui/react";
+import {addToast, Avatar, Button, Divider} from "@heroui/react";
 
 import {HeartIcon, UsersIcon} from "@/utils/icons";
 
@@ -43,6 +43,10 @@ export const CommunityBotCard: React.FC<CommunityBotCardProps> = ({
     const statusText = active ? 'Active' : 'Inactive';
     const changeColor = changePct >= 0 ? 'text-[var(--normal-green)]' : 'text-[var(--normal-red)]';
 
+    const onCopySetting = () => {
+        addToast({ title: 'Settings copied to clipboard!', color: 'success' });
+    };
+
     return (
         <div className="bg-dark-gray rounded-xl px-6 py-3 w-full lg:w-[400px]">
             <div className="flex justify-between items-center mb-4">
@@ -82,7 +86,7 @@ export const CommunityBotCard: React.FC<CommunityBotCardProps> = ({
             </div>
             <div className="flex gap-3 mb-4">
                 <Button className="text-black text-xs" color="primary" size="sm" variant="solid">Deploy</Button>
-                <Button className="text-xs" color="default" size="sm" variant="solid">Change Settings</Button>
+                <Button className="text-xs" color="default" size="sm" variant="solid" onPress={() => onCopySetting()}>Copy Settings</Button>
             </div>
             <div className="flex items-center justify-between pt-4 border-t border-gray-700">
                 <div className="flex items-center gap-2">
