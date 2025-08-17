@@ -364,96 +364,97 @@ export default function StrategyTesterPage() {
                     </div>
                 </div>
 
-                {!result &&
-                    <div className="bg-dark-gray rounded-2xl p-4">
-                        <div className="flex items-center justify-between w-full px-4">
-                            <div className="flex items-center justify-between">
-                                <h3 className="text-xl font-bold mb-4">Backtest Result</h3>
-                            </div>
+                <div className="bg-dark-gray rounded-2xl pt-4 px-4">
+                    <div className="flex items-center justify-between w-full">
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-xl font-bold mb-4">Backtest Result</h3>
                         </div>
-
-                        {loading
-                            ? <div className="flex items-center justify-center flex-row-reverse gap-3 h-24 bg-[#1A1A1A] rounded-2xl w-full">
-                                <Spinner className="mr-2" color="primary" size="sm" variant="wave" />
-                                Backtest is running
-                            </div>
-                            : <div className="flex items-center justify-center flex-col w-full">
-                                <OrderIcon className="w-[120px] h-[120px]" />
-                                <span className="text-gray-600 text-sm">No Data</span>
-                            </div>
-                        }
                     </div>
-                }
 
-                {/* Results */}
-                {result && (
-                    <div className="overflow-x-auto bg-default-50 p-4 rounded-2xl my-4 w-full">
+                    {!result && loading && (
+                        <div className="flex items-center justify-center flex-row-reverse gap-3 h-40 rounded-2xl w-full pb-4">
+                            <Spinner className="mr-2" color="primary" size="sm" variant="wave" />
+                            Backtest is running
+                        </div>
+                    )}
 
-                        {optimize && Array.isArray(result?.strategies) && result.strategies.length > 0 && (
-                            <table className="min-w-full text-sm text-left">
-                                <thead>
-                                <tr className="border-b border-default-200">
-                                    {['Indicator','Time frame','Best parameter','Simulated Trades','Avg. Trade Duration','Win ratio','PnL',''].map((h) => (
-                                        <th key={h} className="py-3 px-4 font-medium text-default-600">{h}</th>
-                                    ))}
-                                </tr>
-                                </thead>
-                                <tbody>
-                                {result.strategies.map((row: StrategyResult, i: number) => (
-                                    <tr key={i} className="border-b border-default-100 hover:bg-default-100">
-                                        <td className="py-3 px-4">{row.indicator}</td>
-                                        <td className="py-3 px-4">{row.timeframe}</td>
-                                        <td className="py-3 px-4">{formatParams(row.params)}</td>
-                                        <td className="py-3 px-4">{row.metrics.totalTrades}</td>
-                                        <td className="py-3 px-4">{formatDuration(row.metrics.avgTradeDuration)}</td>
-                                        <td className="py-3 px-4">
+                    {!result && !loading && (
+                        <div className="flex items-center justify-center flex-col w-full h-40 pb-4">
+                            <OrderIcon className="w-[120px] h-[120px]" />
+                            <span className="text-gray-600 text-sm">No Data</span>
+                        </div>
+                    )}
+
+                    {/* Results */}
+                    {result && (
+                        <div className="overflow-x-auto bg-dark-gray pb-4 rounded-2xl mb-4 w-full">
+
+                            {optimize && Array.isArray(result?.strategies) && result.strategies.length > 0 && (
+                                <table className="min-w-full text-sm text-left">
+                                    <thead>
+                                    <tr className="border-b border-default-200">
+                                        {['Indicator','Time frame','Best parameter','Simulated Trades','Avg. Trade Duration','Win ratio','PnL',''].map((h) => (
+                                            <th key={h} className="py-3 px-4 font-medium text-default-600">{h}</th>
+                                        ))}
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    {result.strategies.map((row: StrategyResult, i: number) => (
+                                        <tr key={i} className="border-b border-default-100 hover:bg-default-100">
+                                            <td className="py-3 px-4">{row.indicator}</td>
+                                            <td className="py-3 px-4">{row.timeframe}</td>
+                                            <td className="py-3 px-4">{formatParams(row.params)}</td>
+                                            <td className="py-3 px-4">{row.metrics.totalTrades}</td>
+                                            <td className="py-3 px-4">{formatDuration(row.metrics.avgTradeDuration)}</td>
+                                            <td className="py-3 px-4">
                                             <span className={row.metrics.winRate >= 0.5 ? 'text-success' : 'text-danger'}>
                                               {(row.metrics.winRate * 100).toFixed(2)}%
                                             </span>
-                                        </td>
-                                        <td className="py-3 px-4">
+                                            </td>
+                                            <td className="py-3 px-4">
                                             <span className={row.metrics.totalPnL >= 0 ? 'text-success' : 'text-danger'}>
                                               {row.metrics.totalPnL >= 0 ? '+' : ''}{row.metrics.totalPnL.toFixed(4)} $
                                             </span>
-                                        </td>
-                                        <td className="py-3 px-4">
-                                            <Button className="text-black hover:scale-105 transition-all duration-250" color="primary" size="sm" onPress={() => onCopySetting(row)}>
-                                                Copy Setting
-                                            </Button>
-                                        </td>
-                                    </tr>
-                                ))}
-                                </tbody>
-                            </table>
-                        )}
-
-                        {!optimize && Array.isArray(result?.strategies) && result.strategies[0] && (
-                            <table className="min-w-full text-sm text-center">
-                                <thead>
-                                <tr className="border-b border-default-200">
-                                    {['Final','Trades','Win rate','PnL'].map((h) => (
-                                        <th key={h} className="px-4 py-3 font-medium text-default-600">{h}</th>
-                                    ))}
-                                </tr>
-                                </thead>
-                                <tbody>
-                                {(() => {
-                                    const s = result.strategies[0];
-
-                                    return (
-                                        <tr>
-                                            <td className="px-4 py-3">${s.metrics.finalBalance.toFixed(2)}</td>
-                                            <td className="px-4 py-3">{s.metrics.totalTrades}</td>
-                                            <td className="px-4 py-3">{(s.metrics.winRate * 100).toFixed(2)}%</td>
-                                            <td className="px-4 py-3">${s.metrics.totalPnL.toFixed(2)}</td>
+                                            </td>
+                                            <td className="py-3 px-4">
+                                                <Button className="text-black hover:scale-105 transition-all duration-250" color="primary" size="sm" onPress={() => onCopySetting(row)}>
+                                                    Copy Setting
+                                                </Button>
+                                            </td>
                                         </tr>
-                                    );
-                                })()}
-                                </tbody>
-                            </table>
-                        )}
-                    </div>
-                )}
+                                    ))}
+                                    </tbody>
+                                </table>
+                            )}
+
+                            {!optimize && Array.isArray(result?.strategies) && result.strategies[0] && (
+                                <table className="min-w-full text-sm text-center">
+                                    <thead>
+                                    <tr className="border-b border-default-200">
+                                        {['Final','Trades','Win rate','PnL'].map((h) => (
+                                            <th key={h} className="px-4 py-3 font-medium text-default-600">{h}</th>
+                                        ))}
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    {(() => {
+                                        const s = result.strategies[0];
+
+                                        return (
+                                            <tr>
+                                                <td className="px-4 py-3">${s.metrics.finalBalance.toFixed(2)}</td>
+                                                <td className="px-4 py-3">{s.metrics.totalTrades}</td>
+                                                <td className="px-4 py-3">{(s.metrics.winRate * 100).toFixed(2)}%</td>
+                                                <td className="px-4 py-3">${s.metrics.totalPnL.toFixed(2)}</td>
+                                            </tr>
+                                        );
+                                    })()}
+                                    </tbody>
+                                </table>
+                            )}
+                        </div>
+                    )}
+                </div>
             </div>
         </div>
     );
