@@ -1,37 +1,31 @@
-import { makeObservable, observable, action } from 'mobx';
+// hooks/user.ts
 
-import {User, UserResponse} from "@/types/UserType";
-import {getData} from "@/actions/get";
+import { makeObservable, observable, action, runInAction } from 'mobx';
+
+import { User, UserResponse } from "@/types/UserType";
+import { getData } from "@/actions/get";
 
 class UserStore {
     userData: User | null = null;
+    isInitialized: boolean = false; // Add a flag to prevent re-fetching
 
     constructor() {
         makeObservable(this, {
             userData: observable,
-            storeUser: observable,
-            removeUser: observable,
-            loadUserFromLocalStorage: action
+            isInitialized: observable,
+            initializeUser: action,
+            storeUser: action,
+            removeUser: action,
         });
-
-        // Load user from localStorage after initial render (client-side only)
-        if (typeof window !== "undefined") {
-            this.loadUserFromLocalStorage();
-        }
     }
 
-    async fetchUserFromAPI() {
-        try {
-            const userData: UserResponse = await getData('/user/info')
-
-            return userData.data;
-        } catch {
-            return null;
+    // safely initialize the user state
+    async initializeUser() {
+        // Only run initialization once
+        if (this.isInitialized || typeof window === "undefined") {
+            return;
         }
-    }
 
-    // Load user from localStorage (only on client-side)
-    async loadUserFromLocalStorage(): Promise<void> {
         let savedUser: User | null = null;
         const localUser = localStorage.getItem("user");
 
@@ -39,27 +33,38 @@ class UserStore {
             savedUser = JSON.parse(localUser);
         }
 
+        // Try to get fresh data from the API
         const apiUser = await this.fetchUserFromAPI();
 
-        if (apiUser) {
-            this.storeUser(apiUser); // Save to store & localStorage
-        } else {
-            this.userData = savedUser;
+        runInAction(() => {
+            if (apiUser) {
+                this.userData = apiUser;
+                this.saveUserToLocalStorage();
+            } else {
+                this.userData = savedUser; // Fallback to localStorage if API fails
+            }
+            this.isInitialized = true; // Mark as initialized
+        });
+    }
+
+    async fetchUserFromAPI() {
+        try {
+            const response: UserResponse = await getData('/user/info');
+
+            return response.data;
+        } catch {
+            return null;
         }
     }
 
-    // Save user to localStorage (only on client-side)
     saveUserToLocalStorage(): void {
-        if (typeof window !== "undefined") {
+        if (this.userData) {
             localStorage.setItem('user', JSON.stringify(this.userData));
         }
     }
 
-    // Remove user to localStorage (only on client-side)
     removeUserToLocalStorage(): void {
-        if (typeof window !== "undefined" && localStorage.getItem('user')) {
-            localStorage.removeItem('user');
-        }
+        localStorage.removeItem('user');
     }
 
     storeUser(user: User) {
