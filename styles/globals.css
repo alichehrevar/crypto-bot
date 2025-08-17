@@ -4,8 +4,10 @@
 
 :root {
     --text-color-light: #777777;
-    --normal-green: #46e746;
-    --normal-red: #DF3562FF;
+    --text-green: #46e746;
+    --text-red: #e74646;
+    --chart-green: #4CAF50;
+    --hover-green: #9ef01acc;
 }
 
 html, body {

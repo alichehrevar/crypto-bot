@@ -41,7 +41,7 @@ export const CommunityBotCard: React.FC<CommunityBotCardProps> = ({
   followers,
 }) => {
     const statusText = active ? 'Active' : 'Inactive';
-    const changeColor = changePct >= 0 ? 'text-[var(--normal-green)]' : 'text-[var(--normal-red)]';
+    const changeColor = changePct >= 0 ? 'text-[var(--text-green)]' : 'text-[var(--text-red)]';
 
     const onCopySetting = () => {
         addToast({ title: 'Settings copied to clipboard!', color: 'success' });
@@ -75,7 +75,7 @@ export const CommunityBotCard: React.FC<CommunityBotCardProps> = ({
                                 <Line
                                     dataKey="value"
                                     dot={false}
-                                    stroke={changePct >=0 ? 'var(--normal-green)' : 'var(--normal-red)'}
+                                    stroke={changePct >=0 ? 'var(--text-green)' : 'var(--text-red)'}
                                     strokeWidth={2}
                                     type="monotone"
                                 />
