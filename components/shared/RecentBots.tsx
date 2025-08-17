@@ -123,7 +123,7 @@ export const RecentBots = () => {
               <div className="flex-1">
                 <div className="flex items-center space-x-2 mb-2">
                   <h4 className="text-white font-medium text-sm">{bot.name}</h4>
-                  <span className="text-green-400 text-xs">{bot.change}</span>
+                  <span className="text-[var(--text-green)] text-xs">{bot.change}</span>
                 </div>
                 <p className="text-2xl font-bold text-white mb-1">{bot.amount}</p>
                 <p className="text-gray-400 text-xs mb-1">{bot.apy}</p>
@@ -138,7 +138,7 @@ export const RecentBots = () => {
                     <Line
                       dataKey="value"
                       dot={false}
-                      stroke="#10B981"
+                      stroke="var(--text-green)"
                       strokeWidth={2}
                       type="monotone"
                     />

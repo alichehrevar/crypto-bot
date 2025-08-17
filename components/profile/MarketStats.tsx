@@ -62,12 +62,12 @@ export default function MarketStats({ symbolId }: Props) {
                         {/* Desktop view - show all stats */}
                         <div className="hidden lg:flex items-center gap-8">
                             <div>
-                                <p className="text-2xl font-bold text-success">{new Intl.NumberFormat('en-US').format(Number(symbolData.price))}</p>
+                                <p className="text-2xl font-bold text-[var(--text-green)]">{new Intl.NumberFormat('en-US').format(Number(symbolData.price))}</p>
                                 <p className="text-sm text-gray-400">Last Price</p>
                             </div>
                             <div>
                                 <p className="text-lg text-white">24h Change</p>
-                                <p className={`text-sm ${Number(symbolData.absoluteChange24h) > 0 ? 'text-success' : 'text-danger'}`}>
+                                <p className={`text-sm ${Number(symbolData.absoluteChange24h) > 0 ? 'text-[var(--text-green)]' : 'text-[var(--text-red)]'}`}>
                                     {Number(symbolData.absoluteChange24h).toFixed(2)} ({Number(symbolData.percentChange24h)}%)
                                 </p>
                             </div>

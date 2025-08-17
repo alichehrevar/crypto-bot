@@ -66,7 +66,7 @@ export default function CoinSummarySection({ coinId }: { coinId: string }) {
         const isPositive = value >= 0;
 
         return (
-            <span className={isPositive ? 'text-green-500' : 'text-red-500'}>
+            <span className={isPositive ? 'text-[var(--text-green)]' : 'text-[var(--text-red)]'}>
                 {isPositive ? '+' : ''}{fmtNum(value)}%
             </span>
         );
@@ -97,7 +97,7 @@ export default function CoinSummarySection({ coinId }: { coinId: string }) {
 
                 {/* Price & 24h Change */}
                 <div className="flex items-baseline gap-4 mb-3">
-                    <div className="text-4xl font-bold text-green-500">${fmtNum(coin.price)}</div>
+                    <div className="text-4xl font-bold text-[var(--text-green)]">${fmtNum(coin.price)}</div>
                     <div className="text-lg font-semibold">
                         <PercentChange value={coin.percent_change_24h} />
                     </div>

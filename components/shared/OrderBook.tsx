@@ -134,7 +134,7 @@ export const OrderBook = () => {
         <button
           className={`px-4 py-3 text-sm font-medium transition-colors ${
             activeTab === 'Order Book'
-              ? 'text-white border-b-2 border-blue-500'
+              ? 'text-white border-b-2 border-white'
               : 'text-gray-400 hover:text-white'
           }`}
           onClick={() => setActiveTab('Order Book')}
@@ -144,7 +144,7 @@ export const OrderBook = () => {
         <button
           className={`px-4 py-3 text-sm font-medium transition-colors ${
             activeTab === 'Recent Trade'
-              ? 'text-white border-b-2 border-blue-500'
+              ? 'text-white border-b-2 border-white'
               : 'text-gray-400 hover:text-white'
           }`}
           onClick={() => setActiveTab('Recent Trade')}

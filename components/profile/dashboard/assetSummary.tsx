@@ -48,7 +48,7 @@ export default function AssetSummary() {
               : <>
                   <p className="font-extrabold text-[28px]">{`$ ${assetData?.totalBalance === undefined ? 0.00 : assetData?.totalBalance}`}</p>
                   {assetData && assetData.pctChange !== undefined &&
-                    <span className={`text-[14px] font-bold mt-2.5 ${assetData && assetData.pctChange < 0 ? 'text-red-500' : 'text-success-500'}`}>
+                    <span className={`text-[14px] font-bold mt-2.5 ${assetData && assetData.pctChange < 0 ? 'text-[var(--text-red)]' : 'text-[var(--text-green)]'}`}>
                       {`${assetData?.pctChange}%`}
                     </span>
                   }

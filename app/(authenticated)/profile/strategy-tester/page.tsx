@@ -217,7 +217,6 @@ export default function StrategyTesterPage() {
                             {chartData && chartData.candles.length > 0 ? (
                                 <BacktestResultChart
                                     candles={chartData.candles}
-                                    height={100}
                                     overlay={
                                         chartData.indicator === 'SMA_CROSS'
                                             ? { type: 'SMA_CROSS', fast: chartData.params?.fast, slow: chartData.params?.slow }
@@ -407,12 +406,12 @@ export default function StrategyTesterPage() {
                                             <td className="py-3 px-4">{row.metrics.totalTrades}</td>
                                             <td className="py-3 px-4">{formatDuration(row.metrics.avgTradeDuration)}</td>
                                             <td className="py-3 px-4">
-                                            <span className={row.metrics.winRate >= 0.5 ? 'text-success' : 'text-danger'}>
+                                            <span className={row.metrics.winRate >= 0.5 ? 'text-[var(--text-green)]' : 'text-[var(--text-red)]'}>
                                               {(row.metrics.winRate * 100).toFixed(2)}%
                                             </span>
                                             </td>
                                             <td className="py-3 px-4">
-                                            <span className={row.metrics.totalPnL >= 0 ? 'text-success' : 'text-danger'}>
+                                            <span className={row.metrics.totalPnL >= 0 ? 'text-[var(--text-green)]' : 'text-[var(--text-red)]'}>
                                               {row.metrics.totalPnL >= 0 ? '+' : ''}{row.metrics.totalPnL.toFixed(4)} $
                                             </span>
                                             </td>

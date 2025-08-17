@@ -126,7 +126,7 @@ const BotCard = ({ name, count, volume, roi, icon: Icon }: BotCardProps) => {
             <span className="text-gray-600">|</span>
             <p>
               <span className="text-xs font-normal text-gray-400">7-day ROI: </span>
-              <span className="text-sm font-semibold text-green-400 font-mono">{roi}</span>
+              <span className="text-sm font-semibold text-[var(--text-green)] font-mono">{roi}</span>
             </p>
           </div>
         </div>
