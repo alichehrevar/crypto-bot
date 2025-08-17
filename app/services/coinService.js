@@ -1,46 +1,71 @@
 // app/services/coinService.js
 const axios = require('axios');
-const BASE  = 'https://api.coinpaprika.com/v1';
+const BASE = 'https://api.coinpaprika.com/v1';
 const IMAGE_CDN = 'https://static.coinpaprika.com/coin';
 
+/**
+ * Fetches a comprehensive summary for a given coin using the /tickers endpoint.
+ * This function is optimized to get all required data in a single API call.
+ * @param {string} coinId - The ID of the coin (e.g., 'btc-bitcoin').
+ * @returns {Promise<object>} A summary object for the coin.
+ */
 async function getCoinSummary(coinId) {
-    // 1) fetch ticker and today’s OHLCV in parallel
-    const [ tickRes, todayRes ] = await Promise.all([
-        axios.get(`${BASE}/tickers/${coinId}`),
-        axios.get(`${BASE}/coins/${coinId}/ohlcv/today`)
-    ]);
+    try {
+        // 1) Fetch all ticker information in a single API call.
+        const response = await axios.get(`${BASE}/tickers/${coinId}`);
 
-    // 2) Check HTTP status codes
-    if (tickRes.status !== 200)  throw new Error('Failed to fetch ticker');
-    if (todayRes.status !== 200) throw new Error('Failed to fetch today OHLCV');
+        // 2) Check HTTP status code
+        if (response.status !== 200) {
+            throw new Error(`Failed to fetch ticker data for ${coinId}`);
+        }
 
-    // 3) Pull data out of axios responses
-    const ticker    = tickRes.data;
-    const todayBars = todayRes.data;
-    const today     = Array.isArray(todayBars) ? todayBars[0] : {};
+        // 3) Pull the data object and the USD quotes from the response
+        const ticker = response.data;
+        const quotes = ticker.quotes.USD;
 
-    // 4) Return your summary
-    return {
-        id:                 ticker.id,
-        name:               ticker.name,
-        symbol:             ticker.symbol,
-        price:              ticker.quotes.USD.price,
-        percent_change_24h: ticker.quotes.USD.percent_change_24h,
-        volume_24h:         ticker.quotes.USD.volume_24h,
-        market_cap:         ticker.quotes.USD.market_cap,
-        last_updated:       ticker.last_updated,
+        if (!quotes) {
+            throw new Error(`USD quotes not available for ${coinId}`);
+        }
 
-        open:   today.open,
-        high:   today.high,
-        low:    today.low,
-        close:  today.close,
+        // 4) Calculate an approximate high/low for the last 24h.
+        const price = quotes.price;
+        const change24h = quotes.percent_change_24h;
+        const price24hAgo = price / (1 + (change24h / 100));
+        const high_24h = change24h >= 0 ? price : price24hAgo;
+        const low_24h = change24h >= 0 ? price24hAgo : price;
 
-        // 52-week data not available on free plan
-        week52_high: null,
-        week52_low:  null,
+        // 5) Return the structured summary.
+        return {
+            id: ticker.id,
+            name: ticker.name,
+            symbol: ticker.symbol,
+            price: quotes.price,
+            volume_24h: quotes.volume_24h,
+            market_cap: quotes.market_cap,
+            last_updated: ticker.last_updated,
 
-        imageUrl: `${IMAGE_CDN}/${ticker.id}/logo.png`,
-    };
+            // Percentage changes (directly from API)
+            percent_change_24h: quotes.percent_change_24h,
+            percent_change_7d: quotes.percent_change_7d,
+            percent_change_30d: quotes.percent_change_30d,
+            percent_change_1y: quotes.percent_change_1y,
+
+            // High / Low data
+            high_24h: high_24h,
+            low_24h: low_24h,
+
+            // The API provides All-Time High
+            ath: quotes.ath_price,
+
+            imageUrl: `${IMAGE_CDN}/${ticker.id}/logo.png`,
+        };
+
+    } catch (error) {
+        console.error(`Error in getCoinSummary for ${coinId}:`, error.message);
+        // In case of an error, return a null or a default error object
+        // to prevent the service from crashing the application.
+        return null;
+    }
 }
 
 module.exports = { getCoinSummary };
