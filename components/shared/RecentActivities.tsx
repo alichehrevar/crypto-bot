@@ -7,11 +7,10 @@ import {
     TableRow,
     TableCell, addToast, Spinner
 } from "@heroui/react";
-import Link from "next/link";
 
 import {getData} from "@/actions/get";
 import {AllPnLData, PnLData} from "@/types/profile/PnLTypes";
-import {ChevronRightIcon, OrderIcon} from "@/utils/icons";
+import {OrderIcon} from "@/utils/icons";
 
 async function getAllPnL() {
     return await getData('/pnl/all')
@@ -127,12 +126,7 @@ export const RecentActivities = () => {
                 {!loading && pnLData && pnLData[activeTab].length === 0 &&
                     <div className="flex items-center justify-center flex-col gap-2 w-full">
                         <OrderIcon className="w-[120px] h-[120px]"/>
-                        <Link
-                            className="flex items-center gap-1 hover:scale-105 transition-all duration-300 bg-white text-black border-1 border-white py-1.5 px-3 rounded-xl"
-                            href="/profile/bots">
-                            <span className="text-xs">Deploy Bot</span>
-                            <ChevronRightIcon className="size-3"/>
-                        </Link>
+                        <span className="text-gray-600 text-sm">No Data</span>
                     </div>
                 }
             </div>

@@ -8,7 +8,7 @@ import PlayPauseBotModal from "./technical/modals/playPauseBotModal";
 
 import {Bot, DeployedBotsResponse} from "@/types/profile/bots/DeployedBots";
 import {getData} from "@/actions/get";
-import {ChevronDownIcon, ChevronRightIcon, OrderIcon} from "@/utils/icons";
+import {ChevronRightIcon, OrderIcon} from "@/utils/icons";
 
 export default function BotsList({refreshList = false, title = "Active Bots", listType, active = true, showTitle = true, showDeployButton = true}: {
     refreshList?: boolean,
@@ -45,17 +45,10 @@ export default function BotsList({refreshList = false, title = "Active Bots", li
             })
     }, [refreshList]);
 
-    // Desktop toggle
     function handleDesktopClick(botIndex: number) {
         setExpandedIndex(expandedIndex === botIndex ? null : botIndex);
     }
 
-    // Mobile toggle
-    const toggleExpand = (i: number) => {
-        setExpandedIndex(expandedIndex === i ? null : i);
-    };
-
-    // Desktop headers
     const tableHeaderItems = [
         "Bot",
         "Strategy",
@@ -70,9 +63,24 @@ export default function BotsList({refreshList = false, title = "Active Bots", li
 
     return (
         <>
-            {showTitle &&
-                <div className="flex items-center justify-between">
-                    <h3 className="text-xl font-bold ml-4 mb-4">{title}</h3>
+            <div className="flex items-center justify-between w-full px-4">
+                {showTitle &&
+                    <div className="flex items-center justify-between">
+                        <h3 className="text-xl font-bold mb-4">{title}</h3>
+                    </div>
+                }
+                {!isLoading && deployedBots.length === 0 && showDeployButton &&
+                    <Link className="flex items-center gap-1 hover:scale-105 transition-all duration-300 bg-white text-black border-1 border-white py-1.5 px-3 rounded-xl" href="/profile/bots">
+                        <span className="text-xs">Deploy Bot</span>
+                        <ChevronRightIcon className="size-3" />
+                    </Link>
+                }
+            </div>
+
+            {isLoading &&
+                <div className="flex items-center justify-center flex-row-reverse gap-3 h-24 bg-[#1A1A1A] rounded-2xl w-full">
+                    <Spinner className="mr-2" color="primary" size="sm" variant="wave" />
+                    Loading Data…
                 </div>
             }
 
@@ -80,114 +88,12 @@ export default function BotsList({refreshList = false, title = "Active Bots", li
             {!isLoading && deployedBots.length === 0 &&
                 <div className={`flex items-center justify-center flex-col w-full ${showDeployButton ? 'gap-2' : ''}`}>
                     <OrderIcon className="w-[120px] h-[120px]" />
-                    {showDeployButton
-                        ? <Link className="flex items-center gap-1 hover:scale-105 transition-all duration-300 bg-white text-black border-1 border-white py-1.5 px-3 rounded-xl" href="/profile/bots">
-                            <span className="text-xs">Deploy Bot</span>
-                            <ChevronRightIcon className="size-3" />
-                        </Link>
-                        : <span className="text-gray-600 text-sm">No Data</span>
-                    }
+                    <span className="text-gray-600 text-sm">No Data</span>
                 </div>
             }
 
-            {/* ========== MOBILE (below lg) ========== */}
-            <div className="space-y-4 lg:hidden">
-
-                {isLoading && (
-                    <div className="flex items-center justify-center h-24 bg-[#1A1A1A] rounded-2xl">
-                        <Spinner className="mr-2" color="primary" size="sm" variant="wave"/>
-                        Loading bots…
-                    </div>
-                )}
-
-                {!isLoading && deployedBots.length === 0 && (
-                    <div className="flex items-center justify-center h-24 bg-[#1A1A1A] rounded-2xl">
-                        No bots deployed yet.
-                    </div>
-                )}
-
-                {deployedBots.map((bot, idx) => {
-                    const isExpanded = expandedIndex === idx;
-                    const pnlColor =
-                        bot.pnl.pct > 0
-                            ? "text-green-400"
-                            : bot.pnl.pct < 0
-                                ? "text-red-400"
-                                : "text-gray-400";
-
-                    return (
-                        <div
-                            key={bot._id}
-                            className="bg-[#1A1A1A] rounded-2xl overflow-hidden transition-shadow hover:shadow-xl"
-                        >
-                            {/* summary row */}
-                            <button
-                                className="flex items-center justify-between px-6 py-4 w-full"
-                                type="button"
-                                onClick={() => toggleExpand(idx)}
-                            >
-                                <div className="space-y-1">
-                                    <div className="text-white font-semibold text-[14px]">Indicator Bot</div>
-                                    <div className="text-gray-400 text-[12px]">
-                                        {bot.accountType.toUpperCase()} {bot.marketInfo.baseFund.toLocaleString()}
-                                    </div>
-                                </div>
-                                <div className={`font-bold text-medium ${pnlColor}`}>
-                                    {bot.pnl.pct > 0 ? "+" : ""}
-                                    {bot.pnl.pct}%
-                                </div>
-                                <div className="w-24 h-6 bg-green-700 rounded-lg"/>
-                                <div
-                                    className="text-gray-400 transform transition-transform"
-                                    style={{transform: isExpanded ? "rotate(180deg)" : ""}}
-                                >
-                                    <ChevronDownIcon/>
-                                </div>
-                            </button>
-
-                            {/* expanded details */}
-                            {isExpanded && (
-                                <div className="border-t border-default-200 px-6 py-4 space-y-4 capitalize">
-                                    <DetailRow label="STRATEGY" value={bot.strategy}/>
-                                    <DetailRow
-                                        label="ACCOUNT"
-                                        value={`${bot.accountType.toUpperCase()}`}
-                                    />
-                                    <DetailRow label="SYMBOL" value={bot.symbol.split("/")[0]}/>
-                                    <DetailRow label="TRADE FUND" value={`${bot.marketInfo.tradeFund} USDT`}/>
-                                    <DetailRow label="LEVERAGE" value={`${bot.tradeInfo.leverage}x`}/>
-                                    <DetailRow
-                                        label="RISK STRATEGY"
-                                        value={bot.riskStrategy.replace(/([A-Z])/g, " $1").trim()}
-                                    />
-                                    <DetailRow label="SIGNAL" value={bot.marketInfo.lastSignal || "—"}/>
-                                    <DetailRow
-                                        label="PNL"
-                                        value={`x${bot.tradeInfo.leverage} (${bot.pnl.pct > 0 ? "+" : ""}${bot.pnl.pct}%)`}
-                                        valueClass={pnlColor}
-                                    />
-
-                                    {/* action buttons */}
-                                    <div className="flex justify-end space-x-3 pt-4">
-                                        {/* you could swap this for a "View Trades" button if desired */}
-                                        <TradesList
-                                            bot={bot}
-                                            refreshBotsList={loadBots}
-                                            onCollapse={() => setExpandedIndex(null)}
-                                        />
-                                        <PlayPauseBotModal botId={bot._id}/>
-                                        <CloseBotModal botId={bot._id} refreshBotsList={loadBots}/>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    );
-                })}
-            </div>
-
-            {/* ========== DESKTOP (lg+) ========== */}
             {!isLoading && deployedBots.length > 0 &&
-                <div className="hidden lg:flex flex-col w-full gap-2 p-4 rounded-md overflow-y-auto thin-scrollbar">
+                <div className="flex flex-col w-full gap-2 p-4 rounded-md overflow-y-auto thin-scrollbar">
                     {/* header row */}
                     <div className={`grid ${active ? 'grid-cols-9' : 'grid-cols-8'} font-semibold text-sm pb-2 mb-4 mx-4`}>
                         {tableHeaderItems.map((item, ix) => (
@@ -262,23 +168,5 @@ export default function BotsList({refreshList = false, title = "Active Bots", li
                 </div>
             }
         </>
-    );
-}
-
-// Helper for mobile detail rows
-function DetailRow({
-                       label,
-                       value,
-                       valueClass,
-                   }: {
-    label: string;
-    value: string;
-    valueClass?: string;
-}) {
-    return (
-        <div className="flex justify-between">
-            <span className="text-gray-400 uppercase text-xs font-semibold">{label}</span>
-            <span className={`text-white text-sm ${valueClass || ""}`}>{value}</span>
-        </div>
     );
 }
