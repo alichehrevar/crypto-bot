@@ -14,14 +14,14 @@ import {
     DateRangePicker,
     RangeValue,
     DateValue,
-    addToast,
+    addToast, Spinner,
 } from '@heroui/react';
 import copy from 'copy-to-clipboard';
 import { parseDate } from '@internationalized/date';
 
 import { getData } from '@/actions/get';
 import { sendRequest } from '@/actions/post';
-import { XIcon } from '@/utils/icons';
+import {OrderIcon, XIcon} from '@/utils/icons';
 import BacktestResultChart from '@/components/shared/charts/BacktestResultChart';
 import MarketStats from '@/components/profile/MarketStats';
 import LabelTag from '@/components/shared/ui/Label';
@@ -201,11 +201,11 @@ export default function StrategyTesterPage() {
 
     return (
         <div className="w-full mt-4 relative px-5 backtester-page">
-            <div className="w-full flex flex-col gap-6">
+            <div className="w-full flex flex-col gap-2">
                 <MarketStats symbolId={selectedSymbol ?? undefined} />
 
                 {/* Main Content */}
-                <div className="w-full flex flex-col lg:flex-row items-start gap-2 lg:h-[650px]">
+                <div className="w-full flex flex-col lg:flex-row items-start gap-2 mt-4 lg:h-[650px]">
                     {/* Left: Chart */}
                     <div className="flex self-stretch w-full gap-2 lg:w-[76%] h-full">
                         <div className="w-1/3 h-full">
@@ -364,9 +364,31 @@ export default function StrategyTesterPage() {
                     </div>
                 </div>
 
+                {!result &&
+                    <div className="bg-dark-gray rounded-2xl p-4">
+                        <div className="flex items-center justify-between w-full px-4">
+                            <div className="flex items-center justify-between">
+                                <h3 className="text-xl font-bold mb-4">Backtest Result</h3>
+                            </div>
+                        </div>
+
+                        {loading
+                            ? <div className="flex items-center justify-center flex-row-reverse gap-3 h-24 bg-[#1A1A1A] rounded-2xl w-full">
+                                <Spinner className="mr-2" color="primary" size="sm" variant="wave" />
+                                Backtest is running
+                            </div>
+                            : <div className="flex items-center justify-center flex-col w-full">
+                                <OrderIcon className="w-[120px] h-[120px]" />
+                                <span className="text-gray-600 text-sm">No Data</span>
+                            </div>
+                        }
+                    </div>
+                }
+
                 {/* Results */}
                 {result && (
                     <div className="overflow-x-auto bg-default-50 p-4 rounded-2xl my-4 w-full">
+
                         {optimize && Array.isArray(result?.strategies) && result.strategies.length > 0 && (
                             <table className="min-w-full text-sm text-left">
                                 <thead>
@@ -385,14 +407,14 @@ export default function StrategyTesterPage() {
                                         <td className="py-3 px-4">{row.metrics.totalTrades}</td>
                                         <td className="py-3 px-4">{formatDuration(row.metrics.avgTradeDuration)}</td>
                                         <td className="py-3 px-4">
-                        <span className={row.metrics.winRate >= 0.5 ? 'text-success' : 'text-danger'}>
-                          {(row.metrics.winRate * 100).toFixed(2)}%
-                        </span>
+                                            <span className={row.metrics.winRate >= 0.5 ? 'text-success' : 'text-danger'}>
+                                              {(row.metrics.winRate * 100).toFixed(2)}%
+                                            </span>
                                         </td>
                                         <td className="py-3 px-4">
-                        <span className={row.metrics.totalPnL >= 0 ? 'text-success' : 'text-danger'}>
-                          {row.metrics.totalPnL >= 0 ? '+' : ''}{row.metrics.totalPnL.toFixed(4)} $
-                        </span>
+                                            <span className={row.metrics.totalPnL >= 0 ? 'text-success' : 'text-danger'}>
+                                              {row.metrics.totalPnL >= 0 ? '+' : ''}{row.metrics.totalPnL.toFixed(4)} $
+                                            </span>
                                         </td>
                                         <td className="py-3 px-4">
                                             <Button className="text-black hover:scale-105 transition-all duration-250" color="primary" size="sm" onPress={() => onCopySetting(row)}>
