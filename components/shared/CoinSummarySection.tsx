@@ -106,16 +106,16 @@ export default function CoinSummarySection({ coinId }: { coinId: string }) {
                 {/* Stats Grid */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-2 text-sm text-gray-300">
                     <div className="space-x-1.5">
-                        <span className="text-white font-semibold">High (24h)</span>
+                        <span className="text-white font-semibold">All-Time High</span>
+                        <span className="text-gray-300 text-xs">${fmtNum(coin.ath)}</span>
+                    </div>
+                    <div className="space-x-1.5">
+                        <span className="text-white font-semibold">24h High</span>
                         <span className="text-gray-300 text-xs">${fmtNum(coin.high_24h)}</span>
                     </div>
                     <div className="space-x-1.5">
-                        <span className="text-white font-semibold">Low (24h)</span>
+                        <span className="text-white font-semibold">24h Low</span>
                         <span className="text-gray-300 text-xs">${fmtNum(coin.low_24h)}</span>
-                    </div>
-                    <div className="space-x-1.5">
-                        <span className="text-white font-semibold">All-Time High</span>
-                        <span className="text-gray-300 text-xs">${fmtNum(coin.ath)}</span>
                     </div>
                 </div>
             </div>

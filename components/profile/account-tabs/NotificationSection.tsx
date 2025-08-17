@@ -16,8 +16,8 @@ interface NotificationCard {
   description: string
 }
 const notificationCards: NotificationCard[] = [
-  { title: 'How to communicate', description: 'Email, SMS, Telegram' },
-  { title: 'Notification bot',  description: 'Price movement, Balance report, position open/close, risk alerts…' },
+  { title: 'How to Communicate', description: 'Email, SMS, Telegram' },
+  { title: 'Push Notification',  description: 'Price movement, Balance report, position open/close, risk alerts…' },
 ]
 
 interface ContactMethod {

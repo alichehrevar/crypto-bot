@@ -16,11 +16,11 @@ export default function AnalysisAndSymbolsList() {
                 }}
                 variant="underlined"
             >
+                <Tab key="MarketListWithSearch" title="Search">
+                    <MarketListWithSearch />
+                </Tab>
                 <Tab key="TechnicalAnalysis" title="Analysis">
                     <TechnicalAnalysis />
-                </Tab>
-                <Tab key="MarketListWithSearch" title="Market">
-                    <MarketListWithSearch />
                 </Tab>
             </Tabs>
         </div>

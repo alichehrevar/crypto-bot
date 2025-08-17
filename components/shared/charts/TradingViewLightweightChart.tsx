@@ -253,8 +253,8 @@ export default function RealTimeCandlestickChart({
             ref={containerRef}
             className="relative w-full h-full flex-grow rounded-lg min-h-[320px]"
         >
-            {/* Glassmorphism Interval Toolbar */}
-            <div className="absolute top-0 right-0 left-0 z-10 backdrop-blur-md bg-white/10 dark:bg-black/30 shadow-lg p-2 flex gap-1">
+            {/* Interval Toolbar */}
+            <div className="absolute top-0 right-0 left-0 z-10 bg-dark-gray rounded-tl-lg rounded-tr-lg shadow-lg p-2 flex gap-1">
                 {intervals.map((iv) => {
                     const active = iv === currentInterval;
 
@@ -278,7 +278,7 @@ export default function RealTimeCandlestickChart({
 
             {/* 👇 --- Loading Indicator --- 👇 */}
             {(!isReady || isDataLoading) && (
-                <div className="absolute inset-0 flex items-center justify-center bg-[#1A1A1A] rounded-lg">
+                <div className="absolute inset-0 flex items-center justify-center bg-dark-gray rounded-lg">
                     <span className="text-gray-400 font-medium">Loading Chart</span>
                     <Spinner className="ml-2" color="primary" size="sm" variant="wave"/>
                 </div>
