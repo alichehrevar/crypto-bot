@@ -40,7 +40,7 @@ const seedAdminUser = async () => {
             firstName: 'Admin',
             lastName: 'User',
             gender: 'other',
-            phoneCountry: 'US',
+            phoneCountry: '+1',
             phoneNumber: '0000000000',
             birthday: new Date('1990-01-01'),
             // avatar: '',               // optional
