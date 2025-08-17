@@ -5,9 +5,9 @@ import React, {useState} from "react";
 import BotsList from "@/components/profile/bots/BotsList";
 import ManualTradeSection from "@/components/profile/bots/deploy/ManualTradeSection";
 import {OrderBook} from "@/components/shared/OrderBook";
-import TechnicalAnalysis from "@/components/shared/TechnicalAnalysis";
 import CoinSummarySection from "@/components/shared/CoinSummarySection";
 import RealTimeCandlestickChart from "@/components/shared/charts/TradingViewLightweightChart";
+import AnalysisAndSymbolsList from "@/components/profile/manual-trading/AnalysisAndSymbolsList";
 
 export default function ManualTradingPage() {
 
@@ -23,7 +23,7 @@ export default function ManualTradingPage() {
                 <div className="w-full lg:w-[75%]">
                     {/*<MarketWatchChart />*/}
                     <div className="grid grid-cols-1 lg:grid-cols-[35%_64.5%] gap-2">
-                        <TechnicalAnalysis/>
+                        <AnalysisAndSymbolsList />
                         <div className="flex items-center justify-center flex-col gap-2">
                             <div className="flex w-full h-[400px]">
                                 <RealTimeCandlestickChart interval="1m" symbol="BTCUSDT" timeZone="local" />
