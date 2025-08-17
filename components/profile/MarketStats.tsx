@@ -22,6 +22,7 @@ export default function MarketStats({ symbolId }: Props) {
     }
 
     useEffect(() => {
+        setLoading(true)
         getSymbolData()
             .then((res: SymbolDetailsResponse) => {
                 if (res.success) {

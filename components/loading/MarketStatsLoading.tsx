@@ -4,7 +4,7 @@ import React from 'react';
 
 export default function MarketStatsLoading() {
     return (
-        <div className="bg-dark-gray backdrop-blur-sm rounded-xl p-0.5">
+        <div className="backdrop-blur-sm rounded-xl p-0.5">
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-6 w-full animate-pulse">
                     {/* Left: symbol avatar + name */}
