@@ -1,17 +1,19 @@
 export type CoinSummaryData = {
-    id: string;
-    symbol: string;
-    price: number;
-    percent_change_24h: number;
-    volume_24h: number;
-    market_cap: number;
-    last_updated: string;
-    open: number;
-    high: number;
-    low: number;
-    close: number;
-    week52_high: number | null;
-    week52_low: number | null;
+    id: string,
+    name: string,
+    symbol: string,
+    price: number,
+    volume_24h: number,
+    market_cap: number,
+    last_updated: string,
+    percent_change_24h: number,
+    percent_change_7d: number,
+    percent_change_30d: number,
+    percent_change_1y: number,
+    high_24h: number,
+    low_24h: number,
+    ath: number,
+    imageUrl: string,
 };
 
 export type CoinSummaryResponse = {
