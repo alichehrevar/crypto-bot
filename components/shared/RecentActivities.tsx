@@ -82,7 +82,10 @@ export const RecentActivities = () => {
     }, [])
 
     const handleClosePosition = (index: number) => {
-        console.log(`Closing position for ${pnLData!.open[index].symbol}`);
+        addToast({
+            title: `Closing position for ${pnLData!.open[index].symbol}`,
+            color: "warning"
+        })
     };
 
     return (
