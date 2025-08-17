@@ -63,7 +63,7 @@ export default function BotsList({refreshList = false, title = "Active Bots", li
 
     return (
         <>
-            <div className="flex items-center justify-between w-full px-4">
+            <div className={`flex items-center ${showTitle ? 'justify-between' : 'justify-end'} w-full px-4`}>
                 {showTitle &&
                     <div className="flex items-center justify-between">
                         <h3 className="text-xl font-bold mb-4">{title}</h3>
