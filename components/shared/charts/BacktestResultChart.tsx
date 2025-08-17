@@ -1,13 +1,7 @@
 'use client';
 
-import React, { useEffect, useRef } from 'react';
-import {
-    createChart,
-    CrosshairMode,
-    CandlestickSeries,
-    LineSeries,
-    createSeriesMarkers,
-} from 'lightweight-charts';
+import React, {useEffect, useRef} from 'react';
+import {CandlestickSeries, createChart, createSeriesMarkers, CrosshairMode, LineSeries,} from 'lightweight-charts';
 
 type Candle = { time: number; open: number; high: number; low: number; close: number };
 type Trade = {
@@ -24,7 +18,6 @@ interface Props {
     candles: Candle[];
     trades?: Trade[];
     overlay?: Overlay;
-    height?: number;
 }
 
 const toSec = (t: number) => (t > 1e12 ? Math.floor(t / 1000) : t);
@@ -38,14 +31,14 @@ const calcSMA = (candles: Candle[], period: number) => {
         sum += candles[i].close;
         if (i >= period) sum -= candles[i - period].close;
         if (i >= period - 1) {
-            out.push({ time: toSec(candles[i].time), value: sum / period });
+            out.push({time: toSec(candles[i].time), value: sum / period});
         }
     }
 
     return out;
 };
 
-const BacktestResultChart: React.FC<Props> = ({ candles, trades = [], overlay, height = 550 }) => {
+const BacktestResultChart: React.FC<Props> = ({candles, trades = [], overlay}) => {
     const containerRef = useRef<HTMLDivElement | null>(null);
     const chartRef = useRef<any>(null);
     const candleSeriesRef = useRef<any>(null);
@@ -58,19 +51,19 @@ const BacktestResultChart: React.FC<Props> = ({ candles, trades = [], overlay, h
         if (!containerRef.current) return;
 
         const chart = createChart(containerRef.current, {
-            layout: { background: { color: '#141414' }, textColor: '#d1d4dc' },
+            layout: {background: {color: '#141414'}, textColor: '#d1d4dc'},
             grid: {
-                vertLines: { color: 'rgba(42,46,57,.5)' },
-                horzLines: { color: 'rgba(42,46,57,.5)' },
+                vertLines: {color: 'rgba(42,46,57,.5)'},
+                horzLines: {color: 'rgba(42,46,57,.5)'},
             },
-            crosshair: { mode: CrosshairMode.Normal },
-            rightPriceScale: { borderVisible: false },
-            timeScale: { rightOffset: 4, fixLeftEdge: true },
+            crosshair: {mode: CrosshairMode.Normal},
+            rightPriceScale: {borderVisible: false},
+            timeScale: {rightOffset: 4, fixLeftEdge: true},
         });
 
         chartRef.current = chart;
 
-        const cs = chart.addSeries(CandlestickSeries, {
+        candleSeriesRef.current = chart.addSeries(CandlestickSeries, {
             upColor: '#049981',
             downColor: '#F23645',
             wickUpColor: '#049981',
@@ -78,13 +71,11 @@ const BacktestResultChart: React.FC<Props> = ({ candles, trades = [], overlay, h
             borderVisible: false,
         });
 
-        candleSeriesRef.current = cs;
-
         const resize = () => {
             if (!containerRef.current) return;
             chart.applyOptions({
                 width: containerRef.current.clientWidth,
-                height,
+                height: containerRef.current.clientHeight,
             });
         };
 
@@ -100,7 +91,7 @@ const BacktestResultChart: React.FC<Props> = ({ candles, trades = [], overlay, h
             smaSlowRef.current = null;
             markersPluginRef.current = null;
         };
-    }, [height]);
+    }, []);
 
     // set data, overlay, markers
     useEffect(() => {
@@ -111,14 +102,20 @@ const BacktestResultChart: React.FC<Props> = ({ candles, trades = [], overlay, h
 
         // Candles
         const normalized = (candles ?? [])
-            .map(c => ({ time: toSec(c.time), open: c.open, high: c.high, low: c.low, close: c.close }))
+            .map(c => ({time: toSec(c.time), open: c.open, high: c.high, low: c.low, close: c.close}))
             .sort((a, b) => (a.time as number) - (b.time as number));
 
         cs.setData(normalized);
 
         // Clear previous SMA overlays
-        if (smaFastRef.current) { chart.removeSeries(smaFastRef.current); smaFastRef.current = null; }
-        if (smaSlowRef.current) { chart.removeSeries(smaSlowRef.current); smaSlowRef.current = null; }
+        if (smaFastRef.current) {
+            chart.removeSeries(smaFastRef.current);
+            smaFastRef.current = null;
+        }
+        if (smaSlowRef.current) {
+            chart.removeSeries(smaSlowRef.current);
+            smaSlowRef.current = null;
+        }
 
         // SMA overlay
         if (overlay && overlay.type === 'SMA_CROSS' && normalized.length) {
@@ -181,7 +178,7 @@ const BacktestResultChart: React.FC<Props> = ({ candles, trades = [], overlay, h
         }
     }, [candles, trades, overlay]);
 
-    return <div ref={containerRef} style={{ width: '100%', height }} />;
+    return <div ref={containerRef} className="w-full h-full" />;
 };
 
 export default BacktestResultChart;
