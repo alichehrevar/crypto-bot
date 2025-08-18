@@ -5,6 +5,8 @@ const BinanceAccount = require('../../models/BinanceAccount');
 const OkxAccount = require('../../models/OkxAccount');
 const BingxAccount = require('../../models/BingxAccount');
 const AssetSnapshot = require('../../models/AssetSnapshot');
+const Trade = require('../../models/Trade');
+const BotBase = require('../../models/BotBase');
 
 // Import services that handle the API calls for each exchange.
 const BinanceService = require('../../services/binanceWS');
@@ -400,59 +402,68 @@ exports.getSummary = async (req, res) => {
     try {
         const userId = req.user.id;
 
-        // --- Step 1: Fetch the LIVE Total Balance in real-time ---
+        // --- Step 1: Fetch the LIVE Total Balance (remains unchanged) ---
 
-        // Find all accounts for the user across the three exchanges
         const [binanceAccts, okxAccts, bingxAccts] = await Promise.all([
             BinanceAccount.find({ userId }).lean(),
             OkxAccount.find({ userId }).lean(),
             BingxAccount.find({ userId }).lean(),
         ]);
 
-        // Helper function to sum the total balance from an array of accounts for a specific service
         const sumTotalBalance = async (accounts, Service) => {
             if (!accounts || accounts.length === 0) return 0;
-            // Use Promise.all to fetch balances for multiple accounts of the same exchange in parallel
             const balances = await Promise.all(accounts.map(acc => Service.getBalance(acc, { all: true })));
-            // The getBalance function returns an array, so we flatten it and sum the usdtBalance property
             return balances.flat().reduce((sum, bal) => sum + parseFloat(bal.usdtBalance || '0'), 0);
         };
 
-        // Fetch live balances from all exchanges concurrently
         const [binanceBalance, okxBalance, bingxBalance] = await Promise.all([
             sumTotalBalance(binanceAccts, BinanceService),
             sumTotalBalance(okxAccts, OkxService),
             sumTotalBalance(bingxAccts, BingxService)
         ]);
 
-        // Sum the balances from all exchanges to get the final live portfolio balance
-        const livePortfolioBalance = binanceBalance + okxBalance + bingxBalance;
+        const totalBalance = binanceBalance + okxBalance + bingxBalance;
 
 
-        // --- Step 2: Fetch the most recent snapshot from a PREVIOUS day ---
+        // --- Step 2: Calculate Portfolio Balance from Closed Trades ---
 
-        // Get today's date and set the time to the beginning of the day (midnight UTC)
+        // First, find all bots that belong to the current user
+        const userBots = await BotBase.find({ userId }).select('_id').lean();
+        const botIds = userBots.map(bot => bot._id);
+
+        // Then, find all trades associated with those bots that are considered "closed"
+        // A trade is closed if it has an exitPrice.
+        const closedTrades = await Trade.find({
+            bot: { $in: botIds },
+            exitPrice: { $ne: null, $gt: 0 }
+        }).lean();
+
+        // Calculate the portfolio balance by summing the capital used (entryPrice * quantity) for each closed trade
+        const portfolioBalance = closedTrades.reduce((sum, trade) => {
+            return sum + (trade.entryPrice * trade.quantity);
+        }, 0);
+
+        // --- Step 3: Calculate Available Funds ---
+        const availableFunds = totalBalance - portfolioBalance;
+
+
+        // --- Step 4: Fetch snapshot and calculate Percentage Change (remains unchanged) ---
         const today = new Date();
         today.setUTCHours(0, 0, 0, 0);
 
-        // Query the database for the latest snapshot that is older than today
         const lastSnapshot = await AssetSnapshot.findOne({
             userId,
-            timestamp: { $lt: today } // Find snapshots with a timestamp before today
-        }).sort({ timestamp: -1 });  // Sort descending to get the most recent one first
-
-
-        // --- Step 3: Calculate the Percentage Change ---
+            timestamp: { $lt: today }
+        }).sort({ timestamp: -1 });
 
         let pctChange = 0;
-        // Check if a previous snapshot exists and its total is not zero to avoid division-by-zero errors
         if (lastSnapshot && lastSnapshot.total > 0) {
             const previousBalance = lastSnapshot.total;
-            pctChange = ((livePortfolioBalance - previousBalance) / previousBalance) * 100;
+            pctChange = ((totalBalance - previousBalance) / previousBalance) * 100;
         }
 
-        // --- Step 4: Fetch 7-day history for the chart ---
 
+        // --- Step 5: Fetch 7-day history for the chart (remains unchanged) ---
         const sevenDaysAgo = new Date();
         sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
@@ -467,16 +478,14 @@ exports.getSummary = async (req, res) => {
         }));
 
 
-        // --- Step 5: Format and return the final API response ---
-
+        // --- Step 6: Format and return the final API response ---
         return res.json({
             success: true,
             data: {
                 summary: {
-                    // For the main summary, portfolio and total balance are the same
-                    portfolioBalance: parseFloat(livePortfolioBalance.toFixed(2)),
-                    availableFunds: parseFloat(livePortfolioBalance.toFixed(2)), // Can be adjusted if you have separate logic for available funds
-                    totalBalance: parseFloat(livePortfolioBalance.toFixed(2)),
+                    portfolioBalance: parseFloat(portfolioBalance.toFixed(2)),
+                    availableFunds: parseFloat(availableFunds.toFixed(2)),
+                    totalBalance: parseFloat(totalBalance.toFixed(2)),
                     pctChange: parseFloat(pctChange.toFixed(2)),
                 },
                 history: historyForChart,
