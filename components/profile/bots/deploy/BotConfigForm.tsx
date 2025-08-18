@@ -534,7 +534,7 @@ export default function BotConfigForm({ mode, selectedParentTab, onCloseAction }
 
         {/* submit */}
         <Button
-          className="w-full px-4 dark:bg-white dark:hover:bg-gray-200 transition-all duration-300 dark:text-black font-semibold rounded-2xl text-[14px] py-3"
+          className="w-full px-4 dark:bg-white dark:hover:bg-gray-200 transition-all duration-300 dark:text-black font-semibold rounded-lg text-[14px] py-3"
           disabled={loading}
           isLoading={loading}
           type="submit"

@@ -88,7 +88,7 @@ export default function BotProgressChart() {
     const currentChartData = chartDataSets[activeTab as keyof typeof chartDataSets];
 
     return (
-        <div className="rounded-2xl shadow-2xl w-full mx-auto self-stretch flex flex-col items-end mt-2">
+        <div className="rounded-lg shadow-2xl w-full mx-auto self-stretch flex flex-col items-end mt-2">
             {/* Header section with tab navigation */}
             <div className="flex justify-end mb-4">
                 <ChartTabs activeTab={activeTab} setActiveTab={setActiveTab} tabKeys={tabKeys} />

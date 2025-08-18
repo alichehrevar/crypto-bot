@@ -208,11 +208,11 @@ export default function StrategyTesterPage() {
                 <div className="w-full flex flex-col lg:flex-row items-start gap-2 mt-4 lg:h-[650px]">
                     {/* Left: Chart */}
                     <div className="flex self-stretch w-full gap-2 lg:w-[76%] h-full">
-                        <div className="w-1/3 h-full">
+                        <div className="w-1/3 h-full grid grid-cols-1">
                             {/* MarketList */}
                             <MarketListWithSearch />
                         </div>
-                        <div className="bg-dark-gray rounded-2xl p-0.5 w-2/3 h-full">
+                        <div className="bg-dark-gray rounded-lg p-0.5 w-2/3 h-full">
                             {/* RENDER THE NEW CHART WHENEVER WE HAVE chartData (even if candles are empty) */}
                             {chartData && chartData.candles.length > 0 ? (
                                 <BacktestResultChart
@@ -233,7 +233,7 @@ export default function StrategyTesterPage() {
                     </div>
 
                     {/* Right: Form */}
-                    <div className="w-full lg:w-[24%] h-full p-6 bg-dark-gray rounded-2xl text-white">
+                    <div className="w-full lg:w-[24%] h-full p-6 bg-dark-gray rounded-lg text-white">
                         <form className="space-y-6" onSubmit={handleSubmit}>
                             <div className="flex items-center gap-2 mb-4">
                                 <h3 className="text-lg font-semibold text-white">Strategy Parameters</h3>
@@ -363,7 +363,7 @@ export default function StrategyTesterPage() {
                     </div>
                 </div>
 
-                <div className="bg-dark-gray rounded-2xl pt-4 px-4">
+                <div className="bg-dark-gray rounded-lg pt-4 px-4">
                     <div className="flex items-center justify-between w-full">
                         <div className="flex items-center justify-between">
                             <h3 className="text-xl font-bold mb-4">Backtest Result</h3>
@@ -371,7 +371,7 @@ export default function StrategyTesterPage() {
                     </div>
 
                     {!result && loading && (
-                        <div className="flex items-center justify-center flex-row-reverse gap-3 h-40 rounded-2xl w-full pb-4">
+                        <div className="flex items-center justify-center flex-row-reverse gap-3 h-40 rounded-lg w-full pb-4">
                             <Spinner className="mr-2" color="primary" size="sm" variant="wave" />
                             Backtest is running
                         </div>
@@ -386,7 +386,7 @@ export default function StrategyTesterPage() {
 
                     {/* Results */}
                     {result && (
-                        <div className="overflow-x-auto bg-dark-gray pb-4 rounded-2xl mb-4 w-full">
+                        <div className="overflow-x-auto bg-dark-gray pb-4 rounded-lg mb-4 w-full">
 
                             {optimize && Array.isArray(result?.strategies) && result.strategies.length > 0 && (
                                 <table className="min-w-full text-sm text-left">

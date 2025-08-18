@@ -6,13 +6,14 @@ import MarketListWithSearch from "@/components/MarketListWithSearch";
 
 export default function AnalysisAndSymbolsList() {
     return (
-        <div className="grid grid-cols-1 bg-dark-gray rounded-2xl py-3 w-full">
+        <div className="flex flex-col bg-dark-gray rounded-lg py-3 w-full h-full">
             <Tabs
                 aria-label="AnalysisAndSymbolsList"
                 classNames={{
                     tabList: 'w-full px-2',
                     tab: 'pb-4 font-bold text-[14px] mb-1',
-                    cursor: 'w-full'
+                    cursor: 'w-full',
+                    panel: 'h-full'
                 }}
                 variant="underlined"
             >

@@ -16,11 +16,11 @@ export default function ManualTradingPage() {
     return (
         <div className="w-full mt-4 relative px-5 pb-5">
             {/*<PageTitleSection title="Manual Trading"/>*/}
-            <div className="flex items-center justify-between w-full gap-6 backdrop-blur-sm rounded-xl p-4min-h-[80px]">
+            <div className="flex items-center justify-between w-full gap-6 backdrop-blur-sm rounded-xl min-h-[80px]">
                 <CoinSummarySection coinId="btc-bitcoin" />
             </div>
             <div className=" w-full flex items-start justify-center gap-2 mt-2">
-                <div className="w-full lg:w-[75%]">
+                <div className="w-full lg:w-[75%] h-full">
                     {/*<MarketWatchChart />*/}
                     <div className="grid grid-cols-1 lg:grid-cols-[35%_64.5%] gap-2">
                         <AnalysisAndSymbolsList />
@@ -39,7 +39,7 @@ export default function ManualTradingPage() {
                     <ManualTradeSection onSuccessAction={() => setRefreshBotsList(true)}/>
                 </div>
             </div>
-            <div className="grid grid-cols-1 bg-dark-gray mt-2 rounded-2xl py-6 px-3 h-[32.2svh]">
+            <div className="grid grid-cols-1 bg-dark-gray mt-2 rounded-lg py-6 px-3 h-[32.2svh]">
                 <BotsList refreshList={refreshBotsList} showDeployButton={false} title="Trading Activities" />
             </div>
         </div>

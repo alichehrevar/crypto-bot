@@ -16,7 +16,7 @@ export default function TechnicalBotsPage() {
             <div className="w-full flex items-start justify-center gap-6 mt-6">
                 <div className="w-full lg:w-[72%] h-[60svh]">
                     <RealTimeCandlestickChart interval="1m" symbol="BTCUSDT" timeZone="local"/>
-                    <div className="grid grid-cols-1 dark:bg-[#161616] bg-white mt-4 rounded-2xl py-6 px-3 h-[32.2svh]">
+                    <div className="grid grid-cols-1 dark:bg-[#161616] bg-white mt-4 rounded-lg py-6 px-3 h-[32.2svh]">
                         <BotsList listType="grid" refreshList={refreshBotsList}/>
                     </div>
                 </div>

@@ -99,7 +99,7 @@ const TechnicalAnalysis: FC = () => {
 
     // --- RENDER ---
     return (
-        <div className="bg-dark-gray rounded-3xl p-6 w-full relative">
+        <div className="bg-dark-gray rounded-lg p-6 w-full h-full overflow-y-auto relative">
             {/* Time Selector */}
             <div ref={dropdownRef} className="relative grid grid-cols-[1fr_1fr_1fr_auto] gap-2 mb-8 items-center">
                 {visibleButtons.map(i => (
@@ -140,8 +140,8 @@ const TechnicalAnalysis: FC = () => {
             </div>
 
             {/* Meter */}
-            <div className="relative w-full h-[100px] flex justify-center items-center mb-4">
-                <div className="relative w-4/5 pt-[40%]">
+            <div className="relative w-full flex justify-center items-center mb-4">
+                <div className="relative w-full pt-[40%]">
                     <svg className="absolute top-0 left-0 w-full h-full overflow-visible" viewBox="0 0 200 100">
                         <defs>
                             <linearGradient id="valueGradient" x1="0%" x2="100%" y1="0%" y2="0%">

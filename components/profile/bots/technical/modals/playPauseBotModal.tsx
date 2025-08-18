@@ -53,7 +53,7 @@ export default function CloseBotModal(props: {botId: string;}) {
 
   return (
     <>
-      <button className="bg-default-100 hover:bg-default-300 px-4 lg:px-3 h-[40px] rounded-2xl text-[13px]" onClick={onOpen}>
+      <button className="bg-default-100 hover:bg-default-300 px-4 lg:px-3 h-[40px] rounded-lg text-[13px]" onClick={onOpen}>
         <PauseIcon className="size-4 hidden lg:flex" />
         <span className="flex lg:hidden">Pause</span>
       </button>

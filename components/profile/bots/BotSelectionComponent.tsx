@@ -99,7 +99,7 @@ interface BotCardProps {
 const BotCard = ({ name, count, volume, roi, icon: Icon }: BotCardProps) => {
   return (
       // Main container for the card with styling and hover effects.
-      <div className="bg-dark-gray rounded-2xl p-4 flex items-center gap-5 hover:ring-2 hover:ring-green/80 transition-all duration-300 cursor-pointer group w-full sm:w-[378px] h-[108px]">
+      <div className="bg-dark-gray rounded-lg p-4 flex items-center gap-5 hover:ring-2 hover:ring-green/80 transition-all duration-300 cursor-pointer group w-full sm:w-[378px] h-[108px]">
 
         {/* Left side: Icon */}
         <Icon className="w-16 h-16 text-gray-500 group-hover:text-green transition-colors duration-300 flex-shrink-0" />

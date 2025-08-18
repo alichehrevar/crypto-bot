@@ -535,7 +535,7 @@ export default function GridConfigForm({
               {[5, 10, 25, 50, 100, 150].map((p) => (
                 <button
                   key={p}
-                  className={`px-2 py-1 flex-1 rounded-2xl text-[12px] ${
+                  className={`px-2 py-1 flex-1 rounded-lg text-[12px] ${
                     enableTPSL
                       ? "bg-default-200"
                       : "bg-default-100 text-gray-400 cursor-not-allowed"
@@ -567,7 +567,7 @@ export default function GridConfigForm({
               {[20, 30, 40, 50, 60, 70].map((p) => (
                 <button
                   key={p}
-                  className={`px-2 py-1 flex-1 rounded-2xl text-[12px] ${
+                  className={`px-2 py-1 flex-1 rounded-lg text-[12px] ${
                     enableTPSL
                       ? "bg-default-200"
                       : "bg-default-100 text-gray-400 cursor-not-allowed"
@@ -625,7 +625,7 @@ export default function GridConfigForm({
 
         {/* ── SUBMIT BUTTON ───────────────────────────────────────────────── */}
         <Button
-          className="w-full px-4 dark:bg-white dark:hover:bg-gray-200 transition-all duration-300 dark:text-black font-semibold rounded-2xl text-[14px] py-3"
+          className="w-full px-4 dark:bg-white dark:hover:bg-gray-200 transition-all duration-300 dark:text-black font-semibold rounded-lg text-[14px] py-3"
           disabled={
             loading ||
             (mode !== "infinity" && priceRangeError !== "") || // require valid LP/UP

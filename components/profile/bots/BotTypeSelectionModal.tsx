@@ -76,7 +76,7 @@ export default function BotTypeSelectionModal ({
                       <Link
                         key={bot.id}
                         className={`
-                      flex justify-between items-center px-6 py-4 rounded-2xl w-full
+                      flex justify-between items-center px-6 py-4 rounded-lg w-full
                       border border-white/20
                       bg-white/10 backdrop-blur-md cursor-pointer
                     `}

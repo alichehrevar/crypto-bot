@@ -37,7 +37,7 @@ export default function IOPanel() {
   }, [])
 
   return (
-    <section className="dark:bg-[#161616] light:bg-white shadow-lg flex flex-row items-start justify-center w-full rounded-2xl mx-4 py-10 px-10 gap-10">
+    <section className="dark:bg-[#161616] light:bg-white shadow-lg flex flex-row items-start justify-center w-full rounded-lg mx-4 py-10 px-10 gap-10">
       <div className="flex w-1/4">
         <Accordion showDivider={false}>
           <AccordionItem
@@ -117,7 +117,7 @@ export default function IOPanel() {
           </AccordionItem>
         </Accordion>
       </div>
-      <div className="w-3/4 w-fu border-1 border-default-100 rounded-2xl h-full flex items-start gap-10 flex-col p-4">
+      <div className="w-3/4 w-fu border-1 border-default-100 rounded-lg h-full flex items-start gap-10 flex-col p-4">
         <div className="flex items-center justify-between w-full">
           <h3 className="font-bold">{selected.replaceAll('_', ' ')}</h3>
           <div className="relative w-[400px] min-h-[260px]">

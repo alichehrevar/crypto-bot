@@ -205,7 +205,7 @@ const Register = () => {
               <label className="text-white font-bold text-sm" htmlFor="password">Password</label>
               <Input
                 required
-                className="rounded-2xl text-black placeholder:text-gray-500"
+                className="rounded-lg text-black placeholder:text-gray-500"
                 id="password"
                 placeholder="Enter your Password"
                 size="md"

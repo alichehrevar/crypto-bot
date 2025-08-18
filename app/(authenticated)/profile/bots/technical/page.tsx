@@ -28,7 +28,7 @@ export default function TechnicalBotsPage() {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 bg-dark-gray bg-white mt-2 rounded-2xl py-6 px-3 h-[34%]">
+                    <div className="grid grid-cols-1 bg-dark-gray bg-white mt-2 rounded-lg py-6 px-3 h-[34%]">
                         <BotsList listType="indicator" refreshList={refreshBotsList}/>
                     </div>
                 </div>

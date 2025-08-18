@@ -75,7 +75,7 @@ export default function BotsList({refreshList = false, title = "Active Bots", li
             </div>
 
             {isLoading &&
-                <div className="flex items-center justify-center flex-row-reverse gap-3 h-24 bg-[#1A1A1A] rounded-2xl w-full">
+                <div className="flex items-center justify-center flex-row-reverse gap-3 h-24 bg-[#1A1A1A] rounded-lg w-full">
                     <Spinner className="mr-2" color="primary" size="sm" variant="wave" />
                     Loading Data…
                 </div>
@@ -152,13 +152,13 @@ export default function BotsList({refreshList = false, title = "Active Bots", li
 
                     {/* loading / empty states */}
                     {isLoading && (
-                        <div className="flex items-center justify-center bg-default-100 rounded-2xl h-[70px]">
+                        <div className="flex items-center justify-center bg-default-100 rounded-lg h-[70px]">
                             <span>Loading deployed bots</span>
                             <Spinner className="ml-3 mb-2" color="primary" size={'sm'} variant="wave"/>
                         </div>
                     )}
                     {!isLoading && deployedBots.length === 0 && (
-                        <div className="flex items-center justify-center bg-default-100 rounded-2xl h-[70px]">
+                        <div className="flex items-center justify-center bg-default-100 rounded-lg h-[70px]">
                             No bots deployed yet.
                         </div>
                     )}

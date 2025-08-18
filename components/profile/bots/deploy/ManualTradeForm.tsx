@@ -439,7 +439,7 @@ export default function ManualTradeForm({
             {[5, 10, 25, 50, 100, 150].map((p) => (
               <button
                 key={p}
-                className={`flex flex-1 items-center justify-center px-2 py-1 rounded-2xl text-[12px] ${
+                className={`flex flex-1 items-center justify-center px-2 py-1 rounded-lg text-[12px] ${
                   enableTPSL
                     ? "bg-default-200 text-gray-200"
                     : "bg-default-100 text-gray-400 cursor-not-allowed"
@@ -478,7 +478,7 @@ export default function ManualTradeForm({
             {[20, 30, 40, 50, 60, 70].map((p) => (
               <button
                 key={p}
-                className={`flex flex-1 items-center justify-center px-2 py-1 rounded-2xl text-[12px] ${
+                className={`flex flex-1 items-center justify-center px-2 py-1 rounded-lg text-[12px] ${
                   enableTPSL
                     ? "bg-default-200 text-gray-200"
                     : "bg-default-100 text-gray-400 cursor-not-allowed"
@@ -501,7 +501,7 @@ export default function ManualTradeForm({
         {/* ── BUY / SELL BUTTONS ─────────────────────────────────────────────── */}
         <div className="flex gap-4 mt-4">
           <Button
-            className="flex-1 bg-success hover:bg-success-400 text-white rounded-2xl py-3"
+            className="flex-1 bg-success hover:bg-success-400 text-white rounded-lg py-3"
             disabled={loading || Boolean(costError)}
             isLoading={loading}
             type="submit"
@@ -510,7 +510,7 @@ export default function ManualTradeForm({
             Buy
           </Button>
           <Button
-            className="flex-1 bg-danger hover:bg-danger-400 text-white rounded-2xl py-3"
+            className="flex-1 bg-danger hover:bg-danger-400 text-white rounded-lg py-3"
             disabled={loading || Boolean(costError)}
             isLoading={loading}
             type="submit"

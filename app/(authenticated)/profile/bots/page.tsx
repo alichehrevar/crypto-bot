@@ -18,10 +18,10 @@ export default function BotsPage() {
                     <BotSelectionComponent/>
                     <BotProgressChart/>
                 </div>
-                <div className="grid grid-cols-1 rounded-2xl lg:py-6">
+                <div className="grid grid-cols-1 rounded-lg lg:py-6">
                     <RecentBots/>
                 </div>
-                <div className="grid grid-cols-1 bg-dark-gray rounded-2xl lg:py-6 lg:px-3 w-full min-h-[300px] relative">
+                <div className="grid grid-cols-1 bg-dark-gray rounded-lg lg:py-6 lg:px-3 w-full min-h-[300px] relative">
                     <div className="absolute top-7 right-6 z-10">
                         <DeployButton />
                     </div>

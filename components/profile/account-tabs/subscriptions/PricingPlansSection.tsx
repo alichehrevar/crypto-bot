@@ -73,7 +73,7 @@ export default function PricingPlansSection() {
             key={plan.title}
             className={`
               relative
-              rounded-2xl
+              rounded-lg
               bg-white/10 backdrop-blur-md
               border
               ${plan.highlight === 'primary' 

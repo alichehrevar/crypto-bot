@@ -186,7 +186,7 @@ export default function MarketComparativeSectorRotation({
     return (
         <div
             className={[
-                'rounded-2xl border border-white/5 bg-[#141414] p-4 shadow-[0_6px_24px_rgba(0,0,0,0.35)]',
+                'rounded-lg border border-white/5 bg-[#141414] p-4 shadow-[0_6px_24px_rgba(0,0,0,0.35)]',
                 className || '',
             ].join(' ')}
         >

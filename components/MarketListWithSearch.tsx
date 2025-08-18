@@ -346,14 +346,13 @@ export default function MarketListWithSearch() {
         [filteredAndSortedSymbols, visibleRange]
     );
 
-    const listHeight = filteredAndSortedSymbols.length * ROW_HEIGHT;
     const paddingTop = visibleRange.start * ROW_HEIGHT;
 
     // --- RENDER ---
     return (
         <>
-            <div className="bg-dark-gray text-white w-full h-full rounded-lg shadow-2xl flex flex-col">
-                <div className="p-4">
+            <div className="bg-dark-gray text-white w-full h-full rounded-lg shadow-2xl pt-4 flex flex-col">
+                <div className="p-4 pt-1">
                     <SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
                 </div>
                 <MainTabs activeTab={activeMainTab} setActiveTab={setActiveMainTab} />
@@ -368,9 +367,11 @@ export default function MarketListWithSearch() {
                 </div>
                 <div ref={scrollContainerRef} className="overflow-y-auto scrollbar-hide flex-grow">
                     {loading ? (
-                        Array.from({ length: 10 }).map((_, i) => <SkeletonRow key={i} style={{ height: `${ROW_HEIGHT}px`}} />)
+                        Array.from({length: 5}).map((_, i) =>
+                            <SkeletonRow key={i} style={{height: `${ROW_HEIGHT}px`}}/>
+                        )
                     ) : (
-                        <div style={{ height: `${listHeight}px`, position: 'relative' }}>
+                        <div className="relative h-full">
                             <div style={{ position: 'absolute', top: `${paddingTop}px`, width: '100%' }}>
                                 {visibleItems.length > 0 ? (
                                     visibleItems.map((symbol) => (
