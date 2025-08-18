@@ -58,7 +58,7 @@ exports.getMarketList = async (req, res) => {
 
         // 1. Fetch base data, exchange symbols, and the user's personal favorites in parallel.
         const [coinsFromDB, binanceSymbols, okxSymbols, userFavorites] = await Promise.all([
-            MarketSnapshot.find().sort({ rank: 1 }).lean(),
+            MarketSnapshot.find({ type: 'coin' }).sort({ rank: 1 }).lean(),
             getBinanceSymbols(),
             getOkxSymbols(),
             // Fetch all favorite symbols for this specific user.
