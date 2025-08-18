@@ -5,6 +5,7 @@ const axios = require('axios');
 const MarketService = require('../../services/marketService');
 const Currency      = require('../../models/Currency');
 const MarketSnapshot = require('../../models/MarketSnapshot');
+const FavoriteSymbol = require('../../models/FavoriteSymbol');
 const logger = require("../../../logs/logger");
 
 /**
@@ -52,19 +53,26 @@ exports.getTopMovers = async (req, res) => {
 
 exports.getMarketList = async (req, res) => {
     try {
-        // 1. Fetch base data and exchange symbols in parallel for speed
-        const [coinsFromDB, binanceSymbols, okxSymbols] = await Promise.all([
+        // Get the authenticated user's ID from the request object.
+        const userId = req.user.id;
+
+        // 1. Fetch base data, exchange symbols, and the user's personal favorites in parallel.
+        const [coinsFromDB, binanceSymbols, okxSymbols, userFavorites] = await Promise.all([
             MarketSnapshot.find().sort({ rank: 1 }).lean(),
             getBinanceSymbols(),
-            getOkxSymbols()
+            getOkxSymbols(),
+            // Fetch all favorite symbols for this specific user.
+            FavoriteSymbol.find({ userId }).select('symbol').lean()
         ]);
 
-        // 2. Enrich the database data with live exchange info
-        const marketListData = coinsFromDB.map((coin, index) => {
-            let broker = 'Other'; // Default broker
-            let category = 'Spot'; // Default category
+        // Create a Set of the user's favorite symbols for fast lookups.
+        const favoriteSymbolsSet = new Set(userFavorites.map(fav => fav.symbol));
 
-            // Check which exchange supports this coin's symbol
+        // 2. Enrich the database data with live exchange info and the correct favorite status.
+        const marketListData = coinsFromDB.map((coin, index) => {
+            let broker = 'Other';
+            let category = 'Spot';
+
             if (binanceSymbols.has(coin.symbol)) {
                 broker = 'Binance';
                 category = binanceSymbols.get(coin.symbol).category;
@@ -72,18 +80,22 @@ exports.getMarketList = async (req, res) => {
                 broker = 'OKX';
                 category = okxSymbols.get(coin.symbol).category;
             }
-            // Add more checks for Bybit, BingX etc. here if needed
 
-            // 3. Format the final object to match the frontend's `SymbolData` interface
+            const fullSymbol = `${coin.symbol}/${category === 'Spot' ? 'USDT' : 'PERP'}`;
+
+            // Check if the full symbol exists in the user's favorite set.
+            const isFavorite = favoriteSymbolsSet.has(fullSymbol);
+
+            // 3. Format the final object to match the frontend's `SymbolData` interface.
             return {
-                id: index, // Use index as a simple unique ID for the frontend
-                symbol: `${coin.symbol}/${category === 'Spot' ? 'USDT' : 'PERP'}`,
+                id: index,
+                symbol: fullSymbol,
                 category: category,
                 broker: broker,
                 volume: coin.quotes.USD.volume_24h,
                 lastPrice: coin.quotes.USD.price,
                 dailyChange: coin.quotes.USD.percent_change_24h,
-                isFavorite: Math.random() > 0.9, // Default favorite status
+                isFavorite: isFavorite,
             };
         });
 
@@ -94,7 +106,6 @@ exports.getMarketList = async (req, res) => {
         res.status(500).json({ message: 'Failed to load market list', success: false });
     }
 };
-
 
 exports.getTickerDetails = async (req, res) => {
     const coinId = String(req.query.id || 'btc-bitcoin');   // CoinPaprika coin id
