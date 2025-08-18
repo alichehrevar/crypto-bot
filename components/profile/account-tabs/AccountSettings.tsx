@@ -1,9 +1,9 @@
 'use client';
 
+import React from "react";
 import { observer } from 'mobx-react'; // [1] Import observer and the new hook
 import { Avatar, Button, Select, SelectItem } from "@heroui/react";
 import Image from "next/image";
-import React from "react"; // No longer need useState or useEffect
 
 import { useUserStore } from '@/hooks/useUserStore';
 import AccountDetailsLoading from "@/components/loading/profile/AccountDetailsLoading";
