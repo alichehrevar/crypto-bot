@@ -1,6 +1,5 @@
 import React, {useEffect, useState} from "react";
 import {addToast, Spinner} from "@heroui/react";
-import Link from "next/link";
 
 import TradesList from "./technical/TradesList";
 import CloseBotModal from "./technical/modals/closeBotModal";
@@ -8,7 +7,7 @@ import PlayPauseBotModal from "./technical/modals/playPauseBotModal";
 
 import {Bot, DeployedBotsResponse} from "@/types/profile/bots/DeployedBots";
 import {getData} from "@/actions/get";
-import {ChevronRightIcon, OrderIcon} from "@/utils/icons";
+import {OrderIcon} from "@/utils/icons";
 import DeployButton from "@/components/shared/ui/DeployButton";
 
 export default function BotsList({refreshList = false, title = "Active Bots", listType, active = true, showTitle = true, showDeployButton = true}: {
