@@ -1,12 +1,12 @@
 'use client';
 
 import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
+import Image from "next/image";
 import { Tab, Tabs, addToast } from "@heroui/react";
 
-// [FIX 1] Import the new types and the data actions
 import { MarketListItem, MarketListResponse } from '@/types/MarketList';
 import { getData } from "@/actions/get";
-import { sendRequest } from "@/actions/post"; // <-- Import postData for the favorite action
+import { sendRequest } from "@/actions/post";
 
 // --- TYPE DEFINITIONS ---
 type SymbolData = MarketListItem;
@@ -42,11 +42,11 @@ const BrokerLogo: React.FC<{ broker: string }> = ({ broker }) => {
     const logoSize = "w-4 h-4";
 
     switch (broker) {
-        case 'Binance': return <svg className={logoSize} viewBox="0 0 96 96"><path d="M48 0L96 48L48 96L0 48L48 0ZM21 48L48 21L75 48L48 75L21 48Z" fill="#F0B90B" /><path d="M33 48L48 33L63 48L48 63L33 48Z" fill="#F0B90B" /></svg>;
-        case 'OKX': return <svg className={logoSize} viewBox="0 0 24 24"><path d="M10.6,13.4H13.4V10.6H10.6V13.4ZM24,12A12,12,0,1,0,12,24,12,12,0,0,0,24,12ZM8.4,8.4H5.6V5.6H8.4v2.8ZM5.6,18.4H8.4V15.6H5.6v2.8Zm2.8-5.6H5.6V10.6H8.4v2.2Zm5.6,5.6H10.6V15.6h2.8v2.8Zm5.6-5.6H15.6v2.8h2.8V15.6h-2.8v-2.2Zm2.8-2.8H15.6V8.4h2.8V5.6h2.8v5.6Z" fill="currentColor" /></svg>;
+        case 'Binance': return <Image alt="binance" height={12} src="/images/logos/market/binance-logo.png" width={12} />;
+        case 'OKX': return <Image alt="okx" height={12} src="/images/logos/market/okx-logo.svg" width={12} />;
         case 'BingX': return <svg className={logoSize} viewBox="0 0 24 24"><path d="M12,2A10,10,0,1,0,22,12,10,10,0,0,0,12,2Zm-1.1,14.39L6.3,11.8l1.4-1.4,3.2,3.2,4.9-4.9,1.4,1.4Z" fill="currentColor" /></svg>;
         case 'Bybit': return <div className={`${logoSize} rounded-full bg-gradient-to-br from-white to-green-400`} title="Bybit" />;
-        default: return <div className={`${logoSize} rounded-full bg-zinc-600`} title="Unknown Broker" />;
+        default: return <Image alt="united-algos" height={12} src="/images/logos/logo-white.png" width={12} />;
     }
 };
 
