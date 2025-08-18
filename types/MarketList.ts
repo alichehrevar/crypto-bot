@@ -1,35 +1,18 @@
-export type MarketQuote = {
-    price: number;
-    volume_24h: number;
-    market_cap: number;
-    percent_change_1h: number;
-    percent_change_24h: number;
-    percent_change_7d: number;
-};
-
-export type MarketSnapshot = {
-    _id: string;
-    id: string; // e.g. "btc-bitcoin"
-    name: string;
+// Defines the structure for a single item in the market list array
+export type MarketListItem = {
+    id: number;
     symbol: string;
-    rank: number;
-    circulating_supply: number;
-    total_supply: number;
-    max_supply: number;
-    beta_value: number;
-    first_data_at: string;
-    last_updated: string;
-    quotes: {
-        USD: MarketQuote;
-        BTC: MarketQuote;
-    };
-    imageUrl: string;
-    updatedAt: string;
-    __v?: number;
+    category: 'Spot' | 'USDT-M' | 'New Listing';
+    broker: 'Binance' | 'OKX' | 'Bybit' | 'BingX' | 'Other';
+    volume: number;
+    lastPrice: number;
+    dailyChange: number;
+    isFavorite: boolean;
 };
 
-export type MarketSnapshotResponse = {
-    data: MarketSnapshot[];
+// Defines the structure for the entire API response from the getMarketList endpoint
+export type MarketListResponse = {
+    data: MarketListItem[];
     success: boolean;
-    message: string;
-}
+    message?: string; // Optional message property for errors
+};
