@@ -5,5 +5,6 @@ const authenticate = require('../app/http/middleware/auth'); // Authentication m
 const userController = require('../app/http/controllers/userController');
 
 router.get('/info',   authenticate, userController.userInfo);
+router.post('/favorites/toggle', authenticate, userController.toggleFavoriteSymbol);
 
 module.exports = router;
