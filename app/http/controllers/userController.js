@@ -1,7 +1,7 @@
 // app/http/controllers/userController.js
 
 const User = require('../../models/User');
-const FavoriteSymbol = require('../../../models/FavoriteSymbol');
+const FavoriteSymbol = require('../../models/FavoriteSymbol');
 
 exports.userInfo = async (req, res) => {
     const user = await User.findById(req.user?.id).populate('info');
