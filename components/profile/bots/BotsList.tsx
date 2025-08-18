@@ -9,6 +9,7 @@ import PlayPauseBotModal from "./technical/modals/playPauseBotModal";
 import {Bot, DeployedBotsResponse} from "@/types/profile/bots/DeployedBots";
 import {getData} from "@/actions/get";
 import {ChevronRightIcon, OrderIcon} from "@/utils/icons";
+import DeployButton from "@/components/shared/ui/DeployButton";
 
 export default function BotsList({refreshList = false, title = "Active Bots", listType, active = true, showTitle = true, showDeployButton = true}: {
     refreshList?: boolean,
@@ -70,10 +71,7 @@ export default function BotsList({refreshList = false, title = "Active Bots", li
                     </div>
                 }
                 {!isLoading && deployedBots.length === 0 && showDeployButton &&
-                    <Link className="flex items-center gap-1 hover:scale-105 transition-all duration-300 bg-white text-black border-1 border-white py-1.5 px-3 rounded-xl" href="/profile/bots">
-                        <span className="text-xs">Deploy Bot</span>
-                        <ChevronRightIcon className="size-3" />
-                    </Link>
+                    <DeployButton />
                 }
             </div>
 

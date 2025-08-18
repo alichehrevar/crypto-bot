@@ -7,6 +7,7 @@ import BotSelectionComponent from "@/components/profile/bots/BotSelectionCompone
 import BotProgressChart from "@/components/shared/charts/BotProgressChart";
 import BotsList from "@/components/profile/bots/BotsList";
 import {RecentBots} from "@/components/shared/RecentBots";
+import DeployButton from "@/components/shared/ui/DeployButton";
 
 export default function BotsPage() {
 
@@ -20,7 +21,10 @@ export default function BotsPage() {
                 <div className="grid grid-cols-1 rounded-2xl lg:py-6">
                     <RecentBots/>
                 </div>
-                <div className="grid grid-cols-1 bg-dark-gray rounded-2xl lg:py-6 lg:px-3 w-full min-h-[300px]">
+                <div className="grid grid-cols-1 bg-dark-gray rounded-2xl lg:py-6 lg:px-3 w-full min-h-[300px] relative">
+                    <div className="absolute top-7 right-6 z-10">
+                        <DeployButton />
+                    </div>
                     <Tabs
                         aria-label="Tabs variants"
                         classNames={{
@@ -29,7 +33,7 @@ export default function BotsPage() {
                         variant="underlined"
                     >
                         <Tab key="active-bots" title="Active Bots">
-                            <BotsList showTitle={false}/>
+                            <BotsList showDeployButton={false} showTitle={false} />
                         </Tab>
                         <Tab key="recent-bots" title="Recent Bots">
                             <BotsList active={false} showTitle={false} />
