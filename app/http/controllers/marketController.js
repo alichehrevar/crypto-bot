@@ -1,5 +1,7 @@
 // app/http/controllers/marketController.js
 
+const axios = require('axios');
+
 const MarketService = require('../../services/marketService');
 const Currency      = require('../../models/Currency');
 const MarketSnapshot = require('../../models/MarketSnapshot');
@@ -50,13 +52,49 @@ exports.getTopMovers = async (req, res) => {
 
 exports.getMarketList = async (req, res) => {
     try {
-        const coins = await MarketSnapshot.find().sort({ rank: 1 });
-        res.status(200).json({data: coins, success: true});
+        // 1. Fetch base data and exchange symbols in parallel for speed
+        const [coinsFromDB, binanceSymbols, okxSymbols] = await Promise.all([
+            MarketSnapshot.find().sort({ rank: 1 }).lean(),
+            getBinanceSymbols(),
+            getOkxSymbols()
+        ]);
+
+        // 2. Enrich the database data with live exchange info
+        const marketListData = coinsFromDB.map((coin, index) => {
+            let broker = 'Other'; // Default broker
+            let category = 'Spot'; // Default category
+
+            // Check which exchange supports this coin's symbol
+            if (binanceSymbols.has(coin.symbol)) {
+                broker = 'Binance';
+                category = binanceSymbols.get(coin.symbol).category;
+            } else if (okxSymbols.has(coin.symbol)) {
+                broker = 'OKX';
+                category = okxSymbols.get(coin.symbol).category;
+            }
+            // Add more checks for Bybit, BingX etc. here if needed
+
+            // 3. Format the final object to match the frontend's `SymbolData` interface
+            return {
+                id: index, // Use index as a simple unique ID for the frontend
+                symbol: `${coin.symbol}/${category === 'Spot' ? 'USDT' : 'PERP'}`,
+                category: category,
+                broker: broker,
+                volume: coin.quotes.USD.volume_24h,
+                lastPrice: coin.quotes.USD.price,
+                dailyChange: coin.quotes.USD.percent_change_24h,
+                isFavorite: Math.random() > 0.9, // Default favorite status
+            };
+        });
+
+        res.status(200).json({ data: marketListData, success: true });
+
     } catch (error) {
         console.error('Market list error:', error);
         res.status(500).json({ message: 'Failed to load market list', success: false });
     }
 };
+
 
 exports.getTickerDetails = async (req, res) => {
     const coinId = String(req.query.id || 'btc-bitcoin');   // CoinPaprika coin id
@@ -114,3 +152,67 @@ exports.getTickerDetails = async (req, res) => {
         return res.status(500).json({ success: false, message: 'Failed to load market ticker' });
     }
 };
+
+/**
+ * Fetches all tradable symbols from the Binance API.
+ * @returns {Promise<Map<string, { category: 'Spot' | 'USDT-M' }>>} A Map where keys are symbols (e.g., 'BTC')
+ * and values contain their category.
+ */
+async function getBinanceSymbols() {
+    try {
+        const [spotRes, futuresRes] = await Promise.all([
+            axios.get('https://api.binance.com/api/v3/exchangeInfo'),
+            axios.get('https://fapi.binance.com/fapi/v1/exchangeInfo')
+        ]);
+
+        const symbolMap = new Map();
+
+        // Process Spot symbols
+        if (spotRes.data && spotRes.data.symbols) {
+            for (const s of spotRes.data.symbols) {
+                if (s.quoteAsset === 'USDT') {
+                    symbolMap.set(s.baseAsset, { category: 'Spot' });
+                }
+            }
+        }
+
+        // Process USDT-M futures symbols
+        if (futuresRes.data && futuresRes.data.symbols) {
+            for (const s of futuresRes.data.symbols) {
+                if (s.quoteAsset === 'USDT' && s.contractType === 'PERPETUAL') {
+                    // Spot data takes precedence if it exists
+                    if (!symbolMap.has(s.baseAsset)) {
+                        symbolMap.set(s.baseAsset, { category: 'USDT-M' });
+                    }
+                }
+            }
+        }
+        return symbolMap;
+    } catch (error) {
+        console.error('Failed to fetch Binance symbols:', error.message);
+        return new Map(); // Return empty map on error
+    }
+}
+
+/**
+ * Fetches all tradable symbols from the OKX API.
+ * @returns {Promise<Map<string, { category: 'Spot' | 'USDT-M' }>>} A Map of OKX symbols.
+ */
+async function getOkxSymbols() {
+    try {
+        const response = await axios.get('https://www.okx.com/api/v5/public/instruments?instType=SWAP');
+        const symbolMap = new Map();
+
+        if (response.data && response.data.data) {
+            for (const inst of response.data.data) {
+                if (inst.settleCcy === 'USDT') {
+                    symbolMap.set(inst.baseCcy, { category: 'USDT-M' });
+                }
+            }
+        }
+        return symbolMap;
+    } catch (error) {
+        console.error('Failed to fetch OKX symbols:', error.message);
+        return new Map();
+    }
+}
