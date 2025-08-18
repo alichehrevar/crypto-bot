@@ -19,20 +19,7 @@ const seedSymbols = require('./db/seeds/currencySeeder');
 const { logEmitter, originalConsoleLog } = require('./logs/logEmitter');
 
 // Routers
-const authRoutes         = require('./routes/auth');
-const accountRoutes      = require('./routes/accounts');
-const candleRoutes       = require('./routes/candles');
-const botRoutes          = require('./routes/bots');
-const backtestRoutes     = require('./routes/backtest');
-const visualizationRoutes= require('./routes/visualization');
-const currencyRoutes     = require('./routes/currencies');
-const indicatorsRoutes   = require('./routes/indicators');
-const logsRouter         = require('./routes/logs');
-const marketRoutes = require('./routes/market')
-const pnlRoutes = require('./routes/pnl');
-const ordersRouter = require("./routes/orders");
-const coinRoutes = require('./routes/coin');
-const userRoutes = require('./routes/user');
+const apiRoutes = require('./routes/index');
 
 const app = express();
 
@@ -115,24 +102,8 @@ app.get('/health', (req, res) => {
 });
 
 // API routes
-app.use('/api/auth', authRoutes);
-app.use('/api/accounts', accountRoutes);
-app.use('/api/candles', candleRoutes);
-app.use('/api/bots', botRoutes);
-app.use('/api/backtest', backtestRoutes);
-app.use('/api/visualize', visualizationRoutes);
-app.use('/api/currencies', currencyRoutes);
-app.use('/api/indicators', indicatorsRoutes);
-app.use('/api/market', marketRoutes)
-app.use('/api/pnl', pnlRoutes);
-app.use('/api/orders', ordersRouter);
-app.use('/api/asset', ordersRouter);
-app.use('/api/coins', coinRoutes)
-app.use('/api/user', userRoutes)
+app.use('/api', apiRoutes);
 
-
-// Logs REST endpoint
-app.use('/api/logs', logsRouter);
 
 // Error handler
 app.use((err, req, res, _) => {
