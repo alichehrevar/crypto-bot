@@ -287,7 +287,7 @@ export default function MarketListWithSearch() {
                 </div>
             </div>
             <div ref={scrollContainerRef} className="overflow-y-auto scrollbar-hide flex-grow">
-                <div className="relative" style={{ height: `${filteredAndSortedSymbols.length * ROW_HEIGHT}px` }}>
+                <div className="relative h-full overscroll-y-auto">
                     <div style={{ position: 'absolute', top: `${paddingTop}px`, width: '100%' }}>
                         {loading ? (
                             Array.from({ length: 10 }).map((_, i) => <SkeletonRow key={i} style={{ height: `${ROW_HEIGHT}px` }} />)
@@ -298,7 +298,7 @@ export default function MarketListWithSearch() {
                                     activeMainTab={activeMainTab}
                                     style={{ height: `${ROW_HEIGHT}px` }}
                                     symbol={symbol}
-                                    onToggleFavorite={handleToggleFavorite} // <-- Pass the new handler
+                                    onToggleFavorite={handleToggleFavorite}
                                 />
                             ))
                         ) : (

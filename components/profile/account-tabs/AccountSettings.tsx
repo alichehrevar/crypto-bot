@@ -21,7 +21,7 @@ const AccountSettingsTab = observer(() => {
 
     return (
         <section
-            className="bg-dark-gray light:bg-white shadow-lg flex flex-col items-start justify-center w-full rounded-lg mx-4 py-10 px-10 gap-10">
+            className="bg-dark-gray light:bg-white shadow-lg flex flex-col items-start justify-center w-full rounded-lg mx-4 py-10 px-10 gap-10 max-w-4xl">
 
             {/* Account Details Section */}
             {isLoading ? (

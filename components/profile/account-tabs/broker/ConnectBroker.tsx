@@ -7,7 +7,7 @@ import ByBitTab from "@/components/profile/account-tabs/broker/broker-tabs/ByBit
 
 export default function ConnectBrokerTab() {
   return (
-    <section className="dark:bg-[#161616] light:bg-white shadow-lg flex flex-col items-start justify-center w-full rounded-lg mx-4 py-10 px-10 gap-10">
+    <section className="bg-dark-gray light:bg-white shadow-lg flex flex-col items-start justify-center w-full rounded-lg mx-4 py-10 px-10 gap-10">
       <Tabs
         isVertical
         aria-label="Options"
