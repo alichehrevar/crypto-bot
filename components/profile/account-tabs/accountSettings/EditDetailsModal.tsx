@@ -102,11 +102,11 @@ export default function EditDetailsModal(props: {userData: User | null}) {
                                             <Autocomplete
                                                 isRequired
                                                 className="w-[90px]"
+                                                defaultSelectedKey={props.userData?.info?.phoneCountry}
                                                 id="country-code"
                                                 isClearable={false}
                                                 items={CountryCodes}
                                                 name="phoneCountry"
-                                                selectedKey={props.userData?.info?.phoneCountry}
                                             >
                                                 {CountryCodes.map((country) => (
                                                     <AutocompleteItem key={country.code} textValue={country.code}>
