@@ -7,6 +7,6 @@ export interface BotConfigFormProps {
 
 export default function LabelTag ({ id, title }: BotConfigFormProps) {
   return (
-    <label className="font-bold text-sm" htmlFor={id}>{ title }</label>
+    <label className="font-bold text-sm ml-1" htmlFor={id}>{ title }</label>
   )
 }

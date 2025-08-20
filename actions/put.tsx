@@ -1,11 +1,11 @@
 'use server';
 import { cookies } from "next/headers";
 
-export async function updateRequest (body: BodyInit | null, url: string) {
+export async function updateRequest (body: { [p: string]: File | string }, url: string) {
     const nextCookies = await cookies();
 
     try {
-        const response = await fetch(process.env.API_URL! + '/api/v2' + url, {
+        const response = await fetch(process.env.API_URL! + '/api' + url, {
             method: 'PUT',
             headers: {
                 Accept: 'application/json',

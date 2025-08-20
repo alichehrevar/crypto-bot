@@ -14,7 +14,7 @@ const UserDropDown = observer(() => {
     // Initialize the Next.js router
     const router = useRouter();
 
-    const userStore = useUserStore(); // [FIX] Initialize the store via the hook
+    const userStore = useUserStore(); // Initialize the store via the hook
 
     // The loading state is now simpler and more reliable
     const isLoading = !userStore.isInitialized;

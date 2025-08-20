@@ -10,6 +10,8 @@ import {
 import { getLocalTimeZone, parseDate, today } from "@internationalized/date";
 import { useDateFormatter } from "@react-aria/i18n";
 
+import {CountryCodes} from "@/utils/countryCodes";
+
 interface ProfileSetupFormProps {
   onSubmit: (data: any) => void;
   onBack: () => void;
@@ -36,18 +38,6 @@ const ProfileSetupForm = ({ onSubmit}: ProfileSetupFormProps) => {
       phoneNumber
     });
   };
-
-  const countryCodes = [
-    { code: '+1', country: 'US', flag: '🇺🇸' },
-    { code: '+44', country: 'UK', flag: '🇬🇧' },
-    { code: '+49', country: 'DE', flag: '🇩🇪' },
-    { code: '+33', country: 'FR', flag: '🇫🇷' },
-    { code: '+39', country: 'IT', flag: '🇮🇹' },
-    { code: '+34', country: 'ES', flag: '🇪🇸' },
-    { code: '+81', country: 'JP', flag: '🇯🇵' },
-    { code: '+86', country: 'CN', flag: '🇨🇳' },
-    { code: '+91', country: 'IN', flag: '🇮🇳' },
-  ];
 
   return (
     <form className="space-y-6" onSubmit={handleSubmit}>
@@ -112,11 +102,11 @@ const ProfileSetupForm = ({ onSubmit}: ProfileSetupFormProps) => {
             errorMessage={!phoneCountry ? "" : "Country code is required"}
             id="phone-number"
             isClearable={false}
-            items={countryCodes}
+            items={CountryCodes}
             name="country-code"
             onSelectionChange={(k: Key | null) => setPhoneCountry(k as string)}
           >
-            {countryCodes.map((country) => (
+            {CountryCodes.map((country) => (
               <AutocompleteItem key={country.code} textValue={country.code}>
                   <span className="flex items-center gap-2">
                     <span>{country.flag}</span>

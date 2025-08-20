@@ -8,6 +8,7 @@ import Image from "next/image";
 import { useUserStore } from '@/hooks/useUserStore';
 import AccountDetailsLoading from "@/components/loading/profile/AccountDetailsLoading";
 import SecuritySettingsLoading from "@/components/loading/profile/SecuritySettingsLoading";
+import EditDetailsModal from "@/components/profile/account-tabs/accountSettings/EditDetailsModal";
 
 // [2] Wrap the component with observer to make it reactive
 const AccountSettingsTab = observer(() => {
@@ -18,6 +19,10 @@ const AccountSettingsTab = observer(() => {
     // [4] Derive the loading state directly from the store. The component is now purely reactive.
     const isLoading = !userStore.isInitialized;
     const userData = userStore.userData;
+
+    if (!userStore.userData) {
+        return null;
+    }
 
     return (
         <section
@@ -32,8 +37,12 @@ const AccountSettingsTab = observer(() => {
                         <div className="flex items-center justify-center gap-8">
                             <Avatar
                                 isBordered
-                                className="w-[60px] h-[60px] hover:border-white"
-                                src={userData?.info?.avatar || "https://i.pravatar.cc/150?u=a04258a2462d826712d"}
+                                as="button"
+                                className="w-[60px] h-[60px]  transition-transform"
+                                color="primary"
+                                name={userStore.userData.info?.firstName + ' ' + userStore.userData.info?.lastName}
+                                size="sm"
+                                src={userStore.userData.info?.avatar || '/images/icons/default.svg'}
                             />
                             <div className="flex flex-col items-start justify-center text-[13px] gap-4 text-gray-400">
                                 <span>Username</span>
@@ -44,24 +53,15 @@ const AccountSettingsTab = observer(() => {
                                 <span>{userData?.id || 'N/A'}</span>
                             </div>
                         </div>
-                        <Button>
-                            <svg className="size-3" fill="none" stroke="currentColor" strokeWidth="1.5"
-                                 viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                <path
-                                    d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"/>
-                            </svg>
-                            <span className="text-[13px]">Edit</span>
-                        </Button>
+                        <EditDetailsModal userData={userData} />
                     </div>
                     <div className="flex items-start justify-center flex-col gap-4 mt-6">
                         <h2 className="text-left font-bold">Account Details</h2>
                         <ul className="flex items-start justify-center flex-col gap-4 text-[13px] mt-4">
                             <li className="flex items-center justify-center">
-                                <span className="text-gray-400 w-[200px]">Email Address</span>
+                                <span className="text-gray-400 w-[200px]">Full Name</span>
                                 <div className="flex items-center justify-center gap-2">
-                                    <span>{userData?.email || 'N/A'}</span>
+                                    <span>{(userData?.info?.firstName + ' ' + userData?.info?.lastName) || 'N/A'}</span>
                                 </div>
                             </li>
                             <li className="flex items-center justify-center">

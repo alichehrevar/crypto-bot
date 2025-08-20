@@ -4,7 +4,7 @@ import React, { useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { Tab, Tabs } from "@heroui/react";
 
-import AccountSettingsTab from "@/components/profile/account-tabs/AccountSettings";
+import AccountSettingsTab from "@/components/profile/account-tabs/accountSettings/AccountSettings";
 import ConnectBrokerTab from "@/components/profile/account-tabs/broker/ConnectBroker";
 import IOPanel from "@/components/profile/account-tabs/IOPanel/IOPanel";
 import Subscriptions from "@/components/profile/account-tabs/subscriptions/Subscriptions";
