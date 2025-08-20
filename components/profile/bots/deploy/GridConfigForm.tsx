@@ -351,6 +351,7 @@ export default function GridConfigForm({
           <Input
             required
             id="botName"
+            radius="sm"
             value={name}
             onChange={(e) => setName(e.target.value)}
           />
@@ -363,6 +364,7 @@ export default function GridConfigForm({
             id="account"
             isClearable={false}
             items={accounts}
+            radius="sm"
             onSelectionChange={(k: Key | null) => handleAccountChange(k)}
           >
             {accounts.map((acc) => (
@@ -382,6 +384,7 @@ export default function GridConfigForm({
             defaultItems={symbols}
             id="symbol"
             isClearable={false}
+            radius="sm"
             onSelectionChange={(k) => k && setSelectedSymbol(k.toString())}
           >
             {symbols.map((s) => (
@@ -403,6 +406,7 @@ export default function GridConfigForm({
             id="baseFund"
             max={availableBalance}
             min={0}
+            radius="sm"
             step="0.01"
             type="number"
             value={baseFund}
@@ -419,6 +423,7 @@ export default function GridConfigForm({
           <Autocomplete
             id="riskStrategy"
             isClearable={false}
+            radius="sm"
             onSelectionChange={(k) => k && setRiskStrategy(k.toString())}
           >
             {botProps.riskStrategyOptions.map((rs) => (
@@ -439,6 +444,7 @@ export default function GridConfigForm({
                 <Input
                   required
                   id="lowerPrice"
+                  radius="sm"
                   step="0.01"
                   type="number"
                   value={lowerPrice}
@@ -452,6 +458,7 @@ export default function GridConfigForm({
                 <Input
                   required
                   id="upperPrice"
+                  radius="sm"
                   step="0.01"
                   type="number"
                   value={upperPrice}
@@ -473,6 +480,7 @@ export default function GridConfigForm({
               required
               id="numberOfGrids"
               min={1}
+              radius="sm"
               step={1}
               type="number"
               value={gridCount}
@@ -499,6 +507,7 @@ export default function GridConfigForm({
               id="investment"
               max={100}
               min={1}
+              radius="sm"
               required={usePercentage}
               type="number"
               value={investmentAmount}
@@ -525,6 +534,7 @@ export default function GridConfigForm({
               id="takeProfit"
               max={500}
               min={0.1}
+              radius="sm"
               required={enableTPSL}
               step={0.1}
               type="number"
@@ -557,6 +567,7 @@ export default function GridConfigForm({
               id="stopLoss"
               max={500}
               min={0.1}
+              radius="sm"
               required={enableTPSL}
               step={0.1}
               type="number"

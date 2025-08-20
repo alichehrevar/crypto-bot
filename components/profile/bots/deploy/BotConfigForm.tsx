@@ -247,6 +247,7 @@ export default function BotConfigForm({ mode, selectedParentTab, onCloseAction }
             required
             className="mt-0"
             id="botName"
+            radius="sm"
             value={name}
             onChange={e => setName(e.target.value)}
           />
@@ -259,6 +260,7 @@ export default function BotConfigForm({ mode, selectedParentTab, onCloseAction }
             id="account"
             isClearable={false}
             items={accounts}
+            radius="sm"
             onSelectionChange={(k: Key | null) => handleAccountChange(k)}
           >
             {accounts.map((acc, index) => (
@@ -280,6 +282,7 @@ export default function BotConfigForm({ mode, selectedParentTab, onCloseAction }
             defaultItems={symbols}
             id="symbol"
             isClearable={false}
+            radius="sm"
             onSelectionChange={k => k && setSymbol(k.toString())}
           >
             {symbols.map(s => (
@@ -301,6 +304,7 @@ export default function BotConfigForm({ mode, selectedParentTab, onCloseAction }
             id="tradeFund"
             max={100}
             min={1}
+            radius="sm"
             type="number"
             value={tradeFund}
             onChange={e => setTradeFund(e.target.value)}
@@ -309,7 +313,7 @@ export default function BotConfigForm({ mode, selectedParentTab, onCloseAction }
             {[25, 50, 75, 100].map(p => (
               <button
                 key={p}
-                className="w-1/4 h-[30px] bg-default-100 rounded-xl text-sm"
+                className="w-1/4 h-[30px] bg-default-100 rounded-lg text-sm"
                 type="button"
                 onClick={() => setTradeFund(String(p))}
               >
@@ -326,6 +330,7 @@ export default function BotConfigForm({ mode, selectedParentTab, onCloseAction }
             allowsEmptyCollection={false}
             id="leverage"
             isClearable={false}
+            radius="sm"
             onSelectionChange={k => k && setLeverage(Number(k.toString()))}
           >
             {leverageOptions.map(lv => (
@@ -342,6 +347,7 @@ export default function BotConfigForm({ mode, selectedParentTab, onCloseAction }
           <Autocomplete
             id="riskStrategy"
             isClearable={false}
+            radius="sm"
             onSelectionChange={k => k && setRiskStrategy(k.toString())}
           >
             {botProps.riskStrategyOptions.map(rs => (
@@ -365,6 +371,7 @@ export default function BotConfigForm({ mode, selectedParentTab, onCloseAction }
           <LabelTag id="takeProfit" title="Take Profit" />
           <Input
             id="takeProfit"
+            radius="sm"
             step="0.01"
             type="number"
             value={takeProfit.toString()}
@@ -375,6 +382,7 @@ export default function BotConfigForm({ mode, selectedParentTab, onCloseAction }
           <LabelTag id="stopLoss" title="Stop Loss" />
           <Input
             id="stopLoss"
+            radius="sm"
             step="0.01"
             type="number"
             value={stopLoss.toString()}
@@ -387,8 +395,9 @@ export default function BotConfigForm({ mode, selectedParentTab, onCloseAction }
           <div className="space-y-2 flex flex-col w-2/3">
             <LabelTag id="indicator" title="Indicator" />
             <Autocomplete
-              id="indicator"
+                id="indicator"
               isClearable={false}
+              radius="sm"
               onSelectionChange={k => k && setIndicator(k.toString())}
             >
               {botProps.indicatorOptions.map(ind => (
@@ -403,6 +412,7 @@ export default function BotConfigForm({ mode, selectedParentTab, onCloseAction }
             <Autocomplete
               id="Timeframe"
               isClearable={false}
+              radius="sm"
               onSelectionChange={k => k && setTimeframe(k.toString())}
             >
               {botProps.timeframeOptions.map(tf => (
@@ -422,6 +432,7 @@ export default function BotConfigForm({ mode, selectedParentTab, onCloseAction }
               <Autocomplete
                 id={`indicator${i}`}
                 isClearable={false}
+                radius="sm"
                 onSelectionChange={k => {
                   const nxt = [...additional];
 
@@ -441,6 +452,7 @@ export default function BotConfigForm({ mode, selectedParentTab, onCloseAction }
               <Autocomplete
                 id={`timeframe${i}`}
                 isClearable={false}
+                radius="sm"
                 onSelectionChange={k => {
                   const nxt = [...additional];
 

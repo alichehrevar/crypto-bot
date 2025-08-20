@@ -50,7 +50,7 @@ export default function TechnicalDeployBotSection ({
         aria-label="Options"
         classNames={{
           cursor: "w-full bg-white dark:group-data-[selected=true]:bg-white",
-          tab: "h-10",
+            tab: "h-8 text-[12px]",
           tabContent: "dark:group-data-[selected=true]:text-black",
           panel: "h-full overflow-y-auto over-flow-x-hidden bot-config-form thin-scrollbar"
         }}

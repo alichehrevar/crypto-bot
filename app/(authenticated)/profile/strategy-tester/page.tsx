@@ -200,7 +200,7 @@ export default function StrategyTesterPage() {
     };
 
     return (
-        <div className="w-full mt-4 relative px-5 backtester-page">
+        <div className="w-full mt-4 relative px-5 backtester-page overflow-y-auto h-full">
             <div className="w-full flex flex-col gap-2">
                 <MarketStats symbolId={selectedSymbol ?? undefined} />
 
@@ -246,6 +246,7 @@ export default function StrategyTesterPage() {
                                         defaultItems={symbols}
                                         id="symbol"
                                         isClearable={false}
+                                        radius="sm"
                                         onSelectionChange={(k) => k && setSelectedSymbol(k.toString())}
                                     >
                                         {symbols.map((s) => (
@@ -266,12 +267,13 @@ export default function StrategyTesterPage() {
                                             className="w-28"
                                             min={1}
                                             placeholder="e.g., 1000"
+                                            radius="sm"
                                             type="number"
                                             value={recentCount}
                                             onChange={(e) => setRecentCount(e.target.value)}
                                         />
                                     ) : (
-                                        <DateRangePicker className="w-auto" value={dateRangeValue} onChange={setDateRangeValue} />
+                                        <DateRangePicker className="w-auto" radius="sm" value={dateRangeValue} onChange={setDateRangeValue} />
                                     )}
                                 </div>
                             </div>
@@ -285,6 +287,7 @@ export default function StrategyTesterPage() {
                                                 className="flex-1"
                                                 id="indicator"
                                                 isClearable={false}
+                                                radius="sm"
                                                 selectedKey={row.indicator}
                                                 onSelectionChange={(v) => updateIndicator(i, v as string)}
                                             >
@@ -301,6 +304,7 @@ export default function StrategyTesterPage() {
                                                 className="w-28"
                                                 id="timeframe"
                                                 isClearable={false}
+                                                radius="sm"
                                                 selectedKey={row.timeframe}
                                                 onSelectionChange={(v) => updateTimeframe(i, v as string)}
                                             >
@@ -345,11 +349,11 @@ export default function StrategyTesterPage() {
                                         <div className="flex gap-4 mt-2">
                                             <div className="space-y-2">
                                                 <LabelTag id="min-accuracy" title="Min Accuracy (%)" />
-                                                <Input id="min-accuracy" min={0} type="number" value={minAccuracy} onChange={(e) => setMinAccuracy(e.target.value)} />
+                                                <Input id="min-accuracy" min={0} radius="sm" type="number" value={minAccuracy} onChange={(e) => setMinAccuracy(e.target.value)} />
                                             </div>
                                             <div className="space-y-2">
                                                 <LabelTag id="min-trades" title="Min Trades" />
-                                                <Input id="min-trades" min={1} type="number" value={minTrades} onChange={(e) => setMinTrades(e.target.value)} />
+                                                <Input id="min-trades" min={1} radius="sm" type="number" value={minTrades} onChange={(e) => setMinTrades(e.target.value)} />
                                             </div>
                                         </div>
                                     </>
