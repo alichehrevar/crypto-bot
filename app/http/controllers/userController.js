@@ -1,6 +1,7 @@
 // app/http/controllers/userController.js
 
 const User = require('../../models/User');
+const UserInfo = require('../../models/UserInfo');
 const FavoriteSymbol = require('../../models/FavoriteSymbol');
 
 exports.userInfo = async (req, res) => {
@@ -25,6 +26,75 @@ exports.userInfo = async (req, res) => {
             } : null,
         },
     });
+};
+
+/**
+ * @description Updates the information for the authenticated user.
+ * It finds the user's associated info document or creates one if it doesn't exist.
+ */
+exports.updateUserInfo = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const {
+            firstName,
+            lastName,
+            gender,
+            phoneCountry,
+            phoneNumber,
+            birthday,
+            avatar
+        } = req.body;
+
+        // Prepare the fields to be updated
+        const updateData = {
+            userId, // Ensure the userId is always linked
+            firstName,
+            lastName,
+            gender,
+            phoneCountry,
+            phoneNumber,
+            birthday,
+            avatar
+        };
+
+        // Use findOneAndUpdate with upsert to find the UserInfo by userId or create it.
+        // This is more efficient than finding the user first.
+        const updatedUserInfo = await UserInfo.findOneAndUpdate(
+            { userId: userId },
+            { $set: updateData },
+            { new: true, upsert: true, runValidators: true }
+        );
+
+        // Find the user to return the complete data structure
+        const user = await User.findById(userId);
+
+        // Return a success response with the updated, populated data
+        return res.status(200).json({
+            success: true,
+            message: 'User information updated successfully.',
+            data: {
+                id: user._id,
+                email: user.email,
+                info: {
+                    firstName: updatedUserInfo.firstName,
+                    lastName:  updatedUserInfo.lastName,
+                    gender:    updatedUserInfo.gender,
+                    phoneCountry: updatedUserInfo.phoneCountry,
+                    phoneNumber:  updatedUserInfo.phoneNumber,
+                    birthday:     updatedUserInfo.birthday,
+                    avatar:       updatedUserInfo.avatar,
+                }
+            }
+        });
+
+    } catch (error) {
+        console.error('Error in updateUserInfo:', error);
+        // Provide more specific error messages if possible, e.g., for validation errors
+        if (error.name === 'ValidationError') {
+            return res.status(400).json({ success: false, message: error.message });
+        }
+        res.status(500).json({ success: false, message: 'Internal server error.' });
+    }
 };
 
 /**
