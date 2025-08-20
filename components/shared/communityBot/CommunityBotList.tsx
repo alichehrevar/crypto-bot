@@ -22,15 +22,14 @@ interface BotData {
     followers: number;
 }
 
-export default function CommunityBotList () {
+export default function CommunityBotList() {
     const [bots, setBots] = useState<BotData[]>([]);
 
     const pagination = {
         clickable: true,
-        dynamicBullets: true,
-        renderBullet: function (index: number, className: string) {
-            return '<span class="' + className + '"></span>';
-        },
+        el: '.swiper-pagination',
+        bulletActiveClass: 'swiper-pagination-bullet-active',
+        bulletClass: 'swiper-pagination-bullet',
     };
 
     // Generate random data on mount
@@ -40,7 +39,7 @@ export default function CommunityBotList () {
             name: `Bot ${Math.ceil(Math.random() * 100)}`,
             active: Math.random() > 0.5,
             changePct: parseFloat(((Math.random() - 0.5) * 20).toFixed(2)),
-            sparklineData: Array.from({ length: 7 }, () =>
+            sparklineData: Array.from({length: 7}, () =>
                 Math.floor(100 + Math.random() * 100)
             ),
             transactions: Math.floor(Math.random() * 200),
@@ -51,11 +50,11 @@ export default function CommunityBotList () {
             followers: Math.floor(Math.random() * 1000),
         });
 
-        setBots(Array.from({ length: 12 }, generateOne));
+        setBots(Array.from({length: 12}, generateOne));
     }, []);
 
     return (
-        <div className="shadow-xl backdrop-blur-sm mt-4">
+        <div className="shadow-xl backdrop-blur-sm mt-4 relative">
             <h3 className="text-xl font-semibold text-white mb-6">Community Bot</h3>
             <Swiper
                 centeredSlides={false}
@@ -78,6 +77,7 @@ export default function CommunityBotList () {
                     </SwiperSlide>
                 ))}
             </Swiper>
+            <div className="swiper-pagination absolute left-0 right-0 top-auto mx-auto bottom-[-18px] h-3"/>
         </div>
     )
 }

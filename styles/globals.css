@@ -141,12 +141,21 @@ section[role="dialog"] .overflow-y-auto::-webkit-scrollbar-track {
 .today-bots-swiper .swiper-button-prev:after {
     font-size: 18px;
 }
-.today-bots-swiper .swiper-pagination-bullet {
-    background: #374151;
+.swiper-pagination-fraction, .swiper-pagination-custom, .swiper-horizontal > .swiper-pagination-bullets, .swiper-pagination-bullets.swiper-pagination-horizontal {
+    top: auto !important;
+    bottom: -15px !important;
+    left: 0 !important;
+    right: 0 !important;
+    margin: auto !important;
+}
+.swiper-pagination-bullet {
+    cursor: pointer;
+    background: white !important;
     opacity: 1;
 }
-.today-bots-swiper .swiper-pagination-bullet-active {
-    background: #10B981;
+.swiper-pagination-bullet.swiper-pagination-bullet-active {
+    background: white !important;
+    opacity: 1;
 }
 .today-bots-swiper .swiper-pagination {
     bottom: -10px;
