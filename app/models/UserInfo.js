@@ -16,10 +16,6 @@ const userInfoSchema = new mongoose.Schema({
         type: String,
         required: true
     },
-    gender: {
-        type: String,
-        required: true
-    },
     phoneCountry: {
         type: String,
         required: true

@@ -80,7 +80,6 @@ exports.register = async (req, res) => {
             password,
             firstName,
             lastName,
-            gender,
             phoneCountry,
             phoneNumber,
             birthday,
@@ -109,7 +108,6 @@ exports.register = async (req, res) => {
             userId: user._id,
             firstName: firstName,
             lastName: lastName,
-            gender: gender,
             phoneCountry: phoneCountry,
             phoneNumber: phoneNumber,
             birthday: birthday

@@ -18,7 +18,6 @@ exports.userInfo = async (req, res) => {
             info: user.info ? {
                 firstName: user.info.firstName,
                 lastName:  user.info.lastName,
-                gender:    user.info.gender,
                 phoneCountry: user.info.phoneCountry,
                 phoneNumber:  user.info.phoneNumber,
                 birthday:     user.info.birthday,
@@ -38,7 +37,6 @@ exports.updateUserInfo = async (req, res) => {
         const {
             firstName,
             lastName,
-            gender,
             phoneCountry,
             phoneNumber,
             birthday,
@@ -50,7 +48,6 @@ exports.updateUserInfo = async (req, res) => {
             userId, // Ensure the userId is always linked
             firstName,
             lastName,
-            gender,
             phoneCountry,
             phoneNumber,
             birthday,
@@ -78,7 +75,6 @@ exports.updateUserInfo = async (req, res) => {
                 info: {
                     firstName: updatedUserInfo.firstName,
                     lastName:  updatedUserInfo.lastName,
-                    gender:    updatedUserInfo.gender,
                     phoneCountry: updatedUserInfo.phoneCountry,
                     phoneNumber:  updatedUserInfo.phoneNumber,
                     birthday:     updatedUserInfo.birthday,
