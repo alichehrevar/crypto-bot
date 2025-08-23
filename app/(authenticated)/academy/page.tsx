@@ -3,6 +3,7 @@
 import AcademyHeader from "@/components/academy/AcademyHeader";
 import AcademyGettingStarted from "@/components/academy/AcademyGettingStarted";
 import AcademyAdvanced from "@/components/academy/AcademyAdvanced";
+import AcademyDcaGrid from "@/components/academy/AcademyDcaGrid";
 
 export default function AcademyPage() {
     return (
@@ -11,6 +12,7 @@ export default function AcademyPage() {
                 <AcademyHeader />
                 <AcademyGettingStarted />
                 <AcademyAdvanced />
+                <AcademyDcaGrid />
             </div>
         </div>
     )

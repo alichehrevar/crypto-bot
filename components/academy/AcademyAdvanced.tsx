@@ -4,16 +4,9 @@ import React, {useState, useEffect} from 'react';
 import {Swiper, SwiperSlide} from "swiper/react";
 import {Navigation, Pagination} from "swiper/modules";
 
-import {AdvancedTopicIcons} from "@/utils/TopicIcons";
 import LessonCard from "@/components/academy/LessonCard";
+import {Lesson} from "@/types/LessonCard";
 
-// --- Type Definitions ---
-interface Lesson {
-    title: string;
-    duration: string;
-    description: string;
-    iconId: keyof typeof AdvancedTopicIcons;
-}
 
 // --- Main Component ---
 export default function AcademyAdvanced() {
@@ -47,29 +40,29 @@ export default function AcademyAdvanced() {
                 <h2 className="text-3xl font-bold">Advanced Bot Configuration & Optimization</h2>
             </div>
             <div className="relative">
-                {isClient ? (
-                    <Swiper
-                        className="today-bots-swiper academy-swiper"
-                        effect={'slide'}
-                        grabCursor={true}
-                        modules={[Pagination, Navigation]}
-                        navigation={true}
-                        pagination={pagination}
-                        slidesPerView={'auto'}
-                    >
-                        {lessons.map((lesson, index) => (
-                            <SwiperSlide key={index}>
-                                <LessonCard lesson={lesson} />
-                            </SwiperSlide>
-                        ))}
-                    </Swiper>
-                ) : (
-                    <div className="flex overflow-hidden gap-6">
-                        {lessons.slice(0, 4).map((_, index) => (
-                            <div key={index} className="w-72 h-[220px] bg-dark-gray rounded-xl flex-shrink-0 animate-pulse" />
-                        ))}
-                    </div>
-                )}
+                    {isClient ? (
+                        <Swiper
+                            className="today-bots-swiper academy-swiper"
+                            effect={'slide'}
+                            grabCursor={true}
+                            modules={[Pagination, Navigation]}
+                            navigation={true}
+                            pagination={pagination}
+                            slidesPerView={'auto'}
+                        >
+                            {lessons.map((lesson, index) => (
+                                <SwiperSlide key={index}>
+                                    <LessonCard lesson={lesson} section="advanced" />
+                                </SwiperSlide>
+                            ))}
+                        </Swiper>
+                    ) : (
+                        <div className="flex overflow-hidden gap-6">
+                            {lessons.slice(0, 4).map((_, index) => (
+                                <div key={index} className="w-72 h-[220px] bg-dark-gray rounded-xl flex-shrink-0 animate-pulse" />
+                            ))}
+                        </div>
+                    )}
             </div>
         </div>
     );

@@ -29,13 +29,13 @@ const CurvyPlayIcon: React.FC<{ className?: string }> = ({ className }) => (
 // --- Lesson Card Component ---
 const LessonCard: React.FC<{
     lesson: Lesson,
-    section: 'get-started' | 'advanced'
+    section: 'get-started' | 'advanced' | 'dca-grid'
 }> = ({
     lesson,
     section
 }) => {
 
-    const IllustrationComponent = topicIcons[lesson.iconId] || (section === 'advanced' ? SignalEnginesIllustration : WelcomeIllustrationIcon);
+    const IllustrationComponent = topicIcons[lesson.iconId] || (section === 'advanced' ? SignalEnginesIllustration : (section === 'dca-grid' ? 'div' : WelcomeIllustrationIcon));
 
     return (
         <div className="w-72 rounded-xl overflow-hidden bg-dark-gray border border-[#333333] hover:border-[#9EF01A]/50 transition-colors duration-300 group cursor-pointer flex-shrink-0">
