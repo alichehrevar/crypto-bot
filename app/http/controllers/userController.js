@@ -37,8 +37,6 @@ exports.updateUserInfo = async (req, res) => {
         const {
             firstName,
             lastName,
-            phoneCountry,
-            phoneNumber,
             birthday,
             avatar
         } = req.body;
@@ -48,8 +46,6 @@ exports.updateUserInfo = async (req, res) => {
             userId, // Ensure the userId is always linked
             firstName,
             lastName,
-            phoneCountry,
-            phoneNumber,
             birthday,
             avatar
         };
@@ -75,8 +71,6 @@ exports.updateUserInfo = async (req, res) => {
                 info: {
                     firstName: updatedUserInfo.firstName,
                     lastName:  updatedUserInfo.lastName,
-                    phoneCountry: updatedUserInfo.phoneCountry,
-                    phoneNumber:  updatedUserInfo.phoneNumber,
                     birthday:     updatedUserInfo.birthday,
                     avatar:       updatedUserInfo.avatar,
                 }
