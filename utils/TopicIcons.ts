@@ -2,7 +2,10 @@ import {
     AdvancedConfigIllustrationIcon, AIEngineIllustrationIcon,
     AlgoTradingIllustrationIcon,
     BacktestIllustrationIcon,
-    BrokerIllustrationIcon, CreatorsHubIllustrationIcon,
+    BrokerIllustrationIcon,
+    CapstoneIllustration, CommunityBotsIllustration, CreatorsHubIllustrationIcon, CustomPrecisionIllustration,
+    DynamicStrategiesIllustration, OptimizationMethodsIllustration,
+    RegimeDetectionIllustration, SignalEnginesIllustration,
     WelcomeIllustrationIcon
 } from "@/utils/icons";
 
@@ -14,4 +17,11 @@ export const topicIcons = {
     creators: CreatorsHubIllustrationIcon,
     config: AdvancedConfigIllustrationIcon,
     ai: AIEngineIllustrationIcon,
+    signal: SignalEnginesIllustration,
+    precision: CustomPrecisionIllustration,
+    dynamic: DynamicStrategiesIllustration,
+    optimization: OptimizationMethodsIllustration,
+    regime: RegimeDetectionIllustration,
+    community: CommunityBotsIllustration,
+    capstone: CapstoneIllustration,
 };

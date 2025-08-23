@@ -2,6 +2,7 @@
 
 import AcademyHeader from "@/components/academy/AcademyHeader";
 import AcademyGettingStarted from "@/components/academy/AcademyGettingStarted";
+import AcademyAdvanced from "@/components/academy/AcademyAdvanced";
 
 export default function AcademyPage() {
     return (
@@ -9,6 +10,7 @@ export default function AcademyPage() {
             <div className="flex flex-col items-center w-full gap-8">
                 <AcademyHeader />
                 <AcademyGettingStarted />
+                <AcademyAdvanced />
             </div>
         </div>
     )

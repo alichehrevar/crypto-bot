@@ -3,7 +3,7 @@
 import React from 'react';
 
 import {topicIcons} from "@/utils/TopicIcons";
-import {WelcomeIllustrationIcon} from "@/utils/icons";
+import {SignalEnginesIllustration, WelcomeIllustrationIcon} from "@/utils/icons";
 
 // =====================================================================
 // --- TYPE DEFINITIONS ---
@@ -11,6 +11,7 @@ import {WelcomeIllustrationIcon} from "@/utils/icons";
 export interface Lesson {
     title: string;
     duration: string;
+    description?: string;
     iconId: keyof typeof topicIcons;
 }
 
@@ -28,10 +29,13 @@ const CurvyPlayIcon: React.FC<{ className?: string }> = ({ className }) => (
 // --- Lesson Card Component ---
 const LessonCard: React.FC<{
     lesson: Lesson,
+    section: 'get-started' | 'advanced'
 }> = ({
-          lesson,
-      }) => {
-    const IllustrationComponent = topicIcons[lesson.iconId] || WelcomeIllustrationIcon;
+    lesson,
+    section
+}) => {
+
+    const IllustrationComponent = topicIcons[lesson.iconId] || (section === 'advanced' ? SignalEnginesIllustration : WelcomeIllustrationIcon);
 
     return (
         <div className="w-72 rounded-xl overflow-hidden bg-dark-gray border border-[#333333] hover:border-[#9EF01A]/50 transition-colors duration-300 group cursor-pointer flex-shrink-0">
@@ -44,10 +48,11 @@ const LessonCard: React.FC<{
                 </div>
             </div>
             <div className="p-4 group-hover:bg-dark-gray transition-colors duration-300">
-                <div className="flex justify-between items-center text-sm">
-                    <h4 className="text-white font-medium truncate pr-4">{lesson.title}</h4>
-                    <p className="text-gray-400 flex-shrink-0">{lesson.duration}</p>
+                <div className="flex justify-between items-center mb-1">
+                    <h4 className="text-white font-medium truncate" title={lesson.title}>{lesson.title}</h4>
+                    <span className="text-xs text-gray-400 flex-shrink-0 ml-2">{lesson.duration}</span>
                 </div>
+                {lesson.description && <p className="text-gray-400 text-xs line-clamp-2 h-8">{lesson.description}</p>}
             </div>
         </div>
     );
