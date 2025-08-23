@@ -65,12 +65,8 @@ const AccountSettingsTab = observer(() => {
                                 </div>
                             </li>
                             <li className="flex items-center justify-center">
-                                <span className="text-gray-400 w-[200px]">Phone Number</span>
-                                <span>{userData?.info?.phoneNumber || 'N/A'}</span>
-                            </li>
-                            <li className="flex items-center justify-center">
-                                <span className="text-gray-400 w-[200px]">Country/Region</span>
-                                <span>{userData?.info?.phoneCountry || 'N/A'}</span>
+                                <span className="text-gray-400 w-[200px]">Birthday</span>
+                                <span>{userData?.info?.birthday ? new Date(userData.info.birthday).toLocaleDateString() : 'N/A'}</span>
                             </li>
                             <li className="flex items-center justify-center">
                                 <span className="text-gray-400 w-[200px]">Connected Accounts</span>
@@ -140,7 +136,7 @@ const AccountSettingsTab = observer(() => {
                         </li>
                         <li className="flex items-center justify-center">
                             <span className="text-gray-400 w-[200px]">Phone Verification</span>
-                            <span>{userData?.info?.phoneNumber ? `(***) ***-${userData.info.phoneNumber.slice(-4)}` : 'N/A'}</span>
+                            <span>{userData?.info?.phoneNumber ? `(${userData.info.phoneCountry}) ${userData.info.phoneNumber}` : 'N/A'}</span>
                         </li>
                     </ul>
                 </div>

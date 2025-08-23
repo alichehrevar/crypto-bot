@@ -1,19 +1,18 @@
 import React, {FormEvent} from "react";
 import {
     addToast,
-    Autocomplete, AutocompleteItem,
-    Button,
+    Button, DateInput,
     Form,
     Input,
     Modal,
     ModalBody,
     ModalContent,
     ModalHeader,
-    useDisclosure
+    useDisclosure,
 } from "@heroui/react";
+import {CalendarDate} from "@internationalized/date";
 
 import LabelTag from "@/components/shared/ui/Label";
-import {CountryCodes} from "@/utils/countryCodes";
 import {User, UserResponse} from "@/types/UserType";
 import {updateRequest} from "@/actions/put";
 
@@ -45,6 +44,12 @@ export default function EditDetailsModal(props: {userData: User | null}) {
             setFormLoading(false)
             onOpenChange()
         }
+    }
+
+    let birthday= '1/1/1990';
+
+    if (props.userData?.info?.birthday) {
+        birthday = new Date(props.userData.info.birthday).toLocaleDateString()
     }
 
     return (
@@ -97,34 +102,13 @@ export default function EditDetailsModal(props: {userData: User | null}) {
                                         </div>
                                     </div>
                                     <div className="space-y-2 w-full">
-                                        <LabelTag id="phone-number" title="Phone Number" />
+                                        <LabelTag id="phone-number" title="Birthday" />
                                         <div className="flex gap-2">
-                                            <Autocomplete
+                                            <DateInput
                                                 isRequired
-                                                className="w-[90px]"
-                                                defaultSelectedKey={props.userData?.info?.phoneCountry}
-                                                id="country-code"
-                                                isClearable={false}
-                                                items={CountryCodes}
-                                                name="phoneCountry"
-                                            >
-                                                {CountryCodes.map((country) => (
-                                                    <AutocompleteItem key={country.code} textValue={country.code}>
-                                                      <span className="flex items-center gap-2">
-                                                        <span>{country.flag}</span>
-                                                        <span>{country.code}</span>
-                                                      </span>
-                                                    </AutocompleteItem>
-                                                ))}
-                                            </Autocomplete>
-                                            <Input
-                                                required
-                                                className="flex-1 border-gray-300 text-black"
-                                                defaultValue={props.userData?.info?.phoneNumber}
-                                                id="phone-number"
-                                                name="phoneNumber"
-                                                placeholder="724-848-1225"
-                                                type="tel"
+                                                defaultValue={new CalendarDate(Number(birthday.split('/')[2]), Number(birthday.split('/')[1]), Number(birthday.split('/')[0]))}
+                                                hideTimeZone={true}
+                                                name="birthday"
                                             />
                                         </div>
                                     </div>
