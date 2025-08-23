@@ -97,9 +97,14 @@ section[role="dialog"] .overflow-y-auto::-webkit-scrollbar-track {
 }
 
 /******************** Recent Bots Swiper Styles *********************/
+.academy-swiper .swiper-slide {
+    width: 300px !important;
+}
+
 .today-bots-swiper .swiper-slide {
     width: 400px;
 }
+
 .today-bots-swiper .swiper-pagination-bullet {
     width: 20px;
     height: 2px;

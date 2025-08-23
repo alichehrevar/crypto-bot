@@ -39,6 +39,18 @@ export const OrderIcon = ({className = 'size-4'}) => (
     </svg>
 );
 
+export const PlayCircleIcon = ({className = 'size-4'}) => (
+    <svg className={className} fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"
+         xmlns="http://www.w3.org/2000/svg">
+        <path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" strokeLinecap="round" strokeLinejoin="round"/>
+        <path
+            d="M15.91 11.672a.375.375 0 0 1 0 .656l-5.603 3.113a.375.375 0 0 1-.557-.328V8.887c0-.286.307-.466.557-.327l5.603 3.112Z"
+            strokeLinecap="round"
+            strokeLinejoin="round"/>
+    </svg>
+
+);
+
 export const UsersIcon = ({className = 'size-4'}) => (
     <svg className={className} fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"
          xmlns="http://www.w3.org/2000/svg">
@@ -341,8 +353,10 @@ export const AppleIcon = ({className = "size-4"}) => (
 export const PencilSquareIcon = ({className = "size-4"}) => (
     <svg className={className} fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"
          xmlns="http://www.w3.org/2000/svg">
-        <path d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" strokeLinecap="round"
-              strokeLinejoin="round"/>
+        <path
+            d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10"
+            strokeLinecap="round"
+            strokeLinejoin="round"/>
     </svg>
 );
 
@@ -586,3 +600,204 @@ export const GridChartIcon = () => (
         />
     </svg>
 );
+
+export const UnitedAlgosLogoIcon = ({color = "#FFFFFF", strokeWidth = "3.5"}) => (
+    <g>
+        <g stroke={color} strokeWidth={strokeWidth}>
+            <path
+                d="M10.6 10.6 L 24.7 24.7 M-10.6 10.6 L -24.7 24.7 M10.6 -10.6 L 24.7 -24.7 M-10.6 -10.6 L -24.7 -24.7"/>
+        </g>
+        <g fill={color}>
+            <circle cx="0" cy="0" r="15"/>
+            <circle cx="-35" cy="-35" r="10"/>
+            <circle cx="35" cy="35" r="10"/>
+            <circle cx="35" cy="-35" r="12"/>
+            <circle cx="-35" cy="35" r="12"/>
+        </g>
+    </g>
+)
+
+export const WelcomeIllustrationIcon = ({CARD_BG = "#1A1A1A"}) => (
+    <svg fill="none" height="100%" viewBox="0 0 288 160" width="100%">
+        <rect fill={CARD_BG} height="160" width="288"/>
+        <circle cx="144" cy="80" fill="none" opacity="0.05" r="80" stroke="#FFFFFF" strokeWidth="1"/>
+        <g transform="translate(144, 80) scale(1.1)">
+            <UnitedAlgosLogoIcon/>
+        </g>
+    </svg>
+)
+
+export const AlgoTradingIllustrationIcon = ({BRAND_GREEN = "#9EF01A", CARD_BG = "#1A1A1A"}) => (
+    <svg fill="none" height="100%" viewBox="0 0 288 160" width="100%">
+        <rect fill={CARD_BG} height="160" width="288"/>
+        <g stroke="#555555" strokeWidth="2">
+            <path d="M40 80 H 100 L 140 50 V 110 L 180 80 H 248"/>
+            <path d="M100 80 L 140 110 M 140 50 L 180 80"/>
+        </g>
+        <g stroke={BRAND_GREEN} strokeWidth="2">
+            <path d="M40 80 H 100 L 140 50 L 180 80 H 248" fill="none"/>
+        </g>
+        <g fill={CARD_BG} strokeWidth="2">
+            <circle cx="40" cy="80" r="8" stroke={BRAND_GREEN}/>
+            <circle cx="100" cy="80" r="8" stroke={BRAND_GREEN}/>
+            <circle cx="140" cy="50" r="8" stroke={BRAND_GREEN}/>
+            <circle cx="140" cy="110" r="8" stroke="#555555"/>
+            <circle cx="180" cy="80" r="8" stroke={BRAND_GREEN}/>
+            <circle cx="248" cy="80" r="8" stroke={BRAND_GREEN}/>
+        </g>
+    </svg>
+)
+
+export const BacktestIllustrationIcon = ({CARD_BG = "#1A1A1A", BRAND_GREEN = "#9EF01A"}) => (
+    <svg fill="none" height="100%" viewBox="0 0 288 160" width="100%">
+        <rect fill={CARD_BG} height="160" width="288"/>
+        <path d="M20 120 L 100 50 L 188 100 L 268 40" fill="none" stroke="#777777" strokeDasharray="8 4"
+              strokeLinejoin="round" strokeWidth="2"/>
+        <g fill="none" stroke={BRAND_GREEN} strokeWidth="1.5">
+            <circle cx="20" cy="120" r="14"/>
+            <circle cx="188" cy="100" r="14"/>
+            <circle cx="100" cy="50" r="14"/>
+            <circle cx="268" cy="40" r="14"/>
+        </g>
+    </svg>
+)
+
+export const BrokerIllustrationIcon = ({CARD_BG = "#1A1A1A", BRAND_GREEN = "#9EF01A"}) => (
+    <svg fill="none" height="100%" viewBox="0 0 288 160" width="100%">
+        <rect fill={CARD_BG} height="160" width="288"/>
+        <circle cx="144" cy="80" fill="none" r="60" stroke="#555555" strokeDasharray="6 6" strokeWidth="1.5"/>
+        <g transform="translate(144, 80) scale(0.5)"><UnitedAlgosLogoIcon color={BRAND_GREEN}/></g>
+        <g transform="translate(144, 20)">
+            <circle cx="0" cy="0" fill="#000000" r="16" stroke="#444444" strokeWidth="1"/>
+            <g fill="#AAAAAA" transform="scale(0.8)">
+                <path
+                    d="M0 -10 L 4 -6 L 0 -2 L -4 -6 L 0 -10ZM0 2 L 4 6 L 0 10 L -4 6 L 0 2ZM-10 0 L -6 4 L -2 0 L -6 -4 L -10 0ZM6 4 L 10 0 L 6 -4 L 2 0 L 6 4ZM0 0Z"/>
+            </g>
+        </g>
+        <g transform="translate(92, 125)">
+            <circle cx="0" cy="0" fill="#000000" r="16" stroke="#444444" strokeWidth="1"/>
+            <g fill="#AAAAAA">
+                <rect height="6" rx="2" width="6" x="-8" y="-8"/>
+                <rect height="6" rx="2" width="6" x="2" y="-8"/>
+                <rect height="6" rx="2" width="6" x="-8" y="2"/>
+                <rect height="6" opacity="0.7" rx="2" width="6" x="2" y="2"/>
+            </g>
+        </g>
+        <g transform="translate(196, 125)">
+            <circle cx="0" cy="0" fill="#000000" r="16" stroke="#444444" strokeWidth="1"/>
+            <path d="M -7 -7 L 0 0 L -7 7 M 7 -7 L 0 0 L 7 7" fill="none" stroke="#AAAAAA" strokeLinecap="round"
+                  strokeLinejoin="round" strokeWidth="2.5"/>
+        </g>
+    </svg>
+);
+export const CreatorsHubIllustrationIcon = ({CARD_BG = "#1A1A1A", BRAND_GREEN = "#9EF01A"}) => (
+    <svg fill="none" height="100%" viewBox="0 0 288 160" width="100%">
+        <rect fill={CARD_BG} height="160" width="288"/>
+        <g opacity="0.7" stroke="#555555" strokeLinecap="round" strokeWidth="1">
+            <path d="M10 30 L 120 70"/>
+            <path d="M40 10 L 130 65"/>
+            <path d="M278 30 L 168 70"/>
+            <path d="M248 10 L 158 65"/>
+            <path d="M10 130 L 120 90"/>
+            <path d="M40 150 L 130 95"/>
+            <path d="M278 130 L 168 90"/>
+            <path d="M248 150 L 158 95"/>
+        </g>
+        <g transform="translate(144, 80)">
+            <defs>
+                <filter id="glow_creation">
+                    <feGaussianBlur result="blur" stdDeviation="3"/>
+                    <feMerge>
+                        <feMergeNode in="blur"/>
+                        <feMergeNode in="SourceGraphic"/>
+                    </feMerge>
+                </filter>
+            </defs>
+            <polygon fill="rgba(158, 240, 26, 0.1)" points="0,-30 26,-15 26,15 0,30 -26,15 -26,-15" stroke={BRAND_GREEN}
+                     strokeWidth="2" style={{filter: "url(#glow_creation)"}}/>
+            <path d="M0 0 L 0 -30 M0 0 L 26 -15 M0 0 L 26 15 M0 0 L 0 30 M0 0 L -26 15 M0 0 L -26 -15" opacity="0.8"
+                  stroke={BRAND_GREEN} strokeWidth="1"/>
+        </g>
+    </svg>
+);
+export const AdvancedConfigIllustrationIcon = ({CARD_BG = "#1A1A1A", BRAND_GREEN = "#9EF01A"}) => (
+    <svg fill="none" height="100%" viewBox="0 0 288 160" width="100%">
+        <rect fill={CARD_BG} height="160" width="288"/>
+        <g stroke="#444444" strokeWidth="1">
+            <path d="M60 40 L 144 40 M60 40 L 144 80 M60 40 L 144 120"/>
+            <path d="M60 80 L 144 40 M60 80 L 144 80 M60 80 L 144 120"/>
+            <path d="M60 120 L 144 40 M60 120 L 144 80 M60 120 L 144 120"/>
+            <path d="M144 40 L 228 60 M144 40 L 228 100"/>
+            <path d="M144 80 L 228 60 M144 80 L 228 100"/>
+            <path d="M144 120 L 228 60 M144 120 L 228 100"/>
+        </g>
+        <g stroke={BRAND_GREEN} strokeWidth="2">
+            <path d="M60 80 L 144 40 L 228 100" fill="none"/>
+        </g>
+        <g fill={CARD_BG} stroke="#666666" strokeWidth="2">
+            <circle cx="60" cy="40" r="8"/>
+            <circle cx="60" cy="120" r="8"/>
+            <circle cx="144" cy="80" r="8"/>
+            <circle cx="144" cy="120" r="8"/>
+            <circle cx="228" cy="60" r="8"/>
+        </g>
+        <g fill={BRAND_GREEN}>
+            <circle cx="60" cy="80" r="8"/>
+            <circle cx="144" cy="40" r="8"/>
+            <circle cx="228" cy="100" r="8"/>
+        </g>
+    </svg>
+);
+
+export const AIEngineIllustrationIcon = ({CARD_BG = "#1A1A1A", BRAND_GREEN = "#9EF01A", BG_DARK = "#0A0908"}) => (
+    <svg fill="none" height="100%" viewBox="0 0 288 160" width="100%">
+        <rect fill={CARD_BG} height="160" width="288"/>
+        <defs>
+            <radialGradient cx="50%" cy="50%" fx="50%" fy="50%" id="ai_bg_glow" r="50%">
+                <stop offset="0%" stopColor={BRAND_GREEN} stopOpacity="0.3"/>
+                <stop offset="100%" stopColor={BRAND_GREEN} stopOpacity="0"/>
+            </radialGradient>
+            <filter id="ai_text_glow">
+                <feGaussianBlur result="coloredBlur" stdDeviation="1.5"/>
+                <feMerge>
+                    <feMergeNode in="coloredBlur"/>
+                    <feMergeNode in="SourceGraphic"/>
+                </feMerge>
+            </filter>
+        </defs>
+        <circle cx="144" cy="80" fill="url(#ai_bg_glow)" r="85"/>
+        <g>{React.useMemo(() => {
+            const els = [];
+            const phi = Math.PI * (3 - Math.sqrt(5));
+
+            for (let i = 0; i < 200; i++) {
+                const y = 1 - (i / 199) * 2;
+                const r = Math.sqrt(1 - y * y);
+                const theta = phi * i;
+                const x = Math.cos(theta) * r;
+                const z = Math.sin(theta) * r;
+                const depth = (z + 1) / 2;
+                const opacity = depth * 0.8 + 0.2;
+                const strokeWidth = depth * 0.6 + 0.3;
+                const x_start = 144 + x * 30;
+                const y_start = 80 + y * 30;
+                const length_factor = 1.0 + ((i * 13) % 15) / 100.0;
+                const x_end = 144 + x * 60 * length_factor;
+                const y_end = 80 + y * 60 * length_factor;
+
+                els.push(<line key={`l${i}`} opacity={opacity} stroke={BRAND_GREEN} strokeWidth={strokeWidth}
+                               x1={x_start} x2={x_end} y1={y_start} y2={y_end}/>);
+                els.push(<circle key={`c${i}`} cx={x_end} cy={y_end} fill={BRAND_GREEN} opacity={opacity}
+                                 r={0.8 * depth + 0.3}/>);
+            }
+
+            return els;
+        }, [])}</g>
+        <circle cx="144" cy="80" fill={BG_DARK} opacity="0.8" r="30"/>
+        <text dominantBaseline="middle" fill="none" fontFamily="'Arial', sans-serif" fontSize="34" fontWeight="800"
+              stroke={BRAND_GREEN} strokeWidth="1.5" style={{filter: 'url(#ai_text_glow)'}} textAnchor="middle" x="144"
+              y="80">AI
+        </text>
+    </svg>
+);
+

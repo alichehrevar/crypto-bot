@@ -43,7 +43,7 @@ export const MenuItems = [
   },
   {
     name: 'Academy',
-    link: '/profile/academy',
+    link: '/academy',
     children: []
   },
   {
