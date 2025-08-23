@@ -3,23 +3,7 @@
 import React from 'react';
 import Image from 'next/image';
 
-import {WavyArrowIcon} from "@/utils/icons";
-
-// --- SVG ICONS (as simple functional components) ---
-
-const SearchIcon: React.FC<{ className?: string }> = ({ className }) => (
-    <svg className={className} fill="none" height="20" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" width="20" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="11" cy="11" r="8" />
-        <line x1="21" x2="16.65" y1="21" y2="16.65" />
-    </svg>
-);
-
-const FilterIcon: React.FC<{ className?: string }> = ({ className }) => (
-    <svg className={className} fill="none" height="20" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" width="20" xmlns="http://www.w3.org/2000/svg">
-        <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
-    </svg>
-);
-
+import {AdjustmentsVerticalIcon, SearchIcon, WavyArrowIcon} from "@/utils/icons";
 
 // --- MAIN HEADER COMPONENT ---
 
@@ -32,13 +16,13 @@ export default function AcademyHeader() {
 
             {/* Search Bar */}
             <div className="relative mt-8 w-full max-w-lg">
-                <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" />
+                <SearchIcon className="absolute left-4 top-[15px] text-gray-500" />
                 <input
                     className="w-full bg-[#2d2d2d] text-white placeholder-gray-500 border border-gray-700 rounded-full py-3 pl-12 pr-12 focus:outline-none focus:ring-2 focus:ring-purple-500"
                     placeholder="Search cours"
                     type="text"
                 />
-                <FilterIcon className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500" />
+                <AdjustmentsVerticalIcon className="absolute right-4 top-[15px] text-gray-500" />
             </div>
 
             {/* CTA Banner */}

@@ -827,3 +827,18 @@ export const PromptToStrategyIllustrationIcon = ({ BRAND_GREEN = "#9EF01A", CARD
 export const FavoriteAIStrategyIllustrationIcon = ({ CARD_BG = "#1A1A1A", }) => ( <svg fill="none" height="100%" viewBox="0 0 288 160" width="100%" xmlns="http://www.w3.org/2000/svg"> <rect fill={CARD_BG} height="160" width="288"/> <g transform="translate(80, 105)"> <circle fill="none" r="30" stroke="#666666" strokeDasharray="3 3" strokeWidth="1.5"/> <foreignObject height="40" width="40" x="-20" y="-20"> <img alt="ChatGPT Logo" src="https://img.icons8.com/?size=100&id=FBO05Dys9QCg&format=png&color=FFFFFF" /> </foreignObject> </g> <g transform="translate(144, 55)"> <circle fill="none" r="30" stroke="#666666" strokeDasharray="3 3" strokeWidth="1.5"/> <defs> <linearGradient id="gemini-grad" x1="0%" x2="100%" y1="0%" y2="100%"> <stop offset="0%" stopColor="#4285F4" /><stop offset="100%" stopColor="#B39DDB" /> </linearGradient> </defs> <path d="M0 -20 C 4 -4, 20 0, 20 0 C 4 4, 0 20, 0 20 C -4 4, -20 0, -20 0 C -4 -4, 0 -20, 0 -20 Z" fill="url(#gemini-grad)"/> </g> <g transform="translate(208, 105)"> <circle fill="none" r="30" stroke="#666666" strokeDasharray="3 3" strokeWidth="1.5"/> <foreignObject height="40" width="40" x="-20" y="-20"> <img alt="Grok Logo" src="https://img.icons8.com/?size=100&id=USGXKHXKl9X7&format=png&color=FFFFFF" /> </foreignObject> </g> </svg> );
 export const GuardrailsIllustrationIcon = ({ BRAND_GREEN = "#9EF01A", CARD_BG = "#1A1A1A", }) => ( <svg fill="none" height="100%" viewBox="0 0 288 160" width="100%" xmlns="http://www.w3.org/2000/svg"> <rect fill={CARD_BG} height="160" width="288"/> <defs> <linearGradient id="emblem-grad" x1="0.5" x2="0.5" y1="0" y2="1"> <stop offset="0%" stopColor={BRAND_GREEN} /><stop offset="100%" stopColor="#556B2F" /> </linearGradient> </defs> <g transform="translate(144, 80)"> <path d="M0 -50 L 50 -30 L 50 10 C 50 40, 0 60, 0 60 C 0 60, -50 40, -50 10 L -50 -30 Z" fill="url(#emblem-grad)"/> <path d="M-20 0 L -5 15 L 25 -15" fill="none" stroke="#FFFFFF" strokeLinecap="round" strokeLinejoin="round" strokeWidth="8"/> </g> </svg> );
 export const HumanInTheLoopIllustrationIcon = ({ CARD_BG = "#1A1A1A", }) => ( <svg fill="none" height="100%" viewBox="0 0 288 160" width="100%" xmlns="http://www.w3.org/2000/svg"> <rect fill={CARD_BG} height="160" width="288"/> <image height="100" href="https://img.icons8.com/?size=100&id=99625&format=png&color=9ef01a" width="100" x="94" y="30"/> </svg> );
+
+export const SearchIcon = ({ className = 'size-4' }) => (
+    <svg className={className} fill="none" height="20" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" width="20" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="11" cy="11" r="8" />
+        <line x1="21" x2="16.65" y1="21" y2="16.65" />
+    </svg>
+)
+
+export const AdjustmentsVerticalIcon = ({ className = 'size-4' }) => (
+    <svg className={className} fill="none" height="20" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"
+         xmlns="http://www.w3.org/2000/svg">
+        <path d="M6 13.5V3.75m0 9.75a1.5 1.5 0 0 1 0 3m0-3a1.5 1.5 0 0 0 0 3m0 3.75V16.5m12-3V3.75m0 9.75a1.5 1.5 0 0 1 0 3m0-3a1.5 1.5 0 0 0 0 3m0 3.75V16.5m-6-9V3.75m0 3.75a1.5 1.5 0 0 1 0 3m0-3a1.5 1.5 0 0 0 0 3m0 9.75V10.5" strokeLinecap="round"
+              strokeLinejoin="round"/>
+    </svg>
+)
