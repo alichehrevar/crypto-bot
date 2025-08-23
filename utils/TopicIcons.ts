@@ -6,7 +6,9 @@ import {
     CapstoneIllustration, CommunityBotsIllustration, CreatorsHubIllustrationIcon, CustomPrecisionIllustration,
     DCAIllustrationIcon,
     DynamicStrategiesIllustration,
-    EntriesThatWorkIllustrationIcon, GridBotsIllustrationIcon, OptimizationMethodsIllustration,
+    EntriesThatWorkIllustrationIcon, FavoriteAIStrategyIllustrationIcon, GridBotsIllustrationIcon,
+    GuardrailsIllustrationIcon, HumanInTheLoopIllustrationIcon,
+    InsideAIEngineIllustrationIcon, OptimizationMethodsIllustration, PromptToStrategyIllustrationIcon,
     RegimeDetectionIllustration, SignalEnginesIllustration, TakingProfitIllustrationIcon,
     VolatilityFiltersIllustrationIcon,
     WelcomeIllustrationIcon
@@ -33,4 +35,9 @@ export const topicIcons = {
     entries: EntriesThatWorkIllustrationIcon,
     takeprofit: TakingProfitIllustrationIcon,
     volatility: VolatilityFiltersIllustrationIcon,
+    insideAI: InsideAIEngineIllustrationIcon,
+    promptToStrategy: PromptToStrategyIllustrationIcon,
+    favoriteAI: FavoriteAIStrategyIllustrationIcon,
+    guardrails: GuardrailsIllustrationIcon,
+    humanInTheLoop: HumanInTheLoopIllustrationIcon,
 };
