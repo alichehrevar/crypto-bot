@@ -1,7 +1,6 @@
 type UserInfo = {
     firstName: string,
     lastName: string,
-    gender: string,
     phoneCountry: string,
     phoneNumber: string,
     birthday: string,

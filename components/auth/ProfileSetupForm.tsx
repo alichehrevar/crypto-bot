@@ -21,7 +21,6 @@ const ProfileSetupForm = ({ onSubmit}: ProfileSetupFormProps) => {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [birthday, setBirthday] = React.useState<DateValue | null>(parseDate("2024-03-07"));
-  const [gender, setGender] = React.useState<React.Key>("male");
   const [phoneCountry, setPhoneCountry] = useState('+1');
   const [phoneNumber, setPhoneNumber] = useState('');
 
@@ -33,7 +32,6 @@ const ProfileSetupForm = ({ onSubmit}: ProfileSetupFormProps) => {
       firstName,
       lastName,
       birthday: birthday ? formatter.format(birthday.toDate(getLocalTimeZone())) : null,
-      gender,
       phoneCountry,
       phoneNumber
     });
@@ -81,16 +79,6 @@ const ProfileSetupForm = ({ onSubmit}: ProfileSetupFormProps) => {
           value={birthday}
           onChange={setBirthday}
         />
-      </div>
-
-      <div className="space-y-2">
-        <label className="text-white text-sm" htmlFor="gender">Gender</label>
-        <Autocomplete className="w-full" id="gender" labelPlacement="outside" placeholder="Select your gender" size="md" onSelectionChange={(k: Key | null) => setGender(k as string)}>
-          <AutocompleteItem key="male">Male</AutocompleteItem>
-          <AutocompleteItem key="female">Female</AutocompleteItem>
-          <AutocompleteItem key="other">Other</AutocompleteItem>
-          <AutocompleteItem key="prefer-not-to-say">Prefer not to say</AutocompleteItem>
-        </Autocomplete>
       </div>
 
       <div className="space-y-2">
