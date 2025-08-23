@@ -127,7 +127,7 @@ function RealizedView({ data }: { data: RealizedPoint[] }) {
                     tickLine={false}
                 />
                 <Tooltip content={<CustomTooltip />} cursor={false} />
-                <Bar barSize={22} dataKey="value" shape={<BarShape />} />
+                <Bar barSize={32} dataKey="value" shape={<BarShape />} />
             </RBarChart>
         </ResponsiveContainer>
     );
