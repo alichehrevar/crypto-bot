@@ -2,13 +2,13 @@
 
 import React from "react";
 import { observer } from 'mobx-react'; // [1] Import observer and the new hook
-import { Avatar, Button, Select, SelectItem } from "@heroui/react";
+import { Avatar, Select, SelectItem } from "@heroui/react";
 import Image from "next/image";
 
 import { useUserStore } from '@/hooks/useUserStore';
 import AccountDetailsLoading from "@/components/loading/profile/AccountDetailsLoading";
 import SecuritySettingsLoading from "@/components/loading/profile/SecuritySettingsLoading";
-import EditDetailsModal from "@/components/profile/account-tabs/accountSettings/EditDetailsModal";
+import EditAccountSettingsModal from "@/components/profile/account-tabs/accountSettings/EditAccountSettingsModal";
 
 // [2] Wrap the component with observer to make it reactive
 const AccountSettingsTab = observer(() => {
@@ -53,7 +53,11 @@ const AccountSettingsTab = observer(() => {
                                 <span>{userData?.id || 'N/A'}</span>
                             </div>
                         </div>
-                        <EditDetailsModal userData={userData} />
+                        <EditAccountSettingsModal
+                            title="Edit Account Details"
+                            type="account"
+                            userData={userData}
+                        />
                     </div>
                     <div className="flex items-start justify-center flex-col gap-4 mt-6">
                         <h2 className="text-left font-bold">Account Details</h2>
@@ -122,12 +126,11 @@ const AccountSettingsTab = observer(() => {
                 <div className="flex items-start justify-center flex-col w-full gap-4">
                     <div className="flex items-center justify-between w-full">
                         <h2 className="text-left font-bold">Security</h2>
-                        <Button>
-                            <svg className="size-3" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                <path d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125" strokeLinecap="round" strokeLinejoin="round"/>
-                            </svg>
-                            <span className="text-[13px]">Edit</span>
-                        </Button>
+                        <EditAccountSettingsModal
+                            title="Edit Security Information"
+                            type="security"
+                            userData={userData}
+                        />
                     </div>
                     <ul className="flex items-start justify-center flex-col gap-4 text-[13px] mt-4">
                         <li className="flex items-center justify-center">
