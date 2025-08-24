@@ -14,14 +14,14 @@ router.get('/market-list', authenticate, marketController.getMarketList)
  *     summary: Get detailed information for a specific ticker.
  * @route   GET /api/market/ticker-details
  * @desc    Get detailed information for a specific ticker.
- * @access  Public
+ * @access  private
  */
 router.get('/ticker-details', marketController.getTickerDetails) // This route should probably take a ticker symbol as a query parameter
 
 /**
  * @route   GET /api/market/movers
  * @desc    Get data for the Market Movers & Volatility component.
- * @access  Public (or Private if you add the `authenticate` middleware)
+ * @access  private
  */
 router.get('/movers', marketController.getMoversAndVolatility);
 
