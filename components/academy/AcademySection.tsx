@@ -26,7 +26,7 @@ export default function AcademySection(props: {title: string, section: 'get-star
 
     return (
         <div className="w-full">
-            <div className="pl-4 mb-4">
+            <div className="pl-2 mb-8 mt-4">
                 <h2 className="text-3xl font-bold">{props.title}</h2>
             </div>
             <div className="relative">

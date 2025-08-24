@@ -20,6 +20,19 @@ export default function EditSecurityForm(props: { userData: User | null, onClose
         setFormLoading(true)
         const formData = Object.fromEntries(new FormData(event.currentTarget));
 
+        if (formData.newPassword !== formData.confirmPassword) {
+            addToast({
+                title: "Passwords do not match",
+                description: "New password and confirm password must be the same.",
+                color: "danger",
+            });
+            setFormLoading(false);
+
+            return;
+        }
+
+
+
         try {
             const response: UserResponse = await updateRequest(formData, '/user/info/security/update')
 
@@ -27,6 +40,9 @@ export default function EditSecurityForm(props: { userData: User | null, onClose
                 title: response.message,
                 color: response.success ? 'success' : 'danger',
             })
+            if (response.success) {
+                props.onClose()
+            }
         } catch {
             addToast({
                 title: "Something went wrong !",
@@ -35,7 +51,6 @@ export default function EditSecurityForm(props: { userData: User | null, onClose
             })
         } finally {
             setFormLoading(false)
-            props.onClose()
         }
     }
 
@@ -79,6 +94,7 @@ export default function EditSecurityForm(props: { userData: User | null, onClose
                     <Input
                         isRequired
                         id="password"
+                        minLength={8}
                         name="password"
                         placeholder="********"
                         type="password"
@@ -91,6 +107,7 @@ export default function EditSecurityForm(props: { userData: User | null, onClose
                     <Input
                         isRequired
                         id="newPassword"
+                        minLength={8}
                         name="newPassword"
                         placeholder="********"
                         type="password"
@@ -103,6 +120,7 @@ export default function EditSecurityForm(props: { userData: User | null, onClose
                     <Input
                         isRequired
                         id="confirmPassword"
+                        minLength={8}
                         name="confirmPassword"
                         placeholder="********"
                         type="password"
