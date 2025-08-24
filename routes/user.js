@@ -1,6 +1,7 @@
 // routes/user.js
 const express = require('express');
 const router = express.Router();
+const { updateUserSecurityInfoRules, validate } = require('../app/http/validators/updateUserSecurityInfoRequest');
 const authenticate = require('../app/http/middleware/auth'); // Authentication middleware
 const userController = require('../app/http/controllers/userController');
 
@@ -17,6 +18,18 @@ router.get('/info', authenticate, userController.userInfo);
  * @access  Private
  */
 router.put('/info/update', authenticate, userController.updateUserInfo);
+
+/**
+ * @route   PUT /api/user/info/security/update
+ * @desc    Update the authenticated user's security information (e.g., password)
+ * @access  Private
+ */
+router.put('/info/security/update',
+    authenticate,
+    updateUserSecurityInfoRules(),
+    validate,
+    userController.updateUserSecurityInfo
+);
 
 /**
  * @route   POST /api/user/favorites/toggle

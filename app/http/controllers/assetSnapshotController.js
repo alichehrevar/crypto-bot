@@ -1,5 +1,5 @@
 /**
- * @file Controller for handling asset snapshot related API requests.
+ * @file Controller for handling asset snapshot related API validators.
  */
 const AssetSnapshotService = require('../../services/AssetSnapshotService');
 

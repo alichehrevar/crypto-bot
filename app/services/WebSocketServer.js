@@ -29,7 +29,7 @@ class WSServer {
     }
 
     /**
-     * Handles HTTP upgrade requests to WebSocket connections.
+     * Handles HTTP upgrade validators to WebSocket connections.
      * This method is called from the HTTP server's 'upgrade' event.
      *
      * @param {object} request - The HTTP upgrade request.

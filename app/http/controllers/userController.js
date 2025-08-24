@@ -3,6 +3,7 @@
 const User = require('../../models/User');
 const UserInfo = require('../../models/UserInfo');
 const FavoriteSymbol = require('../../models/FavoriteSymbol');
+const bcrypt = require("bcryptjs");
 
 exports.userInfo = async (req, res) => {
     const user = await User.findById(req.user?.id).populate('info');
@@ -43,7 +44,7 @@ exports.updateUserInfo = async (req, res) => {
 
         // Prepare the fields to be updated
         const updateData = {
-            userId, // Ensure the userId is always linked
+            userId,
             firstName,
             lastName,
             birthday,
@@ -52,14 +53,81 @@ exports.updateUserInfo = async (req, res) => {
 
         // Use findOneAndUpdate with upsert to find the UserInfo by userId or create it.
         // This is more efficient than finding the user first.
-        const updatedUserInfo = await UserInfo.findOneAndUpdate(
-            { userId: userId },
-            { $set: updateData },
-            { new: true, upsert: true, runValidators: true }
-        );
+        const updatedUserInfo = updateUserInformation(userId, updateData);
 
         // Find the user to return the complete data structure
         const user = await User.findById(userId);
+
+        // Return a success response with the updated, populated data
+        return res.status(200).json({
+            success: true,
+            message: 'User information updated successfully.',
+            data: {
+                id: user._id,
+                email: user.email,
+                info: {
+                    firstName: updatedUserInfo.firstName,
+                    lastName:  updatedUserInfo.lastName,
+                    birthday:     updatedUserInfo.birthday,
+                    avatar:       updatedUserInfo.avatar,
+                }
+            }
+        });
+
+    } catch (error) {
+        console.error('Error in updateUserInfo:', error);
+        // Provide more specific error messages if possible, e.g., for validation errors
+        if (error.name === 'ValidationError') {
+            return res.status(400).json({ success: false, message: error.message });
+        }
+        res.status(500).json({ success: false, message: 'Internal server error.' });
+    }
+};
+
+exports.updateUserSecurityInfo = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const {
+            phoneNumber,
+            phoneCountry,
+            password,
+            newPassword,
+            confirmPassword
+        } = req.body;
+
+
+        if (newPassword !== confirmPassword) {
+            return res.status(400).json({ success: false, message: 'New password and confirm password do not match.' });
+        }
+
+        // Find the user to return the complete data structure
+        const user = await User.findById(userId);
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (!isMatch) {
+            return res.status(400).json({ success: false, message: 'Invalid credentials.' });
+        }
+
+
+        // Prepare the fields to be updated
+        const updateData = {
+            userId,
+            phoneNumber,
+            phoneCountry,
+        };
+
+        // Use findOneAndUpdate with upsert to find the UserInfo by userId or create it.
+        // This is more efficient than finding the user first.
+        const updatedUserInfo = updateUserInformation(userId, updateData);
+
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(newPassword, salt);
+        console.log(newPassword)
+
+        user.findOneAndUpdate(
+            { userId: userId },
+            { $set: {password: hashedPassword} },
+            { new: true, upsert: true, runValidators: true }
+        );
 
         // Return a success response with the updated, populated data
         return res.status(200).json({
@@ -132,4 +200,12 @@ exports.toggleFavoriteSymbol = async (req, res) => {
         res.status(500).json({ success: false, message: 'Internal server error.' });
     }
 };
+
+const updateUserInformation = async (userId, updateData) => {
+    return await UserInfo.findOneAndUpdate(
+        { userId: userId },
+        { $set: updateData },
+        { new: true, upsert: true, runValidators: true }
+    );
+}
 
