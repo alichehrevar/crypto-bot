@@ -105,7 +105,7 @@ const EventCalendar: React.FC<{ data: CalendarData | null }> = ({ data }) => {
     const [highlightedEvent, setHighlightedEvent] = useState<string | null>(null);
 
     if (!data) {
-        return <div className="bg-[#1a1a1a] rounded-xl p-6 border border-white/5 shadow-md flex items-center justify-center min-h-[400px]">Loading...</div>;
+        return <div className="bg-dark-gray rounded-xl p-6 border border-white/5 shadow-md flex items-center justify-center min-h-[400px]">Loading...</div>;
     }
 
     const getImpactClass = (impact: CalendarEvent['impact']) => {

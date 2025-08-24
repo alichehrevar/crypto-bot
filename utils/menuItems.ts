@@ -38,7 +38,7 @@ export const MenuItems = [
   },
   {
     name: 'Market',
-    link: '/profile/market',
+    link: '/market',
     children: []
   },
   {

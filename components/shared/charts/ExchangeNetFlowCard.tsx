@@ -83,7 +83,7 @@ const ExchangeNetFlowCard: React.FC<{ data: NetFlowsData | null }> = ({ data }) 
 
     if (!chartData) {
         return (
-            <div className="bg-[#1a1a1a] rounded-xl p-6 border border-white/5 shadow-md flex items-center justify-center min-h-[400px]">
+            <div className="bg-dark-gray rounded-xl p-6 border border-white/5 shadow-md flex items-center justify-center min-h-[400px]">
                 <p>Loading data...</p>
             </div>
         );

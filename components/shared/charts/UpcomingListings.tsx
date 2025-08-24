@@ -25,7 +25,7 @@ const UpcomingListings: React.FC<{ data: ListingsData | null }> = ({ data }) => 
 
     if (!data) {
         return (
-            <div className="bg-[#1a1a1a] rounded-xl p-6 border border-white/5 shadow-md min-h-[300px] flex items-center justify-center">
+            <div className="bg-dark-gray rounded-xl p-6 border border-white/5 shadow-md min-h-[300px] flex items-center justify-center">
                 <p>Loading...</p>
             </div>
         );

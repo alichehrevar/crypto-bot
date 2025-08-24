@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import {Tab, Tabs} from "@heroui/react";
 
 import ComparativeSectorRotation from "@/components/shared/charts/ComparativeSectorRotation";
 import SectorPerformanceRanking from "@/components/shared/charts/SectorPerformanceRanking";
@@ -10,6 +11,7 @@ import UpcomingListings from '@/components/shared/charts/UpcomingListings';
 import LaunchPerformanceTracker, { PerformanceTrackerData } from '@/components/shared/charts/LaunchPerformanceTracker';
 import TrendingTopicsTable, { TrendingTopicsData } from '@/components/shared/charts/TrendingTopicsTable';
 import MoversAndVolatility, { MoversData } from '@/components/shared/charts/MoversAndVolatility';
+import BotsList from "@/components/profile/bots/BotsList";
 
 // =====================================================================
 // --- TYPE DEFINITIONS ---
@@ -96,15 +98,32 @@ export default function Page() {
     }, []);
 
     return (
-        <div className="grid grid-cols-2 mx-auto gap-6 mt-8 px-2 lg:px-4">
-            <UpcomingListings data={listingsData} />
-            <LaunchPerformanceTracker data={listingsData} />
-            <MoversAndVolatility data={moversData} />
-            <ComparativeSectorRotation height={340} />
-            <SectorPerformanceRanking data={sectorsData} />
-            <ExchangeNetFlowCard data={netFlowData} />
-            <TrendingTopicsTable data={trendingTopicsData} />
-            <EventCalendar data={calendarData} />
+        <div className="container mx-auto px-2 lg:px-4 py-8">
+            <Tabs
+                aria-label="Tabs variants"
+                classNames={{
+                    base: 'w-full px-4',
+                    tabList: 'w-full mx-auto border-b-1 border-default-100',
+                    tab: 'h-10 pb-4 font-bold text-[14px]',
+                    panel: "w-full grid grid-cols-1 gap-4 mt-4"
+                }}
+                variant="underlined"
+            >
+                <Tab key="momentum-rotation" title="Momentum & Rotation">
+                    <MoversAndVolatility data={moversData} />
+                    <SectorPerformanceRanking data={sectorsData} />
+                    <ComparativeSectorRotation height={340} />
+                </Tab>
+                <Tab key="liquidity-flow" title="Liquidity & Flow">
+                    <EventCalendar data={calendarData} />
+                    <ExchangeNetFlowCard data={netFlowData} />
+                </Tab>
+                <Tab key="sentiment-events" title="Sentiment & Events">
+                    <UpcomingListings data={listingsData} />
+                    <LaunchPerformanceTracker data={listingsData} />
+                    <TrendingTopicsTable data={trendingTopicsData} />
+                </Tab>
+            </Tabs>
         </div>
     );
 }

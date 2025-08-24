@@ -62,7 +62,7 @@ const TrendingTopicsTable: React.FC<{ data: TrendingTopicsData | null }> = ({ da
 
     if (!data) {
         return (
-            <div className="bg-[#1a1a1a] rounded-xl p-6 border border-white/5 shadow-md min-h-[400px] flex items-center justify-center">
+            <div className="bg-dark-gray rounded-xl p-6 border border-white/5 shadow-md min-h-[400px] flex items-center justify-center">
                 <p>Loading Topics...</p>
             </div>
         );
