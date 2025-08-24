@@ -227,3 +227,16 @@ async function getOkxSymbols() {
         return new Map();
     }
 }
+
+/**
+ * Controller to handle requests for the Market Movers & Volatility data.
+ */
+exports.getMoversAndVolatility = async (req, res) => {
+    try {
+        const moversData = await MarketService.getMoversAndVolatility();
+        res.status(200).json({ success: true, data: moversData });
+    } catch (error) {
+        console.error('Movers and Volatility controller error:', error);
+        res.status(500).json({ success: false, message: 'Failed to load market movers data' });
+    }
+};

@@ -6,6 +6,23 @@ const authenticate = require('../app/http/middleware/auth');
 
 router.get('/top-movers', marketController.getTopMovers)
 router.get('/market-list', authenticate, marketController.getMarketList)
-router.get('/ticker-details', marketController.getTickerDetails)
+
+/**
+ * @swagger
+ * /api/market/ticker-details:
+ *   get:
+ *     summary: Get detailed information for a specific ticker.
+ * @route   GET /api/market/ticker-details
+ * @desc    Get detailed information for a specific ticker.
+ * @access  Public
+ */
+router.get('/ticker-details', marketController.getTickerDetails) // This route should probably take a ticker symbol as a query parameter
+
+/**
+ * @route   GET /api/market/movers
+ * @desc    Get data for the Market Movers & Volatility component.
+ * @access  Public (or Private if you add the `authenticate` middleware)
+ */
+router.get('/movers', marketController.getMoversAndVolatility);
 
 module.exports = router
