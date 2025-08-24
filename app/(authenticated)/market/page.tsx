@@ -11,7 +11,6 @@ import UpcomingListings from '@/components/shared/charts/UpcomingListings';
 import LaunchPerformanceTracker, { PerformanceTrackerData } from '@/components/shared/charts/LaunchPerformanceTracker';
 import TrendingTopicsTable, { TrendingTopicsData } from '@/components/shared/charts/TrendingTopicsTable';
 import MoversAndVolatility, { MoversData } from '@/components/shared/charts/MoversAndVolatility';
-import BotsList from "@/components/profile/bots/BotsList";
 
 // =====================================================================
 // --- TYPE DEFINITIONS ---
