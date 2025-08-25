@@ -23,6 +23,10 @@ export const MenuItems = [
       {
         name: 'Grid',
         link: '/profile/bots/grid',
+      },
+      {
+        name: 'AI',
+        link: '/profile/bots/ai',
       }
     ]
   },
