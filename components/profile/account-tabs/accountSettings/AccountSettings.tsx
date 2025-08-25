@@ -53,11 +53,6 @@ const AccountSettingsTab = observer(() => {
                                 <span>{userData?.id || 'N/A'}</span>
                             </div>
                         </div>
-                        <EditAccountSettingsModal
-                            title="Edit Account Details"
-                            type="account"
-                            userData={userData}
-                        />
                     </div>
                     <div className="flex items-start justify-center flex-col gap-4 mt-6">
                         <h2 className="text-left font-bold">Account Details</h2>
@@ -83,8 +78,34 @@ const AccountSettingsTab = observer(() => {
                 </>
             )}
 
+            {/* Security Section */}
+            {isLoading ? (
+                <SecuritySettingsLoading />
+            ) : (
+                <div className="flex items-start justify-center flex-col w-full gap-4 py-8 border-t-[0.5px] border-b-[0.5px] border-[#c8c8c8] dark:border-[#404040]">
+                    <div className="flex items-start justify-between w-full">
+                        <h2 className="text-left font-bold">Security</h2>
+                        <EditAccountSettingsModal
+                            title="Edit Security Information"
+                            type="security"
+                            userData={userData}
+                        />
+                    </div>
+                    <ul className="flex items-start justify-center flex-col gap-4 text-[13px] mt-1">
+                        <li className="flex items-center justify-center">
+                            <span className="text-gray-400 w-[200px]">Password</span>
+                            <span>**********</span>
+                        </li>
+                        <li className="flex items-center justify-center">
+                            <span className="text-gray-400 w-[200px]">Phone Verification</span>
+                            <span>{userData?.info?.phoneNumber ? `(${userData.info.phoneCountry}) ${userData.info.phoneNumber}` : 'N/A'}</span>
+                        </li>
+                    </ul>
+                </div>
+            )}
+
             {/* Preferences Section */}
-            <div className="border-t-[0.5px] border-b-[0.5px] py-8 w-full border-[#c8c8c8] dark:border-[#404040] flex items-start justify-center flex-col gap-4">
+            <div className="w-full flex items-start justify-center flex-col gap-4">
                 <h2 className="text-left font-bold">Preferences</h2>
                 <ul className="flex items-start justify-center flex-col gap-4 text-[13px] mt-4">
                     <li className="flex items-center justify-center">
@@ -118,32 +139,6 @@ const AccountSettingsTab = observer(() => {
                     </li>
                 </ul>
             </div>
-
-            {/* Security Section */}
-            {isLoading ? (
-                <SecuritySettingsLoading />
-            ) : (
-                <div className="flex items-start justify-center flex-col w-full gap-4">
-                    <div className="flex items-center justify-between w-full">
-                        <h2 className="text-left font-bold">Security</h2>
-                        <EditAccountSettingsModal
-                            title="Edit Security Information"
-                            type="security"
-                            userData={userData}
-                        />
-                    </div>
-                    <ul className="flex items-start justify-center flex-col gap-4 text-[13px] mt-4">
-                        <li className="flex items-center justify-center">
-                            <span className="text-gray-400 w-[200px]">Password</span>
-                            <span>**********</span>
-                        </li>
-                        <li className="flex items-center justify-center">
-                            <span className="text-gray-400 w-[200px]">Phone Verification</span>
-                            <span>{userData?.info?.phoneNumber ? `(${userData.info.phoneCountry}) ${userData.info.phoneNumber}` : 'N/A'}</span>
-                        </li>
-                    </ul>
-                </div>
-            )}
         </section>
     );
 });
