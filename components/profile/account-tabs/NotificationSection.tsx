@@ -4,7 +4,6 @@ import React, { useState } from 'react'
 import { Button } from '@heroui/react'
 
 import {
-  GmailIcon,
   SmsIcon,
   TelegramIcon,
   WhatsappIcon
