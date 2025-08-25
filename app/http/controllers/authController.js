@@ -38,12 +38,12 @@ exports.login = async (req, res) => {
         const user = await User.findOne({ email: email });
 
         if (!user) {
-            return res.status(401).json({ success: false, error: 'Invalid email' });
+            return res.status(401).json({ success: false, error: 'Email not exists. Please register first.' });
         }
 
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
-            return res.status(401).json({ success: false, error: 'Invalid password.' });
+            return res.status(401).json({ success: false, error: 'Invalid credentials..' });
         }
 
         // 1. Generate a secure, random token string.
