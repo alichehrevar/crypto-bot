@@ -1,8 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import Image from "next/image";
-import { Button, Input } from '@heroui/react'
+import { Button } from '@heroui/react'
 
 import {
   GmailIcon,
@@ -28,7 +27,6 @@ interface ContactMethod {
   Icon: React.ComponentType<{ className?: string }>
 }
 const contactMethods: ContactMethod[] = [
-  { id: 'email',    label: 'Email',    value: 'you@example.com',   connected: true,  Icon: GmailIcon     },
   { id: 'sms',      label: 'SMS',      value: '+49 123 456 7890', connected: false, Icon: SmsIcon       },
   { id: 'telegram', label: 'Telegram', value: '@yourHandle',      connected: false, Icon: TelegramIcon  },
   { id: 'whatsapp', label: 'WhatsApp', value: '@yourWhatsApp',    connected: false, Icon: WhatsappIcon  },
@@ -51,9 +49,6 @@ export default function NotificationSettings() {
   // which events are currently added
   const [chosenEvents, setChosenEvents] =
     useState<Set<string>>(new Set(['Price movement']))
-
-  // subscription-email state
-  const [newsletterEmail, setNewsletterEmail] = useState('')
 
   const toggleEvent = (evt: string) => {
     setChosenEvents(prev => {
@@ -99,28 +94,6 @@ export default function NotificationSettings() {
 
         {/* RIGHT: content depending on selection */}
         <div className="flex-1 space-y-4">
-          {/* none selected => show QR + newsletter */}
-          {selectedCard === -1 && (
-            <div className="space-y-4 flex flex-col items-center justify-center">
-              <div className="flex justify-center w-48 h-48 relative items-center">
-                <Image
-                  fill
-                  alt="Subscribe QR"
-                  src="/images/profile/Qrcode.png"
-                />
-              </div>
-              <p className="text-center text-white">Subscribe to latest news!</p>
-              <Input
-                className="max-w-md mx-auto"
-                label="Email"
-                value={newsletterEmail}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                  setNewsletterEmail(e.target.value)
-                }
-              />
-            </div>
-          )}
-
           {/* “How to communicate” */}
           {selectedCard === 0 && contactMethods.map(method => (
             <div

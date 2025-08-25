@@ -108,6 +108,11 @@ export default function Page() {
                 }}
                 variant="underlined"
             >
+                <Tab key="summary" title="Summary">
+                    <MoversAndVolatility data={moversData} />
+                    <SectorPerformanceRanking data={sectorsData} />
+                    <ComparativeSectorRotation height={340} />
+                </Tab>
                 <Tab key="momentum-rotation" title="Momentum & Rotation">
                     <MoversAndVolatility data={moversData} />
                     <SectorPerformanceRanking data={sectorsData} />
