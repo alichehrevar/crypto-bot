@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React from 'react'
 import { Button } from '@heroui/react'
 
 import {
@@ -8,15 +8,6 @@ import {
   TelegramIcon,
   WhatsappIcon
 } from '@/utils/icons'
-
-interface NotificationCard {
-  title: string
-  description: string
-}
-const notificationCards: NotificationCard[] = [
-  { title: 'How to Communicate', description: 'Email, SMS, Telegram' },
-  { title: 'Push Notification',  description: 'Price movement, Balance report, position open/close, risk alerts…' },
-]
 
 interface ContactMethod {
   id: string
@@ -42,115 +33,65 @@ const notificationEvents = [
 ]
 
 export default function NotificationSettings() {
-  // -1 = none; 0 = “How to communicate”; 1 = “Notification bot”
-  const [selectedCard, setSelectedCard] = useState<number>(-1)
-
-  // which events are currently added
-  const [chosenEvents, setChosenEvents] =
-    useState<Set<string>>(new Set(['Price movement']))
-
-  const toggleEvent = (evt: string) => {
-    setChosenEvents(prev => {
-      const next = new Set(prev)
-
-      next.has(evt) ? next.delete(evt) : next.add(evt)
-
-      return next
-    })
-  }
 
   return (
-    <section className="mt-16 px-4 lg:px-16">
-      <h2 className="text-white text-2xl font-semibold mb-4">Notification</h2>
-      <div className="flex flex-col lg:grid lg:grid-cols-2 gap-8">
-        {/* LEFT: selection cards */}
-        <div className="flex-1 lg:w-96 space-y-4">
-          {notificationCards.map((card, i) => {
-            const active = i === selectedCard
-
-            return (
-              <button
-                key={card.title}
-                className={`
-                  cursor-pointer rounded-lg p-4 transition-all duration-300 w-full flex flex-col items-start
-                  ${active
-                  ? 'border-1 border-primary bg-transparent'
-                  : 'border border-white/20 bg-white/10 backdrop-blur-md'
-                }
-                `}
-                onClick={() => setSelectedCard(i)}
-              >
-                <h3 className="text-white text-lg font-medium">
-                  {card.title}
-                </h3>
-                <p className="text-gray-400 mt-1 text-sm line-clamp-1 text-start">
-                  {card.description}
-                </p>
-              </button>
-            )
-          })}
-        </div>
-
-        {/* RIGHT: content depending on selection */}
-        <div className="flex-1 space-y-4">
-          {/* “How to communicate” */}
-          {selectedCard === 0 && contactMethods.map(method => (
-            <div
-              key={method.id}
-              className="bg-white/10 backdrop-blur-md rounded-lg px-4 py-3 flex items-center justify-between"
-            >
-              <div className="flex items-center space-x-3">
-                <method.Icon className="w-6 h-6 text-white" />
-                <div>
-                  <div className="text-white font-medium">
-                    {method.label}
-                  </div>
-                  <div className="text-gray-400 text-sm">
-                    {method.value}
-                  </div>
-                </div>
-              </div>
-              <Button
-                className={
-                  method.connected
-                    ? 'bg-white text-black hover:bg-gray-100'
-                    : 'border border-white text-white hover:bg-white hover:text-black'
-                }
-                size="sm"
-                variant={method.connected ? 'solid' : 'bordered'}
-              >
-                {method.connected ? 'connected' : 'connect'}
-              </Button>
-            </div>
-          ))}
-
-          {/* “Notification bot” */}
-          {selectedCard === 1 && notificationEvents.map(evt => {
-            const added = chosenEvents.has(evt)
-
-            return (
-              <div
-                key={evt}
-                className="bg-white/10 backdrop-blur-md rounded-lg px-4 py-3 flex items-center justify-between"
-              >
-                <span className="text-white">{evt}</span>
-                <Button
-                  className={
-                    added
-                      ? 'bg-white text-black hover:bg-gray-100'
-                      : 'border border-white text-white hover:bg-white hover:text-black'
-                  }
-                  size="sm"
-                  variant={added ? 'solid' : 'bordered'}
-                  onPress={() => toggleEvent(evt)}
-                >
-                  {added ? 'Remove' : 'Add'}
-                </Button>
-              </div>
-            )
-          })}
-        </div>
-      </div>
+      <section className="bg-dark-gray light:bg-white shadow-lg flex flex-col items-start justify-center w-full rounded-lg mx-4 py-10 px-10 gap-10 max-w-4xl">
+          <div className="flex items-start justify-center flex-col gap-4 w-full">
+              <h2 className="text-left font-bold">How to Communicate</h2>
+              <ul className="flex items-start justify-center flex-col text-[13px] mt-4 w-full">
+                  {contactMethods.map(method => (
+                      <div
+                          key={method.id}
+                          className="py-4 flex items-center justify-between w-full border-b-1 border-default-100"
+                      >
+                          <div className="flex items-center space-x-3">
+                              <method.Icon className="w-6 h-6 text-white" />
+                              <div>
+                                  <div className="text-white font-medium">
+                                      {method.label}
+                                  </div>
+                                  <div className="text-gray-400 text-sm">
+                                      {method.value}
+                                  </div>
+                              </div>
+                          </div>
+                          <Button
+                              className={
+                                  method.connected
+                                      ? 'bg-white text-black hover:bg-gray-100'
+                                      : 'border border-white text-white hover:bg-white hover:text-black'
+                              }
+                              size="sm"
+                              variant={method.connected ? 'solid' : 'bordered'}
+                          >
+                              {method.connected ? 'connected' : 'connect'}
+                          </Button>
+                      </div>
+                  ))}
+              </ul>
+          </div>
+          <div className="flex items-start justify-center flex-col gap-4 mt-6 w-full">
+              <h2 className="text-left font-bold">Push Notification</h2>
+              <ul className="flex items-start justify-center flex-col text-[13px] mt-4 w-full">
+                  {notificationEvents.map(evt => {
+                      return (
+                          <div
+                              key={evt}
+                              className="py-4 flex items-center justify-between w-full border-b-1 border-default-100"
+                          >
+                              <span className="text-white">{evt}</span>
+                              <Button
+                                  className="border border-white text-white hover:bg-white hover:text-black"
+                                  size="sm"
+                                  variant={'bordered'}
+                              >
+                                  Add
+                              </Button>
+                          </div>
+                      )
+                  })}
+              </ul>
+          </div>
     </section>
   )
 }
