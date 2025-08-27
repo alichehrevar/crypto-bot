@@ -66,11 +66,28 @@ export default function CreatorsHubPanel() {
             </div>
             <div className="grid grid-cols-2 gap-4">
                 <div className="flex flex-col gap-5">
-                    <RadioGroup label="Margin" options={[{ value: 'Isolated', label: 'Isolated' }, { value: 'Cross', label: 'Cross' }]} selectedValue={marginType} onChange={setMarginType} />
-                    <RadioGroup label="Position" options={[{ value: 'Hedge', label: 'Hedge' }, { value: 'Single', label: 'Single' }]} selectedValue={positionMode} onChange={setPositionMode} />
+                    <RadioGroup
+                        label="Margin"
+                        options={[{ value: 'Isolated', label: 'Isolated' }, { value: 'Cross', label: 'Cross' }]}
+                        selectedValue={marginType}
+                        onChange={setMarginType}
+                    />
+                    <RadioGroup
+                        label="Position"
+                        options={[{ value: 'Hedge', label: 'Hedge' }, { value: 'Single', label: 'Single' }]}
+                        selectedValue={positionMode}
+                        onChange={setPositionMode}
+                    />
                 </div>
                 <div className="flex flex-col justify-end">
-                    {positionMode === 'Single' && (<RadioGroup label="Side" options={[{ value: 'Long', label: 'Long' }, { value: 'Short', label: 'Short' }, { value: 'Both', label: 'Both' }]} selectedValue={singleModeSide} onChange={setSingleModeSide} />)}
+                    {positionMode === 'Single' &&
+                        (<RadioGroup
+                            label="Side"
+                            options={[{ value: 'Long', label: 'Long' }, { value: 'Short', label: 'Short' }, { value: 'Both', label: 'Both' }]}
+                            selectedValue={singleModeSide}
+                            onChange={setSingleModeSide}
+                        />)
+                    }
                 </div>
             </div>
             <div className="relative h-[68px] overflow-hidden">
