@@ -5,7 +5,7 @@ import { Code } from "@heroui/code";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 
-import { title, subtitle } from "@/components/shared/primitives";
+import { title, subtitle } from "@/utils/primitives";
 
 export default function Home() {
 
