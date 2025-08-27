@@ -1,4 +1,5 @@
 import SummaryPieChartWithDetails from "@/components/shared/charts/SummaryPieChartWithDetails";
+import CreatorsHubPanel from "@/components/shared/CreatorsHubPanel";
 
 const assetData = {
     name: "Assets",
@@ -36,6 +37,7 @@ export default function HoldingDetailsPage() {
     return (
         <section className="container px-2 lg:px-4 mt-8 mx-auto">
             <SummaryPieChartWithDetails data={assetData} title="Assets" />
+            <CreatorsHubPanel />
         </section>
     )
 }
