@@ -29,6 +29,10 @@ html, body {
     background-color: #F0F0F0FF;
 }
 
+.bg-dark-semi-black {
+    background-color: #191919;
+}
+
 label[data-slot="label"]:after {
     display: none;
 }
