@@ -15,11 +15,11 @@ import Slider from "@/components/shared/ui/Slider";
 // =====================================================================
 
 const BROKERS: DropdownOption[] = [
-    { name: 'Binance', logo: 'https://img.icons8.com/color/48/binance.png' },
-    { name: 'ByBit', logo: 'https://img.icons8.com/color/48/000000/bybit.png' },
-    { name: 'OKX', logo: 'https://img.icons8.com/color/48/okx.png' },
+    { name: 'Binance', logo: 'https://img.icons8.com/?size=100&id=axJ7sXBmQS2g&format=png&color=000000' },
+    { name: 'ByBit', logo: 'https://img.icons8.com/bybit.png' },
+    { name: 'OKX', logo: 'https://img.icons8.com/okx.png' },
     { name: 'Coinbase', logo: 'https://img.icons8.com/color/48/coinbase.png' },
-    { name: 'Kraken', logo: 'https://img.icons8.com/color/48/kraken.png' },
+    { name: 'Kraken', logo: 'https://img.icons8.com/kraken.png' },
 ];
 
 const SYMBOLS: DropdownOption[] = [
@@ -27,7 +27,7 @@ const SYMBOLS: DropdownOption[] = [
     { name: 'ETHUSDT', logo: 'https://img.icons8.com/color/48/ethereum.png' },
     { name: 'SOLUSDT', logo: 'https://img.icons8.com/color/48/solana.png' },
     { name: 'XRPUSDT', logo: 'https://img.icons8.com/color/48/xrp.png' },
-    { name: 'DOGEUSDT', logo: 'https://img.icons8.com/color/48/dogecoin.png' },
+    { name: 'DOGEUSDT', logo: 'https://img.icons8.com/dogecoin.png' },
 ];
 
 // --- MAIN COMPONENT ---

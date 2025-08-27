@@ -165,7 +165,7 @@ export default function StrategyPanel() {
     };
 
     return (
-        <div className="bg-dark-gray text-white p-8 rounded-xl shadow-2xl flex flex-col w-xl">
+        <div className="bg-dark-gray text-white p-8 pb-4 rounded-xl shadow-2xl flex flex-col w-xl">
             <motion.div layout className="mb-6">
                 <StrategyTabs activeTab={activeStrategy} setActiveTab={setActiveStrategy}/>
             </motion.div>
