@@ -6,7 +6,7 @@ import {DropdownOption} from "@/types/ui/DropdownOption";
 
 const Combobox: React.FC<{
     label: string;
-    placeholder: string;
+    placeholder?: string;
     options: DropdownOption[];
     selected: string;
     setSelected: (value: string) => void;
@@ -36,7 +36,7 @@ const Combobox: React.FC<{
                 onClick={() => setIsOpen(!isOpen)}
             >
                 <div className="flex items-center">
-                    {selectedOption &&
+                    {selectedOption && selectedOption.logo &&
                         <Image alt={`${selectedOption.name} logo`} className="w-5 h-5 mr-3 object-contain" height={20} src={selectedOption.logo} width={20}/>
                     }
                     <span className={selected ? 'text-white' : 'text-gray-400'}>{selected || placeholder}</span>
@@ -75,13 +75,15 @@ const Combobox: React.FC<{
                                             }
                                         }}
                                     >
-                                        <Image
-                                            alt={`${option.name} logo`}
-                                            className="w-5 h-5 mr-3 object-contain"
-                                            height={20}
-                                            src={option.logo}
-                                            width={20}
-                                        />
+                                        {option.logo &&
+                                            <Image
+                                                alt={`${option.name} logo`}
+                                                className="w-5 h-5 mr-3 object-contain"
+                                                height={20}
+                                                src={option.logo}
+                                                width={20}
+                                            />
+                                        }
                                         {option.name}
                                     </button>
                                 </li>
