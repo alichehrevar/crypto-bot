@@ -30,15 +30,6 @@ const SYMBOLS: DropdownOption[] = [
     { name: 'DOGEUSDT', logo: 'https://img.icons8.com/color/48/dogecoin.png' },
 ];
 
-// =====================================================================
-// --- REUSABLE SUB-COMPONENTS ---
-// =====================================================================
-
-
-
-
-
-
 // --- MAIN COMPONENT ---
 export default function CreatorsHubPanel() {
     const [account, setAccount] = useState(BROKERS[0].name);
