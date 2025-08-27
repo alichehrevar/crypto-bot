@@ -6,7 +6,6 @@ import Input from '@/components/shared/ui/Input'
 import SearchableCombobox from "@/components/shared/ui/SearchableCombobox";
 import Combobox from "@/components/shared/ui/Combobox";
 import {DropdownOption} from "@/types/ui/DropdownOption";
-import {RadioOption} from "@/types/ui/RadioOption";
 import RadioGroup from "@/components/shared/ui/RadioGroup";
 import Slider from "@/components/shared/ui/Slider";
 
