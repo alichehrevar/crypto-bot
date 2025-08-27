@@ -302,7 +302,7 @@ export default function StrategyPanel() {
             </AnimatePresence>
             <motion.div layout className="flex items-center justify-end pt-4 space-x-3 border-t border-gray-800/50">
                 <button
-                    className="px-6 py-2 text-sm font-semibold text-white bg-gradient-to-tr from-pink-500 to-yellow-500 shadow-lg rounded-full transition-all">
+                    className="px-6 py-2 text-sm font-semibold text-white ai-bg shadow-lg rounded-full transition-all">
                     Backtest
                 </button>
                 <button

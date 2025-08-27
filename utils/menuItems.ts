@@ -27,6 +27,7 @@ export const MenuItems = [
             {
                 name: 'AI',
                 link: '/profile/bots/ai',
+                className: 'ai-text'
             }
         ]
     },

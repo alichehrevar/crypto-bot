@@ -188,6 +188,13 @@ section[role="dialog"] .overflow-y-auto::-webkit-scrollbar-track {
     height: 100% !important;
 }
 
+.ai-bg {
+    @apply bg-gradient-to-tr from-pink-500 to-yellow-500;
+}
+.ai-text {
+    @apply bg-gradient-to-tr from-pink-500 to-yellow-500 text-transparent bg-clip-text;
+}
+
 .tv-lightweight-charts {
     @apply rounded-lg;
 }

@@ -75,7 +75,7 @@ export default function TopMenu() {
                                                     }}
                                                     href={child.link}
                                                 >
-                                                    <span className="text-[14px]">{child.name}</span>
+                                                    <span className={`text-[14px] ${child.className ?? ''}`}>{child.name}</span>
                                                 </DropdownItem>
                                             );
                                         })}
