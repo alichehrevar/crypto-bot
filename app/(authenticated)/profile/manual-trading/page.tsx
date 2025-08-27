@@ -2,8 +2,8 @@
 
 import React, {useState} from "react";
 
-import BotsList from "@/components/profile/bots/BotsList";
-import ManualTradeSection from "@/components/profile/bots/deploy/ManualTradeSection";
+import BotsList from "@/components/bots/BotsList";
+import ManualTradeSection from "@/components/bots/deploy/ManualTradeSection";
 import {OrderBook} from "@/components/shared/OrderBook";
 import CoinSummarySection from "@/components/shared/CoinSummarySection";
 import RealTimeCandlestickChart from "@/components/shared/charts/TradingViewLightweightChart";

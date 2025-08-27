@@ -6,7 +6,7 @@ import {
   Tab
 } from "@heroui/react";
 
-import BotConfigForm from "@/components/profile/bots/deploy/BotConfigForm";
+import GridConfigForm from "@/components/bots/deploy/GridConfigForm";
 
 export default function TechnicalDeployBotSection ({
   onSuccessAction
@@ -20,15 +20,15 @@ export default function TechnicalDeployBotSection ({
   ] as const;
 
   const tabs = [
-    { key: "default",   title: "Default"   },
-    { key: "optimized", title: "Optimized" },
-    { key: "dynamic", title: "Dynamic" }
+    { key: "standard",   title: "Standard"   },
+    { key: "infinity", title: "Infinity" },
+    { key: 'dynamic', title: 'Dynamic' }
   ] as const;
 
   const [selectedParentTab, setSelectedParentTab] = React.useState("spot");
 
   return (
-    <div className="flex w-full h-full flex-col bg-dark-gray backdrop-blur-md px-2 rounded-lg">
+    <div className="flex w-full flex-col bg-dark-gray backdrop-blur-md pt-4 px-4 rounded-lg bot-config-form__tabs-screen-height">
       <Tabs
         fullWidth
         aria-label="Options"
@@ -50,7 +50,7 @@ export default function TechnicalDeployBotSection ({
         aria-label="Options"
         classNames={{
           cursor: "w-full bg-white dark:group-data-[selected=true]:bg-white",
-          tab: "h-8 text-[12px]",
+            tab: "h-8 text-[12px]",
           tabContent: "dark:group-data-[selected=true]:text-black",
           panel: "h-full overflow-y-auto over-flow-x-hidden bot-config-form thin-scrollbar"
         }}
@@ -58,7 +58,7 @@ export default function TechnicalDeployBotSection ({
       >
         {tabs.map(({ key, title }) => (
           <Tab key={key} title={title}>
-            <BotConfigForm
+            <GridConfigForm
               mode={key}
               selectedParentTab={selectedParentTab}
               onCloseAction={() => onSuccessAction()}

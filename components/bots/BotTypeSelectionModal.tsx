@@ -18,7 +18,7 @@ const technicalBots = [
     count: '300+',
     changePct: 14,
     Icon: TechnicalChartIcon,
-    link: '/profile/bots/technical'
+    link: '/bots/technical'
   },
   {
     id: 'tech2',
@@ -27,7 +27,7 @@ const technicalBots = [
     count: '120+',
     changePct: 7,
     Icon: DcaChartIcon,
-    link: '/profile/bots/dca'
+    link: '/bots/dca'
   },
   {
     id: 'tech3',
@@ -36,7 +36,7 @@ const technicalBots = [
     count: '80+',
     changePct: 4,
     Icon: GridChartIcon,
-    link: '/profile/bots/grid'
+    link: '/bots/grid'
   }
 ]
 

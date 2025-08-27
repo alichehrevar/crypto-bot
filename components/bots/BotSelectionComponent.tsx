@@ -63,7 +63,7 @@ const botStats = [
     volume: '300K',
     roi: '+18%',
     icon: TechnicalIcon,
-    link: '/profile/bots/technical'
+    link: '/bots/technical'
   },
   {
     id: 'dca',
@@ -72,7 +72,7 @@ const botStats = [
     volume: '120K',
     roi: '+11%',
     icon: DcaIcon,
-    link: '/profile/bots/dca' // NOTE: This link was not in your original component, you may need to create this page.
+    link: '/bots/dca'
   },
   {
     id: 'grid',
@@ -81,7 +81,7 @@ const botStats = [
     volume: '80K',
     roi: '+8%',
     icon: GridIcon,
-    link: '/profile/bots/grid'
+    link: '/bots/grid'
   }
 ]
 

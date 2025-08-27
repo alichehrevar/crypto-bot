@@ -6,7 +6,7 @@ import {Divider} from "@heroui/react";
 import AssetSection from "@/components/profile/dashboard/AssetSection";
 import PnLSection from "@/components/profile/dashboard/PnLSection";
 import TopMovers from "@/components/profile/dashboard/TopMovers";
-import BotsList from "@/components/profile/bots/BotsList";
+import BotsList from "@/components/bots/BotsList";
 import AssetSummary from "@/components/profile/dashboard/assetSummary";
 import {RecentActivities} from "@/components/shared/RecentActivities";
 import CommunityBotList from "@/components/shared/communityBot/CommunityBotList";

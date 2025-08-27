@@ -3,9 +3,9 @@
 import React from "react";
 import {Tab, Tabs} from "@heroui/react";
 
-import BotSelectionComponent from "@/components/profile/bots/BotSelectionComponent";
+import BotSelectionComponent from "@/components/bots/BotSelectionComponent";
 import BotProgressChart from "@/components/shared/charts/BotProgressChart";
-import BotsList from "@/components/profile/bots/BotsList";
+import BotsList from "@/components/bots/BotsList";
 import {RecentBots} from "@/components/shared/RecentBots";
 import DeployButton from "@/components/shared/ui/DeployButton";
 

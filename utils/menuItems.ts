@@ -6,27 +6,27 @@ export const MenuItems = [
     },
     {
         name: 'Bots',
-        link: '/profile/bots',
+        link: '/bots',
         children: [
             {
                 name: 'All Bots',
-                link: '/profile/bots',
+                link: '/bots',
             },
             {
                 name: 'Technical Bots',
-                link: '/profile/bots/technical',
+                link: '/bots/technical',
             },
             {
                 name: 'DCA',
-                link: '/profile/bots/dca',
+                link: '/bots/dca',
             },
             {
                 name: 'Grid',
-                link: '/profile/bots/grid',
+                link: '/bots/grid',
             },
             {
                 name: 'AI',
-                link: '/profile/bots/ai',
+                link: '/bots/ai',
                 className: 'ai-text'
             }
         ]

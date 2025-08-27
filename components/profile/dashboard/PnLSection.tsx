@@ -195,7 +195,7 @@ function UnrealizedView({ data }: { data: UnrealizedPoint[] }) {
                 ) : (
                     <div className="flex flex-col justify-center items-center space-y-3">
                         <p className="text-gray-400 text-xs font-semibold text-nowrap">No Open Positions</p>
-                        <Link className="flex items-center gap-0.5 hover:scale-105 transition-all duration-300 bg-white text-black border-1 border-white py-1 px-2 rounded-xl font-semibold" href="/profile/bots">
+                        <Link className="flex items-center gap-0.5 hover:scale-105 transition-all duration-300 bg-white text-black border-1 border-white py-1 px-2 rounded-xl font-semibold" href="/bots">
                             <span className="text-xs">Start a Bot</span>
                             <ChevronRightIcon className="size-3" strokeWidth={'2'} />
                         </Link>

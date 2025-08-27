@@ -2,7 +2,7 @@
 
 import React from "react";
 
-import ManualTradeForm from "@/components/profile/bots/deploy/ManualTradeForm";
+import ManualTradeForm from "@/components/bots/deploy/ManualTradeForm";
 
 export default function TechnicalDeployBotSection ({
   onSuccessAction
