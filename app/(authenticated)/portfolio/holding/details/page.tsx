@@ -2,6 +2,7 @@ import SummaryPieChartWithDetails from "@/components/shared/charts/SummaryPieCha
 import CreatorsHubPanel from "@/components/shared/CreatorsHubPanel";
 import RiskManagementPanel from "@/components/shared/RiskManagementPanel";
 import StrategyPanel from "@/components/shared/StrategyPanel";
+import AIStrategyGenerator from "@/components/shared/AIStrategyGenerator";
 
 const assetData = {
     name: "Assets",
@@ -42,6 +43,7 @@ export default function HoldingDetailsPage() {
             <CreatorsHubPanel />
             <RiskManagementPanel />
             <StrategyPanel />
+            <AIStrategyGenerator />
         </section>
     )
 }
