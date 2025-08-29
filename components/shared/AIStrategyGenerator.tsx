@@ -225,7 +225,7 @@ export default function AIStrategyGenerator() {
     };
 
     return (
-        <div className="bg-[#141414] text-white px-8 pt-8 pb-3 rounded-xl shadow-2xl w-full max-w-5xl mx-auto my-8">
+        <div className="bg-dark-gray text-white px-8 pt-8 pb-3 rounded-xl shadow-2xl w-full max-w-5xl mx-auto my-8">
             <div className="flex justify-between items-center mb-6">
                 <h2 className="text-2xl font-semibold text-gray-100">AI Strategy Generator</h2>
             </div>

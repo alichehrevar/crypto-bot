@@ -4,7 +4,7 @@ const NumericInput: React.FC<{
     label: string;
     value: string | number;
     onChange: (value: string) => void;
-    placeholder: string;
+    placeholder?: string;
     unit?: string;
     min: number;
     max: number;
