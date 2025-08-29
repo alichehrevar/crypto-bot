@@ -6,6 +6,7 @@ import Tabs from "@/components/shared/ui/Tabs";
 import DetailedViewOfHolding from "@/components/portfolio/DetailedViewOfHolding";
 import OpenPositionsTab from "@/components/portfolio/OpenPositionsTab";
 import PnLTab from "@/components/portfolio/PnLTab";
+import BotsList from "@/components/bots/BotsList";
 
 const tabs = [
     'Detailed View of Holding',
@@ -24,6 +25,7 @@ export default function HoldingDetailsPage() {
             {activeTab === tabs[0] && <DetailedViewOfHolding />}
             {activeTab === tabs[1] && <OpenPositionsTab />}
             {activeTab === tabs[2] && <PnLTab />}
+            {activeTab === tabs[3] && <div className="bg-dark-gray rounded-lg py-4"><BotsList active={false} showTitle={false} /></div>}
         </section>
     )
 }
