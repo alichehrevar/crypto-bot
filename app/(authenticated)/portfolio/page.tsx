@@ -5,6 +5,7 @@ import React, {useState} from "react";
 import Tabs from "@/components/shared/ui/Tabs";
 import DetailedViewOfHolding from "@/components/portfolio/DetailedViewOfHolding";
 import OpenPositionsTab from "@/components/portfolio/OpenPositionsTab";
+import PnLTab from "@/components/portfolio/PnLTab";
 
 const tabs = [
     'Detailed View of Holding',
@@ -22,6 +23,7 @@ export default function HoldingDetailsPage() {
             <Tabs activeTab={activeTab} setActiveTab={setActiveTab} tabs={tabs}/>
             {activeTab === tabs[0] && <DetailedViewOfHolding />}
             {activeTab === tabs[1] && <OpenPositionsTab />}
+            {activeTab === tabs[2] && <PnLTab />}
         </section>
     )
 }

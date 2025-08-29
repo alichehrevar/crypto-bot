@@ -44,8 +44,8 @@ const getPnlColor = (pnl: string) => {
     return 'text-gray-400';
 };
 
-export const RecentActivities = () => {
-    const [activeTab, setActiveTab] = useState('open');
+export const RecentActivities = ({ showTabs = true, visibleTab = 'open' }: { showTabs?: boolean; visibleTab?: 'closed' | 'open' }) => {
+    const [activeTab, setActiveTab] = useState(visibleTab);
     const [pnLData, setPnlData] = useState<PnLData>()
     const [loading, setLoading] = useState<boolean>(true)
 
@@ -94,28 +94,30 @@ export const RecentActivities = () => {
                 <div className="flex items-center justify-between mb-3 px-4 w-full">
                     <h3 className="text-lg font-semibold text-white">Recent Trading Activities</h3>
 
-                    <div className="flex rounded-lg p-1 backdrop-blur-sm border border-gray-700/30">
-                        <button
-                            className={`px-4 py-1 rounded-md text-sm font-medium transition-all duration-200 ${
-                                activeTab === 'open'
-                                    ? 'bg-white text-black shadow-sm'
-                                    : 'text-gray-400 hover:text-white hover:bg-gray-800/50'
-                            }`}
-                            onClick={() => setActiveTab('open')}
-                        >
-                            Open
-                        </button>
-                        <button
-                            className={`px-4 py-1 rounded-md text-sm font-medium transition-all duration-200 ${
-                                activeTab === 'closed'
-                                    ? 'bg-white text-black shadow-sm'
-                                    : 'text-gray-400 hover:text-white hover:bg-gray-800/50'
-                            }`}
-                            onClick={() => setActiveTab('closed')}
-                        >
-                            Closed
-                        </button>
-                    </div>
+                    {showTabs &&
+                        <div className="flex rounded-lg p-1 backdrop-blur-sm border border-gray-700/30">
+                            <button
+                                className={`px-4 py-1 rounded-md text-sm font-medium transition-all duration-200 ${
+                                    activeTab === 'open'
+                                        ? 'bg-white text-black shadow-sm'
+                                        : 'text-gray-400 hover:text-white hover:bg-gray-800/50'
+                                }`}
+                                onClick={() => setActiveTab('open')}
+                            >
+                                Open
+                            </button>
+                            <button
+                                className={`px-4 py-1 rounded-md text-sm font-medium transition-all duration-200 ${
+                                    activeTab === 'closed'
+                                        ? 'bg-white text-black shadow-sm'
+                                        : 'text-gray-400 hover:text-white hover:bg-gray-800/50'
+                                }`}
+                                onClick={() => setActiveTab('closed')}
+                            >
+                                Closed
+                            </button>
+                        </div>
+                    }
                 </div>
 
                 {loading &&

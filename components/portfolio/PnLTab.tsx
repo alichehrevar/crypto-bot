@@ -1,17 +1,20 @@
 'use client'
 
-import type { UnrealizedPnLResponse, UnrealizedPoint} from "@/types/profile/PnLTypes";
+import type {
+    RealizedPnLResponse,
+    RealizedPoint,
+} from "@/types/profile/PnLTypes";
 
 import React, {useEffect, useState} from "react";
 import {addToast} from "@heroui/react";
 
-import UnrealizedView from "@/components/shared/UnrealizedView";
 import {getData} from "@/actions/get";
 import {RecentActivities} from "@/components/shared/RecentActivities";
+import RealizedView from "@/components/shared/RealizedView";
 
-export default function OpenPositionsTab() {
+export default function PnLTab() {
 
-    const [unrealizedData, setUnrealizedData] = useState<UnrealizedPoint[]>([]);
+    const [realizedData, setRealizedData] = useState<RealizedPoint[]>([]);
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
@@ -22,7 +25,7 @@ export default function OpenPositionsTab() {
             const period = '1D';
 
             try {
-                const res: UnrealizedPnLResponse = await getData(`/pnl/unrealized?period=${period}`);
+                const res: RealizedPnLResponse = await getData(`/pnl/realized?period=${period}`);
 
                 if (!abort) {
                     if (!res?.success) {
@@ -30,7 +33,7 @@ export default function OpenPositionsTab() {
 
                         return;
                     }
-                    setUnrealizedData(res.data || []);
+                    setRealizedData(res.data || []);
                 }
             } catch (err: any) {
                 if (!abort) addToast({ title: err?.message || 'Error loading PnL data', color: 'danger' });
@@ -49,11 +52,11 @@ export default function OpenPositionsTab() {
             <div className="col-span-4 h-[250px] bg-dark-gray py-6 rounded-lg">
                 {loading
                     ? <div className="flex items-center justify-center h-full text-gray-500">Loading…</div>
-                    : <UnrealizedView data={unrealizedData} />
+                    : <RealizedView data={realizedData} />
                 }
             </div>
             <div className="col-span-8 bg-dark-gray rounded-lg p-4">
-                <RecentActivities showTabs={false} visibleTab="open" />
+                <RecentActivities showTabs={false} visibleTab="closed" />
             </div>
         </div>
     )
