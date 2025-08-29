@@ -36,6 +36,25 @@ const assetData = {
     ]
 };
 
+const tabs = [
+    {
+        name: 'Detailed View of Holding',
+        link: '/portfolio/holding/details',
+    },
+    {
+        name: 'Open Positions',
+        link: '/portfolio/positions/open',
+    },
+    {
+        name: 'PnL',
+        link: '/portfolio/pnl',
+    },
+    {
+        name: 'Trade History',
+        link: '/portfolio/trades/history',
+    }
+]
+
 export default function HoldingDetailsPage() {
     return (
         <section className="container px-2 lg:px-4 mt-8 mx-auto">

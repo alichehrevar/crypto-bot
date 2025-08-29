@@ -9,6 +9,7 @@ import {RadioOption} from "@/types/ui/RadioOption";
 import RadioGroup from "@/components/shared/ui/RadioGroup";
 import Switcher from "@/components/shared/ui/Switcher";
 import {PlusCircleIcon} from "@/utils/icons";
+import Tabs from "@/components/shared/ui/Tabs";
 
 // =====================================================================
 // --- MOCK DATA & CONSTANTS ---
@@ -97,30 +98,6 @@ const IndicatorRow: React.FC<{
     </div>
 );
 
-const StrategyTabs: React.FC<{ activeTab: string; setActiveTab: (tab: string) => void }> = ({
-    activeTab,
-    setActiveTab
-}) => (
-    <div className="relative flex space-x-2 bg-dark-semi-black p-1 rounded-md">
-        {STRATEGY_TABS.map(tab => (
-            <button
-                key={tab}
-                className={`${activeTab === tab ? 'text-black' : 'text-gray-400 hover:text-gray-200'} relative z-10 flex-1 py-1.5 text-sm font-medium rounded-md transition-colors duration-300 focus:outline-none`}
-                onClick={() => setActiveTab(tab)}
-            >
-                {activeTab === tab && (
-                    <motion.div
-                        className="absolute inset-0 bg-white rounded-md"
-                        layoutId="activeTabBackground"
-                        transition={{type: 'spring', stiffness: 300, damping: 30}}
-                    />
-                )}
-                <span className="relative">{tab}</span>
-            </button>
-        ))}
-    </div>
-);
-
 // =====================================================================
 // --- MAIN COMPONENT ---
 // =====================================================================
@@ -168,7 +145,7 @@ export default function StrategyPanel() {
     return (
         <div className="bg-dark-gray text-white p-8 pb-4 rounded-xl shadow-2xl flex flex-col w-xl">
             <motion.div layout className="mb-6">
-                <StrategyTabs activeTab={activeStrategy} setActiveTab={setActiveStrategy}/>
+                <Tabs activeTab={activeStrategy} setActiveTab={setActiveStrategy} tabs={STRATEGY_TABS}/>
             </motion.div>
             <div className="flex flex-col mb-2">
                 <AnimatePresence initial={false}>

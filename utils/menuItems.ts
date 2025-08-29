@@ -33,25 +33,8 @@ export const MenuItems = [
     },
     {
         name: 'Portfolio',
-        link: '#',
-        children: [
-            {
-                name: 'Detailed View of Holding',
-                link: '/portfolio/holding/details',
-            },
-            {
-                name: 'Open Positions',
-                link: '/portfolio/positions/open',
-            },
-            {
-                name: 'PnL',
-                link: '/portfolio/pnl',
-            },
-            {
-                name: 'Trade History',
-                link: '/portfolio/trades/history',
-            }
-        ]
+        link: '/portfolio',
+        children: [ ]
     },
     {
         name: 'Trade',
