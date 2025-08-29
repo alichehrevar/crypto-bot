@@ -8,8 +8,8 @@ import {
     Checkbox,
     Button,
 } from '@heroui/react';
-import Input from '@/components/shared/ui/Input'
 
+import Input from '@/components/shared/ui/Input'
 import {getData} from '@/actions/get';
 import {ExchangeAccount, AccountsResponse} from '@/types/profile/AccountType';
 import {SymbolFilter, SymbolFilterResponse} from '@/types/profile/CurrencyType';
