@@ -6,7 +6,6 @@ import {Tab, Tabs} from "@heroui/react";
 
 import AccountSettingsTab from "@/components/profile/account-tabs/accountSettings/AccountSettings";
 import ConnectBrokerTab from "@/components/profile/account-tabs/broker/ConnectBroker";
-import IOPanel from "@/components/profile/account-tabs/IOPanel/IOPanel";
 import Subscriptions from "@/components/profile/account-tabs/subscriptions/Subscriptions";
 import NotificationSection from "@/components/profile/account-tabs/NotificationSection";
 
@@ -24,11 +23,6 @@ export default function TabsList() {
             key: 'connect-broker',
             title: 'My Brokers',
             component: <ConnectBrokerTab/>
-        },
-        {
-            key: 'io-panel',
-            title: 'IO Panel',
-            component: <IOPanel/>
         },
         {
             key: 'subscription',
