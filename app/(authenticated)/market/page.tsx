@@ -11,6 +11,7 @@ import UpcomingListings from '@/components/shared/charts/UpcomingListings';
 import LaunchPerformanceTracker, { PerformanceTrackerData } from '@/components/shared/charts/LaunchPerformanceTracker';
 import TrendingTopicsTable, { TrendingTopicsData } from '@/components/shared/charts/TrendingTopicsTable';
 import MoversAndVolatility, { MoversData } from '@/components/shared/charts/MoversAndVolatility';
+import SummaryTab from "@/components/market/SummaryTab";
 
 // =====================================================================
 // --- TYPE DEFINITIONS ---
@@ -101,7 +102,7 @@ export default function Page() {
             <Tabs
                 aria-label="Tabs variants"
                 classNames={{
-                    base: 'w-full px-4',
+                    base: 'w-full px-1',
                     tabList: 'w-full mx-auto border-b-1 border-default-100',
                     tab: 'h-10 pb-4 font-bold text-[14px]',
                     panel: "w-full grid grid-cols-1 gap-4 mt-4"
@@ -109,9 +110,7 @@ export default function Page() {
                 variant="underlined"
             >
                 <Tab key="summary" title="Summary">
-                    <MoversAndVolatility data={moversData} />
-                    <SectorPerformanceRanking data={sectorsData} />
-                    <ComparativeSectorRotation height={340} />
+                    <SummaryTab />
                 </Tab>
                 <Tab key="momentum-rotation" title="Momentum & Rotation">
                     <MoversAndVolatility data={moversData} />
