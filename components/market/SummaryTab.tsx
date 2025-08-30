@@ -5,7 +5,9 @@ import TopMovers from "@/components/profile/dashboard/TopMovers";
 import MarketAnomalyFeed from "@/components/shared/MarketAnomalyFeed";
 import SentimentGaugeWidget from "@/components/shared/SentimentGaugeWidget";
 
-
+// =====================================================================
+// --- PAGE COMPONENT ---
+// =====================================================================
 export default function SummaryTab() {
     return (
         <div className="flex items-center justify-center flex-col gap-2 mt-4">
