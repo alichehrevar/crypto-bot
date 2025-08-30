@@ -1,6 +1,6 @@
 import React, {useEffect, useState} from "react";
 
-import EventCalendar, {CalendarData} from "@/components/shared/charts/EventCalendar";
+import EventCalendar from "@/components/shared/charts/EventCalendar";
 import ExchangeNetFlowCard from "@/components/shared/charts/ExchangeNetFlowCard";
 
 // =====================================================================
@@ -26,7 +26,6 @@ const generateLiquidityFlowsData = (): NetFlowsData => {
     return { netFlows: { history: netFlowsHistory } };
 };
 
-const generateSentimentData = (): CalendarData => ({ events: [{ date: '2025-08-08', time: '14:00 UTC', event: 'US Non-Farm Payrolls (July)', impact: 'High', forecast: '180k', actual: '205k', isPast: true },{ date: '2025-08-12', time: '12:30 UTC', event: 'US CPI Data Release (July)', impact: 'High', forecast: '3.1%', actual: '3.2%', isPast: true },{ date: '2025-08-16', time: '16:00 UTC', event: 'Ethereum "Pectra" Upgrade Spec', impact: 'Medium', forecast: 'N/A', actual: 'TBD' },{ date: '2025-08-18', time: '10:00 UTC', event: 'Token Unlocks (APT)', impact: 'Low', forecast: '11.3M', actual: 'TBD' },{ date: '2025-08-20', time: '18:00 UTC', event: 'FOMC Meeting Minutes', impact: 'High', forecast: 'N/A', actual: 'TBD' },{ date: '2025-08-28', time: '18:30 UTC', event: 'US GDP Growth Rate (Q2 Final)', impact: 'Medium', forecast: '2.5%', actual: 'TBD' },]});
 
 // =====================================================================
 // --- PAGE COMPONENT ---
@@ -34,16 +33,14 @@ const generateSentimentData = (): CalendarData => ({ events: [{ date: '2025-08-0
 export default function LiquidityFlowTab() {
 
     const [netFlowData, setNetFlowData] = useState<NetFlowsData | null>(null);
-    const [calendarData, setCalendarData] = useState<CalendarData | null>(null);
 
     useEffect(() => {
         setNetFlowData(generateLiquidityFlowsData());
-        setCalendarData(generateSentimentData());
     }, [])
 
     return (
         <>
-            <EventCalendar data={calendarData} />
+            <EventCalendar />
             <ExchangeNetFlowCard data={netFlowData} />
         </>
     )
