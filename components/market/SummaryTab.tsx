@@ -3,6 +3,7 @@ import React from "react";
 import DailyMarketAnalysis from "@/components/shared/DailyMarketAnalysis";
 import TopMovers from "@/components/profile/dashboard/TopMovers";
 import MarketAnomalyFeed from "@/components/shared/MarketAnomalyFeed";
+import SentimentGaugeWidget from "@/components/shared/SentimentGaugeWidget";
 
 
 export default function SummaryTab() {
@@ -21,13 +22,10 @@ export default function SummaryTab() {
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 w-full">
                 <div className="col-span-5">
-                    <MarketAnomalyFeed />
+                    <SentimentGaugeWidget />
                 </div>
                 <div className="col-span-7">
-                    <div
-                        className="flex items-center justify-start flex-col bg-dark-gray rounded-lg py-6 px-3 gap-4 h-full min-h-[250px]">
-                        <TopMovers/>
-                    </div>
+                    <MarketAnomalyFeed />
                 </div>
             </div>
         </div>

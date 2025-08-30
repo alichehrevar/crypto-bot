@@ -242,13 +242,12 @@ export default function MarketAnomalyFeed() {
             <CardHeader infoContent={infoContent} infoTitle={infoTitle} title={title} />
 
             {/* Feed List */}
-            <div className="flex h-[365px] flex-col gap-3 overflow-hidden">
+            <div className="flex h-[220px] flex-col gap-3 overflow-y-auto">
                 <AnimatePresence initial={false}>
                     {items.map((item) => (
                         <motion.div
                             key={item.id}
                             animate={{ height: 'auto', opacity: 1 }}
-                            className="overflow-hidden"
                             exit={{ height: 0, opacity: 0, scaleY: 0.97 }}
                             initial={{ height: 0, opacity: 0 }}
                             transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
