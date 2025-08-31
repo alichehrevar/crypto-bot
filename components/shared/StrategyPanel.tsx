@@ -5,71 +5,25 @@ import {motion, AnimatePresence} from 'framer-motion';
 
 import {DropdownOption} from "@/types/ui/DropdownOption";
 import Combobox from "@/components/shared/ui/Combobox";
-import {RadioOption} from "@/types/ui/RadioOption";
 import RadioGroup from "@/components/shared/ui/RadioGroup";
 import Switcher from "@/components/shared/ui/Switcher";
-import {PlusCircleIcon} from "@/utils/icons";
 import Tabs from "@/components/shared/ui/Tabs";
+import IndicatorsSection, { IndicatorItem } from "@/components/shared/ui/IndicatorsSection";
+import {
+    ACCURACY_INTERVAL_OPTIONS,
+    BOT_ACCURACY_OPTIONS, MAIN_INDICATOR_OPTIONS,
+    OPTIMIZATION_ACCURACY_OPTIONS,
+    OPTIMIZATION_METHODS,
+    SIMULATED_TRADES_OPTIONS,
+    STANDARD_INDICATOR_OPTIONS, TIME_FRAMES
+} from "@/utils/strategyPanelData";
 
 // =====================================================================
 // --- MOCK DATA & CONSTANTS ---
 // =====================================================================
 
 const STRATEGY_TABS = ['Default', 'Optimized', 'Dynamic'];
-const STANDARD_INDICATOR_OPTIONS: DropdownOption[] = [
-    {name: 'RSI', logo: 'https://img.icons8.com/?size=100&id=61Ir6g5hzrHL&format=png&color=000000'},
-    {name: 'MACD', logo: 'https://img.icons8.com/?size=100&id=61Ir6g5hzrHL&format=png&color=000000'},
-    {name: 'Bollinger Bands', logo: 'https://img.icons8.com/?size=100&id=61Ir6g5hzrHL&format=png&color=000000'},
-    {name: 'EMA Cross', logo: 'https://img.icons8.com/?size=100&id=61Ir6g5hzrHL&format=png&color=000000'}
-];
-const MAIN_INDICATOR_OPTIONS: DropdownOption[] = [
-    {name: 'Chat-GPT', logo: 'https://img.icons8.com/?size=100&id=FBO05Dys9QCg&format=png&color=C1C1C1'},
-    {name: 'Google Gemini', logo: 'https://img.icons8.com/?size=100&id=iBkBIBWE6tfT&format=png&color=000000'},
-    {name: 'Grok', logo: 'https://img.icons8.com/?size=100&id=USGXKHXKl9X7&format=png&color=C1C1C1'},
-    {name: '', logo: ''}, // Represents a separator
-    ...STANDARD_INDICATOR_OPTIONS
-];
-const TIME_FRAMES: DropdownOption[] = [
-    {name: '1m'},
-    {name: '5m'},
-    {name: '15m'},
-    {name: '1h'},
-    {name: '4h'},
-    {name: '1d'}];
-const OPTIMIZATION_METHODS: RadioOption[] = [
-    {label: 'Genetic Algorithm', value: 'Genetic Algorithm'},
-    {label: 'Grid Search', value: 'Grid Search'},
-    {label: 'Bayesian', value: 'Bayesian'}
-];
-const SIMULATED_TRADES_OPTIONS: DropdownOption[] = [
-    {name: '5'},
-    {name: '10'},
-    {name: '15'},
-    {name: '20'},
-    {name: '25'},
-    {name: '30'}];
-const OPTIMIZATION_ACCURACY_OPTIONS = [
-    {name: '40%'},
-    {name: '50%'},
-    {name: '60%'},
-    {name: '70%'},
-    {name: '80%'},
-    {name: '90%'}];
-const BOT_ACCURACY_OPTIONS = [
-    {name: '40%'},
-    {name: '50%'},
-    {name: '60%'},
-    {name: '70%'},
-    {name: '80%'},
-    {name: '90%'}];
-const ACCURACY_INTERVAL_OPTIONS = [
-    {name: '30 min'},
-    {name: '1 hour'},
-    {name: '2 hour'},
-    {name: '4 hour'},
-    {name: '6 hour'},
-    {name: '12 hour'},
-    {name: '24 hour'}];
+
 
 // =====================================================================
 // --- REUSABLE SUB-COMPONENTS ---
@@ -104,36 +58,13 @@ const IndicatorRow: React.FC<{
 
 export default function StrategyPanel() {
     const [activeStrategy, setActiveStrategy] = useState('Default');
-    const [indicators, setIndicators] = useState<{
-        id: number;
-        indicator: DropdownOption;
-        timeFrame: string
-    }[]>([
-        {id: 1, indicator: STANDARD_INDICATOR_OPTIONS[0], timeFrame: '1h'},
-    ]);
+    const [selectedIndicators, setSelectedIndicators] = useState<IndicatorItem[]>([]);
     const [securityIndicatorEnabled, setSecurityIndicatorEnabled] = useState(true);
-    const [securityIndicator, setSecurityIndicator] = useState({
-        id: 1,
-        indicator: STANDARD_INDICATOR_OPTIONS[0],
-        timeFrame: '4h'
-    });
     const [optimizationMethod, setOptimizationMethod] = useState(OPTIMIZATION_METHODS[0].label);
     const [minSimulatedTrades, setMinSimulatedTrades] = useState(SIMULATED_TRADES_OPTIONS[0].name);
     const [minOptimizationAccuracy, setMinOptimizationAccuracy] = useState(OPTIMIZATION_ACCURACY_OPTIONS[2].name);
     const [minBotAccuracy, setMinBotAccuracy] = useState(BOT_ACCURACY_OPTIONS[2].name);
     const [accuracyInterval, setAccuracyInterval] = useState(ACCURACY_INTERVAL_OPTIONS[1].name);
-
-    const handleIndicatorChange = (id: number, newValue: any) => {
-        setIndicators(indicators.map(ind => ind.id === id ? {...ind, ...newValue} : ind));
-    };
-
-    const addIndicator = () => {
-        setIndicators([...indicators, {id: Date.now(), indicator: STANDARD_INDICATOR_OPTIONS[0], timeFrame: '1h'}]);
-    };
-
-    const removeIndicator = (id: number) => {
-        setIndicators(indicators.filter(ind => ind.id !== id));
-    };
 
     const sectionAnimationProps = {
         initial: {opacity: 0, height: 0},
@@ -147,57 +78,16 @@ export default function StrategyPanel() {
             <motion.div layout className="mb-6">
                 <Tabs activeTab={activeStrategy} setActiveTab={setActiveStrategy} tabs={STRATEGY_TABS}/>
             </motion.div>
-            <div className="flex flex-col mb-2">
-                <AnimatePresence initial={false}>
-                    {indicators.map((indicator, index) => (
-                        <motion.div
-                            key={indicator.id}
-                            layout
-                            animate={{opacity: 1, height: 'auto'}}
-                            className="mb-2"
-                            exit={{opacity: 0, height: 0, marginBottom: 0}}
-                            initial={{opacity: 0, height: 0}}
-                            transition={{type: "spring", stiffness: 300, damping: 30}}
-                        >
-                            <div className="flex items-center gap-x-2">
-                                <div className="flex-grow">
-                                    <IndicatorRow
-                                        indicatorData={indicator}
-                                        indicatorOptions={index === 0 ? MAIN_INDICATOR_OPTIONS : STANDARD_INDICATOR_OPTIONS}
-                                        onChange={(newValue) => handleIndicatorChange(indicator.id, newValue)}
-                                    />
-                                </div>
-                                {index > 0 ? (
-                                    <button
-                                        className="p-2 text-gray-500 hover:text-red-500 transition-colors mt-7"
-                                        onClick={() => removeIndicator(indicator.id)}
-                                    >
-                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                                             xmlns="http://www.w3.org/2000/svg">
-                                            <path d="M6 18L18 6M6 6l12 12" strokeLinecap="round" strokeLinejoin="round"
-                                                  strokeWidth="2"/>
-                                        </svg>
-                                    </button>
-                                ) : (
-                                    <div className="w-9 flex-shrink-0"/>
-                                )}
-                            </div>
-                            <p className="text-xs text-blue-400/80 hover:text-blue-400 cursor-pointer mt-2 pl-1">
-                                Advanced settings
-                            </p>
-                        </motion.div>
-                    ))}
-                </AnimatePresence>
-            </div>
-            <motion.div layout className="mb-6">
-                <button
-                    className="flex items-center gap-x-2 text-sm text-gray-400 hover:text-white transition-colors"
-                    onClick={addIndicator}
-                >
-                    <PlusCircleIcon />
-                    Add Indicator
-                </button>
-            </motion.div>
+            <IndicatorsSection
+                defaultNewTimeframe="1h"
+                initialIndicators={[
+                    { id: 1, indicator: STANDARD_INDICATOR_OPTIONS[0], timeFrame: "1h" },
+                ]}
+                mainOptions={MAIN_INDICATOR_OPTIONS}
+                showAddIndicatorButton={true}
+                standardOptions={STANDARD_INDICATOR_OPTIONS}
+                onChange={setSelectedIndicators}
+            />
             <motion.div layout className="flex flex-col mb-6">
                 <Switcher
                     isEnabled={securityIndicatorEnabled}
@@ -206,21 +96,16 @@ export default function StrategyPanel() {
                 />
                 <AnimatePresence initial={false}>
                     {securityIndicatorEnabled && (
-                        <motion.div {...sectionAnimationProps}>
-                            <div className="pt-2">
-                                <div className="flex items-center gap-x-2">
-                                    <div className="flex-grow">
-                                        <IndicatorRow
-                                            indicatorData={securityIndicator}
-                                            indicatorOptions={STANDARD_INDICATOR_OPTIONS}
-                                            onChange={setSecurityIndicator}
-                                        />
-                                    </div>
-                                    <div className="w-9 flex-shrink-0"/>
-                                </div>
-                                <p className="text-xs text-blue-400/80 hover:text-blue-400 cursor-pointer mt-2 pl-1">Advanced
-                                    settings</p>
-                            </div>
+                        <motion.div {...sectionAnimationProps} className="pt-2">
+                            <IndicatorsSection
+                                defaultNewTimeframe="1h"
+                                initialIndicators={[
+                                    { id: 1, indicator: STANDARD_INDICATOR_OPTIONS[0], timeFrame: "1h" },
+                                ]}
+                                mainOptions={MAIN_INDICATOR_OPTIONS}
+                                standardOptions={STANDARD_INDICATOR_OPTIONS}
+                                onChange={setSelectedIndicators}
+                            />
                         </motion.div>
                     )}
                 </AnimatePresence>

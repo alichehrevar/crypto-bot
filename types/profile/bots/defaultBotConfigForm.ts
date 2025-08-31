@@ -11,7 +11,6 @@ export type DefaultBotConfigForm = {
   stopLoss: number;
   indicator: string;
   timeframe: string;
-  additionalIndicators: Array<{ indicator: string; timeframe: string }>;
   strategy: string;
   strategyParams: object;
 }

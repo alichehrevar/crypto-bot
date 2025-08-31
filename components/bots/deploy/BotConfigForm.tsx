@@ -21,6 +21,8 @@ import {PlusIcon} from '@/utils/icons';
 import LabelTag from "@/components/shared/ui/Label";
 import NumericInput from "@/components/shared/ui/NumericInput";
 import Combobox from "@/components/shared/ui/Combobox";
+import IndicatorsSection, {IndicatorItem} from "@/components/shared/ui/IndicatorsSection";
+import {MAIN_INDICATOR_OPTIONS, STANDARD_INDICATOR_OPTIONS} from "@/utils/strategyPanelData";
 
 export interface BotConfigFormProps {
     mode: 'default' | 'optimized' | 'dynamic';
@@ -54,10 +56,7 @@ export default function BotConfigForm({mode, selectedParentTab, onCloseAction}: 
     const [takeProfit, setTakeProfit] = useState(1.02);
     const [stopLoss, setStopLoss] = useState(0.98);
     const [indicator, setIndicator] = useState<string>('');
-    const [timeframe, setTimeframe] = useState<string>('');
-    const [additional, setAdditional] = useState<
-        Array<{ indicator: string; timeframe: string }>
-    >([]);
+    const [selectedIndicators, setSelectedIndicators] = useState<IndicatorItem[]>([]);
     const [symbols, setSymbols] = useState<SymbolFilter[]>([]);
     const [loading, setLoading] = useState(false);
 
@@ -125,7 +124,6 @@ export default function BotConfigForm({mode, selectedParentTab, onCloseAction}: 
                     // seed defaults
                     setRiskStrategy(res.props.riskStrategyOptions[0] || '');
                     setIndicator(res.props.indicatorOptions[0] || '');
-                    setTimeframe(res.props.timeframeOptions[0] || '');
                 }
             } catch {
                 addToast({title: 'Failed to load bot parameters', color: 'danger'});
@@ -190,7 +188,21 @@ export default function BotConfigForm({mode, selectedParentTab, onCloseAction}: 
         e.preventDefault();
         setLoading(true);
 
-        const payload: DefaultBotConfigForm = {
+        const payload: {
+            name: string;
+            accountId: string;
+            symbol: string;
+            baseFund: number;
+            tradeFund: number;
+            leverage: number;
+            riskStrategy: string;
+            compoundPositionSizing: boolean;
+            takeProfit: number;
+            stopLoss: number;
+            indicator: string;
+            strategy: "default" | "optimized" | "dynamic";
+            strategyParams: any
+        } = {
             name,
             accountId: selectedAccountId?.toString() || '',
             symbol,
@@ -202,8 +214,6 @@ export default function BotConfigForm({mode, selectedParentTab, onCloseAction}: 
             takeProfit,
             stopLoss,
             indicator,
-            timeframe,
-            additionalIndicators: additional,
             strategy: mode,
             strategyParams: botProps.defaultStrategyParams[indicator] || {},
             // optimized extras:
@@ -371,100 +381,30 @@ export default function BotConfigForm({mode, selectedParentTab, onCloseAction}: 
                             ))}
                         </Autocomplete>
                     </div>
-                    <div className="space-y-2 flex flex-col w-1/3">
-                        <LabelTag id="timeframe" title="Timeframe"/>
-                        <Autocomplete
-                            id="Timeframe"
-                            isClearable={false}
-                            radius="sm"
-                            onSelectionChange={k => k && setTimeframe(k.toString())}
-                        >
-                            {botProps.timeframeOptions.map(tf => (
-                                <AutocompleteItem key={tf} textValue={tf}>
-                                    {tf}
-                                </AutocompleteItem>
-                            ))}
-                        </Autocomplete>
-                    </div>
                 </div>
 
-                {/* Additional Indicators */}
-                {additional.map((_, i) => (
-                    <div key={i} className="flex items-center gap-4">
-                        <div className="space-y-2 flex flex-col w-2/3">
-                            <LabelTag id={`indicator${i}`} title="Indicator"/>
-                            <Autocomplete
-                                id={`indicator${i}`}
-                                isClearable={false}
-                                radius="sm"
-                                onSelectionChange={k => {
-                                    const nxt = [...additional];
-
-                                    nxt[i].indicator = k!.toString();
-                                    setAdditional(nxt);
-                                }}
-                            >
-                                {botProps.indicatorOptions.map(ind => (
-                                    <AutocompleteItem key={ind} textValue={ind}>
-                                        {ind}
-                                    </AutocompleteItem>
-                                ))}
-                            </Autocomplete>
-                        </div>
-                        <div className="space-y-2 flex flex-col w-1/3">
-                            <LabelTag id={`timeframe${i}`} title="Timeframe"/>
-                            <Autocomplete
-                                id={`timeframe${i}`}
-                                isClearable={false}
-                                radius="sm"
-                                onSelectionChange={k => {
-                                    const nxt = [...additional];
-
-                                    nxt[i].timeframe = k!.toString();
-                                    setAdditional(nxt);
-                                }}
-                            >
-                                {botProps.timeframeOptions.map(tf => (
-                                    <AutocompleteItem key={tf} textValue={tf}>
-                                        {tf}
-                                    </AutocompleteItem>
-                                ))}
-                            </Autocomplete>
-                        </div>
-                    </div>
-                ))}
-
-                <button
-                    className="flex items-center gap-3"
-                    type="button"
-                    onClick={() =>
-                        setAdditional([...additional, {indicator: 'RSI', timeframe: '1m'}])
-                    }
-                >
-                    <div className="rounded-full w-6 h-6 bg-default-100 flex items-center justify-center my-4">
-                        <PlusIcon strokeWidth={'2.5'}/>
-                    </div>
-                    <span className="text-[14px]">Add Indicator</span>
-                </button>
+                <IndicatorsSection
+                    defaultNewTimeframe="1h"
+                    initialIndicators={[
+                        { id: 1, indicator: STANDARD_INDICATOR_OPTIONS[0], timeFrame: "1h" },
+                    ]}
+                    mainOptions={MAIN_INDICATOR_OPTIONS}
+                    showAddIndicatorButton={true}
+                    standardOptions={STANDARD_INDICATOR_OPTIONS}
+                    onChange={setSelectedIndicators}
+                />
 
                 {/* optimized-only fields */}
                 {(mode === 'optimized' || mode === 'dynamic') && (
                     <>
-                        <div className="space-y-2">
-                            <LabelTag id="optimizationMethod" title="Optimization Method"/>
-                            <Autocomplete
-                                required
-                                id="optimizationMethod"
-                                isClearable={false}
-                                onSelectionChange={k => k && setOptMethod(k.toString())}
-                            >
-                                {botProps.OptMethod.map(m => (
-                                    <AutocompleteItem key={m} textValue={m}>
-                                        <span className="capitalize">{m}</span>
-                                    </AutocompleteItem>
-                                ))}
-                            </Autocomplete>
-                        </div>
+                        <Combobox
+                            label="Optimization Method"
+                            options={botProps.OptMethod.map(a => ({
+                                name: a.toString(),
+                            }))}
+                            selected={optMethod.toString()}
+                            setSelected={k => k && setOptMethod(k.toString())}
+                        />
 
                         <NumericInput
                             label="Minimum optimization accuracy (%)"
