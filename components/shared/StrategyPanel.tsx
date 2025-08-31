@@ -3,7 +3,6 @@
 import React, {useState} from 'react';
 import {motion, AnimatePresence} from 'framer-motion';
 
-import {DropdownOption} from "@/types/ui/DropdownOption";
 import Combobox from "@/components/shared/ui/Combobox";
 import RadioGroup from "@/components/shared/ui/RadioGroup";
 import Switcher from "@/components/shared/ui/Switcher";
@@ -15,7 +14,7 @@ import {
     OPTIMIZATION_ACCURACY_OPTIONS,
     OPTIMIZATION_METHODS,
     SIMULATED_TRADES_OPTIONS,
-    STANDARD_INDICATOR_OPTIONS, TIME_FRAMES
+    STANDARD_INDICATOR_OPTIONS
 } from "@/utils/strategyPanelData";
 
 // =====================================================================
@@ -24,33 +23,6 @@ import {
 
 const STRATEGY_TABS = ['Default', 'Optimized', 'Dynamic'];
 
-
-// =====================================================================
-// --- REUSABLE SUB-COMPONENTS ---
-// =====================================================================
-
-const IndicatorRow: React.FC<{
-    indicatorData: { id: number, indicator: DropdownOption; timeFrame: string };
-    onChange: (value: any) => void;
-    indicatorOptions: DropdownOption[];
-}> = ({indicatorData, onChange, indicatorOptions}) => (
-    <div className="grid grid-cols-3 gap-x-4">
-        <div className="col-span-2">
-            <Combobox
-                label="Indicator"
-                options={indicatorOptions}
-                selected={indicatorData.indicator.name}
-                setSelected={(indicator) => onChange({...indicatorData, indicator})}
-            />
-        </div>
-        <Combobox
-            label="Timeframe"
-            options={TIME_FRAMES}
-            selected={indicatorData.timeFrame}
-            setSelected={(timeFrame) => onChange({...indicatorData, timeFrame})}
-        />
-    </div>
-);
 
 // =====================================================================
 // --- MAIN COMPONENT ---

@@ -16,8 +16,6 @@ import {SymbolFilter, SymbolFilterResponse} from '@/types/profile/CurrencyType';
 import {RawBalanceResponse} from "@/types/profile/WalletBalanceType";
 import {sendRequest} from '@/actions/post';
 import {BotProps} from '@/types/profile/bots/StrategyParams';
-import {DefaultBotConfigForm} from '@/types/profile/bots/defaultBotConfigForm';
-import {PlusIcon} from '@/utils/icons';
 import LabelTag from "@/components/shared/ui/Label";
 import NumericInput from "@/components/shared/ui/NumericInput";
 import Combobox from "@/components/shared/ui/Combobox";
