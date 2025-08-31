@@ -52,7 +52,7 @@ export default function TechnicalDeployBotSection ({
           cursor: "w-full bg-white dark:group-data-[selected=true]:bg-white",
           tab: "h-8 text-[12px]",
           tabContent: "dark:group-data-[selected=true]:text-black",
-          panel: "h-full overflow-y-auto over-flow-x-hidden bot-config-form thin-scrollbar"
+          panel: "h-full overflow-y-auto over-flow-x-hidden bot-config-form thin-scrollbar mt-4"
         }}
         radius={'full'}
       >
