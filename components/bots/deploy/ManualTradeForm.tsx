@@ -5,30 +5,21 @@
 import React, {FormEvent, Key, useEffect, useState} from "react";
 import {
     addToast,
-    Input,
     Button,
-    Switch, Tab, Tabs,
+    Tab, Tabs,
 } from "@heroui/react";
+import {AnimatePresence, motion} from "framer-motion";
 
 import {getData} from "@/actions/get";
 import {sendRequest} from "@/actions/post";
 import {ExchangeAccount} from "@/types/profile/AccountType";
 import {WalletBalance} from "@/types/profile/WalletBalanceType";
 import {SymbolFilter, SymbolFilterResponse} from "@/types/profile/CurrencyType";
-import LabelTag from "@/components/shared/ui/Label";
 import {parentTabs} from "@/utils/BotType";
 import Combobox from "@/components/shared/ui/Combobox";
 import SearchableCombobox from "@/components/shared/ui/SearchableCombobox";
 import NumericInput from "@/components/shared/ui/NumericInput";
 import Switcher from "@/components/shared/ui/Switcher";
-import {AnimatePresence, motion} from "framer-motion";
-import IndicatorsSection from "@/components/shared/ui/IndicatorsSection";
-import {MAIN_INDICATOR_OPTIONS, STANDARD_INDICATOR_OPTIONS} from "@/utils/strategyPanelData";
-
-interface Currency {
-    _id: string;
-    symbol: string;
-}
 
 export interface ManualTradeFormProps {
     onTradeExecuted?: () => void;
