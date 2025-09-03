@@ -5,7 +5,7 @@ import React, {useState} from "react";
 import BotsList from "@/components/bots/BotsList";
 import GridDeployBotSection from "@/components/bots/deploy/GridDeployBotSection";
 import RealTimeCandlestickChart from "@/components/shared/charts/TradingViewLightweightChart";
-import MarketListWithSearch from "@/components/MarketListWithSearch";
+import MarketListWithSearch from "@/components/market/marketListWithSearch/MarketListWithSearch";
 import CoinSummarySection from "@/components/shared/CoinSummarySection";
 
 

@@ -20,7 +20,7 @@ import {OrderIcon} from '@/utils/icons';
 import BacktestResultChart from '@/components/shared/charts/BacktestResultChart';
 import MarketStats from '@/components/profile/MarketStats';
 import { SymbolFilter, SymbolFilterResponse } from '@/types/profile/CurrencyType';
-import MarketListWithSearch from "@/components/MarketListWithSearch";
+import MarketListWithSearch from "@/components/market/marketListWithSearch/MarketListWithSearch";
 import RealTimeCandlestickChart from "@/components/shared/charts/TradingViewLightweightChart";
 import NumericInput from "@/components/shared/ui/NumericInput";
 import {MAIN_INDICATOR_OPTIONS, STANDARD_INDICATOR_OPTIONS} from "@/utils/strategyPanelData";

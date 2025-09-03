@@ -211,16 +211,6 @@ export const ArrowLeftStartOnRectangle = ({className = "size-4"}) => (
     </svg>
 );
 
-export const StarIcon = ({className = "size-4", stroke = "currentColor", fill = "none"}) => (
-    <svg className={className} fill={fill} stroke={stroke} strokeWidth="1.5" viewBox="0 0 24 24"
-         xmlns="http://www.w3.org/2000/svg">
-        <path
-            d="M11.48 3.499a.562.562 0 0 1 1.04 0l2.125 5.111a.563.563 0 0 0 .475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 0 0-.182.557l1.285 5.385a.562.562 0 0 1-.84.61l-4.725-2.885a.562.562 0 0 0-.586 0L6.982 20.54a.562.562 0 0 1-.84-.61l1.285-5.386a.562.562 0 0 0-.182-.557l-4.204-3.602a.562.562 0 0 1 .321-.988l5.518-.442a.563.563 0 0 0 .475-.345L11.48 3.5Z"
-            strokeLinecap="round"
-            strokeLinejoin="round"/>
-    </svg>
-);
-
 export function FilterIcon(props: SVGProps<SVGSVGElement>) {
     return (
         <svg
@@ -834,6 +824,12 @@ export const SearchIcon = ({ className = 'size-4' }) => (
         <line x1="21" x2="16.65" y1="21" y2="16.65" />
     </svg>
 )
+
+export const StarIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+    <svg fill="none" height="24" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" width="18" xmlns="http://www.w3.org/2000/svg" {...props}>
+        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+    </svg>
+);
 
 export const AdjustmentsVerticalIcon = ({ className = 'size-4' }) => (
     <svg className={className} fill="none" height="20" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"

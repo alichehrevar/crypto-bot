@@ -2,7 +2,7 @@ import React from "react";
 import {Tab, Tabs} from "@heroui/react";
 
 import TechnicalAnalysis from "@/components/shared/TechnicalAnalysis";
-import MarketListWithSearch from "@/components/MarketListWithSearch";
+import MarketListWithSearch from "@/components/market/marketListWithSearch/MarketListWithSearch";
 
 export default function AnalysisAndSymbolsList() {
     return (

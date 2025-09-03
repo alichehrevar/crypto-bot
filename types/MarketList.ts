@@ -16,3 +16,8 @@ export type MarketListResponse = {
     success: boolean;
     message?: string; // Optional message property for errors
 };
+
+export interface SortConfig {
+    key: keyof MarketListItem | null;
+    direction: 'ascending' | 'descending';
+}
