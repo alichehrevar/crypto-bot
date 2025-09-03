@@ -45,7 +45,7 @@ export default function CoinSummarySection({ coinId }: { coinId: string }) {
 
     if (loading) return <CoinSummarySectionLoading />;
 
-    if (!coin) return <div className="bg-dark-gray flex items-center justify-center min-h-[130px] w-full font-extrabold text-gray-400 rounded-xl">No Coin Summary Available</div>;
+    if (!coin) return <div className="flex items-center justify-center min-h-[140px] w-full font-extrabold text-gray-400 rounded-xl">No Coin Summary Available</div>;
 
     // Formatting helpers
     const fmtNum = (n: number | null | undefined, digits: number = 2) => {

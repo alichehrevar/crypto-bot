@@ -23,12 +23,13 @@ import SecurityIndicator from "@/components/shared/ui/SecurityIndicator";
 import Slider from "@/components/shared/ui/Slider";
 
 export interface BotConfigFormProps {
-    mode: 'default' | 'optimized' | 'dynamic';
-    selectedParentTab: string;
-    onCloseAction: () => void;
+    mode: 'default' | 'optimized' | 'dynamic',
+    selectedParentTab: string,
+    onCloseAction: () => void,
+    selectedSymbol?: string | undefined
 }
 
-export default function BotConfigForm({mode, selectedParentTab, onCloseAction}: BotConfigFormProps) {
+export default function BotConfigForm({mode, selectedParentTab, onCloseAction, selectedSymbol}: BotConfigFormProps) {
     // strategy & indicator metadata
     const [botProps, setBotProps] = useState<BotProps>({
         riskStrategyOptions: [],
@@ -40,7 +41,6 @@ export default function BotConfigForm({mode, selectedParentTab, onCloseAction}: 
 
     // common form state
     const [name, setName] = useState('');
-    const [symbol, setSymbol] = useState('BTC/USDT');
     const [accounts, setAccounts] = useState<ExchangeAccount[]>([]);
     const [selectedAccountId, setSelectedAccountId] = useState<string>();
     const [availableBalance, setAvailableBalance] = useState(0);
@@ -55,7 +55,6 @@ export default function BotConfigForm({mode, selectedParentTab, onCloseAction}: 
     const [stopLoss, setStopLoss] = useState(0.98);
     const [indicator, setIndicator] = useState<string>('');
     const [selectedIndicators, setSelectedIndicators] = useState<IndicatorItem[]>([]);
-    const [symbols, setSymbols] = useState<SymbolFilter[]>([]);
     const [loading, setLoading] = useState(false);
 
     // optimized-dynamic state
@@ -68,20 +67,6 @@ export default function BotConfigForm({mode, selectedParentTab, onCloseAction}: 
 
     // fetch lookups on mount
     useEffect(() => {
-        (async () => {
-            try {
-                const res: SymbolFilterResponse = await getData('/currencies');
-
-                if (!res.success) {
-                    addToast({title: res.message || 'No currency symbols found !', color: "danger"})
-                } else {
-                    setSymbols(res.data);
-                }
-            } catch {
-                addToast({title: 'Failed to load symbols', color: 'danger'});
-            }
-        })();
-
         (async () => {
             try {
                 const res: AccountsResponse = await getData('/accounts');
@@ -131,13 +116,13 @@ export default function BotConfigForm({mode, selectedParentTab, onCloseAction}: 
 
     // fetch leverage‐options whenever account or symbol changes
     useEffect(() => {
-        if (!selectedAccountId || !symbol) return;
+        if (!selectedAccountId || !selectedSymbol) return;
         (async () => {
             try {
                 const {
                     success,
                     leverages
-                } = await getData(`/accounts/${selectedAccountId}/leverage-options?symbol=${encodeURIComponent(symbol)}`);
+                } = await getData(`/accounts/${selectedAccountId}/leverage-options?symbol=${encodeURIComponent(selectedSymbol)}`);
 
                 if (success) {
                     setLeverageOptions(leverages);
@@ -149,7 +134,7 @@ export default function BotConfigForm({mode, selectedParentTab, onCloseAction}: 
                 setLeverageOptions(Array.from({length: 100}, (_, i) => i + 1));
             }
         })();
-    }, [selectedAccountId, symbol]);
+    }, [selectedAccountId, selectedSymbol]);
 
     // fetch balance when account changes
     async function handleAccountChange(accountId: Key | null) {
@@ -189,7 +174,7 @@ export default function BotConfigForm({mode, selectedParentTab, onCloseAction}: 
         const payload: {
             name: string;
             accountId: string;
-            symbol: string;
+            symbol: string | undefined;
             baseFund: number;
             tradeFund: number;
             leverage: number;
@@ -203,7 +188,7 @@ export default function BotConfigForm({mode, selectedParentTab, onCloseAction}: 
         } = {
             name,
             accountId: selectedAccountId?.toString() || '',
-            symbol,
+            symbol: selectedSymbol,
             baseFund,
             tradeFund: parseFloat(tradeFund),
             leverage,
@@ -353,7 +338,7 @@ export default function BotConfigForm({mode, selectedParentTab, onCloseAction}: 
                 <IndicatorsSection
                     defaultNewTimeframe="1h"
                     initialIndicators={[
-                        { id: 1, indicator: STANDARD_INDICATOR_OPTIONS[0], timeFrame: "1h" },
+                        {id: 1, indicator: STANDARD_INDICATOR_OPTIONS[0], timeFrame: "1h"},
                     ]}
                     mainOptions={MAIN_INDICATOR_OPTIONS}
                     showAddIndicatorButton={true}
@@ -361,7 +346,7 @@ export default function BotConfigForm({mode, selectedParentTab, onCloseAction}: 
                     onChange={setSelectedIndicators}
                 />
 
-                <SecurityIndicator onChange={setSelectedIndicators} />
+                <SecurityIndicator onChange={setSelectedIndicators}/>
 
                 {/* optimized-only fields */}
                 {(mode === 'optimized' || mode === 'dynamic') && (

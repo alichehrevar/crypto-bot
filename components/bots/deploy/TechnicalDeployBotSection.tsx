@@ -9,10 +9,12 @@ import {
 import BotConfigForm from "@/components/bots/deploy/BotConfigForm";
 import {parentTabs} from "@/utils/BotType";
 
-export default function TechnicalDeployBotSection ({
-  onSuccessAction
+export default function TechnicalDeployBotSection({
+  onSuccessAction,
+  selectedSymbol
 }: {
-  onSuccessAction: () => void
+    onSuccessAction: () => void,
+    selectedSymbol?: string | undefined
 }) {
 
   const tabs = [
@@ -56,6 +58,7 @@ export default function TechnicalDeployBotSection ({
             <BotConfigForm
               mode={key}
               selectedParentTab={selectedParentTab}
+              selectedSymbol={selectedSymbol}
               onCloseAction={() => onSuccessAction()}
             />
           </Tab>

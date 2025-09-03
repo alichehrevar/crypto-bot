@@ -8,20 +8,22 @@ import {OrderBook} from "@/components/shared/OrderBook";
 import CoinSummarySection from "@/components/shared/CoinSummarySection";
 import RealTimeCandlestickChart from "@/components/shared/charts/TradingViewLightweightChart";
 import AnalysisAndSymbolsList from "@/components/profile/manual-trading/AnalysisAndSymbolsList";
+import {MarketListItem} from "@/types/MarketList";
 
 export default function ManualTradingPage() {
 
     const [refreshBotsList, setRefreshBotsList] = useState<boolean>(false)
+    const [selectedSymbol, setSelectedSymbol] = useState<MarketListItem | null>(null);
 
     return (
         <div className="w-full mt-4 relative px-5 pb-5">
             {/*<PageTitleSection title="Manual Trading"/>*/}
             <div className="flex items-center justify-between w-full gap-6 backdrop-blur-sm rounded-xl min-h-[80px]">
-                <CoinSummarySection coinId="btc-bitcoin"/>
+                <CoinSummarySection coinId={selectedSymbol?.id || "btc-bitcoin"} />
             </div>
             <div className=" w-full grid grid-cols-12 items-start justify-center gap-2 mt-2">
                 <div className="col-span-3 h-full">
-                    <AnalysisAndSymbolsList/>
+                    <AnalysisAndSymbolsList onSymbolClickAction={(symbol: MarketListItem) => setSelectedSymbol(symbol)} />
                 </div>
                 <div className="col-span-6 h-full">
                     <div className="flex items-center justify-center flex-col gap-2 h-full">
@@ -35,7 +37,7 @@ export default function ManualTradingPage() {
                 </div>
                 <div className="col-span-3">
                     {/* New Bot button */}
-                    <ManualTradeSection onSuccessAction={() => setRefreshBotsList(true)}/>
+                    <ManualTradeSection selectedSymbol={selectedSymbol} onSuccessAction={() => setRefreshBotsList(true)}/>
                 </div>
             </div>
             <div className="grid grid-cols-1 bg-dark-gray mt-2 rounded-lg py-6 px-3 h-[32.2svh]">

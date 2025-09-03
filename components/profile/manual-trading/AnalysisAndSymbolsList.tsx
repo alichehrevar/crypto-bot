@@ -3,8 +3,13 @@ import {Tab, Tabs} from "@heroui/react";
 
 import TechnicalAnalysis from "@/components/shared/TechnicalAnalysis";
 import MarketListWithSearch from "@/components/market/marketListWithSearch/MarketListWithSearch";
+import {MarketListItem} from "@/types/MarketList";
 
-export default function AnalysisAndSymbolsList() {
+interface AnalysisAndSymbolsListProps {
+    onSymbolClickAction: (symbol: MarketListItem) => void;
+}
+
+export default function AnalysisAndSymbolsList({ onSymbolClickAction }: AnalysisAndSymbolsListProps) {
     return (
         <div className="flex flex-col bg-dark-gray rounded-lg py-3 w-full h-full">
             <Tabs
@@ -18,7 +23,7 @@ export default function AnalysisAndSymbolsList() {
                 variant="underlined"
             >
                 <Tab key="MarketListWithSearch" title="Search">
-                    <MarketListWithSearch />
+                    <MarketListWithSearch onSymbolClickAction={onSymbolClickAction} />
                 </Tab>
                 <Tab key="TechnicalAnalysis" title="Analysis">
                     <TechnicalAnalysis />

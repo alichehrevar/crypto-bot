@@ -14,7 +14,7 @@ export default function AiBotsPage() {
 
     return (
         <div className="w-full mt-4 relative px-5">
-            <CoinSummarySection coinId="btc-bitcoin"/>
+            <CoinSummarySection coinId={"btc-bitcoin"} />
             <div className="w-full grid grid-cols-12 gap-2 mt-2">
                 <div className="flex flex-col gap-2 lg:col-span-7">
                     <div className="w-full lg:h-[500px]">

@@ -19,14 +19,17 @@ import {parentTabs} from "@/utils/BotType";
 import Combobox from "@/components/shared/ui/Combobox";
 import NumericInput from "@/components/shared/ui/NumericInput";
 import Switcher from "@/components/shared/ui/Switcher";
+import {MarketListItem} from "@/types/MarketList";
 
 export interface ManualTradeFormProps {
-    onTradeExecuted?: () => void;
+    onTradeExecuted?: () => void,
+    selectedSymbol?: MarketListItem | null
 }
 
 export default function ManualTradeForm({
-                                            onTradeExecuted,
-                                        }: ManualTradeFormProps) {
+    onTradeExecuted,
+    selectedSymbol
+}: ManualTradeFormProps) {
     //
     // ─── LOOKUPS & COMMON STATE ────────────────────────────────────────────
     //
@@ -37,7 +40,6 @@ export default function ManualTradeForm({
 
     // Symbols list for dropdown
     const [symbols, setSymbols] = useState<SymbolFilter[]>([]);
-    const [selectedSymbol, setSelectedSymbol] = useState<string>("BTC/USDT");
 
     // Placeholder for live price; wire this up later to your WebSocket/REST feed
     const [currentPrice, setCurrentPrice] = useState<number>(0);
@@ -303,8 +305,8 @@ export default function ManualTradeForm({
                 variant="underlined"
                 onSelectionChange={(k) => setSelectedParentTab(k as string)}
             >
-                {parentTabs.map(({ key, title }) => (
-                    <Tab key={key} title={title} />
+                {parentTabs.map(({key, title}) => (
+                    <Tab key={key} title={title}/>
                 ))}
             </Tabs>
             {/* ── MARKET / LIMIT TAB SWITCH ──────────────────────────────────────── */}

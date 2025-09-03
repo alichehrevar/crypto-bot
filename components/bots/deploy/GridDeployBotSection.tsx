@@ -8,11 +8,14 @@ import {
 
 import GridConfigForm from "@/components/bots/deploy/GridConfigForm";
 import {parentTabs} from "@/utils/BotType";
+import {MarketListItem} from "@/types/MarketList";
 
-export default function TechnicalDeployBotSection ({
-  onSuccessAction
+export default function TechnicalDeployBotSection({
+  onSuccessAction,
+  selectedSymbol
 }: {
-  onSuccessAction: () => void
+    onSuccessAction: () => void,
+    selectedSymbol?: MarketListItem | null
 }) {
 
   const tabs = [
@@ -57,6 +60,7 @@ export default function TechnicalDeployBotSection ({
             <GridConfigForm
               mode={key}
               selectedParentTab={selectedParentTab}
+              selectedSymbol={selectedSymbol}
               onCloseAction={() => onSuccessAction()}
             />
           </Tab>

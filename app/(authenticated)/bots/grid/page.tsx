@@ -7,21 +7,23 @@ import GridDeployBotSection from "@/components/bots/deploy/GridDeployBotSection"
 import RealTimeCandlestickChart from "@/components/shared/charts/TradingViewLightweightChart";
 import MarketListWithSearch from "@/components/market/marketListWithSearch/MarketListWithSearch";
 import CoinSummarySection from "@/components/shared/CoinSummarySection";
+import {MarketListItem} from "@/types/MarketList";
 
 
 export default function TechnicalBotsPage() {
 
     const [refreshBotsList, setRefreshBotsList] = useState<boolean>(false)
+    const [selectedSymbol, setSelectedSymbol] = useState<MarketListItem | null>(null);
 
     return (
         <div className="w-full mt-4 relative px-5">
-            <CoinSummarySection coinId="btc-bitcoin"/>
+            <CoinSummarySection coinId={selectedSymbol?.id || "btc-bitcoin"}/>
             <div className=" w-full flex items-start justify-center gap-2 mt-2 lg:h-[900px]">
                 <div className="w-full lg:w-[76%] self-stretch">
                     <div className="flex items-start justify-center gap-2 h-[65%]">
                         <div className="flex w-1/3 h-full">
                             {/* MarketList */}
-                            <MarketListWithSearch/>
+                            <MarketListWithSearch onSymbolClickAction={(symbol: MarketListItem) => setSelectedSymbol(symbol)} />
                         </div>
                         <div className="w-2/3 h-full">
                             <RealTimeCandlestickChart interval="1m" symbol="BTCUSDT" timeZone="local"/>
@@ -34,7 +36,7 @@ export default function TechnicalBotsPage() {
                 </div>
                 <div className="w-full lg:w-[24%] lg:h-[900px]">
                     {/* New Bot button */}
-                    <GridDeployBotSection onSuccessAction={() => setRefreshBotsList(true)}/>
+                    <GridDeployBotSection selectedSymbol={selectedSymbol} onSuccessAction={() => setRefreshBotsList(true)}/>
                 </div>
             </div>
         </div>

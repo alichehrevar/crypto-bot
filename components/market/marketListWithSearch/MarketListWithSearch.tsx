@@ -11,10 +11,15 @@ import { FilterChips } from '@/components/market/marketListWithSearch/FilterChip
 import { MarketListHeader } from '@/components/market/marketListWithSearch/MarketListHeader';
 import { SymbolRow } from '@/components/market/marketListWithSearch/SymbolRow';
 import { SkeletonRow } from '@/components/loading/marketListWithSearch/SkeletonRow';
+import {MarketListItem} from "@/types/MarketList";
 
 const ROW_HEIGHT = 65; // Define as a constant
 
-export default function MarketListPage() {
+interface MarketListPageProps {
+    onSymbolClickAction: (symbol: MarketListItem) => void;
+}
+
+export default function MarketListWithSearch({ onSymbolClickAction }: MarketListPageProps) {
     const {
         loading,
         filteredAndSortedSymbols,
@@ -89,6 +94,7 @@ export default function MarketListPage() {
                                     activeMainTab={activeMainTab}
                                     style={{ height: `${ROW_HEIGHT}px` }}
                                     symbol={symbol}
+                                    onSymbolClick={onSymbolClickAction}
                                     onToggleFavorite={handleToggleFavorite}
                                 />
                             ))

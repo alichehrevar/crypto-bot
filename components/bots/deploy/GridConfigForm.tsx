@@ -16,19 +16,22 @@ import {BotProps} from "@/types/profile/bots/StrategyParams";
 import Input from "@/components/shared/ui/Input";
 import NumericInput from "@/components/shared/ui/NumericInput";
 import Combobox from "@/components/shared/ui/Combobox";
+import {MarketListItem} from "@/types/MarketList";
 
 // Props for this form: which grid‐tab is active, and a callback for closing
 export interface GridConfigFormProps {
-    mode: "standard" | "infinity" | "dynamic";
-    selectedParentTab: string;
-    onCloseAction: () => void;
+    mode: "standard" | "infinity" | "dynamic",
+    selectedParentTab: string,
+    onCloseAction: () => void,
+    selectedSymbol?: MarketListItem | null
 }
 
 export default function GridConfigForm({
-   mode,
-   selectedParentTab,
-   onCloseAction,
-}: GridConfigFormProps) {
+                                           mode,
+                                           selectedParentTab,
+                                           onCloseAction,
+                                           selectedSymbol
+                                       }: GridConfigFormProps) {
     //
     // ─── LOOKUPS & COMMON STATE ────────────────────────────────────────────
     //
@@ -43,9 +46,6 @@ export default function GridConfigForm({
     const [accounts, setAccounts] = useState<ExchangeAccount[]>([]);
     const [selectedAccountId, setSelectedAccountId] = useState<Key>();
     const [availableBalance, setAvailableBalance] = useState<number>(0);
-
-    const [symbols, setSymbols] = useState<SymbolFilter[]>([]);
-    const [selectedSymbol, setSelectedSymbol] = useState<string>("BTC/USDT");
 
     // Common Bot fields
     const [name, setName] = useState<string>("");
@@ -90,22 +90,7 @@ export default function GridConfigForm({
     // ─── EFFECT TO LOAD LOOKUPS ─────────────────────────────────────────────
     //
     useEffect(() => {
-        // 1) Load currency symbols
-        (async () => {
-            try {
-                const res: SymbolFilterResponse = await getData("/currencies");
-
-                if (!res.success) {
-                    addToast({title: res.message || "No symbols found!", color: "danger"});
-                } else {
-                    setSymbols(res.data);
-                }
-            } catch {
-                addToast({title: "Failed to load symbols", color: "danger"});
-            }
-        })();
-
-        // 2) Load user’s exchange accounts
+        // 1) Load user’s exchange accounts
         (async () => {
             try {
                 const res = await getData("/accounts");
@@ -134,7 +119,7 @@ export default function GridConfigForm({
             }
         })();
 
-        // 3) Load risk strategies (bots/botProps)
+        // 2) Load risk strategies (bots/botProps)
         (async () => {
             try {
                 const res = await getData("/bots/botProps");
@@ -192,47 +177,6 @@ export default function GridConfigForm({
             addToast({title: "Failed to load balance", color: "danger"});
             setAvailableBalance(0);
             setBaseFund("");
-            setBaseFundError("");
-        }
-    }
-
-    //
-    // ─── VALIDATE LOWER/UPPER PRICE ─────────────────────────────────────────
-    //
-    function onPriceRangeChange(
-        newLower: string,
-        newUpper: string
-    ) {
-        setLowerPrice(newLower);
-        setUpperPrice(newUpper);
-
-        const low = parseFloat(newLower);
-        const high = parseFloat(newUpper);
-
-        if (isNaN(low) || isNaN(high)) {
-            setPriceRangeError("Both prices must be valid numbers");
-        } else if (low <= 0 || high <= 0) {
-            setPriceRangeError("Prices must be positive");
-        } else if (low >= high) {
-            setPriceRangeError("Lower Price must be less than Upper Price");
-        } else {
-            setPriceRangeError("");
-        }
-    }
-
-    //
-    // ─── VALIDATE BASE FUND INPUT ────────────────────────────────────────────
-    //
-    function onBaseFundChange(val: string) {
-        setBaseFund(val);
-
-        const num = parseFloat(val);
-
-        if (isNaN(num) || num < 0) {
-            setBaseFundError("Base Fund must be a positive number");
-        } else if (num > availableBalance) {
-            setBaseFundError("Base Fund cannot exceed available balance");
-        } else {
             setBaseFundError("");
         }
     }

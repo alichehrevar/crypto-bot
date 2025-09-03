@@ -1,6 +1,6 @@
 // Defines the structure for a single item in the market list array
 export type MarketListItem = {
-    id: number;
+    id: string;
     symbol: string;
     category: 'Spot' | 'USDT-M' | 'New Listing';
     broker: 'Binance' | 'OKX' | 'Bybit' | 'BingX' | 'Other';
