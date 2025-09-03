@@ -2,7 +2,6 @@ import React from "react";
 
 import SummaryPieChartWithDetails from "@/components/portfolio/assets/SummaryPieChartWithDetails";
 import AssetsTable from "@/components/portfolio/assets/AssetsTable";
-import AssetSummary from "@/components/profile/dashboard/assetSummary";
 
 export default function DetailedViewOfHolding() {
     return (
