@@ -13,7 +13,7 @@ export default function HoldingDetailsPage() {
 
     return (
         <section className="container px-2 lg:px-4 mt-8 mx-auto space-y-4">
-            <AssetSummary/>
+            <AssetSummary showExtraDetails={true} />
             <Tabs
                 aria-label="Tabs variants"
                 classNames={{
