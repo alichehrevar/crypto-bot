@@ -39,44 +39,80 @@ async function getTopMovers(limit = 5, direction = 'desc') {
 }
 
 async function fetchAndStoreMarketData() {
-    // 1) get all coins for their types
-    const coinsRes   = await fetch('https://api.coinpaprika.com/v1/coins');
-    const coinsList  = await coinsRes.json();
-    const typeMap    = coinsList.reduce((map, c) => {
-        map[c.id] = c.type;
-        return map;
-    }, {});
+    const COINGECKO_API_BASE = 'https://api.coingecko.com/api/v3';
 
-    // 2) fetch all tickers
-    const tickersRes = await fetch('https://api.coinpaprika.com/v1/tickers');
-    const tickers    = await tickersRes.json();
+    let allCoins = [];
+    let page = 1;
+    const perPage = 250; // Max allowed by CoinGecko API
 
-    // 3) upsert each ticker + type
-    for (const t of tickers) {
-        const coinType = typeMap[t.id] || 'coin';
-        await MarketSnapshot.updateOne(
-            { id: t.id },
-            {
-                id:         t.id,
-                name:       t.name,
-                symbol:     t.symbol,
-                rank:       t.rank,
-                type:       coinType,                           // ← store it
-                circulating_supply: t.circulating_supply,
-                total_supply:       t.total_supply,
-                max_supply:         t.max_supply,
-                beta_value:         t.beta_value,
-                first_data_at:      t.first_data_at,
-                last_updated:       t.last_updated,
-                quotes:             t.quotes,
-                imageUrl:           `${IMAGE_CDN}/${t.id}/logo.png`,
-                updatedAt:          new Date()
-            },
-            { upsert: true }
-        );
+    try {
+        // 1) Fetch all coins with market data using pagination
+        // CoinGecko requires pagination to get the full list.
+        while (true) {
+            const url = `${COINGECKO_API_BASE}/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=${perPage}&page=${page}&sparkline=false`;
+            const marketRes = await fetch(url);
+
+            if (!marketRes.ok) {
+                throw new Error(`API call failed with status: ${marketRes.status}`);
+            }
+
+            const marketData = await marketRes.json();
+
+            // If the page returns no data, we've fetched everything
+            if (marketData.length === 0) {
+                break;
+            }
+
+            allCoins = allCoins.concat(marketData);
+            page++;
+        }
+
+        console.log(`[Market] Fetched ${allCoins.length} entries from CoinGecko.`);
+
+        // 2) Upsert each coin into the database
+        for (const coin of allCoins) {
+            // Determine the type: If it has an 'asset_platform_id', it's a token.
+            // Otherwise, it's a native coin on its own blockchain.
+            const coinType = coin.asset_platform_id ? 'token' : 'coin';
+
+            await MarketSnapshot.updateOne(
+                { id: coin.id }, // Use CoinGecko's ID for matching
+                {
+                    id:                 coin.id,
+                    name:               coin.name,
+                    symbol:             coin.symbol,
+                    rank:               coin.market_cap_rank,
+                    type:               coinType, // Determined from asset_platform_id
+                    circulating_supply: coin.circulating_supply,
+                    total_supply:       coin.total_supply,
+                    max_supply:         coin.max_supply,
+                    // beta_value is not provided by this CoinGecko endpoint
+                    first_data_at:      coin.atl_date, // Using 'All Time Low' date as a proxy
+                    last_updated:       coin.last_updated,
+                    // Re-structure quotes to match your existing schema
+                    quotes: {
+                        USD: {
+                            price:                 coin.current_price,
+                            market_cap:            coin.market_cap,
+                            fully_diluted_valuation: coin.fully_diluted_valuation,
+                            total_volume:          coin.total_volume,
+                            percent_change_1h:     coin.price_change_percentage_1h_in_currency,
+                            percent_change_24h:    coin.price_change_percentage_24h_in_currency,
+                            percent_change_7d:     coin.price_change_percentage_7d_in_currency,
+                        }
+                    },
+                    imageUrl:           coin.image, // CoinGecko provides a direct image URL
+                    updatedAt:          new Date()
+                },
+                { upsert: true }
+            );
+        }
+
+        console.log(`[Market] Synced ${allCoins.length} entries with types.`);
+
+    } catch (error) {
+        console.error('Error fetching or storing market data:', error);
     }
-
-    console.log(`[Market] Synced ${tickers.length} entries with types`);
 }
 
 /**
