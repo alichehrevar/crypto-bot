@@ -23,7 +23,7 @@ export default function CoinSummarySection({ coinId }: { coinId: string }) {
                     setCoin(res.data);
                 } else {
                     addToast({
-                        title: res.error || "Failed to fetch coin summary.",
+                        title: res.error || "Failedx to fetch coin summary.",
                         color: 'danger'
                     });
                 }

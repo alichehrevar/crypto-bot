@@ -2,8 +2,6 @@
 
 import React, {FormEvent, Key, useEffect, useState} from "react";
 import {
-    Autocomplete,
-    AutocompleteItem,
     addToast,
     Checkbox,
     Button,
@@ -21,6 +19,8 @@ import NumericInput from "@/components/shared/ui/NumericInput";
 import Combobox from "@/components/shared/ui/Combobox";
 import IndicatorsSection, {IndicatorItem} from "@/components/shared/ui/IndicatorsSection";
 import {MAIN_INDICATOR_OPTIONS, STANDARD_INDICATOR_OPTIONS} from "@/utils/strategyPanelData";
+import SecurityIndicator from "@/components/shared/ui/SecurityIndicator";
+import Slider from "@/components/shared/ui/Slider";
 
 export interface BotConfigFormProps {
     mode: 'default' | 'optimized' | 'dynamic';
@@ -314,14 +314,13 @@ export default function BotConfigForm({mode, selectedParentTab, onCloseAction}: 
                 </div>
 
                 {/* Leverage */}
-                <Combobox
+                <Slider
+                    colorClass="text-green-500"
                     label="Leverage"
-                    options={leverageOptions.map(a => ({
-                        id: a.toString(),
-                        name: `${a.toString()}x`,
-                    }))}
-                    selected={leverage.toString()}
-                    setSelected={k => k && setLeverage(Number(k.toString()))}
+                    max={leverageOptions.length}
+                    simple={true}
+                    value={leverage}
+                    onChange={k => k && setLeverage(Number(k.toString()))}
                 />
 
                 {/* Risk Strategy */}
@@ -362,25 +361,6 @@ export default function BotConfigForm({mode, selectedParentTab, onCloseAction}: 
                     onChange={e => setStopLoss(Number(e))}
                 />
 
-                {/* Primary Indicator + Timeframe */}
-                <div className="flex items-center gap-4">
-                    <div className="space-y-2 flex flex-col w-2/3">
-                        <LabelTag id="indicator" title="Indicator"/>
-                        <Autocomplete
-                            id="indicator"
-                            isClearable={false}
-                            radius="sm"
-                            onSelectionChange={k => k && setIndicator(k.toString())}
-                        >
-                            {botProps.indicatorOptions.map(ind => (
-                                <AutocompleteItem key={ind} textValue={ind}>
-                                    {ind}
-                                </AutocompleteItem>
-                            ))}
-                        </Autocomplete>
-                    </div>
-                </div>
-
                 <IndicatorsSection
                     defaultNewTimeframe="1h"
                     initialIndicators={[
@@ -391,6 +371,8 @@ export default function BotConfigForm({mode, selectedParentTab, onCloseAction}: 
                     standardOptions={STANDARD_INDICATOR_OPTIONS}
                     onChange={setSelectedIndicators}
                 />
+
+                <SecurityIndicator onChange={setSelectedIndicators} />
 
                 {/* optimized-only fields */}
                 {(mode === 'optimized' || mode === 'dynamic') && (

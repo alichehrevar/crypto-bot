@@ -7,6 +7,7 @@ import DetailedViewOfHolding from "@/components/portfolio/DetailedViewOfHolding"
 import OpenPositionsTab from "@/components/portfolio/OpenPositionsTab";
 import PnLTab from "@/components/portfolio/PnLTab";
 import BotsList from "@/components/bots/BotsList";
+import AssetSummary from "@/components/profile/dashboard/assetSummary";
 
 const tabs = [
     'Detailed View of Holding',
@@ -21,6 +22,7 @@ export default function HoldingDetailsPage() {
 
     return (
         <section className="container px-2 lg:px-4 mt-8 mx-auto space-y-4">
+            <AssetSummary/>
             <Tabs activeTab={activeTab} setActiveTab={setActiveTab} tabs={tabs}/>
             {activeTab === tabs[0] && <DetailedViewOfHolding />}
             {activeTab === tabs[1] && <OpenPositionsTab />}

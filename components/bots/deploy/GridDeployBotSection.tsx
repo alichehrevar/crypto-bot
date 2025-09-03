@@ -7,17 +7,13 @@ import {
 } from "@heroui/react";
 
 import GridConfigForm from "@/components/bots/deploy/GridConfigForm";
+import {parentTabs} from "@/utils/BotType";
 
 export default function TechnicalDeployBotSection ({
   onSuccessAction
 }: {
   onSuccessAction: () => void
 }) {
-
-  const parentTabs = [
-    { key: "spot", title: 'Spot' },
-    { key: "futures", title: 'Futures' }
-  ] as const;
 
   const tabs = [
     { key: "standard",   title: "Standard"   },
@@ -52,7 +48,7 @@ export default function TechnicalDeployBotSection ({
           cursor: "w-full bg-white dark:group-data-[selected=true]:bg-white",
             tab: "h-8 text-[12px]",
           tabContent: "dark:group-data-[selected=true]:text-black",
-          panel: "h-full overflow-y-auto over-flow-x-hidden bot-config-form thin-scrollbar"
+          panel: "h-full overflow-y-auto over-flow-x-hidden bot-config-form thin-scrollbar mt-4"
         }}
         radius={'full'}
       >

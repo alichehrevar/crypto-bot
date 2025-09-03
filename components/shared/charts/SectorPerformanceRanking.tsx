@@ -179,8 +179,8 @@ const SectorPerformanceRanking: React.FC<{ data: SectorData | null }> = ({ data 
         );
 
         return (
-            <div className="mt-6 flex-grow min-h-[400px]">
-                <ResponsiveContainer height={500} width="100%">
+            <div className="mt-6 flex-grow min-h-[200px]">
+                <ResponsiveContainer height={300} width="100%">
                     <BarChart barCategoryGap="20%" data={data.performance} layout="vertical" margin={{ top: 20, left: 30, right: 20, bottom: 20 }}>
                         <CartesianGrid horizontal={false} stroke={CHART_GRID_COLOR} strokeDasharray="3 3" />
                         <XAxis axisLine={false} stroke={CHART_AXIS_COLOR} tick={{ fontSize: 12 }} tickLine={false} tickMargin={10} type="number" unit="%" />
@@ -220,7 +220,7 @@ const SectorPerformanceRanking: React.FC<{ data: SectorData | null }> = ({ data 
 
 
     return (
-        <div className="bg-[#1a1a1a] rounded-xl p-6 border border-white/5 shadow-md flex flex-col">
+        <div className="bg-dark-gray rounded-xl p-6 border border-white/5 shadow-md flex flex-col">
             <CardHeader
                 infoContent="This chart ranks market sectors by their collective performance over the last 24 hours. It helps identify which narratives or categories (like AI, Gaming, or DeFi) are currently attracting capital and showing strength."
                 infoTitle="About Sector Performance"

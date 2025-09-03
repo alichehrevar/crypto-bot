@@ -47,10 +47,14 @@ export default function MomentumRotationTab() {
     }, [])
 
     return (
-        <>
-            <MoversAndVolatility data={moversData} />
-            <SectorPerformanceRanking data={sectorsData} />
-            <ComparativeSectorRotation height={340} />
-        </>
+        <div className="flex flex-col lg:flex-row items-start justify-center w-full gap-2">
+            <div className="flex flex-col gap-2 w-[45%]">
+                <SectorPerformanceRanking data={sectorsData} />
+                <ComparativeSectorRotation height={340} />
+            </div>
+            <div className="flex flex-col w-[55%]">
+                <MoversAndVolatility data={moversData} />
+            </div>
+        </div>
     )
 }

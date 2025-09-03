@@ -50,8 +50,8 @@ const Combobox: React.FC<{
                         />
                     )}
                     <span className={selected ? "text-white" : "text-gray-400"}>
-            {selectedOption?.name ?? placeholder}
-          </span>
+                        {selectedOption?.name ?? placeholder}
+                    </span>
                 </div>
 
                 <svg
@@ -85,6 +85,8 @@ const Combobox: React.FC<{
                                 setSelected(value); // pass id if exists, else name
                                 setIsOpen(false);
                             };
+
+                            if (option.name === '') return (<hr key={value} className="my-1 border-gray-600 mx-2" />);
 
                             return (
                                 <li key={value} className="rounded-sm" role="presentation">

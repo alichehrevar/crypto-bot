@@ -7,17 +7,13 @@ import {
 } from "@heroui/react";
 
 import BotConfigForm from "@/components/bots/deploy/BotConfigForm";
+import {parentTabs} from "@/utils/BotType";
 
 export default function TechnicalDeployBotSection ({
   onSuccessAction
 }: {
   onSuccessAction: () => void
 }) {
-
-  const parentTabs = [
-    { key: "spot", title: 'Spot' },
-    { key: "futures", title: 'Futures' }
-  ] as const;
 
   const tabs = [
     { key: "default",   title: "Default"   },
@@ -54,7 +50,6 @@ export default function TechnicalDeployBotSection ({
           tabContent: "dark:group-data-[selected=true]:text-black",
           panel: "h-full overflow-y-auto over-flow-x-hidden bot-config-form thin-scrollbar mt-4"
         }}
-        radius={'full'}
       >
         {tabs.map(({ key, title }) => (
           <Tab key={key} title={title}>

@@ -13,19 +13,19 @@ export const MenuItems = [
                 link: '/bots',
             },
             {
-                name: 'Technical Bots',
+                name: 'Technical Bot',
                 link: '/bots/technical',
             },
             {
-                name: 'DCA',
+                name: 'DCA Bot',
                 link: '/bots/dca',
             },
             {
-                name: 'Grid',
+                name: 'Grid Bot',
                 link: '/bots/grid',
             },
             {
-                name: 'AI',
+                name: 'Custom AI Bot',
                 link: '/bots/ai',
                 className: 'ai-text'
             }

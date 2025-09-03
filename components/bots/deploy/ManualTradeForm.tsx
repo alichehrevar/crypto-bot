@@ -9,7 +9,7 @@ import {
     addToast,
     Input,
     Button,
-    Switch,
+    Switch, Tab, Tabs,
 } from "@heroui/react";
 
 import {getData} from "@/actions/get";
@@ -18,6 +18,7 @@ import {ExchangeAccount} from "@/types/profile/AccountType";
 import {WalletBalance} from "@/types/profile/WalletBalanceType";
 import {SymbolFilterResponse} from "@/types/profile/CurrencyType";
 import LabelTag from "@/components/shared/ui/Label";
+import {parentTabs} from "@/utils/BotType";
 
 interface Currency {
     _id: string;
@@ -34,6 +35,7 @@ export default function ManualTradeForm({
     //
     // ─── LOOKUPS & COMMON STATE ────────────────────────────────────────────
     //
+    const [selectedParentTab, setSelectedParentTab] = useState("spot");
     const [accounts, setAccounts] = useState<ExchangeAccount[]>([]);
     const [selectedAccountId, setSelectedAccountId] = useState<Key>();
     const [availableBalance, setAvailableBalance] = useState<number>(0);
@@ -287,6 +289,22 @@ export default function ManualTradeForm({
     //
     return (
         <div className="py-4 px-2 h-full">
+            <Tabs
+                fullWidth
+                aria-label="Options"
+                className="mb-4"
+                classNames={{
+                    cursor: "w-full",
+                    tab: "h-10 px-0",
+                }}
+                selectedKey={selectedParentTab}
+                variant="underlined"
+                onSelectionChange={(k) => setSelectedParentTab(k as string)}
+            >
+                {parentTabs.map(({ key, title }) => (
+                    <Tab key={key} title={title} />
+                ))}
+            </Tabs>
             {/* ── MARKET / LIMIT TAB SWITCH ──────────────────────────────────────── */}
             <div className="flex justify-start mb-4 gap-4">
                 <button
