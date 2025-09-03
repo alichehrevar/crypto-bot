@@ -21,6 +21,7 @@ import IndicatorsSection, {IndicatorItem} from "@/components/shared/ui/Indicator
 import {MAIN_INDICATOR_OPTIONS, STANDARD_INDICATOR_OPTIONS} from "@/utils/strategyPanelData";
 import SecurityIndicator from "@/components/shared/ui/SecurityIndicator";
 import Slider from "@/components/shared/ui/Slider";
+import SearchableCombobox from "@/components/shared/ui/SearchableCombobox";
 
 export interface BotConfigFormProps {
     mode: 'default' | 'optimized' | 'dynamic';
@@ -273,7 +274,8 @@ export default function BotConfigForm({mode, selectedParentTab, onCloseAction}: 
                 />
 
                 {/* Symbol */}
-                <Combobox
+                <SearchableCombobox
+                    id="symbol"
                     label="Symbol"
                     options={symbols.map(a => ({
                         id: a._id,

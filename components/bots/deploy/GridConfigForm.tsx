@@ -19,6 +19,7 @@ import LabelTag from "@/components/shared/ui/Label";
 import Input from "@/components/shared/ui/Input";
 import NumericInput from "@/components/shared/ui/NumericInput";
 import Combobox from "@/components/shared/ui/Combobox";
+import SearchableCombobox from "@/components/shared/ui/SearchableCombobox";
 
 // Props for this form: which grid‐tab is active, and a callback for closing
 export interface GridConfigFormProps {
@@ -28,10 +29,10 @@ export interface GridConfigFormProps {
 }
 
 export default function GridConfigForm({
-                                           mode,
-                                           selectedParentTab,
-                                           onCloseAction,
-                                       }: GridConfigFormProps) {
+   mode,
+   selectedParentTab,
+   onCloseAction,
+}: GridConfigFormProps) {
     //
     // ─── LOOKUPS & COMMON STATE ────────────────────────────────────────────
     //
@@ -354,43 +355,30 @@ export default function GridConfigForm({
                     title="Bot Name"
                 />
 
-                {/* — Account Dropdown — */}
-                <div className="space-y-2">
-                    <LabelTag id="account" title="Account"/>
-                    <Autocomplete
-                        id="account"
-                        isClearable={false}
-                        items={accounts}
-                        radius="sm"
-                        onSelectionChange={(k: Key | null) => handleAccountChange(k)}
-                    >
-                        {accounts.map((acc) => (
-                            <React.Fragment key={acc._id}>
-                                <AutocompleteItem key={acc._id} textValue={acc.name}>
-                                    {acc.name}
-                                </AutocompleteItem>
-                            </React.Fragment>
-                        ))}
-                    </Autocomplete>
-                </div>
+                {/* Account */}
+                <Combobox
+                    label="Account"
+                    options={accounts.map(a => ({
+                        id: a._id,
+                        name: a.name ?? a._id,
+                    }))}
+                    placeholder="Select Account"
+                    selected={selectedAccountId ? String(selectedAccountId) : ''}
+                    setSelected={(k: Key | null) => handleAccountChange(k)}
+                />
 
-                {/* — Symbol Dropdown — */}
-                <div className="space-y-2">
-                    <LabelTag id="symbol" title="Symbol"/>
-                    <Autocomplete
-                        defaultItems={symbols}
-                        id="symbol"
-                        isClearable={false}
-                        radius="sm"
-                        onSelectionChange={(k) => k && setSelectedSymbol(k.toString())}
-                    >
-                        {symbols.map((s) => (
-                            <AutocompleteItem key={s.id} textValue={s.symbol}>
-                                {s.symbol}
-                            </AutocompleteItem>
-                        ))}
-                    </Autocomplete>
-                </div>
+                {/* Symbol */}
+                <SearchableCombobox
+                    id="symbol"
+                    label="Symbol"
+                    options={symbols.map(a => ({
+                        id: a._id,
+                        name: a.name ? `${a.name} - ${a.symbol}` : a._id,
+                    }))}
+                    placeholder="Select Symbol"
+                    selected={selectedSymbol as string}
+                    setSelected={k => k && setSelectedSymbol(k.toString())}
+                />
                 <p className="text-sm text-gray-600">
                     Available balance: <b>{availableBalance.toFixed(2)} USDT</b>
                 </p>

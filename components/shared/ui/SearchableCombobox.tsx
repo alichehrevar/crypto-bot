@@ -39,7 +39,7 @@ const StyledCombobox: React.FC<{
         <div ref={comboboxRef} className="relative w-full">
             <label className="block text-sm font-medium text-gray-400 mb-2" htmlFor={id}>{label}</label>
             <div className="relative">
-                {selectedOption && !isOpen &&
+                {selectedOption && !isOpen && selectedOption.logo &&
                     <Image alt={`${selectedOption.name} logo`} className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" height={20} src={selectedOption.logo} width={20} />
                 }
                 <input
@@ -92,13 +92,15 @@ const StyledCombobox: React.FC<{
                                             }
                                         }}
                                     >
-                                        <Image
-                                            alt={`${option.name} logo`}
-                                            className="w-5 h-5 mr-3 object-contain"
-                                            height={20}
-                                            src={option.logo}
-                                            width={20}
-                                        />
+                                        {option.logo && (
+                                            <Image
+                                                alt={`${option.name} logo`}
+                                                className="w-5 h-5 mr-3 object-contain"
+                                                height={20}
+                                                src={option.logo}
+                                                width={20}
+                                            />
+                                        )}
                                         {option.name}
                                     </button>
                                 </li>
