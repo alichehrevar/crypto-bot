@@ -16,7 +16,6 @@ import {BotProps} from "@/types/profile/bots/StrategyParams";
 import Input from "@/components/shared/ui/Input";
 import NumericInput from "@/components/shared/ui/NumericInput";
 import Combobox from "@/components/shared/ui/Combobox";
-import SearchableCombobox from "@/components/shared/ui/SearchableCombobox";
 
 // Props for this form: which grid‐tab is active, and a callback for closing
 export interface GridConfigFormProps {

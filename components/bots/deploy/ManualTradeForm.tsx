@@ -17,7 +17,6 @@ import {WalletBalance} from "@/types/profile/WalletBalanceType";
 import {SymbolFilter, SymbolFilterResponse} from "@/types/profile/CurrencyType";
 import {parentTabs} from "@/utils/BotType";
 import Combobox from "@/components/shared/ui/Combobox";
-import SearchableCombobox from "@/components/shared/ui/SearchableCombobox";
 import NumericInput from "@/components/shared/ui/NumericInput";
 import Switcher from "@/components/shared/ui/Switcher";
 
