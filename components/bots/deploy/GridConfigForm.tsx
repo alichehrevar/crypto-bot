@@ -2,8 +2,6 @@
 
 import React, {FormEvent, Key, useEffect, useState} from "react";
 import {
-    Autocomplete,
-    AutocompleteItem,
     addToast,
     Button,
     Switch,
@@ -15,7 +13,6 @@ import {ExchangeAccount} from "@/types/profile/AccountType";
 import {SymbolFilter, SymbolFilterResponse} from "@/types/profile/CurrencyType";
 import {RawBalanceResponse} from "@/types/profile/WalletBalanceType";
 import {BotProps} from "@/types/profile/bots/StrategyParams";
-import LabelTag from "@/components/shared/ui/Label";
 import Input from "@/components/shared/ui/Input";
 import NumericInput from "@/components/shared/ui/NumericInput";
 import Combobox from "@/components/shared/ui/Combobox";
