@@ -35,9 +35,8 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, depth, parentValue }) => {
             {/* The main row for the current node, now a motion.button */}
             <motion.button
                 className="flex items-center justify-between w-full py-3 px-4 rounded-md hover:bg-gray-800 cursor-pointer"
-                onClick={() => hasChildren && setIsOpen(!isOpen)}
-                // Framer Motion tap animation for a slight press effect
                 whileTap={{ scale: 0.99 }}
+                onClick={() => hasChildren && setIsOpen(!isOpen)}
             >
                 <div className="flex items-center flex-1">
                     {/* Expander Icon with rotation animation */}
