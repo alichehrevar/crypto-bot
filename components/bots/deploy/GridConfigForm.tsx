@@ -364,18 +364,6 @@ export default function GridConfigForm({
                     setSelected={(k: Key | null) => handleAccountChange(k)}
                 />
 
-                {/* Symbol */}
-                <SearchableCombobox
-                    id="symbol"
-                    label="Symbol"
-                    options={symbols.map(a => ({
-                        id: a._id,
-                        name: a.name ? `${a.name} - ${a.symbol}` : a._id,
-                    }))}
-                    placeholder="Select Symbol"
-                    selected={selectedSymbol as string}
-                    setSelected={k => k && setSelectedSymbol(k.toString())}
-                />
                 <p className="text-sm text-gray-600">
                     Available balance: <b>{availableBalance.toFixed(2)} USDT</b>
                 </p>

@@ -347,19 +347,6 @@ export default function ManualTradeForm({
                     Available balance: <b>{availableBalance.toFixed(2)} USDT</b>
                 </p>
 
-                {/* Symbol */}
-                <SearchableCombobox
-                    id="symbol"
-                    label="Symbol"
-                    options={symbols.map(a => ({
-                        id: a._id,
-                        name: a ? `${a.name} - ${a.symbol}` : '',
-                    }))}
-                    placeholder="Select Symbol"
-                    selected={selectedSymbol ? String(selectedSymbol) : ''}
-                    setSelected={k => k && setSelectedSymbol(k.toString())}
-                />
-
                 {/* ── LIMIT PRICE (only if mode="limit") ─────────────────────────────── */}
                 {mode === "limit" && (
                     <NumericInput
