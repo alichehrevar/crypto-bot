@@ -23,7 +23,7 @@ export default function CoinSummarySection({ coinId }: { coinId: string }) {
                     setCoin(res.data);
                 } else {
                     addToast({
-                        title: res.error || "Failedx to fetch coin summary.",
+                        title: res.error || "Failed to fetch coin summary.",
                         color: 'danger'
                     });
                 }
@@ -104,9 +104,9 @@ export default function CoinSummarySection({ coinId }: { coinId: string }) {
                 </div>
 
                 {/* Stats Grid */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-2 text-sm text-gray-300">
+                <div className="grid grid-cols-2 md:grid-cols-6 gap-x-3 gap-y-2 text-sm text-gray-300">
                     <div className="space-x-1.5">
-                        <span className="text-white font-semibold">All-Time High</span>
+                        <span className="text-white font-semibold">ATH</span>
                         <span className="text-gray-300 text-xs">${fmtNum(coin.ath)}</span>
                     </div>
                     <div className="space-x-1.5">
@@ -116,6 +116,14 @@ export default function CoinSummarySection({ coinId }: { coinId: string }) {
                     <div className="space-x-1.5">
                         <span className="text-white font-semibold">24h Low</span>
                         <span className="text-gray-300 text-xs">${fmtNum(coin.low_24h)}</span>
+                    </div>
+                    <div className="space-x-1.5">
+                        <span className="text-white font-semibold">1w Low</span>
+                        <span className="text-gray-300 text-xs">${fmtNum(coin.low_1w)}</span>
+                    </div>
+                    <div className="space-x-1.5">
+                        <span className="text-white font-semibold">1w High</span>
+                        <span className="text-gray-300 text-xs">${fmtNum(coin.high_1w)}</span>
                     </div>
                 </div>
             </div>
