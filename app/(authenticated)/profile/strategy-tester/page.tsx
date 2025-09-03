@@ -22,7 +22,6 @@ import MarketStats from '@/components/profile/MarketStats';
 import { SymbolFilter, SymbolFilterResponse } from '@/types/profile/CurrencyType';
 import MarketListWithSearch from "@/components/MarketListWithSearch";
 import RealTimeCandlestickChart from "@/components/shared/charts/TradingViewLightweightChart";
-import SearchableCombobox from "@/components/shared/ui/SearchableCombobox";
 import NumericInput from "@/components/shared/ui/NumericInput";
 import {MAIN_INDICATOR_OPTIONS, STANDARD_INDICATOR_OPTIONS} from "@/utils/strategyPanelData";
 import IndicatorsSection, {IndicatorItem} from "@/components/shared/ui/IndicatorsSection";
