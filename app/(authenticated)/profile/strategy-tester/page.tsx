@@ -4,13 +4,7 @@ import type { BotProps } from '@/types/profile/bots/StrategyParams';
 
 import React, { FormEvent, useEffect, useState } from 'react';
 import {
-    Autocomplete,
-    AutocompleteItem,
-    Input,
     Button,
-    Switch,
-    RadioGroup,
-    Radio,
     DateRangePicker,
     RangeValue,
     DateValue,
@@ -18,16 +12,22 @@ import {
 } from '@heroui/react';
 import copy from 'copy-to-clipboard';
 import { parseDate } from '@internationalized/date';
+import {AnimatePresence, motion} from "framer-motion";
 
 import { getData } from '@/actions/get';
 import { sendRequest } from '@/actions/post';
-import {OrderIcon, XIcon} from '@/utils/icons';
+import {OrderIcon} from '@/utils/icons';
 import BacktestResultChart from '@/components/shared/charts/BacktestResultChart';
 import MarketStats from '@/components/profile/MarketStats';
-import LabelTag from '@/components/shared/ui/Label';
 import { SymbolFilter, SymbolFilterResponse } from '@/types/profile/CurrencyType';
 import MarketListWithSearch from "@/components/MarketListWithSearch";
 import RealTimeCandlestickChart from "@/components/shared/charts/TradingViewLightweightChart";
+import SearchableCombobox from "@/components/shared/ui/SearchableCombobox";
+import NumericInput from "@/components/shared/ui/NumericInput";
+import {MAIN_INDICATOR_OPTIONS, STANDARD_INDICATOR_OPTIONS} from "@/utils/strategyPanelData";
+import IndicatorsSection, {IndicatorItem} from "@/components/shared/ui/IndicatorsSection";
+import Switcher from "@/components/shared/ui/Switcher";
+import RadioGroup from "@/components/shared/ui/RadioGroup";
 
 // ---------------- helpers ----------------
 function formatDuration(mins: number) {
@@ -70,6 +70,7 @@ interface ChartData {
 export default function StrategyTesterPage() {
     const [symbols, setSymbols] = useState<SymbolFilter[]>([]);
     const [selectedSymbol, setSelectedSymbol] = useState<string>('btc-bitcoin');
+    const [selectedIndicators, setSelectedIndicators] = useState<IndicatorItem[]>([]);
 
     const [botProps, setBotProps] = useState<BotProps>({
         riskStrategyOptions: [],
@@ -121,10 +122,13 @@ export default function StrategyTesterPage() {
         if (dateRangeValue?.end) setEndDate(dateRangeValue.end.toString());
     }, [dateRangeValue]);
 
-    const addIndicatorRow = () => setIndicators((p) => [...p, { indicator: '', timeframe: '' }]);
-    const removeIndicatorRow = (i: number) => indicators.length > 1 && setIndicators((p) => p.filter((_, idx) => idx !== i));
-    const updateIndicator = (i: number, v: string) => setIndicators((p) => (p[i] = { ...p[i], indicator: v }, [...p]));
-    const updateTimeframe = (i: number, v: string) => setIndicators((p) => (p[i] = { ...p[i], timeframe: v }, [...p]));
+    const sectionAnimationProps = {
+        initial: {opacity: 0, height: 0},
+        animate: {opacity: 1, height: 'auto'},
+        exit: {opacity: 0, height: 0},
+        transition: {type: "spring", stiffness: 300, damping: 30}
+    };
+
 
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
@@ -233,131 +237,86 @@ export default function StrategyTesterPage() {
                     </div>
 
                     {/* Right: Form */}
-                    <div className="w-full lg:w-[24%] h-full p-6 bg-dark-gray rounded-lg text-white">
-                        <form className="space-y-6" onSubmit={handleSubmit}>
+                    <div className="w-full lg:w-[24%] h-full p-3 bg-dark-gray rounded-lg text-white overflow-y-auto">
+                        <form className="space-y-6 py-2" onSubmit={handleSubmit}>
                             <div className="flex items-center gap-2 mb-4">
                                 <h3 className="text-lg font-semibold text-white">Strategy Parameters</h3>
                             </div>
 
                             <div className="flex items-start justify-between flex-col-reverse gap-4 w-full border-b border-default-200 pb-4">
-                                <div className="space-y-2 w-full">
-                                    <LabelTag id="symbol" title="Symbol" />
-                                    <Autocomplete
-                                        defaultItems={symbols}
-                                        id="symbol"
-                                        isClearable={false}
-                                        radius="sm"
-                                        onSelectionChange={(k) => k && setSelectedSymbol(k.toString())}
-                                    >
-                                        {symbols.map((s) => (
-                                            <AutocompleteItem key={s.id} textValue={s.symbol}>
-                                                {s.symbol}
-                                            </AutocompleteItem>
-                                        ))}
-                                    </Autocomplete>
-                                </div>
 
-                                <div className="flex items-start justify-between w-full gap-4">
-                                    <RadioGroup orientation="vertical" size="sm" value={useRecent} onValueChange={setUseRecent as any}>
-                                        <Radio value="recent-candles">Recent Candles</Radio>
-                                        <Radio value="time-range">Time Range</Radio>
-                                    </RadioGroup>
+                                <div className="flex flex-col items-start justify-between w-full gap-4">
+                                    <RadioGroup
+                                        options={[{ value: 'recent-candles', label: 'Recent Candles' }, { value: 'time-range', label: 'Time Range' }]}
+                                        selectedValue={useRecent}
+                                        onChange={(v) => setUseRecent(v as any)}
+                                    />
                                     {useRecent === 'recent-candles' ? (
-                                        <Input
-                                            className="w-28"
-                                            min={1}
-                                            placeholder="e.g., 1000"
-                                            radius="sm"
-                                            type="number"
-                                            value={recentCount}
-                                            onChange={(e) => setRecentCount(e.target.value)}
-                                        />
+                                        <div className="w-full">
+                                            <NumericInput
+                                                max={1000}
+                                                min={1}
+                                                placeholder="e.g., 1000"
+                                                step={0.0001}
+                                                usePercentageStep={true}
+                                                value={recentCount}
+                                                onChange={(e) => setRecentCount(e)}
+                                            />
+                                        </div>
                                     ) : (
-                                        <DateRangePicker className="w-auto" radius="sm" value={dateRangeValue} onChange={setDateRangeValue} />
+                                        <DateRangePicker className="w-full" radius="sm" value={dateRangeValue} variant="bordered" onChange={setDateRangeValue} />
                                     )}
                                 </div>
                             </div>
 
-                            <div className="space-y-4">
-                                {indicators.map((row, i) => (
-                                    <div key={i} className="flex items-end gap-2">
-                                        <div className="space-y-2 w-full">
-                                            <LabelTag id="indicator" title="Indicator" />
-                                            <Autocomplete
-                                                className="flex-1"
-                                                id="indicator"
-                                                isClearable={false}
-                                                radius="sm"
-                                                selectedKey={row.indicator}
-                                                onSelectionChange={(v) => updateIndicator(i, v as string)}
-                                            >
-                                                {botProps.indicatorOptions.map((ind) => (
-                                                    <AutocompleteItem key={ind} textValue={ind}>
-                                                        {ind}
-                                                    </AutocompleteItem>
-                                                ))}
-                                            </Autocomplete>
-                                        </div>
-                                        <div className="space-y-2">
-                                            <LabelTag id="timeframe" title="Timeframe" />
-                                            <Autocomplete
-                                                className="w-28"
-                                                id="timeframe"
-                                                isClearable={false}
-                                                radius="sm"
-                                                selectedKey={row.timeframe}
-                                                onSelectionChange={(v) => updateTimeframe(i, v as string)}
-                                            >
-                                                {botProps.timeframeOptions.map((tf) => (
-                                                    <AutocompleteItem key={tf} textValue={tf}>
-                                                        {tf}
-                                                    </AutocompleteItem>
-                                                ))}
-                                            </Autocomplete>
-                                        </div>
-                                        {indicators.length > 1 && (
-                                            <Button isIconOnly color="danger" size="sm" variant="light" onPress={() => removeIndicatorRow(i)}>
-                                                <XIcon />
-                                            </Button>
-                                        )}
-                                    </div>
-                                ))}
-                                <Button color="primary" size="sm" variant="light" onPress={addIndicatorRow}>
-                                    + Add Indicator
-                                </Button>
-                            </div>
+                            <IndicatorsSection
+                                defaultNewTimeframe="1h"
+                                initialIndicators={[
+                                    { id: 1, indicator: STANDARD_INDICATOR_OPTIONS[0], timeFrame: "1h" },
+                                ]}
+                                mainOptions={MAIN_INDICATOR_OPTIONS}
+                                showAddIndicatorButton={true}
+                                standardOptions={STANDARD_INDICATOR_OPTIONS}
+                                onChange={setSelectedIndicators}
+                            />
 
                             <div className="space-y-4">
-                                <div className="flex justify-between items-center">
-                                    <p className="font-medium text-lg">Optimize Parameters</p>
-                                    <Switch color="success" isSelected={optimize} onValueChange={setOptimize} />
-                                </div>
-                                {optimize && (
-                                    <>
-                                        <RadioGroup
-                                            className="justify-between"
-                                            classNames={{ wrapper: 'flex w-full gap-5' }}
-                                            orientation="horizontal"
-                                            size="sm"
-                                            value={optMethod}
-                                            onValueChange={(v) => setOptMethod(v as any)}
-                                        >
-                                            <Radio value="grid">Grid</Radio>
-                                            <Radio value="bayesian">Bayesian</Radio>
-                                            <Radio value="ann">ANN</Radio>
-                                        </RadioGroup>
-                                        <div className="flex gap-4 mt-2">
-                                            <div className="space-y-2">
-                                                <LabelTag id="min-accuracy" title="Min Accuracy (%)" />
-                                                <Input id="min-accuracy" min={0} radius="sm" type="number" value={minAccuracy} onChange={(e) => setMinAccuracy(e.target.value)} />
-                                            </div>
-                                            <div className="space-y-2">
-                                                <LabelTag id="min-trades" title="Min Trades" />
-                                                <Input id="min-trades" min={1} radius="sm" type="number" value={minTrades} onChange={(e) => setMinTrades(e.target.value)} />
-                                            </div>
-                                        </div>
-                                    </>
-                                )}
+                                <Switcher
+                                    isEnabled={optimize}
+                                    setIsEnabled={setOptimize}
+                                    title="Optimize Parameters"
+                                />
+                                <AnimatePresence initial={false}>
+                                    {optimize && (
+                                        <motion.div {...sectionAnimationProps} className="pt-2">
+                                            <>
+                                                <RadioGroup
+                                                    options={[{ value: 'grid', label: 'Grid' }, { value: 'bayesian', label: 'Bayesian' }, { value: 'ann', label: 'ANN' }]}
+                                                    selectedValue={optMethod}
+                                                    onChange={(v) => setOptMethod(v as any)}
+                                                />
+                                                <div className="grid grid-cols-2 gap-4 mt-2">
+                                                    <NumericInput
+                                                        label="Min Accuracy (%)"
+                                                        max={100}
+                                                        min={1}
+                                                        usePercentageStep={true}
+                                                        value={minAccuracy}
+                                                        onChange={(e) => setMinAccuracy(e)}
+                                                    />
+                                                    <NumericInput
+                                                        label="Min Trades"
+                                                        max={100}
+                                                        min={1}
+                                                        usePercentageStep={true}
+                                                        value={minTrades}
+                                                        onChange={(e) => setMinTrades(e)}
+                                                    />
+                                                </div>
+                                            </>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
                             </div>
 
                             <Button fullWidth className="text-black" color="primary" disabled={loading} isLoading={loading} size="lg" type="submit">

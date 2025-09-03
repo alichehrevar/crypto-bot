@@ -26,7 +26,7 @@ export const MenuItems = [
             },
             {
                 name: 'Custom AI Bot',
-                link: '/bots/ai',
+                link: '/bots/custom-ai',
                 className: 'ai-text'
             }
         ]

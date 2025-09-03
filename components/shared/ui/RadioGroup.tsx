@@ -3,13 +3,13 @@ import React from "react";
 import {RadioOption} from "@/types/ui/RadioOption";
 
 const RadioGroup: React.FC<{
-    label: string;
+    label?: string;
     options: RadioOption[];
     selectedValue: string;
     onChange: (value: string) => void;
 }> = ({ label, options, selectedValue, onChange }) => (
     <fieldset>
-        <legend className="block text-sm font-medium text-gray-300 mb-2">{label}</legend>
+        {label && <legend className="block text-sm font-medium text-gray-300 mb-2">{label}</legend>}
         <div className="flex items-center gap-4 flex-wrap">
             {options.map(({ value, label: optionLabel }) => (
                 <label key={value} className="flex items-center cursor-pointer text-sm text-gray-300">

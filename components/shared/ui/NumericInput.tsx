@@ -1,7 +1,7 @@
 import React from "react";
 
 const NumericInput: React.FC<{
-    label: string;
+    label?: string;
     value: string | number;
     onChange: (value: string) => void;
     placeholder?: string;
@@ -63,7 +63,7 @@ const NumericInput: React.FC<{
 
     return (
         <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">{label}</label>
+            {label && <label className="block text-sm font-medium text-gray-300 mb-2">{label}</label>}
             <div className="relative group">
                 <input
                     className="w-full bg-[#191919] border border-gray-600 text-white rounded-md px-3 py-2 text-sm focus:ring-1 focus:ring-blue-500/50 focus:border-blue-500 focus:outline-none transition-colors duration-200 hide-number-spinners"
@@ -79,10 +79,10 @@ const NumericInput: React.FC<{
                 />
                 <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
                     <div className="opacity-0 group-focus-within:opacity-100 transition-opacity duration-200 flex flex-col -space-y-1 pointer-events-auto">
-                        <button className="text-white/70 hover:text-white transition-colors h-1/2 flex items-center" onClick={() => adjustValue(1)}>
+                        <button className="text-white/70 hover:text-white transition-colors h-1/2 flex items-center" type="button" onClick={() => adjustValue(1)}>
                             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 8l-6 6h12z" /></svg>
                         </button>
-                        <button className="text-white/70 hover:text-white transition-colors h-1/2 flex items-center" onClick={() => adjustValue(-1)}>
+                        <button className="text-white/70 hover:text-white transition-colors h-1/2 flex items-center" type="button" onClick={() => adjustValue(-1)}>
                             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 16l6-6H6z" /></svg>
                         </button>
                     </div>
