@@ -4,8 +4,6 @@
 
 import React, {FormEvent, Key, useEffect, useState} from "react";
 import {
-    Autocomplete,
-    AutocompleteItem,
     addToast,
     Input,
     Button,
@@ -16,9 +14,16 @@ import {getData} from "@/actions/get";
 import {sendRequest} from "@/actions/post";
 import {ExchangeAccount} from "@/types/profile/AccountType";
 import {WalletBalance} from "@/types/profile/WalletBalanceType";
-import {SymbolFilterResponse} from "@/types/profile/CurrencyType";
+import {SymbolFilter, SymbolFilterResponse} from "@/types/profile/CurrencyType";
 import LabelTag from "@/components/shared/ui/Label";
 import {parentTabs} from "@/utils/BotType";
+import Combobox from "@/components/shared/ui/Combobox";
+import SearchableCombobox from "@/components/shared/ui/SearchableCombobox";
+import NumericInput from "@/components/shared/ui/NumericInput";
+import Switcher from "@/components/shared/ui/Switcher";
+import {AnimatePresence, motion} from "framer-motion";
+import IndicatorsSection from "@/components/shared/ui/IndicatorsSection";
+import {MAIN_INDICATOR_OPTIONS, STANDARD_INDICATOR_OPTIONS} from "@/utils/strategyPanelData";
 
 interface Currency {
     _id: string;
@@ -41,7 +46,7 @@ export default function ManualTradeForm({
     const [availableBalance, setAvailableBalance] = useState<number>(0);
 
     // Symbols list for dropdown
-    const [symbols, setSymbols] = useState<Currency[]>([]);
+    const [symbols, setSymbols] = useState<SymbolFilter[]>([]);
     const [selectedSymbol, setSelectedSymbol] = useState<string>("BTC/USDT");
 
     // Placeholder for live price; wire this up later to your WebSocket/REST feed
@@ -68,6 +73,13 @@ export default function ManualTradeForm({
     const [costError, setCostError] = useState<string>("");
 
     const [loading, setLoading] = useState<boolean>(false);
+
+    const sectionAnimationProps = {
+        initial: {opacity: 0, height: 0},
+        animate: {opacity: 1, height: 'auto'},
+        exit: {opacity: 0, height: 0},
+        transition: {type: "spring", stiffness: 300, damping: 30}
+    };
 
     //
     // ─── EFFECT TO LOAD ACCOUNTS & SYMBOLS ─────────────────────────────────
@@ -328,87 +340,63 @@ export default function ManualTradeForm({
             </div>
 
             <form className="space-y-4 overflow-y-auto h-full" onSubmit={handleSubmit}>
-                {/* — Account Dropdown — */}
-                <div className="space-y-2">
-                    <LabelTag id="account" title="Account"/>
-                    <Autocomplete
-                        id="account"
-                        isClearable={false}
-                        items={accounts}
-                        radius="sm"
-                        onSelectionChange={(k: Key | null) => handleAccountChange(k)}
-                    >
-                        {accounts.map((acc) => (
-                            <React.Fragment key={acc._id}>
-                                <AutocompleteItem key={acc._id} textValue={acc.name}>
-                                    {acc.name}
-                                </AutocompleteItem>
-                            </React.Fragment>
-                        ))}
-                    </Autocomplete>
-                </div>
+                {/* Account */}
+                <Combobox
+                    label="Account"
+                    options={accounts.map(a => ({
+                        id: a._id,
+                        name: a.name ?? a._id,
+                    }))}
+                    placeholder="Select Account"
+                    selected={selectedAccountId ? String(selectedAccountId) : ''}
+                    setSelected={(k: Key | null) => handleAccountChange(k)}
+                />
 
                 <p className="text-sm text-gray-600">
                     Available balance: <b>{availableBalance.toFixed(2)} USDT</b>
                 </p>
 
-                {/* — Symbol Dropdown — */}
-                <div className="space-y-2">
-                    <LabelTag id="symbol" title="Symbol"/>
-                    <Autocomplete
-                        defaultItems={symbols}
-                        id="symbol"
-                        isClearable={false}
-                        radius="sm"
-                        onSelectionChange={(k) => k && setSelectedSymbol(k.toString())}
-                    >
-                        {symbols.map((s) => (
-                            <AutocompleteItem key={s.symbol} textValue={s.symbol}>
-                                {s.symbol}
-                            </AutocompleteItem>
-                        ))}
-                    </Autocomplete>
-                </div>
+                {/* Symbol */}
+                <SearchableCombobox
+                    id="symbol"
+                    label="Symbol"
+                    options={symbols.map(a => ({
+                        id: a._id,
+                        name: a ? `${a.name} - ${a.symbol}` : '',
+                    }))}
+                    placeholder="Select Symbol"
+                    selected={selectedSymbol ? String(selectedSymbol) : ''}
+                    setSelected={k => k && setSelectedSymbol(k.toString())}
+                />
 
                 {/* ── LIMIT PRICE (only if mode="limit") ─────────────────────────────── */}
                 {mode === "limit" && (
-                    <div className="space-y-2">
-                        <LabelTag id="price" title="Price (USDT)"/>
-                        <Input
-                            required
-                            id="price"
-                            min={0.0001}
-                            placeholder="e.g. 30,000"
-                            radius="sm"
-                            step="0.01"
-                            type="number"
-                            value={limitPrice}
-                            onChange={(e) => setLimitPrice(e.target.value)}
-                        />
-                        {costError && (
-                            <p className="text-red-500 text-sm">{costError}</p>
-                        )}
-                    </div>
+                    <NumericInput
+                        label="Price (USDT)"
+                        max={availableBalance}
+                        min={0.01}
+                        placeholder="e.g. 30,000"
+                        step={0.01}
+                        usePercentageStep={true}
+                        value={limitPrice}
+                        onChange={e => setLimitPrice(e)}
+                    />
                 )}
 
                 {/* ── QUANTITY INPUT ─────────────────────────────────────────────────── */}
-                <div className="space-y-2">
-                    <LabelTag id="quantity" title="Quantity"/>
-                    <Input
-                        required
-                        id="quantity"
-                        min={0.000001}
-                        placeholder="e.g. 0.01"
-                        radius="sm"
-                        step="0.000001"
-                        type="number"
-                        value={quantity}
-                        onChange={(e) => {
-                            setQuantity(e.target.value);
-                            setPercentQuickQty(null);
-                        }}
-                    />
-                </div>
+                <NumericInput
+                    label="Quantity"
+                    max={100}
+                    min={0.000001}
+                    placeholder="e.g. 0.01"
+                    step={0.000001}
+                    usePercentageStep={true}
+                    value={quantity}
+                    onChange={(e) => {
+                        setQuantity(e);
+                        setPercentQuickQty(null);
+                    }}
+                />
 
                 {/* ── QUICK‐SELECT PERCENTAGE BUTTONS ────────────────────────────────── */}
                 <div className="flex items-center gap-2">
@@ -429,98 +417,88 @@ export default function ManualTradeForm({
                 </div>
 
                 {/* ── TP/SL SWITCH ───────────────────────────────────────────────────── */}
-                <div className="flex items-center justify-between flex-row-reverse">
-                    <Switch
-                        color="success"
-                        isSelected={enableTPSL}
-                        size="sm"
-                        onValueChange={setEnableTPSL}
-                    />
-                    <span className="text-sm text-gray-700">TP/SL</span>
-                </div>
+                <Switcher
+                    isEnabled={enableTPSL}
+                    setIsEnabled={setEnableTPSL}
+                    title="TP/SL"
+                />
 
                 {/* ── TP & SL INPUTS + QUICK‐SELECT BUTTONS ──────────────────────────── */}
-                <div className="space-y-2">
-                    {/* Take Profit */}
-                    <div className="space-y-2">
-                        <LabelTag id="takeProfit" title="Take Profit (%)"/>
-                        <Input
-                            disabled={!enableTPSL}
-                            id="takeProfit"
-                            max={500}
-                            min={0.01}
-                            placeholder="e.g. 5"
-                            radius="sm"
-                            required={enableTPSL}
-                            step={0.01}
-                            type="number"
-                            value={takeProfitPct}
-                            onChange={(e) => setTakeProfitPct(e.target.value)}
-                        />
-                    </div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                        {[5, 10, 25, 50, 100, 150].map((p) => (
-                            <button
-                                key={p}
-                                className={`flex flex-1 items-center justify-center px-2 py-1 rounded-lg text-[12px] ${
-                                    enableTPSL
-                                        ? "bg-default-200 text-gray-200"
-                                        : "bg-default-100 text-gray-400 cursor-not-allowed"
-                                }`}
-                                disabled={!enableTPSL}
-                                type="button"
-                                onClick={() => enableTPSL && setTakeProfitPct(String(p))}
-                            >
-                                {p}%
-                            </button>
-                        ))}
-                    </div>
-                    {estTPPrice !== null && enableTPSL && (
-                        <p className="text-sm text-green-400">
-                            Est. TP Price: <b>{estTPPrice.toLocaleString()} USDT</b>
-                        </p>
-                    )}
+                <AnimatePresence initial={false}>
+                    {enableTPSL && (
+                        <motion.div {...sectionAnimationProps} className="pt-2">
+                            <div className="space-y-2">
+                                {/* Take Profit */}
+                                <NumericInput
+                                    label="Take Profit (%)"
+                                    max={500}
+                                    min={0.01}
+                                    placeholder="e.g. 5"
+                                    step={0.01}
+                                    usePercentageStep={true}
+                                    value={takeProfitPct}
+                                    onChange={(e) => setTakeProfitPct(e)}
+                                />
+                                <div className="flex items-center gap-2 flex-wrap">
+                                    {[5, 10, 25, 50, 100, 150].map((p) => (
+                                        <button
+                                            key={p}
+                                            className={`flex flex-1 items-center justify-center px-2 py-1 rounded-lg text-[12px] ${
+                                                enableTPSL
+                                                    ? "bg-default-200 text-gray-200"
+                                                    : "bg-default-100 text-gray-400 cursor-not-allowed"
+                                            }`}
+                                            disabled={!enableTPSL}
+                                            type="button"
+                                            onClick={() => enableTPSL && setTakeProfitPct(String(p))}
+                                        >
+                                            {p}%
+                                        </button>
+                                    ))}
+                                </div>
+                                {estTPPrice !== null && enableTPSL && (
+                                    <p className="text-sm text-green-400">
+                                        Est. TP Price: <b>{estTPPrice.toLocaleString()} USDT</b>
+                                    </p>
+                                )}
 
-                    {/* Stop Loss */}
-                    <div className="space-y-2">
-                        <LabelTag id="stopLoss" title="Stop Loss (%)"/>
-                        <Input
-                            disabled={!enableTPSL}
-                            id="stopLoss"
-                            max={500}
-                            min={0.01}
-                            placeholder="e.g. 5"
-                            radius="sm"
-                            required={enableTPSL}
-                            step={0.01}
-                            type="number"
-                            value={stopLossPct}
-                            onChange={(e) => setStopLossPct(e.target.value)}
-                        />
-                    </div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                        {[20, 30, 40, 50, 60, 70].map((p) => (
-                            <button
-                                key={p}
-                                className={`flex flex-1 items-center justify-center px-2 py-1 rounded-lg text-[12px] ${
-                                    enableTPSL
-                                        ? "bg-default-200 text-gray-200"
-                                        : "bg-default-100 text-gray-400 cursor-not-allowed"
-                                }`}
-                                disabled={!enableTPSL}
-                                type="button"
-                                onClick={() => enableTPSL && setStopLossPct(String(p))}
-                            >
-                                {p}%
-                            </button>
-                        ))}
-                    </div>
-                    {estSLPrice !== null && enableTPSL && (
-                        <p className="text-sm text-red-400">
-                            Est. SL Price: <b>{estSLPrice.toLocaleString()} USDT</b>
-                        </p>
+                                {/* Stop Loss */}
+                                <NumericInput
+                                    label="Quantity"
+                                    max={500}
+                                    min={0.01}
+                                    placeholder="e.g. 5"
+                                    step={0.01}
+                                    usePercentageStep={true}
+                                    value={stopLossPct}
+                                    onChange={(e) => setStopLossPct(e)}
+                                />
+                                <div className="flex items-center gap-2 flex-wrap">
+                                    {[20, 30, 40, 50, 60, 70].map((p) => (
+                                        <button
+                                            key={p}
+                                            className={`flex flex-1 items-center justify-center px-2 py-1 rounded-lg text-[12px] ${
+                                                enableTPSL
+                                                    ? "bg-default-200 text-gray-200"
+                                                    : "bg-default-100 text-gray-400 cursor-not-allowed"
+                                            }`}
+                                            disabled={!enableTPSL}
+                                            type="button"
+                                            onClick={() => enableTPSL && setStopLossPct(String(p))}
+                                        >
+                                            {p}%
+                                        </button>
+                                    ))}
+                                </div>
+                                {estSLPrice !== null && enableTPSL && (
+                                    <p className="text-sm text-red-400">
+                                        Est. SL Price: <b>{estSLPrice.toLocaleString()} USDT</b>
+                                    </p>
+                                )}
+                            </div>
+                        </motion.div>
                     )}
-                </div>
+                </AnimatePresence>
 
                 {/* ── BUY / SELL BUTTONS ─────────────────────────────────────────────── */}
                 <div className="flex gap-4 mt-4">
