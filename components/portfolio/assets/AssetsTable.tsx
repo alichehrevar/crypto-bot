@@ -63,10 +63,10 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, depth, parentValue }) => {
 
                 {/* Value and Percentage */}
                 <div className="flex items-center">
-                    <span className="text-sm text-right text-gray-200 font-mono w-32">
+                    <span className="text-sm text-center text-gray-200 font-mono w-32">
                         {formatCurrency(node.value)}
                     </span>
-                    <span className="text-sm text-right text-gray-400 font-mono w-20">{percentage}%</span>
+                    <span className="text-sm text-center text-gray-400 font-mono w-20">{percentage}%</span>
                 </div>
             </motion.button>
 
@@ -108,8 +108,8 @@ export default function AssetTreeView({ data = demoData }: AssetTreeViewProps) {
             <div className="flex items-center justify-between py-2 px-4 text-xs text-gray-400 capitalize bg-dark-gray border-b border-white/30 rounded-t-md">
                 <span className="font-semibold flex-1">Name</span>
                 <div className="flex items-center gap-5">
-                    <span className="font-semibold text-right w-32">Value</span>
-                    <span className="font-semibold text-right w-20">Share</span>
+                    <span className="font-semibold text-center w-24">Value</span>
+                    <span className="font-semibold text-center w-20">Share</span>
                 </div>
             </div>
 
