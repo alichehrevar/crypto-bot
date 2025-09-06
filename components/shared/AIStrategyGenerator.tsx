@@ -285,6 +285,7 @@ export default function AIStrategyGenerator() {
                                     <motion.div key="code" animate={{ opacity: 1 }} exit={{ opacity: 0 }} initial={{ opacity: 0 }} transition={{ duration: 0.2 }}>
                                         <textarea
                                             className="custom-code-editor w-full"
+                                            rows={17}
                                             value={generatedStrategy.code}
                                             onChange={(e) => handleCodeChange(e.target.value)}
                                         />

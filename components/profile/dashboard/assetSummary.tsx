@@ -37,7 +37,9 @@ export default function AssetSummary({showExtraDetails = false}: { showExtraDeta
         <>
             <div className="flex items-center justify-between w-full">
                 <div className="flex items-start justify-center flex-col gap-3">
-                    <h4 className="font-bold text-[24px]">Welcome back !</h4>
+                    <h4 className="font-bold text-[24px]">
+                        {showExtraDetails ? 'Portfolio Summary' : 'Welcome back !'}
+                    </h4>
                     <h6 className="font-semibold text-[16px]">Total Balance</h6>
                     <div className="flex items-center gap-5">
                         {loading

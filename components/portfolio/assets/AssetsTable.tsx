@@ -105,11 +105,11 @@ export default function AssetTreeView({ data = demoData }: AssetTreeViewProps) {
             <div className="text-[22px] font-semibold mb-2">Asset Details</div>
 
             {/* Header Row */}
-            <div className="flex items-center justify-between py-2 px-4 text-xs text-gray-400 capitalize bg-gray-800 rounded-t-md">
+            <div className="flex items-center justify-between py-2 px-4 text-xs text-gray-400 capitalize bg-dark-gray border-b border-white/30 rounded-t-md">
                 <span className="font-semibold flex-1">Name</span>
-                <div className="flex items-center">
+                <div className="flex items-center gap-5">
                     <span className="font-semibold text-right w-32">Value</span>
-                    <span className="font-semibold text-right w-20">% of Parent</span>
+                    <span className="font-semibold text-right w-20">Share</span>
                 </div>
             </div>
 

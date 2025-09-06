@@ -129,7 +129,7 @@ export default function CoinSummarySection({ coinId }: { coinId: string }) {
             </div>
 
             {/* Right Side: Additional Stats */}
-            <div className="flex flex-col justify-end text-xs text-gray-500 gap-3 lg:w-2/6 mt-4 lg:mt-0">
+            <div className="flex flex-col justify-end text-xs text-gray-500 gap-3 lg:w-1/6 mt-4 lg:mt-0">
                 <div className="flex items-center justify-between">
                     <div className="text-gray-400">Mkt Cap</div>
                     <div className="text-white">{compactNumber(coin.market_cap)}</div>
