@@ -27,6 +27,7 @@ import {MAIN_INDICATOR_OPTIONS, STANDARD_INDICATOR_OPTIONS} from "@/utils/strate
 import IndicatorsSection, {IndicatorItem} from "@/components/shared/ui/IndicatorsSection";
 import Switcher from "@/components/shared/ui/Switcher";
 import RadioGroup from "@/components/shared/ui/RadioGroup";
+import {MarketListItem} from "@/types/MarketList";
 
 // ---------------- helpers ----------------
 function formatDuration(mins: number) {
@@ -68,7 +69,7 @@ interface ChartData {
 // ---------------- page ----------------
 export default function StrategyTesterPage() {
     const [symbols, setSymbols] = useState<SymbolFilter[]>([]);
-    const [selectedSymbol, setSelectedSymbol] = useState<string>('btc-bitcoin');
+    const [selectedSymbol, setSelectedSymbol] = useState<MarketListItem | null>(null);
     const [selectedIndicators, setSelectedIndicators] = useState<IndicatorItem[]>([]);
 
     const [botProps, setBotProps] = useState<BotProps>({
@@ -213,7 +214,7 @@ export default function StrategyTesterPage() {
                     <div className="flex self-stretch w-full gap-2 lg:w-[76%] h-full">
                         <div className="w-1/3 h-full grid grid-cols-1">
                             {/* MarketList */}
-                            <MarketListWithSearch />
+                            <MarketListWithSearch onSymbolClickAction={(symbol: MarketListItem) => setSelectedSymbol(symbol)} />
                         </div>
                         <div className="bg-dark-gray rounded-lg p-0.5 w-2/3 h-full">
                             {/* RENDER THE NEW CHART WHENEVER WE HAVE chartData (even if candles are empty) */}

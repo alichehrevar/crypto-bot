@@ -7,9 +7,10 @@ import {addToast} from "@heroui/react";
 import {SymbolDetails, SymbolDetailsResponse} from "@/types/symbolData";
 import {getData} from "@/actions/get";
 import MarketStatsLoading from "@/components/loading/MarketStatsLoading";
+import {MarketListItem} from "@/types/MarketList";
 
 type Props = {
-    symbolId?: string | 'btc-bitcoin';     // symbol.id
+    symbolId?: MarketListItem | 'btc-bitcoin';     // symbol.id
 };
 
 export default function MarketStats({ symbolId }: Props) {
