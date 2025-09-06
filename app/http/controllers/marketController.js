@@ -88,7 +88,7 @@ exports.getMarketList = async (req, res) => {
 
             // 3. Format the final object to match the frontend's `SymbolData` interface.
             return {
-                id: index,
+                id: coin.id,
                 symbol: fullSymbol,
                 category: category,
                 broker: broker,
