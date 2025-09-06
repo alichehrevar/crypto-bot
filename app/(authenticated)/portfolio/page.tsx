@@ -21,7 +21,7 @@ export default function HoldingDetailsPage() {
                         base: 'w-full px-1 mt-4',
                         tabList: 'w-full mx-auto border-b-1 border-default-100',
                         tab: 'h-10 pb-4 font-bold text-[14px]',
-                        panel: "w-full grid grid-cols-1 gap-4 mt-4"
+                        panel: "w-full grid grid-cols-1 gap-4 mt-4 !overflow-visible"
                     }}
                     variant="underlined"
                 >

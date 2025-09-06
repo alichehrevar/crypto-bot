@@ -1,4 +1,4 @@
-// components/portfolio/assets/AssetTreeView.tsx
+// components/portfolio/assets/AssetsTable.tsx
 'use client';
 
 import React, { useState } from 'react';
@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion'; // Import motion and An
 import { ChevronRightIcon } from '@/utils/icons';
 import { AssetNode, demoData } from '@/utils/PortfolioAssetData';
 
-interface AssetTreeViewProps {
+interface AssetsTableProps {
     data?: AssetNode;
 }
 
@@ -94,7 +94,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, depth, parentValue }) => {
  * The main component to display the asset hierarchy as an interactive tree.
  * A direct replacement for AssetsTable.
  */
-export default function AssetTreeView({ data = demoData }: AssetTreeViewProps) {
+export default function AssetsTable({ data = demoData }: AssetsTableProps) {
     if (!data || !data.children) return null;
 
     const formatCurrency = (v: number) =>
