@@ -207,11 +207,13 @@ export default function MarketComparativeSectorRotation({
                         <XAxis
                             axisLine={false}
                             dataKey="day"
+                            height={40}
                             interval={6}
                             stroke={AXIS}
                             tick={{ fontSize: 12 }}
                             tickFormatter={fmtDate}
                             tickLine={false}
+                            tickMargin={20}
                         />
                         <YAxis
                             allowDataOverflow
