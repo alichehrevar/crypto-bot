@@ -42,7 +42,7 @@ export default function SentimentEventsTab() {
 
     return (
         <>
-            <UpcomingListings data={listingsData} />
+            {<UpcomingListings />}
             <LaunchPerformanceTracker data={listingsData} />
             <TrendingTopicsTable data={trendingTopicsData} />
         </>
