@@ -215,7 +215,7 @@ export default function RealTimeCandlestickChart({
                     chart.timeScale().fitContent();
                 }
 
-            } catch (error) {
+            } catch {
                 addToast({
                     title: 'Error fetching klines',
                     color: 'danger'
