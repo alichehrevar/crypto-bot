@@ -8,13 +8,20 @@ import {
     UTCTimestamp,
     ColorType,
 } from 'lightweight-charts';
-import {Spinner} from "@heroui/react";
+import {addToast, Spinner} from '@heroui/react';
 
 interface RealTimeCandlestickChartProps {
-    symbol?: string;                       // e.g. "BTCUSDT"
+    symbol?: string;
     interval?: '1m' | '5m' | '15m' | '30m';
-    timeZone?: 'UTC' | 'local' | string;   // e.g. 'Europe/Helsinki'
-    locale?: string;                       // e.g. 'en-US', 'fa-IR'
+    timeZone?: 'UTC' | 'local' | string;
+    locale?: string;
+}
+
+interface Ohlc {
+    open: number;
+    high: number;
+    low: number;
+    close: number;
 }
 
 const THEME = {
@@ -37,33 +44,26 @@ export default function RealTimeCandlestickChart({
     const seriesRef = useRef<ISeriesApi<'Candlestick'>>();
     const wsRef = useRef<WebSocket | null>(null);
 
-    // Toolbar state (starts from prop)
     const [currentInterval, setCurrentInterval] = useState<'1m' | '5m' | '15m' | '30m' | '1h' | '4h' | '1d'>(interval);
-
-    // Ensures data effect runs only after chart + series exist
     const [isReady, setIsReady] = useState(false);
-
-    // 👇 --- State for data loading --- 👇
     const [isDataLoading, setIsDataLoading] = useState(true);
-
+    const [ohlc, setOhlc] = useState<Ohlc | null>(null);
 
     const wantsSeconds = useMemo(
         () => ['1s', '3s', '5s', '10s', '15s', '30s'].includes(currentInterval),
         [currentInterval]
     );
 
-    // TIME-ONLY for x-axis
-    const formatTsShort = (tsSec: number) =>
+    const formatTsShort = useMemo(() => (tsSec: number) =>
         new Intl.DateTimeFormat(locale, {
             timeZone: timeZone === 'local' ? undefined : timeZone,
             hour: '2-digit',
             minute: '2-digit',
             second: wantsSeconds ? '2-digit' : undefined,
-            hour12: true,
-        }).format(new Date(tsSec * 1000));
+            hour12: false,
+        }).format(new Date(tsSec * 1000)), [locale, timeZone, wantsSeconds]);
 
-    // DATE + TIME for crosshair
-    const formatTsFull = (tsSec: number) =>
+    const formatTsFull = useMemo(() => (tsSec: number) =>
         new Intl.DateTimeFormat(locale, {
             timeZone: timeZone === 'local' ? undefined : timeZone,
             year: 'numeric',
@@ -72,14 +72,29 @@ export default function RealTimeCandlestickChart({
             hour: '2-digit',
             minute: '2-digit',
             second: wantsSeconds ? '2-digit' : undefined,
-            hour12: true,
-        }).format(new Date(tsSec * 1000));
+            hour12: false,
+        }).format(new Date(tsSec * 1000)), [locale, timeZone, wantsSeconds]);
 
-    /* 1) Create chart + series ONCE. StrictMode-safe with real cleanup. */
     useEffect(() => {
         let handleResize: (() => void) | null = null;
         let chart: IChartApi | undefined;
         let series: ISeriesApi<'Candlestick'> | undefined;
+
+        // ✨ The 'param' type is now correctly inferred by TypeScript automatically
+        const handleCrosshairMove = (param: any) => {
+            if (!param.seriesData || !series) {
+                setOhlc(null);
+
+                return;
+            }
+            const data = param.seriesData.get(series) as CandlestickData;
+
+            if (data) {
+                setOhlc({ open: data.open, high: data.high, low: data.low, close: data.close });
+            } else {
+                setOhlc(null);
+            }
+        };
 
         (async () => {
             if (!containerRef.current) return;
@@ -95,25 +110,11 @@ export default function RealTimeCandlestickChart({
                     borderColor: THEME.dark.timeScale.borderColor,
                     timeVisible: true,
                     secondsVisible: wantsSeconds,
-                    tickMarkFormatter: (time: number | any) => {
-                        const t =
-                            typeof time === 'number'
-                                ? time
-                                : Date.UTC(time.year, time.month - 1, time.day) / 1000;
-
-                        return formatTsShort(t); // time-only on axis
-                    },
+                    tickMarkFormatter: (time: number | any) => formatTsShort(typeof time === 'number' ? time : Date.UTC(time.year, time.month - 1, time.day) / 1000),
                 },
                 localization: {
                     locale,
-                    timeFormatter: (time: number | any) => {
-                        const t =
-                            typeof time === 'number'
-                                ? time
-                                : Date.UTC(time.year, time.month - 1, time.day) / 1000;
-
-                        return formatTsFull(t); // date+time on crosshair
-                    },
+                    timeFormatter: (time: number | any) => formatTsFull(typeof time === 'number' ? time : Date.UTC(time.year, time.month - 1, time.day) / 1000),
                 },
             });
 
@@ -126,34 +127,29 @@ export default function RealTimeCandlestickChart({
                 wickDownColor: '#ef5350',
             });
 
+            chart.subscribeCrosshairMove(handleCrosshairMove);
+
             chartRef.current = chart;
             seriesRef.current = series;
 
             handleResize = () => {
                 if (!containerRef.current || !chartRef.current) return;
-                chartRef.current.applyOptions({
-                    width: containerRef.current.clientWidth,
-                    height: containerRef.current.clientHeight || 300,
-                });
+                chartRef.current.applyOptions({ width: containerRef.current.clientWidth, height: containerRef.current.clientHeight || 300 });
             };
             window.addEventListener('resize', handleResize);
 
-            // Allow data effect to run
             setIsReady(true);
         })();
 
-        // ✅ Proper cleanup runs on StrictMode re-mount and on unmount
         return () => {
+            if (chart) chart.unsubscribeCrosshairMove(handleCrosshairMove);
             if (handleResize) window.removeEventListener('resize', handleResize);
             if (chart) chart.remove();
             chartRef.current = undefined;
             seriesRef.current = undefined;
         };
-        // deps intentionally [] so it runs exactly once per mount-cycle
-        // React StrictMode will mount->cleanup->mount in dev, which is OK because we clean up.
-    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [formatTsFull, formatTsShort, locale, wantsSeconds]);
 
-    /* 2) Keep formats in sync if tz/locale/seconds toggle changes */
     useEffect(() => {
         if (!chartRef.current) return;
         chartRef.current.applyOptions({
@@ -161,83 +157,77 @@ export default function RealTimeCandlestickChart({
                 borderColor: THEME.dark.timeScale.borderColor,
                 timeVisible: true,
                 secondsVisible: wantsSeconds,
-                tickMarkFormatter: (time: number | any) => {
-                    const t =
-                        typeof time === 'number'
-                            ? time
-                            : Date.UTC(time.year, time.month - 1, time.day) / 1000;
-
-                    return formatTsShort(t);
-                },
+                tickMarkFormatter: (time: number | any) => formatTsShort(typeof time === 'number' ? time : Date.UTC(time.year, time.month - 1, time.day) / 1000),
             },
             localization: {
                 locale,
-                timeFormatter: (time: number | any) => {
-                    const t =
-                        typeof time === 'number'
-                            ? time
-                            : Date.UTC(time.year, time.month - 1, time.day) / 1000;
-
-                    return formatTsFull(t);
-                },
+                timeFormatter: (time: number | any) => formatTsFull(typeof time === 'number' ? time : Date.UTC(time.year, time.month - 1, time.day) / 1000),
             },
         });
-    }, [locale, timeZone, wantsSeconds]);
+    }, [locale, timeZone, wantsSeconds, formatTsShort, formatTsFull]);
 
-    /* 3) Load history + live updates AFTER chart is ready, and on interval/symbol change */
     useEffect(() => {
         if (!isReady || !seriesRef.current) return;
 
         const series = seriesRef.current;
         let active = true;
 
-        // 1. Set loading to true when interval changes
         setIsDataLoading(true);
-
-        // Close previous stream
+        setOhlc(null); // Reset OHLC when data reloads
         wsRef.current?.close();
 
-        // Fetch initial history
         (async () => {
-            const url = `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${currentInterval}&limit=1000`;
-            const resp = await fetch(url);
-            const raw = await resp.json();
+            try {
+                const url = `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${currentInterval}&limit=1000`;
+                const resp = await fetch(url);
 
-            if (!active) return;
+                if (!resp.ok) {
+                    addToast({
+                        title: 'Failed to fetch historical data',
+                        color: 'danger'
+                    })
 
-            const initial: CandlestickData[] = raw.map((d: any[]) => ({
-                time: Math.floor(d[0] / 1000) as UTCTimestamp,
-                open: +d[1],
-                high: +d[2],
-                low: +d[3],
-                close: +d[4],
-            }));
+                    return;
+                }
+                const raw = await resp.json();
 
-            series.setData(initial);
+                if (!active) return;
 
-            // 2. Set loading to false after data is loaded
-            setIsDataLoading(false);
+                const initial: CandlestickData[] = raw.map((d: any[]) => ({
+                    time: Math.floor(d[0] / 1000) as UTCTimestamp,
+                    open: +d[1],
+                    high: +d[2],
+                    low: +d[3],
+                    close: +d[4],
+                }));
+
+                series.setData(initial);
+            } catch {
+                addToast({
+                    title: 'Error fetching klines',
+                    color: 'danger'
+                })
+            } finally {
+                if (active) setIsDataLoading(false);
+            }
         })();
 
-        // Subscribe to live updates
-        const ws = new WebSocket(
-            `wss://stream.binance.com:9443/ws/${symbol.toLowerCase()}@kline_${currentInterval}`
-        );
+        const ws = new WebSocket(`wss://stream.binance.com:9443/ws/${symbol.toLowerCase()}@kline_${currentInterval}`);
 
         wsRef.current = ws;
 
         ws.onmessage = (event) => {
             if (!active) return;
-            const k = JSON.parse(event.data).k;
+            const { k: tickData } = JSON.parse(event.data);
             const tick: CandlestickData = {
-                time: (k.t / 1000) as UTCTimestamp,
-                open: +k.o,
-                high: +k.h,
-                low: +k.l,
-                close: +k.c,
+                time: (tickData.t / 1000) as UTCTimestamp,
+                open: +tickData.o,
+                high: +tickData.h,
+                low: +tickData.l,
+                close: +tickData.c,
             };
 
-            series.update(tick); // updates forming bar or appends on close
+            series.update(tick);
         };
 
         return () => {
@@ -248,43 +238,52 @@ export default function RealTimeCandlestickChart({
 
     const intervals: Array<'1m' | '5m' | '15m' | '30m' | '1h' | '4h' | '1d'> = ['1m', '5m', '15m', '30m', '1h', '4h', '1d'];
 
-    return (
-        <div
-            ref={containerRef}
-            className="relative w-full h-full flex-grow rounded-lg min-h-[320px]"
-        >
-            {/* Interval Toolbar */}
-            <div className="absolute top-0 right-0 left-0 z-10 bg-dark-gray rounded-tl-lg rounded-tr-lg shadow-lg p-2 flex gap-1">
-                {intervals.map((iv) => {
-                    const active = iv === currentInterval;
+    const formatPrice = (price: number) => {
+        return price.toFixed(price > 100 ? 2 : 5);
+    }
 
-                    return (
-                        <button
-                            key={iv}
-                            className={[
-                                'px-3 py-1.5 text-xs font-medium transition',
-                                active
-                                    ? 'text-white border-b-2 border-white'
-                                    : 'text-white/60 hover:text-white/80',
-                            ].join(' ')}
-                            type="button"
-                            onClick={() => setCurrentInterval(iv)}
-                        >
-                            {iv}
-                        </button>
-                    );
-                })}
+    return (
+        <div ref={containerRef} className="relative w-full h-full flex-grow rounded-lg min-h-[320px]">
+            <div className="absolute top-0 right-0 left-0 z-10 bg-dark-gray rounded-tl-lg rounded-tr-lg shadow-lg p-2 flex gap-1 items-center">
+                <div className="flex-grow flex items-center gap-4 pl-2">
+                    {ohlc ? (
+                        <div className="flex gap-3 text-xs text-white/90 font-mono">
+                            <span><span className="text-white/60">O:</span> {formatPrice(ohlc.open)}</span>
+                            <span><span className="text-white/60">H:</span> {formatPrice(ohlc.high)}</span>
+                            <span><span className="text-white/60">L:</span> {formatPrice(ohlc.low)}</span>
+                            <span><span className="text-white/60">C:</span> {formatPrice(ohlc.close)}</span>
+                        </div>
+                    ) : (
+                        <div className="text-sm font-bold text-white/90">
+                            {symbol}
+                        </div>
+                    )}
+                </div>
+
+                <div className="flex gap-1">
+                    {intervals.map((iv) => {
+                        const active = iv === currentInterval;
+
+                        return (
+                            <button
+                                key={iv}
+                                className={`px-3 py-1.5 text-xs font-medium transition ${active ? 'text-white border-b-2 border-white' : 'text-white/60 hover:text-white/80'}`}
+                                type="button"
+                                onClick={() => setCurrentInterval(iv)}
+                            >
+                                {iv}
+                            </button>
+                        );
+                    })}
+                </div>
             </div>
 
-            {/* 👇 --- Loading Indicator --- 👇 */}
             {(!isReady || isDataLoading) && (
                 <div className="absolute inset-0 flex items-center justify-center bg-dark-gray rounded-lg">
                     <span className="text-gray-400 font-medium">Loading Chart</span>
-                    <Spinner className="ml-2" color="primary" size="sm" variant="wave"/>
+                    <Spinner className="ml-2" color="primary" size="sm" variant="wave" />
                 </div>
             )}
-            {/* The chart library will attach its canvas to the containerRef element.
-                This loading indicator will appear on top until isReady becomes true. */}
         </div>
     );
 }
