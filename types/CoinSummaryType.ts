@@ -12,8 +12,8 @@ export type CoinSummaryData = {
     percent_change_1y: number,
     high_24h: number,
     low_24h: number,
-    high_1w: number,
-    low_1w: number,
+    // high_1w: number,
+    // low_1w: number,
     ath: number,
     imageUrl: string,
 };

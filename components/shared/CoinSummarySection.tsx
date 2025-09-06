@@ -117,14 +117,6 @@ export default function CoinSummarySection({ coinId }: { coinId: string }) {
                         <span className="text-white font-semibold">24h Low</span>
                         <span className="text-gray-300 text-xs">${fmtNum(coin.low_24h)}</span>
                     </div>
-                    <div className="space-x-1.5">
-                        <span className="text-white font-semibold">1w Low</span>
-                        <span className="text-gray-300 text-xs">${fmtNum(coin.low_1w)}</span>
-                    </div>
-                    <div className="space-x-1.5">
-                        <span className="text-white font-semibold">1w High</span>
-                        <span className="text-gray-300 text-xs">${fmtNum(coin.high_1w)}</span>
-                    </div>
                 </div>
             </div>
 
