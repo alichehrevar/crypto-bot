@@ -12,7 +12,7 @@ import {addToast, Spinner} from '@heroui/react';
 
 interface RealTimeCandlestickChartProps {
     symbol?: string;
-    interval?: '1m' | '5m' | '15m' | '30m';
+    interval?: '1m' | '5m' | '15m' | '30m' | '1h' | '4h' | '1d';
     timeZone?: 'UTC' | 'local' | string;
     locale?: string;
 }
