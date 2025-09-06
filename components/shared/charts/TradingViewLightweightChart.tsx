@@ -178,7 +178,14 @@ export default function RealTimeCandlestickChart({
                 const url = `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${currentInterval}&limit=1000`;
                 const resp = await fetch(url);
 
-                if (!resp.ok) throw new Error('Failed to fetch historical data');
+                if (!resp.ok) {
+                    addToast({
+                        title: 'Failed to fetch historical data',
+                        color: 'danger'
+                    })
+
+                    return;
+                }
                 const raw = await resp.json();
 
                 if (!active) return;
