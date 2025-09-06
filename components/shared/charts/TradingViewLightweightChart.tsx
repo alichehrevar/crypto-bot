@@ -38,7 +38,7 @@ export default function RealTimeCandlestickChart({
     const wsRef = useRef<WebSocket | null>(null);
 
     // Toolbar state (starts from prop)
-    const [currentInterval, setCurrentInterval] = useState<'1m' | '5m' | '15m' | '30m'>(interval);
+    const [currentInterval, setCurrentInterval] = useState<'1m' | '5m' | '15m' | '30m' | '1h' | '4h' | '1d'>(interval);
 
     // Ensures data effect runs only after chart + series exist
     const [isReady, setIsReady] = useState(false);
@@ -246,7 +246,7 @@ export default function RealTimeCandlestickChart({
         };
     }, [symbol, currentInterval, isReady]);
 
-    const intervals: Array<'1m' | '5m' | '15m' | '30m'> = ['1m', '5m', '15m', '30m'];
+    const intervals: Array<'1m' | '5m' | '15m' | '30m' | '1h' | '4h' | '1d'> = ['1m', '5m', '15m', '30m', '1h', '4h', '1d'];
 
     return (
         <div
