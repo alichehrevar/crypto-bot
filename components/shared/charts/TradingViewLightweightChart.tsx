@@ -12,7 +12,7 @@ import {addToast, Spinner} from '@heroui/react';
 
 interface RealTimeCandlestickChartProps {
     symbol?: string;
-    interval?: '1m' | '5m' | '15m' | '30m' | '1h' | '4h' | '1d';
+    interval?: '1m' | '5m' | '15m' | '30m';
     timeZone?: 'UTC' | 'local' | string;
     locale?: string;
 }
@@ -75,12 +75,12 @@ export default function RealTimeCandlestickChart({
             hour12: false,
         }).format(new Date(tsSec * 1000)), [locale, timeZone, wantsSeconds]);
 
+    /* 1) Create chart + series ONCE. StrictMode-safe with real cleanup. */
     useEffect(() => {
         let handleResize: (() => void) | null = null;
         let chart: IChartApi | undefined;
         let series: ISeriesApi<'Candlestick'> | undefined;
 
-        // ✨ The 'param' type is now correctly inferred by TypeScript automatically
         const handleCrosshairMove = (param: any) => {
             if (!param.seriesData || !series) {
                 setOhlc(null);
@@ -109,12 +109,6 @@ export default function RealTimeCandlestickChart({
                 timeScale: {
                     borderColor: THEME.dark.timeScale.borderColor,
                     timeVisible: true,
-                    secondsVisible: wantsSeconds,
-                    tickMarkFormatter: (time: number | any) => formatTsShort(typeof time === 'number' ? time : Date.UTC(time.year, time.month - 1, time.day) / 1000),
-                },
-                localization: {
-                    locale,
-                    timeFormatter: (time: number | any) => formatTsFull(typeof time === 'number' ? time : Date.UTC(time.year, time.month - 1, time.day) / 1000),
                 },
             });
 
@@ -148,32 +142,35 @@ export default function RealTimeCandlestickChart({
             chartRef.current = undefined;
             seriesRef.current = undefined;
         };
-    }, [formatTsFull, formatTsShort, locale, wantsSeconds]);
+        // ✨ FIX: Dependency array is now empty. This effect runs only ONCE.
+    }, []);
 
+    /* 2) Keep formats in sync if tz/locale/seconds toggle changes */
     useEffect(() => {
-        if (!chartRef.current) return;
+        if (!isReady || !chartRef.current) return;
+
         chartRef.current.applyOptions({
             timeScale: {
-                borderColor: THEME.dark.timeScale.borderColor,
-                timeVisible: true,
                 secondsVisible: wantsSeconds,
-                tickMarkFormatter: (time: number | any) => formatTsShort(typeof time === 'number' ? time : Date.UTC(time.year, time.month - 1, time.day) / 1000),
+                tickMarkFormatter: (time: any) => formatTsShort(typeof time === 'number' ? time : Date.UTC(time.year, time.month - 1, time.day) / 1000),
             },
             localization: {
                 locale,
-                timeFormatter: (time: number | any) => formatTsFull(typeof time === 'number' ? time : Date.UTC(time.year, time.month - 1, time.day) / 1000),
+                timeFormatter: (time: any) => formatTsFull(typeof time === 'number' ? time : Date.UTC(time.year, time.month - 1, time.day) / 1000),
             },
         });
-    }, [locale, timeZone, wantsSeconds, formatTsShort, formatTsFull]);
+    }, [isReady, locale, wantsSeconds, formatTsShort, formatTsFull]);
 
+    /* 3) Load history + live updates AFTER chart is ready, and on symbol/interval change */
     useEffect(() => {
-        if (!isReady || !seriesRef.current) return;
+        if (!isReady || !seriesRef.current || !chartRef.current) return;
 
         const series = seriesRef.current;
+        const chart = chartRef.current;
         let active = true;
 
         setIsDataLoading(true);
-        setOhlc(null); // Reset OHLC when data reloads
+        setOhlc(null);
         wsRef.current?.close();
 
         (async () => {
@@ -181,14 +178,7 @@ export default function RealTimeCandlestickChart({
                 const url = `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${currentInterval}&limit=1000`;
                 const resp = await fetch(url);
 
-                if (!resp.ok) {
-                    addToast({
-                        title: 'Failed to fetch historical data',
-                        color: 'danger'
-                    })
-
-                    return;
-                }
+                if (!resp.ok) throw new Error('Failed to fetch historical data');
                 const raw = await resp.json();
 
                 if (!active) return;
@@ -202,11 +192,28 @@ export default function RealTimeCandlestickChart({
                 }));
 
                 series.setData(initial);
-            } catch {
+
+                // The total number of candles we just loaded
+                const dataSize = initial.length;
+
+                if (dataSize > 0) {
+                    // Set the visible logical range to show the last 100 bars
+                    // You can change 100 to any number you want for the zoom level
+                    chart.timeScale().setVisibleLogicalRange({
+                        from: dataSize - 100, // Show from the 100th-to-last bar
+                        to: dataSize - 1,   // Show up to the last bar
+                    });
+                } else {
+                    // If there's no data, fit the content (shows an empty chart)
+                    chart.timeScale().fitContent();
+                }
+
+            } catch (error) {
                 addToast({
                     title: 'Error fetching klines',
                     color: 'danger'
                 })
+                series.setData([]); // Clear data on error
             } finally {
                 if (active) setIsDataLoading(false);
             }

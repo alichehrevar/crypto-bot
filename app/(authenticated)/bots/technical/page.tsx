@@ -25,7 +25,7 @@ export default function TechnicalBotsPage() {
                             <AnalysisAndSymbolsList onSymbolClickAction={(symbol: MarketListItem) => setSelectedSymbol(symbol)} />
                         </div>
                         <div className="w-2/3 h-full">
-                            <RealTimeCandlestickChart interval="1m" symbol="BTCUSDT" timeZone="local"/>
+                            <RealTimeCandlestickChart interval="1m" symbol={selectedSymbol?.symbol.replaceAll('/', '')} timeZone="local"/>
                         </div>
                     </div>
 
