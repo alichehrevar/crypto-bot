@@ -87,12 +87,12 @@ async function getCoinSummary(coinIdOrSymbol) {
                 },
             }),
             // A separate call for 7-day high/low
-            axios.get(`${COINGECKO}/coins/${id}/ohlc`, {
-                params: {
-                    vs_currency: 'usd',
-                    days: '7',
-                },
-            }),
+            // axios.get(`${COINGECKO}/coins/${id}/ohlc`, {
+            //     params: {
+            //         vs_currency: 'usd',
+            //         days: '7',
+            //     },
+            // }),
         ]);
 
         if (coinDetailsRes.status !== 200) {
@@ -104,16 +104,16 @@ async function getCoinSummary(coinIdOrSymbol) {
 
         // --- Process 7-day OHLC data for 1-week high/low ---
         // Each ohlc item: [timestamp, open, high, low, close]
-        const ohlc7d = Array.isArray(ohlc7dRes.data) ? ohlc7dRes.data : [];
-        let high_1w = null;
-        let low_1w = null;
-
-        if (ohlc7d.length > 0) {
-            const highs = ohlc7d.map(k => k[2]); // high is at index 2
-            const lows = ohlc7d.map(k => k[3]);  // low is at index 3
-            high_1w = Math.max(...highs);
-            low_1w = Math.min(...lows);
-        }
+        // const ohlc7d = Array.isArray(ohlc7dRes.data) ? ohlc7dRes.data : [];
+        // let high_1w = null;
+        // let low_1w = null;
+        //
+        // if (ohlc7d.length > 0) {
+        //     const highs = ohlc7d.map(k => k[2]); // high is at index 2
+        //     const lows = ohlc7d.map(k => k[3]);  // low is at index 3
+        //     high_1w = Math.max(...highs);
+        //     low_1w = Math.min(...lows);
+        // }
 
         // --- Return combined summary object ---
         console.log(`Coin ${coinIdOrSymbol} (${id}) summary fetched successfully via CoinGecko.`);
@@ -131,8 +131,8 @@ async function getCoinSummary(coinIdOrSymbol) {
             percent_change_1y: marketData.price_change_percentage_1y_in_currency?.usd,
             high_24h: marketData.high_24h?.usd,
             low_24h: marketData.low_24h?.usd,
-            high_1w,
-            low_1w,
+            // high_1w,
+            // low_1w,
             ath: marketData.ath?.usd,
             imageUrl: data.image?.large,
         };

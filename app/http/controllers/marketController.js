@@ -108,58 +108,55 @@ exports.getMarketList = async (req, res) => {
 };
 
 exports.getTickerDetails = async (req, res) => {
-    const coinId = String(req.query.id || 'btc-bitcoin');   // CoinPaprika coin id
-    const quote  = String(req.query.quote || 'USD').toUpperCase(); // e.g. USD
+    // CoinGecko coin id. Note the format change from 'btc-bitcoin' to 'bitcoin'.
+    const coinId = String(req.query.id || 'bitcoin');
+    // CoinGecko uses lowercase for the vs_currency parameter.
+    const quote  = String(req.query.quote || 'usd').toLowerCase();
 
     try {
-        // 1) Ticker: price, % change 24h, volume 24h (in quote)
-        const tickerUrl = `https://api.coinpaprika.com/v1/tickers/${encodeURIComponent(coinId)}?quotes=${quote}`;
+        // Use the CoinGecko /coins/markets endpoint to get all data in one call.
+        const apiUrl = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=${quote}&ids=${encodeURIComponent(coinId)}`;
 
-        // 2) Today OHLCV: calendar-day high/low (NOT rolling 24h)
-        const todayUrl  = `https://api.coinpaprika.com/v1/coins/${encodeURIComponent(coinId)}/ohlcv/today`;
+        const apiRes = await fetch(apiUrl);
 
-        const [tickerRes, todayRes] = await Promise.all([ fetch(tickerUrl), fetch(todayUrl) ]);
-
-        if (!tickerRes.ok) throw new Error(`Ticker HTTP ${tickerRes.status}`);
-        if (!todayRes.ok)  throw new Error(`OHLCV today HTTP ${todayRes.status}`);
-
-        const ticker = await tickerRes.json();
-        const today  = await todayRes.json();
-
-        const q = ticker?.quotes?.[quote] || {};
-        const price = q.price ?? null;
-        const percentChange24h = q.percent_change_24h ?? null;
-        const volume24h = q.volume_24h ?? null;
-
-        // compute absolute 24h change from price & percent
-        let absoluteChange24h = null;
-        if (price != null && percentChange24h != null) {
-            const price24hAgo = price / (1 + percentChange24h / 100);
-            absoluteChange24h = price - price24hAgo;
+        if (!apiRes.ok) {
+            throw new Error(`CoinGecko API HTTP ${apiRes.status}`);
         }
 
-        const todayCandle = Array.isArray(today) && today[0] ? today[0] : null;
-        const high24h = todayCandle ? todayCandle.high : null; // calendar-day high
-        const low24h  = todayCandle ? todayCandle.low  : null; // calendar-day low
+        const data = await apiRes.json();
+
+        // The /markets endpoint returns an array, even for a single ID.
+        if (!Array.isArray(data) || data.length === 0) {
+            throw new Error('Coin not found or empty response from CoinGecko');
+        }
+
+        const ticker = data[0];
+
+        // --- Key Difference ---
+        // CoinGecko's /markets endpoint provides a ROLLING 24h high/low,
+        // not a calendar-day high/low like the previous CoinPaprika endpoint.
+        const high24h = ticker.high_24h ?? null;
+        const low24h  = ticker.low_24h  ?? null;
 
         return res.json({
             success: true,
             data: {
-                coinId,
-                name: ticker?.name,
-                symbol: `${(ticker?.symbol || '').toUpperCase()}${quote}`,
-                quote,
-                price,
-                percentChange24h,
-                absoluteChange24h,
-                volume24h,
-                high24h, // calendar-day
-                low24h,  // calendar-day
-                imageUrl: `https://static.coinpaprika.com/coin/${coinId}/logo.png`
+                coinId: ticker.id,
+                name: ticker.name,
+                symbol: `${(ticker.symbol || '').toUpperCase()}${(quote || '').toUpperCase()}`,
+                quote: quote.toUpperCase(),
+                price: ticker.current_price ?? null,
+                percentChange24h: ticker.price_change_percentage_24h ?? null,
+                // CoinGecko provides the absolute change directly.
+                absoluteChange24h: ticker.price_change_24h ?? null,
+                volume24h: ticker.total_volume ?? null,
+                high24h, // Note: This is a rolling 24h high
+                low24h,  // Note: This is a rolling 24h low
+                imageUrl: ticker.image // CoinGecko provides a direct image URL.
             },
         });
     } catch (error) {
-        console.error('Market ticker error:', error);
+        console.error('Market ticker error:', error.message);
         return res.status(500).json({ success: false, message: 'Failed to load market ticker' });
     }
 };
