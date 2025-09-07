@@ -9,5 +9,6 @@ const sentimentController = require('../../app/http/controllers/market/sentiment
 // Define the route: GET /
 // When a request hits this, it will be handled by the getSentiment method.
 router.get('/', authenticate, sentimentController.getSentiment);
+router.get('/events', authenticate, sentimentController.getEvents);
 
 module.exports = router;

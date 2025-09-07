@@ -1,6 +1,8 @@
-// File: app/services/sentimentService.js
+// app/services/sentimentService.js
 
 const axios = require('axios')
+const EconomicEvent = require('../../models/EconomicEvent');
+const coinGeckoService = require('../api/coinGeckoService');
 const logger = require('../../../logs/logger.js');
 
 /**
@@ -28,6 +30,46 @@ async function getFearAndGreedIndex() {
     }
 }
 
+
+/**
+ * Fetches and processes economic events from the database.
+ * @returns {Promise<Array<Object>>} A promise that resolves to an array of events.
+ */
+async function getEconomicEvents () {
+    try {
+        // Use Promise.all to fetch from both sources concurrently for better performance
+        const [dbEvents, cryptoEvents] = await Promise.all([
+            EconomicEvent.find({}).lean(), // .lean() returns plain JS objects, faster
+            coinGeckoService.fetchCryptoEvents()
+        ]);
+
+        // Combine the two arrays of events
+        const allEvents = [...dbEvents, ...cryptoEvents];
+
+        // Sort the combined list by date
+        allEvents.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+        const now = new Date();
+
+        // Process the final combined list
+        return allEvents.map(event => {
+            const eventDate = new Date(event.date);
+            const isPast = eventDate < now;
+            const dateString = eventDate.toISOString().split('T')[0];
+
+            return {
+                ...event,
+                date: dateString,
+                isPast,
+            };
+        });
+    } catch (error) {
+        logger.error('Error fetching and merging economic events:', error);
+        throw new Error('Could not retrieve economic events.');
+    }
+}
+
 module.exports = {
     getFearAndGreedIndex,
+    getEconomicEvents
 };
