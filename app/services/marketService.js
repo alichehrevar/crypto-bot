@@ -1,6 +1,8 @@
 // services/MarketService.js
 
 const MarketSnapshot = require('../models/MarketSnapshot');
+const coinGeckoService = require('./api/coinGeckoService');
+const logger = require('../../logs/logger');
 
 /**
  * Get top movers from the DB.
@@ -187,8 +189,77 @@ async function getMoversAndVolatility() {
     }
 }
 
+// Configuration constants
+const MOVER_COUNT = 10;
+const VOLATILITY_COUNT = 50;
+const RVOL_PERIOD_DAYS = 20; // CoinGecko doesn't provide rVol, so we will simulate it conceptually.
+
+/**
+ * Calculates and retrieves market movers and volatility data using the CoinGecko API.
+ * @returns {Promise<object|null>} The formatted MoversData object or null.
+ */
+async function getMoversAndVolatilityData () {
+    try {
+        // Step 1: Fetch live market data from CoinGecko
+        // We fetch 250 to ensure we have a large pool to find significant movers.
+        const marketData = await coinGeckoService.getMarketData(250);
+
+        if (!marketData || marketData.length === 0) {
+            logger.warn('No market data returned from CoinGecko service.');
+            return null;
+        }
+
+        // Step 2: Transform CoinGecko data into the structure our frontend expects
+        const enrichedAssets = marketData.map(transformCoinData).filter(asset => asset.volume > 1000000); // Filter out low-volume assets
+
+        // Step 3: Sort by 24h change to find gainers and losers
+        enrichedAssets.sort((a, b) => (b.change || 0) - (a.change || 0));
+
+        const gainers = enrichedAssets.slice(0, MOVER_COUNT);
+        const losers = enrichedAssets.slice(-MOVER_COUNT).sort((a, b) => (a.change || 0) - (b.change || 0));
+
+        // Step 4: For the scatter plot, use the assets with the highest volume from our pool
+        enrichedAssets.sort((a, b) => b.volume - a.volume);
+        const volatilityScatter = enrichedAssets.slice(0, VOLATILITY_COUNT);
+
+        return {
+            gainers,
+            losers,
+            volatilityScatter,
+        };
+
+    } catch (error) {
+        // The error is already logged in coinGeckoService, but we log it here too for context
+        logger.error(`Failed to get movers and volatility data in marketService: ${error.message}`);
+        // Re-throw to be caught by the controller
+        throw error;
+    }
+};
+
+/**
+ * Transforms a single coin object from CoinGecko API into our MoverItem structure.
+ * @param {object} coin - A coin data object from CoinGecko.
+ * @returns {object} The formatted MoverItem.
+ */
+const transformCoinData = (coin) => {
+    // CoinGecko API doesn't provide Relative Volume (rVol).
+    // A true rVol requires historical daily volume data, which is another expensive API call per coin.
+    // For this component, we can derive a "volatility score" as a stand-in for rVol
+    // by comparing the 24h volume to its own market cap. A high ratio suggests unusual activity.
+    const volumeToMarketCapRatio = coin.total_volume && coin.market_cap ? (coin.total_volume / coin.market_cap) * 10 : 1;
+    const simulatedRvol = Math.max(0.5, Math.min(5, volumeToMarketCapRatio)); // Clamp the value for better visualization
+
+    return {
+        asset: coin.symbol.toUpperCase(),
+        change: coin.price_change_percentage_24h || 0,
+        volume: coin.total_volume || 0,
+        rVol: simulatedRvol, // Using our simulated rVol
+        sparkline: coin.sparkline_in_7d?.price || [], // Use the 7-day sparkline provided
+    };
+};
+
 module.exports = {
     getTopMovers,
     fetchAndStoreMarketData,
-    getMoversAndVolatility,
+    getMoversAndVolatilityData,
 };

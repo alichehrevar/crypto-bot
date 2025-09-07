@@ -230,10 +230,20 @@ async function getOkxSymbols() {
  */
 exports.getMoversAndVolatility = async (req, res) => {
     try {
-        const moversData = await MarketService.getMoversAndVolatility();
-        res.status(200).json({ success: true, data: moversData });
+        const moversData = await MarketService.getMoversAndVolatilityData();
+
+        if (!moversData) {
+            return res.status(404).json({ error: 'Market data not available at the moment.', success: false });
+        }
+
+        return res.status(200).json({ data: moversData, success: true });
+
     } catch (error) {
-        console.error('Movers and Volatility controller error:', error);
-        res.status(500).json({ success: false, message: 'Failed to load market movers data' });
+        logger.error(`Error in getMoversAndVolatility controller: ${error.message}`, { stack: error.stack });
+        // Forward the error to a centralized error handler
+        // Respond with a generic server error if no other response has been sent
+        if (!res.headersSent) {
+            return res.status(503).json({ error: 'Service temporarily unavailable. Could not fetch market data.', success: false });
+        }
     }
 };
