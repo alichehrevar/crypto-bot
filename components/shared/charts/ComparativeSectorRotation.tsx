@@ -12,61 +12,11 @@ import {
     Legend,
     ReferenceLine,
 } from 'recharts';
-import {getData} from "@/actions/get";
 import {addToast} from "@heroui/react";
+
+import {getData} from "@/actions/get";
 import LoadingWithSpinner from "@/components/loading/LoadingWithSpinner";
 import {SectorApiResponse, SectorDataPoint} from "@/types/market/SectorsRotation";
-
-/* =============================================================================
-   Mock data generator — mirrors the logic from your RTF
-   - 30 calendar days
-   - Values indexed around 100
-   - Sector-specific drift + small volatility
-============================================================================= */
-
-type Point = { day: string; [sector: string]: number | string };
-
-const SECTORS = [
-    'DeFi 2.0',
-    'Layer 1 protocols',
-    'Layer 2 scaling',
-    'AI & big data',
-    'Gaming & metaverse',
-    'Infrastructure',
-    'Real world assets (RWA)',
-];
-
-const rand = (min: number, max: number) => Math.random() * (max - min) + min;
-
-function generateMock(): Point[] {
-    const today = new Date();
-
-    return Array.from({ length: 30 }, (_, i) => {
-        const d = new Date(today);
-
-        d.setDate(today.getDate() - (29 - i));
-        const day = d.toISOString().slice(0, 10);
-        const row: Point = { day };
-
-        SECTORS.forEach((s) => {
-            // sector “drift” (daily trend) like the RTF example
-            let drift = 0;
-
-            if (s.includes('AI')) drift = 0.015;                       // AI outperforms
-            else if (s.includes('DeFi')) drift = -0.008;               // DeFi lags
-            else if (s.includes('Layer 1') || s.includes('RWA')) drift = 0.005; // mild up drift
-            else drift = rand(-0.003, 0.003);                          // flat-ish
-
-            // small volatility band around trend
-            const vol = rand(0.98, 1.02);
-
-            // index around 100, applying drift each day
-            row[s] = (100 * (1 + i * drift)) * vol;
-        });
-
-        return row;
-    });
-}
 
 /* =============================================================================
    Small UI bits (info popover, tooltip, legend)
