@@ -1,0 +1,18 @@
+// File: app/http/controllers/sentimentController.js
+
+const sentimentService = require('../../services/sentimentService.js');
+
+/**
+ * Handles the request to get the current market sentiment score.
+ * @param {object} req - Express request object.
+ * @param {object} res - Express response object.
+ */
+exports.getSentiment = async (req, res) => {
+    try {
+        const score = await sentimentService.getFearAndGreedIndex();
+        res.status(200).json({ data: { score: score }, success: true });
+    } catch (error) {
+        // The service layer has already logged the detailed error
+        res.status(500).json({ error: error.message, success: false });
+    }
+};

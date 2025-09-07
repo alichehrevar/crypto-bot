@@ -17,6 +17,7 @@ const pnlRoutes = require('./pnl');
 const ordersRouter = require("./orders");
 const coinRoutes = require('./coin');
 const userRoutes = require('./user');
+const sentimentRoutes = require('./sentiment');
 
 // Mount each router on its designated path
 router.use('/auth', authRoutes);
@@ -34,5 +35,6 @@ router.use('/asset', ordersRouter); // Note: Both /asset and /orders point to th
 router.use('/coins', coinRoutes);
 router.use('/user', userRoutes);
 router.use('/logs', logsRouter);
+router.use('/sentiment', sentimentRoutes);
 
 module.exports = router;
