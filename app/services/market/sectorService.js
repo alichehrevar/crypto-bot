@@ -113,6 +113,52 @@ class SectorPerformanceService {
 
         return result;
     }
+
+    /**
+     * Generates mock data for comparative sector rotation, mirroring the frontend logic.
+     * The data is indexed to 100 over a 30-day period.
+     *
+     * @returns {Promise<Array<Object>>} A promise that resolves to an array of data points.
+     */
+    async getSectorRotationData() {
+        const SECTORS = [
+            'DeFi 2.0',
+            'Layer 1 protocols',
+            'Layer 2 scaling',
+            'AI & big data',
+            'Gaming & metaverse',
+            'Infrastructure',
+            'Real world assets (RWA)',
+        ];
+
+        const rand = (min, max) => Math.random() * (max - min) + min;
+
+        const today = new Date();
+        return Array.from({length: 30}, (_, i) => {
+            const d = new Date(today);
+            d.setDate(today.getDate() - (29 - i));
+            const day = d.toISOString().slice(0, 10);
+            const row = {day};
+
+            SECTORS.forEach((s) => {
+                // Sector-specific "drift" (daily trend)
+                let drift = 0;
+                if (s.includes('AI')) drift = 0.015;          // AI outperforms
+                else if (s.includes('DeFi')) drift = -0.008;  // DeFi lags
+                else if (s.includes('Layer 1') || s.includes('RWA')) drift = 0.005; // Mild up drift
+                else drift = rand(-0.003, 0.003);             // Relatively flat
+
+                // Small volatility band around the trend
+                const vol = rand(0.98, 1.02);
+
+                // Calculate the indexed value
+                row[s] = (100 * (1 + i * drift)) * vol;
+            });
+
+            return row;
+        });
+    }
+
 }
 
 module.exports = new SectorPerformanceService();
