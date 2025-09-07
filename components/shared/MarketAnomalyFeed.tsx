@@ -2,9 +2,10 @@
 
 import React, { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
+import {addToast} from "@heroui/react";
+
 import {getData} from "@/actions/get";
 import {Anomaly, AnomalyResponse, AnomalyType, Severity} from "@/types/market/Anomaly";
-import {addToast} from "@heroui/react";
 import LoadingWithSpinner from "@/components/loading/LoadingWithSpinner";
 
 // =====================================================================
