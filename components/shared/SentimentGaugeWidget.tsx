@@ -4,6 +4,7 @@ import React, { useEffect, useId, useRef, useState } from 'react'
 import {getData} from "@/actions/get";
 import {SentimentResponse} from "@/types/market/Sentiment";
 import {addToast, Spinner} from "@heroui/react";
+import LoadingWithSpinner from "@/components/loading/LoadingWithSpinner";
 
 // =====================================================================
 // Fear & Greed Gauge — Next.js + Tailwind (self-contained widget)
@@ -191,10 +192,7 @@ export default function SentimentGaugeWidget() {
             <CardHeader infoContent={infoContent} infoTitle={infoTitle} title="Fear & Greed Index" />
             <div className="flex h-full flex-col">
                 {isLoading
-                    ? <div className="flex items-center justify-center flex-row-reverse gap-3 h-56 w-full">
-                        <Spinner className="mr-2" color="primary" size="sm" variant="wave" />
-                        Loading Data…
-                    </div>
+                    ? <LoadingWithSpinner />
                     : <SentimentGauge score={score || 0} />
                 }
             </div>

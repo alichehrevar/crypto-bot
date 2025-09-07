@@ -2,6 +2,10 @@
 
 import React, { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
+import {getData} from "@/actions/get";
+import {Anomaly, AnomalyResponse, AnomalyType, Severity} from "@/types/market/Anomaly";
+import {addToast} from "@heroui/react";
+import LoadingWithSpinner from "@/components/loading/LoadingWithSpinner";
 
 // =====================================================================
 // MarketAnomalyFeed (Next + Tailwind)
@@ -10,21 +14,6 @@ import { AnimatePresence, motion } from 'framer-motion'
 // - Smooth enter/exit animations via Framer Motion
 // - Small, composable subcomponents (InfoButton, CardHeader, AnomalyIcon)
 // =====================================================================
-
-// -----------------------------
-// Types
-// -----------------------------
-export type Severity = 'High' | 'Medium' | 'Low'
-export type AnomalyType = 'Volume' | 'Funding' | 'On-Chain' | 'OI' | 'Price' | (string & {})
-
-export interface Anomaly {
-    id: string | number
-    type: AnomalyType
-    asset?: string
-    detail: string
-    time: string
-    severity: Severity
-}
 
 // -----------------------------
 // Helpers
@@ -179,63 +168,37 @@ function AnomalyIcon({ type }: { type: AnomalyType }) {
 export default function MarketAnomalyFeed() {
     const title = 'Real-time Anomaly Feed'
 
-    // Mock data lives inside the component — parent passes nothing
-    const MOCK_ANOMALIES: Anomaly[] = [
-        {
-            id: 1,
-            type: 'Volume',
-            asset: 'RNDR',
-            detail: 'RNDR spot volume is 4.2× above 24h average on Binance.',
-            time: '2m ago',
-            severity: 'High',
-        },
-        {
-            id: 2,
-            type: 'Funding',
-            asset: 'ETH',
-            detail: 'ETH perp funding flipped negative across major venues.',
-            time: '7m ago',
-            severity: 'Medium',
-        },
-        {
-            id: 3,
-            type: 'OI',
-            asset: 'BTC',
-            detail: 'BTC open interest jumped +18% in the last 30 minutes.',
-            time: '12m ago',
-            severity: 'High',
-        },
-        {
-            id: 4,
-            type: 'On-Chain',
-            asset: 'USDT',
-            detail: 'USDT treasury transfer of 120M to a known exchange wallet.',
-            time: '18m ago',
-            severity: 'Medium',
-        },
-        {
-            id: 5,
-            type: 'Price',
-            asset: 'SOL',
-            detail: 'SOL printed a −3.5% 1‑min wick; spreads widened notably.',
-            time: '24m ago',
-            severity: 'High',
-        },
-        {
-            id: 6,
-            type: 'Volume',
-            asset: 'AVAX',
-            detail: 'AVAX futures volume diverging from spot by ~2.8×.',
-            time: '31m ago',
-            severity: 'Low',
-        },
-    ]
-
-    const [items] = useState<Anomaly[]>(MOCK_ANOMALIES)
+    const [items, setItems] = useState<Anomaly[]>([])
+    const [isLoading, setIsLoading] = useState(true)
 
     const infoTitle = 'About the Anomaly Feed'
     const infoContent =
         'This feed flags market events that deviate from recent baselines. Sudden spikes in volume, funding, OI, or large on-chain transfers can hint at shifting market dynamics.'
+
+    async function fetchAnomalies () {
+        return await getData('/anomalies')
+    }
+
+    useEffect(() => {
+        fetchAnomalies()
+            .then((response: AnomalyResponse) => {
+                if (response.success) {
+                    setItems(response.data)
+                } else {
+                    addToast({
+                        title: response.error || 'Error Fetching Anomalies',
+                        color: 'warning'
+                    })
+                }
+            })
+            .catch((error) => {
+                addToast({
+                    title: error.message,
+                    color: 'danger'
+                })
+            })
+            .finally(() => setIsLoading(false))
+    }, []);
 
     return (
         <div className="rounded-lg bg-dark-gray p-4">
@@ -243,36 +206,41 @@ export default function MarketAnomalyFeed() {
 
             {/* Feed List */}
             <div className="flex h-[220px] flex-col gap-3 overflow-y-auto">
-                <AnimatePresence initial={false}>
-                    {items.map((item) => (
-                        <motion.div
-                            key={item.id}
-                            animate={{ height: 'auto', opacity: 1 }}
-                            exit={{ height: 0, opacity: 0, scaleY: 0.97 }}
-                            initial={{ height: 0, opacity: 0 }}
-                            transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-                        >
-                            <div className="flex items-center gap-3">
-                                <div className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full ${severityClasses(
-                                    item.severity
-                                )}`}>
-                                    <AnomalyIcon type={item.type} />
-                                </div>
+                {isLoading
+                    ? <LoadingWithSpinner />
+                    : <>
+                        <AnimatePresence initial={false}>
+                            {items.map((item) => (
+                                <motion.div
+                                    key={item.id}
+                                    animate={{ height: 'auto', opacity: 1 }}
+                                    exit={{ height: 0, opacity: 0, scaleY: 0.97 }}
+                                    initial={{ height: 0, opacity: 0 }}
+                                    transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <div className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full ${severityClasses(
+                                            item.severity
+                                        )}`}>
+                                            <AnomalyIcon type={item.type} />
+                                        </div>
 
-                                <div className="flex min-w-0 flex-col">
-                                    <span className="truncate text-sm text-neutral-200">{item.detail}</span>
-                                    <span className="mt-0.5 text-xs text-neutral-500">{item.time}</span>
-                                </div>
+                                        <div className="flex min-w-0 flex-col">
+                                            <span className="truncate text-sm text-neutral-200">{item.detail}</span>
+                                            <span className="mt-0.5 text-xs text-neutral-500">{item.time}</span>
+                                        </div>
+                                    </div>
+                                </motion.div>
+                            ))}
+                        </AnimatePresence>
+
+                        {items.length === 0 && (
+                            <div className="py-8 text-center text-sm text-neutral-500">
+                                No significant market anomalies detected right now.
                             </div>
-                        </motion.div>
-                    ))}
-                </AnimatePresence>
-
-                {items.length === 0 && (
-                    <div className="py-8 text-center text-sm text-neutral-500">
-                        No significant market anomalies detected right now.
-                    </div>
-                )}
+                        )}
+                    </>
+                }
             </div>
         </div>
     )
