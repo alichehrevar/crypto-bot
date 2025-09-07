@@ -1,7 +1,7 @@
 // File: app/services/sentimentService.js
 
 const axios = require('axios')
-const logger = require('../../logs/logger.js');
+const logger = require('../../../logs/logger.js');
 
 /**
  * Fetches the latest Fear & Greed Index from the alternative.me API.

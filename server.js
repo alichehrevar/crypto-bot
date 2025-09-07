@@ -7,6 +7,7 @@ const http = require('http');
 const { WebSocketServer } = require('ws');
 const { runInitialMarketUpdate, scheduleMarketUpdate } = require('./cron/updateMarketData');
 const { runInitialSnapshot, scheduleSnapshots } = require('./cron/snapshotJob');
+const { scheduleAnomalyGeneration } = require('./cron/anomalyGeneratorJob');
 
 const connectDB = require('./config/db');
 const binanceWS = require('./app/services/binanceWS');
@@ -174,13 +175,16 @@ server.on('upgrade', (request, socket, head) => {
 
 // IIFE to run startup tasks
 (async () => {
-    // First, run the market data update
+    // Run the market data update
     await runInitialMarketUpdate();
     scheduleMarketUpdate();
 
-    // Then, run the asset snapshot
+    // Run the asset snapshot
     await runInitialSnapshot();
     scheduleSnapshots();
+
+    // Run the anomaly generation
+    scheduleAnomalyGeneration()
 })();
 
 scheduleSnapshots();

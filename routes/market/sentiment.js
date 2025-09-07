@@ -2,8 +2,8 @@
 
 const express = require('express');
 const router = express.Router();
-const authenticate = require('../app/http/middleware/auth'); // Authentication middleware
-const sentimentController = require('../app/http/controllers/sentimentController.js');
+const authenticate = require('../../app/http/middleware/auth'); // Authentication middleware
+const sentimentController = require('../../app/http/controllers/market/sentimentController.js');
 
 
 // Define the route: GET /

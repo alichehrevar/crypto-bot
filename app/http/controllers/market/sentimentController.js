@@ -1,6 +1,6 @@
 // File: app/http/controllers/sentimentController.js
 
-const sentimentService = require('../../services/sentimentService.js');
+const sentimentService = require('../../../services/market/sentimentService.js');
 
 /**
  * Handles the request to get the current market sentiment score.
