@@ -69,7 +69,7 @@ exports.getMarketList = async (req, res) => {
         const favoriteSymbolsSet = new Set(userFavorites.map(fav => fav.symbol));
 
         // 2. Enrich the database data with live exchange info and the correct favorite status.
-        const marketListData = coinsFromDB.map((coin, index) => {
+        const marketListData = coinsFromDB.map((coin, _) => {
             let broker = 'Other';
             let category = 'Spot';
 
