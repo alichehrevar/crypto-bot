@@ -12,6 +12,10 @@ import {
     Legend,
     ReferenceLine,
 } from 'recharts';
+import {getData} from "@/actions/get";
+import {addToast} from "@heroui/react";
+import LoadingWithSpinner from "@/components/loading/LoadingWithSpinner";
+import {SectorApiResponse, SectorDataPoint} from "@/types/market/SectorsRotation";
 
 /* =============================================================================
    Mock data generator — mirrors the logic from your RTF
@@ -151,14 +155,47 @@ export interface MarketComparativeSectorRotationProps {
 }
 
 export default function MarketComparativeSectorRotation({
-                                                            title = 'Comparative Sector Rotation (30 Days Indexed)',
-                                                            height = 360,
-                                                            className,
-                                                            sectorColors,
-                                                        }: MarketComparativeSectorRotationProps) {
-    // Always use mock data “like the file”
-    const data = useMemo(generateMock, []);
-    const sectors = SECTORS;
+    title = 'Comparative Sector Rotation (30 Days Indexed)',
+    height = 360,
+    className,
+    sectorColors,
+}: MarketComparativeSectorRotationProps) {
+    const [data, setData] = useState<SectorDataPoint[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    async function fetchSectorsRotationData() {
+        return await getData('/sectors/rotation')
+    }
+
+    // Fetch data from the backend API
+    useEffect(() => {
+        fetchSectorsRotationData()
+            .then((response: SectorApiResponse) => {
+                if (response.success) {
+                    setData(response.data);
+                } else {
+                    addToast({
+                        title: response.error,
+                        color: 'warning'
+                    })
+                }
+            })
+            .catch((error) => {
+                addToast({
+                    title: error.message,
+                    color: 'danger'
+                })
+            })
+            .finally(() => {
+                setLoading(false);
+            });
+    }, []);
+
+    const sectors = useMemo(() => [
+        'DeFi 2.0', 'Layer 1 protocols', 'Layer 2 scaling',
+        'AI & big data', 'Gaming & metaverse', 'Infrastructure',
+        'Real world assets (RWA)',
+    ], []);
 
     // Build palette (can override per-prop)
     const fallback = ['#1b4965', '#0077b6', '#00b4d8', '#48cae4', '#90e0ef', '#ade8f4', '#caf0f8'];
@@ -200,47 +237,50 @@ export default function MarketComparativeSectorRotation({
                 </div>
             </div>
 
-            <div style={{ height }}>
-                <ResponsiveContainer height="100%" width="100%">
-                    <LineChart data={data} margin={{ top: 12, right: 18, left: 10, bottom: 6 }}>
-                        <CartesianGrid stroke={GRID} strokeDasharray="3 3" />
-                        <XAxis
-                            axisLine={false}
-                            dataKey="day"
-                            height={40}
-                            interval={6}
-                            stroke={AXIS}
-                            tick={{ fontSize: 12 }}
-                            tickFormatter={fmtDate}
-                            tickLine={false}
-                            tickMargin={20}
-                        />
-                        <YAxis
-                            allowDataOverflow
-                            axisLine={false}
-                            domain={yDomain}
-                            stroke={AXIS}
-                            tick={{ fontSize: 12 }}
-                            tickLine={false}
-                        />
-                        <Tooltip content={<T />} />
-                        <Legend content={<L />} verticalAlign="top" wrapperStyle={{ paddingBottom: 8 }} />
-                        <ReferenceLine stroke={AXIS} strokeDasharray="2 2" y={100} />
-                        {sectors.map((s, i) => (
-                            <Line
-                                key={s}
-                                isAnimationActive
-                                animationDuration={1200}
-                                dataKey={s}
-                                dot={false}
-                                stroke={colors(s, i)}
-                                strokeWidth={2}
-                                type="monotone"
+            {loading
+                ? <LoadingWithSpinner />
+                : <div style={{ height }}>
+                    <ResponsiveContainer height="100%" width="100%">
+                        <LineChart data={data} margin={{ top: 12, right: 18, left: 10, bottom: 6 }}>
+                            <CartesianGrid stroke={GRID} strokeDasharray="3 3" />
+                            <XAxis
+                                axisLine={false}
+                                dataKey="day"
+                                height={40}
+                                interval={6}
+                                stroke={AXIS}
+                                tick={{ fontSize: 12 }}
+                                tickFormatter={fmtDate}
+                                tickLine={false}
+                                tickMargin={20}
                             />
-                        ))}
-                    </LineChart>
-                </ResponsiveContainer>
-            </div>
+                            <YAxis
+                                allowDataOverflow
+                                axisLine={false}
+                                domain={yDomain}
+                                stroke={AXIS}
+                                tick={{ fontSize: 12 }}
+                                tickLine={false}
+                            />
+                            <Tooltip content={<T />} />
+                            <Legend content={<L />} verticalAlign="top" wrapperStyle={{ paddingBottom: 8 }} />
+                            <ReferenceLine stroke={AXIS} strokeDasharray="2 2" y={100} />
+                            {sectors.map((s, i) => (
+                                <Line
+                                    key={s}
+                                    isAnimationActive
+                                    animationDuration={1200}
+                                    dataKey={s}
+                                    dot={false}
+                                    stroke={colors(s, i)}
+                                    strokeWidth={2}
+                                    type="monotone"
+                                />
+                            ))}
+                        </LineChart>
+                    </ResponsiveContainer>
+                </div>
+            }
         </div>
     );
 }
