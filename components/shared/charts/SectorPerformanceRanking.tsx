@@ -6,24 +6,10 @@ import {
     ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine, Cell
 } from 'recharts';
 
-// =====================================================================
-// --- TYPE DEFINITIONS ---
-// =====================================================================
-
-interface SectorPerformanceData {
-    sector: string;
-    performance1D: number;
-}
-
-interface SectorData {
-    performance: SectorPerformanceData[];
-}
-
-interface TooltipState {
-    visible: boolean;
-    content: string;
-    anchorRect: DOMRect | null;
-}
+import {getData} from "@/actions/get";
+import {SectorData, SectorsPerformanceResponse, TooltipState} from "@/types/market/SectorsPerformance";
+import {addToast} from "@heroui/react";
+import LoadingWithSpinner from "@/components/loading/LoadingWithSpinner";
 
 // =====================================================================
 // --- MOCK DATA & CONFIGURATION ---
@@ -42,10 +28,8 @@ const glossary: Record<string, string> = {
     'Real world assets (RWA)': 'The process of tokenizing tangible or traditional financial assets (e.g., real estate, private credit) and bringing them on-chain.',
 };
 
-
-
 // =====================================================================
-// --- REUSABLE UI SUB-COMPONENTS ---
+// --- REUSABLE UI SUB-COMPONENTS (Unchanged) ---
 // =====================================================================
 
 const InfoButton: React.FC<{ title: string; content: string }> = ({ title, content }) => {
@@ -138,24 +122,54 @@ const CustomYAxisTick: React.FC<any> = ({ x, y, payload, onShowTooltip, onHideTo
     );
 };
 
+
 // =====================================================================
 // --- MAIN SECTOR PERFORMANCE CHART COMPONENT ---
 // =====================================================================
 
-const SectorPerformanceRanking: React.FC<{ data: SectorData | null }> = ({ data }) => {
+const SectorPerformanceRanking: React.FC = () => {
+    // --- STATE MANAGEMENT for API data, loading, and errors ---
+    const [chartData, setChartData] = useState<SectorData | null>(null);
+    const [isLoading, setIsLoading] = useState<boolean>(true);
 
     const [portalContainer, setPortalContainer] = useState<HTMLElement | null>(null);
-
     const [tooltip, setTooltip] = useState<TooltipState>({ visible: false, content: '', anchorRect: null });
     const tooltipRef = useRef<HTMLDivElement>(null);
     const hideTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+    // --- DATA FETCHING ---
+    async function fetchPerformanceData () {
+        return await getData('/sectors/performance')
+    }
+    useEffect(() => {
+        setIsLoading(true);
+        fetchPerformanceData()
+            .then((response: SectorsPerformanceResponse) => {
+                if (response.success) {
+                    setChartData(response.data);
+                } else {
+                    addToast({
+                        title: response.error,
+                        color: 'warning'
+                    })
+                }
+            })
+            .catch(() => {
+                addToast({
+                    title: 'Could not load chart data. Please try again later.',
+                    color: 'danger'
+                })
+            })
+            .finally(() =>  setIsLoading(false))
+
+    }, []);
 
     useEffect(() => {
         // This code only runs on the client-side after the initial render
         const portal = document.getElementById('tooltip-portal-root');
 
         setPortalContainer(portal);
-    }, []); // Ensures this runs only once
+    }, []);
 
     const showTooltip = (content: string, rect: DOMRect) => {
         if (hideTimeoutRef.current) clearTimeout(hideTimeoutRef.current);
@@ -168,10 +182,14 @@ const SectorPerformanceRanking: React.FC<{ data: SectorData | null }> = ({ data 
         }, 100);
     };
 
-    // This is the main component that you will use in your app pages
+    // --- RENDER LOGIC for Chart based on state ---
     const ChartComponent = () => {
-        if (!data || !data.performance) {
-            return <div className="text-center p-10">Loading...</div>;
+        if (isLoading) {
+            return <LoadingWithSpinner />;
+        }
+
+        if (!chartData || !chartData.performance || chartData.performance.length === 0) {
+            return <div className="text-center text-gray-500 p-10 min-h-[300px] flex items-center justify-center">No performance data available.</div>;
         }
 
         const TickWithTooltipHandlers = (props: any) => (
@@ -179,16 +197,16 @@ const SectorPerformanceRanking: React.FC<{ data: SectorData | null }> = ({ data 
         );
 
         return (
-            <div className="mt-6 flex-grow min-h-[200px]">
+            <div className="mt-6 flex-grow min-h-[300px]">
                 <ResponsiveContainer height={300} width="100%">
-                    <BarChart barCategoryGap="20%" data={data.performance} layout="vertical" margin={{ top: 20, left: 30, right: 20, bottom: 20 }}>
+                    <BarChart barCategoryGap="20%" data={chartData.performance} layout="vertical" margin={{ top: 20, left: 30, right: 20, bottom: 20 }}>
                         <CartesianGrid horizontal={false} stroke={CHART_GRID_COLOR} strokeDasharray="3 3" />
                         <XAxis axisLine={false} stroke={CHART_AXIS_COLOR} tick={{ fontSize: 12 }} tickLine={false} tickMargin={10} type="number" unit="%" />
                         <YAxis axisLine={false} dataKey="sector" tick={<TickWithTooltipHandlers />} tickLine={false} type="category" width={160} />
                         <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255, 255, 255, 0.05)' }} />
                         <ReferenceLine stroke={CHART_AXIS_COLOR} strokeDasharray="2 2" x={0} />
                         <Bar dataKey="performance1D" name="24h Performance" radius={[0, 5, 5, 0]}>
-                            {data.performance.map((entry, index) => (
+                            {chartData.performance.map((entry, index) => (
                                 <Cell key={`cell-${index}`} fill={entry.performance1D > 0 ? '#4CAF50' : '#F44336'} />
                             ))}
                         </Bar>
@@ -217,7 +235,6 @@ const SectorPerformanceRanking: React.FC<{ data: SectorData | null }> = ({ data 
             </div>
         );
     };
-
 
     return (
         <div className="bg-dark-gray rounded-xl p-6 border border-white/5 shadow-md flex flex-col">
