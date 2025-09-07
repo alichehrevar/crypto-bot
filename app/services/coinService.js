@@ -1,7 +1,7 @@
 // app/services/coinService.js
 const axios = require('axios');
 
-const COINGECKO = 'https://api.coingecko.com/api/v3';
+const COINGECKO = process.env.COINGECKO_API_URL || 'https://api.coingecko.com/api/v3';
 const CACHE_TTL_MS = 2 * 60 * 60 * 1000; // 2 hours
 
 // Simple in-memory cache

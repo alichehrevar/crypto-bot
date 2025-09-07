@@ -19,6 +19,7 @@ const coinRoutes = require('./coin');
 const userRoutes = require('./user');
 const sentimentRoutes = require('./market/sentiment');
 const anomalyRoutes = require('./market/anomalies');
+const sectorRoutes = require('./market/sectors');
 
 // Mount each router on its designated path
 router.use('/auth', authRoutes);
@@ -38,5 +39,6 @@ router.use('/user', userRoutes);
 router.use('/logs', logsRouter);
 router.use('/sentiment', sentimentRoutes);
 router.use('/anomalies', anomalyRoutes);
+router.use('/sectors', sectorRoutes);
 
 module.exports = router;

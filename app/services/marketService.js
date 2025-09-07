@@ -39,7 +39,7 @@ async function getTopMovers(limit = 5, direction = 'desc') {
 }
 
 async function fetchAndStoreMarketData() {
-    const COINGECKO_API_BASE = 'https://api.coingecko.com/api/v3';
+    const COINGECKO_API_BASE = process.env.COINGECKO_API_URL || 'https://api.coingecko.com/api/v3';
 
     let allCoins = [];
     let page = 1;
