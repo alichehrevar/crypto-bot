@@ -1,9 +1,14 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
     ResponsiveContainer, LineChart, Line, ScatterChart, Scatter, ZAxis, ReferenceLine, Cell, Tooltip, XAxis, YAxis, CartesianGrid
 } from 'recharts';
+import {addToast} from "@heroui/react";
+
+import {getData} from "@/actions/get";
+import {MarketMoversResponse} from "@/types/market/Movers";
+import LoadingWithSpinner from "@/components/loading/LoadingWithSpinner";
 
 // =====================================================================
 // --- TYPE DEFINITIONS ---
@@ -24,7 +29,7 @@ export interface MoversData {
 }
 
 // =====================================================================
-// --- REUSABLE SUB-COMPONENTS ---
+// --- REUSABLE SUB-COMPONENTS (Unchanged) ---
 // =====================================================================
 
 const GlossaryTerm: React.FC<{ term: string }> = ({ term }) => (
@@ -54,23 +59,53 @@ const CustomChartTooltip: React.FC<any> = ({ active, payload }) => {
 };
 
 // =====================================================================
-// --- MAIN COMPONENT ---
+// --- MAIN COMPONENT (Updated with API Logic) ---
 // =====================================================================
 
-const MoversAndVolatility: React.FC<{ data: MoversData | null }> = ({ data }) => {
+const MoversAndVolatility: React.FC = () => {
+    // --- STATE MANAGEMENT ---
+    // The component now manages its own data, loading, and error states.
+    const [data, setData] = useState<MoversData | null>(null);
+    const [isLoading, setIsLoading] = useState<boolean>(true);
+
     const [moverView, setMoverView] = useState<'gainers' | 'losers'>('gainers');
     const [activeSubTab, setActiveSubTab] = useState<'table' | 'chart'>('table');
 
+    // --- DATA FETCHING ---
+    async function fetchMarketMoversData () {
+        return await getData('/market/movers');
+    }
+    // useEffect hook to fetch data from our backend API when the component mounts.
+    useEffect(() => {
+        fetchMarketMoversData()
+            .then((response: MarketMoversResponse) => {
+                if (response.success) {
+                    setData(response.data);
+                } else {
+                    addToast({
+                        title: response.error,
+                        color: 'warning'
+                    })
+                }
+            })
+            .catch((error) => {
+                addToast({
+                    title: error.message,
+                    color: 'danger'
+                })
+            })
+            .finally(() => setIsLoading(false))
+    }, []);
+
+    // --- MEMOIZED DATA VIEW ---
+    // This part remains the same, calculating which list to show based on UI state.
     const items = useMemo(() => {
         if (!data) return [];
 
         return moverView === 'gainers' ? data.gainers : data.losers;
     }, [moverView, data]);
 
-    if (!data) {
-        return <div className="bg-dark-gray rounded-xl p-6 border border-white/5 shadow-md min-h-[400px] flex items-center justify-center">Loading...</div>;
-    }
-
+    // --- MAIN RENDER ---
     return (
         <div className="bg-dark-gray rounded-xl p-6 border border-white/5 shadow-md flex flex-col h-full">
             <div className="flex justify-between items-center mb-4 flex-wrap gap-4">
@@ -78,59 +113,67 @@ const MoversAndVolatility: React.FC<{ data: MoversData | null }> = ({ data }) =>
                 <div className="flex items-center gap-4">
                     {/* Mover Type Toggles (Gainers/Losers) */}
                     <div className={`flex gap-2 ${activeSubTab !== 'table' ? 'invisible' : ''}`}>
-                        <button className={`p-1.5 rounded-md ${moverView === 'gainers' ? 'text-white' : 'text-gray-500 hover:text-white'}`} onClick={() => setMoverView('gainers')}>
+                        <button className={`p-1.5 rounded-md ${moverView === 'gainers' ? 'text-white' : 'text-gray-500 hover:text-white'}`} disabled={isLoading} onClick={() => setMoverView('gainers')}>
                             <svg fill="none" height="20" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" width="20"><path d="M18 8l-4-4-4 4M18 16V4M3 8h11M3 12h11M3 16h8" /></svg>
                         </button>
-                        <button className={`p-1.5 rounded-md ${moverView === 'losers' ? 'text-white' : 'text-gray-500 hover:text-white'}`} onClick={() => setMoverView('losers')}>
+                        <button className={`p-1.5 rounded-md ${moverView === 'losers' ? 'text-white' : 'text-gray-500 hover:text-white'}`} disabled={isLoading} onClick={() => setMoverView('losers')}>
                             <svg fill="none" height="20" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" width="20"><path d="M18 16l-4 4-4-4M18 8v12M3 8h11M3 12h11M3 16h8" /></svg>
                         </button>
                     </div>
                     {/* View Toggles (Table/Chart) */}
                     <div className="flex overflow-hidden text-sm">
-                        <button className={`px-3 py-1.5 ${activeSubTab === 'table' ? 'border-b-1 text-white' : 'text-gray-400'}`} onClick={() => setActiveSubTab('table')}>Table</button>
-                        <button className={`px-3 py-1.5 ${activeSubTab === 'chart' ? 'border-b-1 text-white' : 'text-gray-400'}`} onClick={() => setActiveSubTab('chart')}>Chart</button>
+                        <button className={`px-3 py-1.5 ${activeSubTab === 'table' ? 'border-b-2 border-blue-500 text-white' : 'text-gray-400'}`} disabled={isLoading} onClick={() => setActiveSubTab('table')}>Table</button>
+                        <button className={`px-3 py-1.5 ${activeSubTab === 'chart' ? 'border-b-2 border-blue-500 text-white' : 'text-gray-400'}`} disabled={isLoading} onClick={() => setActiveSubTab('chart')}>Chart</button>
                     </div>
                 </div>
             </div>
 
-            {activeSubTab === 'table' && (
-                <div className="overflow-x-auto">
-                    <table className="w-full border-collapse text-sm text-center">
-                        <thead><tr>{['Asset', '24h Change', 'Volume (USD)', 'RVOL', 'Trend'].map(h => <th key={h} className={`p-3 border-b border-white/10 font-medium text-gray-400 text-xs ${h === 'Asset' ? 'text-left' : ''}`}>{h === 'RVOL' ? <GlossaryTerm term={h} /> : h}</th>)}</tr></thead>
-                        <tbody>
-                        {items.map((item) => (
-                            <tr key={item.asset} className="hover:bg-white/5">
-                                <td className="p-3 border-b border-white/10 text-left font-semibold text-white">{item.asset}</td>
-                                <td className={`p-3 border-b border-white/10 font-medium ${item.change >= 0 ? 'text-green-500' : 'text-red-500'}`}>{item.change.toFixed(2)}%</td>
-                                <td className="p-3 border-b border-white/10">${(item.volume / 1000000).toFixed(2)}M</td>
-                                <td className={`p-3 border-b border-white/10 font-medium ${item.rVol > 2.5 ? 'text-yellow-400' : ''}`}>{item.rVol.toFixed(2)}x</td>
-                                <td className="p-3 border-b border-white/10 h-[40px]">
-                                    <ResponsiveContainer height={30} width="100%"><LineChart data={item.sparkline.map(v => ({ pv: v }))}><Line dataKey="pv" dot={false} stroke={item.change >= 0 ? "#4CAF50" : "#F44336"} strokeWidth={2} type="monotone" /></LineChart></ResponsiveContainer>
-                                </td>
-                            </tr>
-                        ))}
-                        </tbody>
-                    </table>
-                </div>
-            )}
+            {isLoading
+                ? <LoadingWithSpinner />
+                : <>
+                    {activeSubTab === 'table' && (
+                        <div className="overflow-x-auto">
+                            <table className="w-full border-collapse text-sm text-center">
+                                <thead><tr>{['Asset', '24h Change', 'Volume (USD)', 'RVOL', 'Trend (7d)'].map(h => <th key={h} className={`p-3 border-b border-white/10 font-medium text-gray-400 text-xs ${h === 'Asset' ? 'text-left' : ''}`}>{h === 'RVOL' ? <GlossaryTerm term={h} /> : h}</th>)}</tr></thead>
+                                <tbody>
+                                {items.map((item) => (
+                                    <tr key={item.asset} className="hover:bg-white/5">
+                                        <td className="p-3 border-b border-white/10 text-left font-semibold text-white">{item.asset}</td>
+                                        <td className={`p-3 border-b border-white/10 font-medium ${item.change >= 0 ? 'text-green-500' : 'text-red-500'}`}>{item.change.toFixed(2)}%</td>
+                                        <td className="p-3 border-b border-white/10">${(item.volume / 1000000).toFixed(2)}M</td>
+                                        <td className={`p-3 border-b border-white/10 font-medium ${item.rVol > 2.5 ? 'text-yellow-400' : ''}`}>{item.rVol.toFixed(2)}x</td>
+                                        <td className="p-3 border-b border-white/10 h-[40px]">
+                                            <ResponsiveContainer height={30} width="100%"><LineChart data={item.sparkline.map(v => ({ pv: v }))}><Line dataKey="pv" dot={false} stroke={item.change >= 0 ? "#4CAF50" : "#F44336"} strokeWidth={2} type="monotone" /></LineChart></ResponsiveContainer>
+                                        </td>
+                                    </tr>
+                                ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
 
-            {activeSubTab === 'chart' && (
-                <div className="w-full h-[500px] mt-4">
-                    <ResponsiveContainer height="100%" width="100%">
-                        <ScatterChart margin={{ top: 20, right: 30, bottom: 20, left: 30 }}>
-                            <CartesianGrid stroke="rgba(255, 255, 255, 0.05)" strokeDasharray="3 3" />
-                            <XAxis dataKey="change" name="Price Change" stroke="#a0a0a0" tick={{ fontSize: 12 }} type="number" unit="%" />
-                            <YAxis dataKey="volume" name="Volume" stroke="#a0a0a0" tick={{ fontSize: 12 }} tickFormatter={v => `${(v/1000000).toFixed(0)}M`} type="number" />
-                            <ZAxis dataKey="rVol" name="Relative Volume" range={[50, 600]} type="number" />
-                            <Tooltip content={<CustomChartTooltip />} cursor={{ strokeDasharray: '3 3' }} />
-                            <ReferenceLine stroke="#a0a0a0" strokeDasharray="2 2" x={0} />
-                            <Scatter data={data.volatilityScatter} name="Assets">
-                                {data.volatilityScatter.map((entry, index) => (<Cell key={`cell-${index}`} fill={entry.change > 0 ? '#4CAF50' : '#F44336'} fillOpacity={Math.min(1, entry.rVol / 5 + 0.3)} />))}
-                            </Scatter>
-                        </ScatterChart>
-                    </ResponsiveContainer>
-                </div>
-            )}
+                    {activeSubTab === 'chart' && (
+                        <div className="w-full h-[500px] mt-4">
+                            <ResponsiveContainer height="100%" width="100%">
+                                <ScatterChart margin={{ top: 20, right: 30, bottom: 20, left: 30 }}>
+                                    <CartesianGrid stroke="rgba(255, 255, 255, 0.05)" strokeDasharray="3 3" />
+                                    <XAxis dataKey="change" name="Price Change" stroke="#a0a0a0" tick={{ fontSize: 12 }} type="number" unit="%" />
+                                    <YAxis dataKey="volume" name="Volume" stroke="#a0a0a0" tick={{ fontSize: 12 }} tickFormatter={v => `${(v/1000000).toFixed(0)}M`} type="number" />
+                                    <ZAxis dataKey="rVol" name="Relative Volume" range={[50, 600]} type="number" />
+                                    <Tooltip content={<CustomChartTooltip />} cursor={{ strokeDasharray: '3 3' }} />
+                                    <ReferenceLine stroke="#a0a0a0" strokeDasharray="2 2" x={0} />
+                                    {!data
+                                        ? <div className="bg-dark-gray rounded-xl p-6 border border-white/5 shadow-md min-h-[400px] flex items-center justify-center text-white/50">No data available.</div>
+                                        : <Scatter data={data.volatilityScatter} name="Assets">
+                                            {data.volatilityScatter.map((entry, index) => (<Cell key={`cell-${index}`} fill={entry.change > 0 ? '#4CAF50' : '#F44336'} fillOpacity={Math.min(1, entry.rVol / 5 + 0.3)} />))}
+                                        </Scatter>
+                                    }
+                                </ScatterChart>
+                            </ResponsiveContainer>
+                        </div>
+                    )}
+                </>
+            }
         </div>
     );
 };
