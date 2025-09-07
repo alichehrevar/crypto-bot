@@ -91,7 +91,7 @@ export default function NewListingsPage() {
             <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1fr_2fr]">
 
                 {/* Card for Upcoming Listings */}
-                <div className="flex h-full flex-col rounded-xl border border-white/5 bg-[#1a1a1a] p-6 shadow-2xl">
+                <div className="flex h-full flex-col rounded-xl border border-white/5 bg-dark-gray p-6 shadow-2xl">
                     <CardHeader
                         infoContent="This timeline tracks high-anticipation events like Token Generation Events (TGEs), exchange listings, and airdrop claims. These are often volatile periods that present unique trading opportunities."
                         title="Upcoming Listings"
@@ -111,7 +111,7 @@ export default function NewListingsPage() {
                 </div>
 
                 {/* Card for Recent Launch Performance */}
-                <div className="flex h-full flex-col rounded-xl border border-white/5 bg-[#1a1a1a] p-6 shadow-2xl">
+                <div className="flex h-full flex-col rounded-xl border border-white/5 bg-dark-gray p-6 shadow-2xl">
                     <CardHeader
                         infoContent="This table tracks the performance of recently launched tokens since their debut. 'Velocity' is a qualitative measure of post-launch momentum and market appetite."
                         title="Launch Performance Tracker"

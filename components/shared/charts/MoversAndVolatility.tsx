@@ -72,7 +72,7 @@ const MoversAndVolatility: React.FC<{ data: MoversData | null }> = ({ data }) =>
     }
 
     return (
-        <div className="bg-[#1a1a1a] rounded-xl p-6 border border-white/5 shadow-md flex flex-col h-full">
+        <div className="bg-dark-gray rounded-xl p-6 border border-white/5 shadow-md flex flex-col h-full">
             <div className="flex justify-between items-center mb-4 flex-wrap gap-4">
                 <h3 className="text-lg font-semibold text-white m-0">Market Movers & Volatility</h3>
                 <div className="flex items-center gap-4">

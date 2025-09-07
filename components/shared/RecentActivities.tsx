@@ -121,7 +121,7 @@ export const RecentActivities = ({ showTabs = true, visibleTab = 'open' }: { sho
                 </div>
 
                 {loading &&
-                    <div className="flex items-center justify-center flex-row-reverse gap-3 h-24 bg-[#1A1A1A] rounded-lg w-full">
+                    <div className="flex items-center justify-center flex-row-reverse gap-3 h-24 bg-dark-gray rounded-lg w-full">
                         <Spinner className="mr-2" color="primary" size="sm" variant="wave" />
                         Loading PnL Data…
                     </div>

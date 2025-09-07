@@ -75,7 +75,7 @@ export default function BotsList({refreshList = false, title = "Active Bots", li
             </div>
 
             {isLoading &&
-                <div className="flex items-center justify-center flex-row-reverse gap-3 h-24 bg-[#1A1A1A] rounded-lg w-full">
+                <div className="flex items-center justify-center flex-row-reverse gap-3 h-24 bg-dark-gray rounded-lg w-full">
                     <Spinner className="mr-2" color="primary" size="sm" variant="wave" />
                     Loading Data…
                 </div>
@@ -105,7 +105,7 @@ export default function BotsList({refreshList = false, title = "Active Bots", li
                         <React.Fragment key={botIndex}>
                             <div
                                 aria-controls={`bot-content-${botIndex}`}
-                                className={`grid ${active ? 'grid-cols-9' : 'grid-cols-8 min-h-14'} items-center text-[13px] dark:bg-[#1A1A1A] rounded-md px-4 py-3 cursor-pointer hover:shadow-lg transition-all duration-300`}
+                                className={`grid ${active ? 'grid-cols-9' : 'grid-cols-8 min-h-14'} items-center text-[13px] dark:bg-dark-gray rounded-md px-4 py-3 cursor-pointer hover:shadow-lg transition-all duration-300`}
                                 role="button"
                                 tabIndex={0}
                                 onClick={() => handleDesktopClick(botIndex)}

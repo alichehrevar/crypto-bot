@@ -46,7 +46,7 @@ const LaunchPerformanceTracker: React.FC<{ data: PerformanceTrackerData | null }
     }
 
     return (
-        <div className="bg-[#1a1a1a] rounded-xl p-6 border border-white/5 shadow-md flex flex-col h-full">
+        <div className="bg-dark-gray rounded-xl p-6 border border-white/5 shadow-md flex flex-col h-full">
             <h3 className="text-lg font-semibold text-white m-0 mb-4">Launch Performance Tracker</h3>
             <div className="overflow-x-auto">
                 <table className="w-full border-collapse text-sm">

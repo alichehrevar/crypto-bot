@@ -203,7 +203,7 @@ export default function TradesList({
     const pct = (((isClosed ? exit! : current) - entry) / entry) * 100
 
     return (
-      <div className="bg-[#1A1A1A] rounded-b-2xl p-4 space-y-3">
+      <div className="bg-dark-gray rounded-b-2xl p-4 space-y-3">
         {/* collapse chevron */}
         {onCollapse && (
           <div className="flex justify-end">

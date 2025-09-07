@@ -90,7 +90,7 @@ const ExchangeNetFlowCard: React.FC<{ data: NetFlowsData | null }> = ({ data }) 
     }
 
     return (
-        <div className="bg-[#1a1a1a] rounded-xl p-6 border border-white/5 shadow-md flex flex-col h-full">
+        <div className="bg-dark-gray rounded-xl p-6 border border-white/5 shadow-md flex flex-col h-full">
             <div className="flex justify-between items-center mb-4">
                 <div className="flex items-center gap-3">
                     <h3 className="text-lg font-semibold text-white m-0">Exchange & Stablecoin Net Flows</h3>
