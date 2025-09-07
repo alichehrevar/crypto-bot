@@ -1,7 +1,6 @@
 // services/MarketService.js
 
 const MarketSnapshot = require('../models/MarketSnapshot');
-const IMAGE_CDN = 'https://static.coinpaprika.com/coin';
 
 /**
  * Get top movers from the DB.
