@@ -1,6 +1,9 @@
 'use client'
 
 import React, { useEffect, useId, useRef, useState } from 'react'
+import {getData} from "@/actions/get";
+import {SentimentResponse} from "@/types/market/Sentiment";
+import {addToast, Spinner} from "@heroui/react";
 
 // =====================================================================
 // Fear & Greed Gauge — Next.js + Tailwind (self-contained widget)
@@ -147,16 +150,53 @@ function SentimentGauge({ score }: { score: number }) {
 // -----------------------------
 // Main Export
 // -----------------------------
-export default function SentimentGaugeWidget({ score = 72 }: { score?: number }) {
+export default function SentimentGaugeWidget() {
+
+    const [score, setScore] = useState<number | null>(null);
+    const [isLoading, setIsLoading] = useState<boolean>(true);
+
     const infoTitle = 'Fear & Greed Index'
     const infoContent =
         'This gauge aggregates factors like volatility, momentum, and social activity to approximate market sentiment. Extreme readings can hint at potential mean reversion.'
+
+    async function fetchSentimentScore () {
+        return await getData('/sentiment');
+    }
+
+    useEffect(() => {
+        fetchSentimentScore()
+            .then((response: SentimentResponse) => {
+                if (response.success) {
+                    setScore(response.data.score);
+                } else {
+                    addToast({
+                        title: response.error || 'Error fetching sentiment data !',
+                        color: 'warning'
+                    })
+                }
+            })
+            .catch((error) => {
+                addToast({
+                    title: error.message,
+                    color: 'danger'
+                })
+            })
+            .finally(() => {
+                setIsLoading(false)
+            })
+    }, []);
 
     return (
         <div className="w-full rounded-lg bg-dark-gray p-4 shadow-sm h-full">
             <CardHeader infoContent={infoContent} infoTitle={infoTitle} title="Fear & Greed Index" />
             <div className="flex h-full flex-col">
-                <SentimentGauge score={score} />
+                {isLoading
+                    ? <div className="flex items-center justify-center flex-row-reverse gap-3 h-56 w-full">
+                        <Spinner className="mr-2" color="primary" size="sm" variant="wave" />
+                        Loading Data…
+                    </div>
+                    : <SentimentGauge score={score || 0} />
+                }
             </div>
         </div>
     )
