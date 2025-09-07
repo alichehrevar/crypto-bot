@@ -1,9 +1,10 @@
 'use client'
 
 import React, { useEffect, useId, useRef, useState } from 'react'
+import {addToast} from "@heroui/react";
+
 import {getData} from "@/actions/get";
 import {SentimentResponse} from "@/types/market/Sentiment";
-import {addToast, Spinner} from "@heroui/react";
 import LoadingWithSpinner from "@/components/loading/LoadingWithSpinner";
 
 // =====================================================================
