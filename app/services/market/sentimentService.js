@@ -58,7 +58,7 @@ async function getEconomicEvents () {
         logger.error('Error fetching economic events from database:', error);
         throw new Error('Could not retrieve economic events.');
     }
-};
+}
 
 module.exports = {
     getFearAndGreedIndex,
