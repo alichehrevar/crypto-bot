@@ -8,6 +8,7 @@ const { WebSocketServer } = require('ws');
 const { runInitialMarketUpdate, scheduleMarketUpdate } = require('./cron/updateMarketData');
 const { runInitialSnapshot, scheduleSnapshots } = require('./cron/snapshotJob');
 const { scheduleAnomalyGeneration } = require('./cron/anomalyGeneratorJob');
+const { economicEventCron } = require('./cron/economicEvents');
 
 const connectDB = require('./config/db');
 const binanceWS = require('./app/services/binanceWS');
@@ -185,6 +186,9 @@ server.on('upgrade', (request, socket, head) => {
 
     // Run the anomaly generation
     scheduleAnomalyGeneration()
+
+    // Run the economic events
+    economicEventCron()
 })();
 
 scheduleSnapshots();

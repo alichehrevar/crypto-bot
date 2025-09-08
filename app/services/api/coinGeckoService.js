@@ -1,6 +1,6 @@
 const axios = require('axios');
 const NodeCache = require('node-cache');
-const { logger } = require('../../../logs/logger');
+const logger = require('../../../logs/logger');
 
 // --- Caching Setup ---
 // Initialize a cache with a 2-minute (120 seconds) TTL (Time To Live)
@@ -73,7 +73,7 @@ exports.fetchCryptoEvents = async () => {
     // --- Step 2: If cache miss, fetch from API ---
     logger.info('Cache miss. Fetching fresh crypto events from CoinGecko.');
     try {
-        const response = await apiClient.get('/events');
+        const response = await apiClient.get('/global/events');
         const { data } = response.data;
 
         if (!data) {
