@@ -4,6 +4,7 @@ import {Tab, Tabs} from "@heroui/react";
 import TechnicalAnalysis from "@/components/shared/TechnicalAnalysis";
 import MarketListWithSearch from "@/components/market/marketListWithSearch/MarketListWithSearch";
 import {MarketListItem} from "@/types/MarketList";
+import FearAndGreedGauge from "@/components/shared/charts/FearAndGreedGauge";
 
 interface AnalysisAndSymbolsListProps {
     onSymbolClickAction: (symbol: MarketListItem) => void;
@@ -18,7 +19,7 @@ export default function AnalysisAndSymbolsList({ onSymbolClickAction }: Analysis
                     tabList: 'w-full px-2',
                     tab: 'pb-4 font-bold text-[14px] mb-1',
                     cursor: 'w-full',
-                    panel: 'h-full'
+                    panel: 'h-[93%]'
                 }}
                 variant="underlined"
             >
@@ -26,7 +27,8 @@ export default function AnalysisAndSymbolsList({ onSymbolClickAction }: Analysis
                     <MarketListWithSearch onSymbolClickAction={onSymbolClickAction} />
                 </Tab>
                 <Tab key="TechnicalAnalysis" title="Analysis">
-                    <TechnicalAnalysis />
+                    {/*<TechnicalAnalysis />*/}
+                    <FearAndGreedGauge />
                 </Tab>
             </Tabs>
         </div>
