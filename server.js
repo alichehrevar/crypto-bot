@@ -10,7 +10,7 @@ const { runInitialSnapshot, scheduleSnapshots } = require('./cron/snapshotJob');
 const { scheduleAnomalyGeneration } = require('./cron/anomalyGeneratorJob');
 const { economicEventCron } = require('./cron/economicEvents');
 const netFlowJob = require('./cron/netFlowJob');
-const { scheduleListingUpdates } = require('./cron/listingUpdateJob');
+const { schedulePriceUpdate } = require('./cron/listingUpdateJob');
 
 const connectDB = require('./config/db');
 const binanceWS = require('./app/services/binanceWS');
@@ -196,7 +196,7 @@ server.on('upgrade', (request, socket, head) => {
     netFlowJob.start();
 
     // Run Listing Updates
-    scheduleListingUpdates();
+    schedulePriceUpdate();
 })();
 
 scheduleSnapshots();

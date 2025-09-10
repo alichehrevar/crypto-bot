@@ -1,31 +1,19 @@
-const listingService = require('../../services/listingService');
+const UpcomingListing = require('../../models/UpcomingListing');
+const RecentLaunch = require('../../models/RecentLaunch');
 
+/**
+ * Get all upcoming and recent listings.
+ */
 async function getListings(req, res) {
     try {
-        const data = await listingService.getListings();
+        const upcoming = await UpcomingListing.find().sort({ date: 'asc' });
+        const recent = await RecentLaunch.find().sort({ launchDate: 'desc' });
 
-        // Format data to match frontend expectations
-        const formattedData = {
-            upcoming: data.upcoming.map(item => ({
-                date: item.eventDate.toUTCString(),
-                asset: item.asset,
-                type: item.eventType,
-                exchange: item.exchange,
-            })),
-            recent: data.recent.map(item => ({
-                asset: item.asset,
-                // Formatting date to YYYY-MM-DD
-                launchDate: item.launchDate.toISOString().split('T')[0],
-                launchPrice: item.launchPrice,
-                currentPrice: item.currentPrice,
-                velocity: item.velocity,
-            })),
-        };
-
-        res.status(200).json(formattedData);
+        res.status(200).json({data: { upcoming, recent }, success: true});
     } catch (error) {
-        console.error('Failed to get listings:', error);
-        res.status(500).json({ message: 'Internal Server Error' });
+        // Assuming you have a centralized logger
+        console.error('Failed to fetch listings:', error);
+        res.status(500).json({ error: 'Error fetching listing data.', success: false });
     }
 }
 

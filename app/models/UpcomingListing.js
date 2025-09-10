@@ -1,16 +1,21 @@
 const mongoose = require('mongoose');
 
-const UpcomingListingSchema = new mongoose.Schema({
+const upcomingListingSchema = new mongoose.Schema({
     asset: {
         type: String,
         required: true,
-        unique: true, // Assuming each asset has one upcoming event
     },
-    eventDate: {
+    // A unique identifier, e.g., 'zksync-tge-multiple'
+    eventId: {
+        type: String,
+        required: true,
+        unique: true,
+    },
+    date: {
         type: Date,
         required: true,
     },
-    eventType: {
+    type: {
         type: String,
         required: true,
         enum: ['Token Generation Event (TGE)', 'Listing', 'Airdrop Claim Opens'],
@@ -19,8 +24,6 @@ const UpcomingListingSchema = new mongoose.Schema({
         type: String,
         required: true,
     },
-}, {
-    timestamps: true // Adds createdAt and updatedAt
-});
+}, { timestamps: true });
 
-module.exports = mongoose.model('UpcomingListing', UpcomingListingSchema);
+module.exports = mongoose.model('UpcomingListing', upcomingListingSchema);

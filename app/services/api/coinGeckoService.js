@@ -106,3 +106,36 @@ exports.fetchCryptoEvents = async () => {
         return [];
     }
 };
+
+/**
+ * Fetches current market data for a list of CoinGecko IDs.
+ * @param {string[]} coinIds - Array of CoinGecko IDs (e.g., ['wormhole', 'ethena', 'tensor']).
+ * @returns {Promise<object>} A map of coinId to its current price.
+ */
+exports.getMarketDataForIds = async (coinIds) => {
+    if (!coinIds || coinIds.length === 0) {
+        return {};
+    }
+
+    try {
+        const response = await axios.get(`${COINGECKO_API_URL}/simple/price`, {
+            params: {
+                ids: coinIds.join(','),
+                vs_currencies: 'usd',
+            },
+        });
+
+        const priceMap = {};
+        for (const coinId in response.data) {
+            priceMap[coinId] = response.data[coinId].usd;
+        }
+        return priceMap;
+    } catch (error) {
+        logger.error('Error fetching market data from CoinGecko:', error.message);
+        return {};
+    }
+}
+
+// NOTE: CoinGecko's free API doesn't have a reliable "upcoming listings" endpoint.
+// A real-world implementation would use a paid data provider or manual entry for this.
+// For this example, we will focus on updating the prices of recent launches.
