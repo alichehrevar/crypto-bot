@@ -4,45 +4,11 @@ import React, {useEffect, useMemo, useState} from 'react';
 import {
     ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine
 } from 'recharts';
+import {addToast} from "@heroui/react";
 
-// =====================================================================
-// --- MOCK DATA GENERATION ---
-// =====================================================================
-const random = (min: number, max: number): number => Math.random() * (max - min) + min;
-const generateLiquidityFlowsData = (): NetFlowsData => {
-    const baseHistory = Array.from({ length: 17 }, (_, i) => { const date = new Date();
-
-        date.setDate(date.getDate() - (16 - i)); const inflow = random(100, 800); const outflow = random(100, 800) * -1;
-
-        return { day: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }), inflow, outflow, totalNetFlow: inflow + outflow, stablecoinFlow: random(-500, 500), exchangeFlow: random(-200, 200), txCount: Math.floor(random(2000, 20000)), }; });
-    const netFlowsHistory: NetFlowHistoryItem[] = baseHistory.map((item, index, arr) => { if (index < 6) return { ...item, sevenDayMA: null }; const sevenDaySlice = arr.slice(index - 6, index + 1); const sum = sevenDaySlice.reduce((acc, curr) => acc + curr.totalNetFlow, 0);
-
-        return { ...item, sevenDayMA: sum / 7 }; }).slice(7);
-
-    return { netFlows: { history: netFlowsHistory } };
-};
-
-
-// =====================================================================
-// --- TYPE DEFINITIONS ---
-// =====================================================================
-
-interface NetFlowHistoryItem {
-    day: string;
-    inflow: number;
-    outflow: number;
-    totalNetFlow: number;
-    stablecoinFlow: number;
-    exchangeFlow: number;
-    txCount: number;
-    sevenDayMA: number | null;
-}
-
-interface NetFlowsData {
-    netFlows: {
-        history: NetFlowHistoryItem[];
-    };
-}
+import {getData} from "@/actions/get";
+import {NetFlowsApiResponse, NetFlowsData} from "@/types/market/NetFlows";
+import LoadingWithSpinner from "@/components/loading/LoadingWithSpinner";
 
 // =====================================================================
 // --- CONFIGURATION ---
@@ -58,16 +24,30 @@ const GLOSSARY_DEFINITIONS: Record<string, string> = {
     'Exchange net flow': "Net USD value of an asset moving to/from exchanges (inflow - outflow). Negative values suggest accumulation; positive values may indicate selling pressure."
 };
 
+
 // =====================================================================
 // --- REUSABLE UI SUB-COMPONENTS ---
 // =====================================================================
 
-const CustomTooltip: React.FC<any> = ({ active, payload, label }) => {
+// --- Type definitions for sub-component props ---
+interface TooltipPayload {
+    name: string;
+    value: number;
+    color: string;
+}
+
+interface CustomTooltipProps {
+    active?: boolean;
+    payload?: TooltipPayload[];
+    label?: string;
+}
+
+const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
         return (
             <div className="bg-black/80 p-3 border border-gray-700 rounded-lg text-sm shadow-lg">
                 <p className="font-bold mb-1">{label}</p>
-                {payload.map((entry: any, index: number) => (
+                {payload.map((entry: TooltipPayload, index: number) => (
                     <p key={index} style={{ color: entry.color, margin: 0 }}>
                         {`${entry.name}: ${entry.value.toFixed(2)}M`}
                     </p>
@@ -79,7 +59,12 @@ const CustomTooltip: React.FC<any> = ({ active, payload, label }) => {
     return null;
 };
 
-const GlossaryTerm: React.FC<{ term: string; definition: string }> = ({ term, definition }) => (
+interface GlossaryTermProps {
+    term: string;
+    definition: string;
+}
+
+const GlossaryTerm: React.FC<GlossaryTermProps> = ({ term, definition }) => (
     <span className="relative cursor-default border-b border-dashed border-blue-500 group">
         {term}
         <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 bg-gray-800/90 backdrop-blur-md text-white text-xs font-normal normal-case leading-normal p-3 rounded-md border border-white/10 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
@@ -88,34 +73,46 @@ const GlossaryTerm: React.FC<{ term: string; definition: string }> = ({ term, de
     </span>
 );
 
+
 // =====================================================================
 // --- MAIN COMPONENT: ExchangeNetFlowCard ---
 // =====================================================================
 
-const ExchangeNetFlowCard = () => {
-
+const ExchangeNetFlowCard: React.FC = () => {
     const [netFlowData, setNetFlowData] = useState<NetFlowsData | null>(null);
+    const [isLoading, setIsLoading] = useState<boolean>(true);
 
+    async function fetchNetFlows() {
+        return await getData('/market/net-flows');
+    }
     useEffect(() => {
-        setNetFlowData(generateLiquidityFlowsData());
-    }, [])
+        fetchNetFlows()
+            .then((response: NetFlowsApiResponse) => {
+                if (response.success) {
+                    setNetFlowData(response.data)
+                } else {
+                    addToast({
+                        title: response.error,
+                        color: 'warning'
+                    })
+                }
+            })
+            .catch((error) => {
+                addToast({
+                    title: error.message,
+                    color: 'danger'
+                })
+            })
+            .finally(() => setIsLoading(false))
+    }, []);
 
     const chartData = netFlowData?.netFlows?.history;
-
     const reversedHistory = useMemo(() => {
         return chartData ? [...chartData].reverse() : [];
     }, [chartData]);
 
-    if (!chartData) {
-        return (
-            <div className="bg-dark-gray rounded-xl p-6 border border-white/5 shadow-md flex items-center justify-center min-h-[400px]">
-                <p>Loading data...</p>
-            </div>
-        );
-    }
-
     return (
-        <div className="bg-dark-gray rounded-xl p-6 border border-white/5 shadow-md flex flex-col h-full">
+        <div className="bg-dark-gray text-white rounded-lg p-6 shadow-md flex flex-col h-full">
             <div className="flex justify-between items-center mb-4">
                 <div className="flex items-center gap-3">
                     <h3 className="text-lg font-semibold text-white m-0">Exchange & Stablecoin Net Flows</h3>
@@ -124,49 +121,61 @@ const ExchangeNetFlowCard = () => {
 
             {/* Bar Chart */}
             <div className="w-full h-[250px]">
-                <ResponsiveContainer height="100%" width="100%">
-                    <BarChart data={chartData} margin={{ top: 20, right: 10, left: -20, bottom: 5 }}>
-                        <CartesianGrid stroke={CHART_GRID_COLOR} strokeDasharray="3 3" />
-                        <XAxis axisLine={false} dataKey="day" stroke={CHART_AXIS_COLOR} tick={{ fontSize: 12 }} tickLine={false} />
-                        <YAxis axisLine={false} stroke={CHART_AXIS_COLOR} tick={{ fontSize: 12 }} tickFormatter={(val) => `${val.toFixed(0)}M`} tickLine={false} />
-                        <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255, 255, 255, 0.05)' }} />
-                        <ReferenceLine stroke={CHART_AXIS_COLOR} y={0} />
-                        <Bar dataKey="inflow" fill="#4CAF50" maxBarSize={30} name="Inflow" radius={[4, 4, 0, 0]} />
-                        <Bar dataKey="outflow" fill="#F44336" maxBarSize={30} name="Outflow" radius={[0, 0, 4, 4]} />
-                    </BarChart>
-                </ResponsiveContainer>
+                {isLoading
+                    ? <LoadingWithSpinner />
+                    : <ResponsiveContainer height="100%" width="100%">
+                        <BarChart data={chartData} margin={{ top: 20, right: 10, left: -20, bottom: 5 }}>
+                            <CartesianGrid stroke={CHART_GRID_COLOR} strokeDasharray="3 3" />
+                            <XAxis axisLine={false} dataKey="day" stroke={CHART_AXIS_COLOR} tick={{ fontSize: 12 }} tickLine={false} />
+                            <YAxis axisLine={false} stroke={CHART_AXIS_COLOR} tick={{ fontSize: 12 }} tickFormatter={(val) => `${val.toFixed(0)}M`} tickLine={false} />
+                            <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255, 255, 255, 0.05)' }} />
+                            <ReferenceLine stroke={CHART_AXIS_COLOR} y={0} />
+                            <Bar dataKey="inflow" fill="#4CAF50" maxBarSize={30} name="Inflow" radius={[4, 4, 0, 0]} />
+                            <Bar dataKey="outflow" fill="#F44336" maxBarSize={30} name="Outflow" radius={[0, 0, 4, 4]} />
+                        </BarChart>
+                    </ResponsiveContainer>
+                }
             </div>
 
             {/* Data Table */}
-            <div className="overflow-x-auto mt-6 flex-grow">
+            <div className="overflow-x-auto mt-10 flex-grow">
                 <table className="w-full border-collapse text-sm">
                     <thead>
-                    <tr>
-                        {['Date', 'Transaction count', '7D moving average', 'Stablecoin net flow', 'Exchange net flow'].map(header => (
-                            <th key={header} className="p-3 border-b border-white/10 text-left font-medium text-gray-400 text-xs capitalize">
-                                {GLOSSARY_DEFINITIONS[header] ? (
-                                    <GlossaryTerm definition={GLOSSARY_DEFINITIONS[header]} term={header} />
-                                ) : header}
-                            </th>
-                        ))}
-                    </tr>
+                        <tr>
+                            {['Date', 'Transaction count', '7D moving average', 'Stablecoin net flow', 'Exchange net flow'].map(header => (
+                                <th key={header} className="p-3 border-b border-white/10 text-left font-medium text-gray-400 text-xs capitalize">
+                                    {GLOSSARY_DEFINITIONS[header] ? (
+                                        <GlossaryTerm definition={GLOSSARY_DEFINITIONS[header]} term={header} />
+                                    ) : header}
+                                </th>
+                            ))}
+                        </tr>
                     </thead>
                     <tbody>
-                    {reversedHistory.map((item) => (
-                        <tr key={item.day} className="hover:bg-white/5 transition-colors">
-                            <td className="p-3 border-b border-white/10 font-medium">{item.day}</td>
-                            <td className="p-3 border-b border-white/10">{item.txCount.toLocaleString()}</td>
-                            <td className={`p-3 border-b border-white/10 ${item.sevenDayMA && item.sevenDayMA >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                                {item.sevenDayMA ? `${item.sevenDayMA.toFixed(2)}M` : 'N/A'}
-                            </td>
-                            <td className={`p-3 border-b border-white/10 ${item.stablecoinFlow >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                                {item.stablecoinFlow >= 0 ? '+' : ''}{item.stablecoinFlow.toFixed(2)}M
-                            </td>
-                            <td className={`p-3 border-b border-white/10 ${item.exchangeFlow >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                                {item.exchangeFlow >= 0 ? '+' : ''}{item.exchangeFlow.toFixed(2)}M
-                            </td>
-                        </tr>
-                    ))}
+                        {isLoading
+                            ? <tr>
+                                <td className="text-center" colSpan={5}>
+                                    <LoadingWithSpinner />
+                                </td>
+                            </tr>
+                            : <>
+                                {reversedHistory.map((item, index) => (
+                                    <tr key={index} className="hover:bg-white/5 transition-colors">
+                                        <td className="p-3 border-b border-white/10 font-medium">{item.day}</td>
+                                        <td className="p-3 border-b border-white/10">{item.txCount.toLocaleString()}</td>
+                                        <td className={`p-3 border-b border-white/10 ${item.sevenDayMA && item.sevenDayMA >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                            {item.sevenDayMA ? `${item.sevenDayMA.toFixed(2)}M` : 'N/A'}
+                                        </td>
+                                        <td className={`p-3 border-b border-white/10 ${item.stablecoinFlow >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                            {item.stablecoinFlow >= 0 ? '+' : ''}{item.stablecoinFlow.toFixed(2)}M
+                                        </td>
+                                        <td className={`p-3 border-b border-white/10 ${item.exchangeFlow >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                            {item.exchangeFlow >= 0 ? '+' : ''}{item.exchangeFlow.toFixed(2)}M
+                                        </td>
+                                    </tr>
+                                ))}
+                            </>
+                        }
                     </tbody>
                 </table>
             </div>
