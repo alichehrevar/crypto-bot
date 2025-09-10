@@ -9,6 +9,7 @@ const { runInitialMarketUpdate, scheduleMarketUpdate } = require('./cron/updateM
 const { runInitialSnapshot, scheduleSnapshots } = require('./cron/snapshotJob');
 const { scheduleAnomalyGeneration } = require('./cron/anomalyGeneratorJob');
 const { economicEventCron } = require('./cron/economicEvents');
+const netFlowJob = require('./cron/netFlowJob');
 
 const connectDB = require('./config/db');
 const binanceWS = require('./app/services/binanceWS');
@@ -177,18 +178,20 @@ server.on('upgrade', (request, socket, head) => {
 // IIFE to run startup tasks
 (async () => {
     // Run the market data update
-    await runInitialMarketUpdate();
-    scheduleMarketUpdate();
+    // await runInitialMarketUpdate();
+    // scheduleMarketUpdate();
+    //
+    // // Run the asset snapshot
+    // await runInitialSnapshot();
+    // scheduleSnapshots();
+    //
+    // // Run the anomaly generation
+    // scheduleAnomalyGeneration()
+    //
+    // // Run the economic events
+    // economicEventCron()
 
-    // Run the asset snapshot
-    await runInitialSnapshot();
-    scheduleSnapshots();
-
-    // Run the anomaly generation
-    scheduleAnomalyGeneration()
-
-    // Run the economic events
-    economicEventCron()
+    netFlowJob.start();
 })();
 
 scheduleSnapshots();

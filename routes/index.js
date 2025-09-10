@@ -20,6 +20,7 @@ const userRoutes = require('./user');
 const sentimentRoutes = require('./market/sentiment');
 const anomalyRoutes = require('./market/anomalies');
 const sectorRoutes = require('./market/sectors');
+const netFlowsRoutes = require('./market/netFlows');
 
 // Mount each router on its designated path
 router.use('/auth', authRoutes);
@@ -40,5 +41,6 @@ router.use('/logs', logsRouter);
 router.use('/sentiment', sentimentRoutes);
 router.use('/anomalies', anomalyRoutes);
 router.use('/sectors', sectorRoutes);
+router.use('/market/net-flows', netFlowsRoutes);
 
 module.exports = router;
