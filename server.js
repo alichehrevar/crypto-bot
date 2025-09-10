@@ -178,18 +178,18 @@ server.on('upgrade', (request, socket, head) => {
 // IIFE to run startup tasks
 (async () => {
     // Run the market data update
-    // await runInitialMarketUpdate();
-    // scheduleMarketUpdate();
-    //
-    // // Run the asset snapshot
-    // await runInitialSnapshot();
-    // scheduleSnapshots();
-    //
-    // // Run the anomaly generation
-    // scheduleAnomalyGeneration()
-    //
-    // // Run the economic events
-    // economicEventCron()
+    await runInitialMarketUpdate();
+    scheduleMarketUpdate();
+
+    // Run the asset snapshot
+    await runInitialSnapshot();
+    scheduleSnapshots();
+
+    // Run the anomaly generation
+    scheduleAnomalyGeneration()
+
+    // Run the economic events
+    economicEventCron()
 
     netFlowJob.start();
 })();
