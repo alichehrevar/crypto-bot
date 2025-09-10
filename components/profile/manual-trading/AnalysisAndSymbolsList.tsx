@@ -4,7 +4,6 @@ import {Tab, Tabs} from "@heroui/react";
 import TechnicalAnalysis from "@/components/shared/TechnicalAnalysis";
 import MarketListWithSearch from "@/components/market/marketListWithSearch/MarketListWithSearch";
 import {MarketListItem} from "@/types/MarketList";
-import FearAndGreedGauge from "@/components/shared/charts/FearAndGreedGauge";
 
 interface AnalysisAndSymbolsListProps {
     onSymbolClickAction: (symbol: MarketListItem) => void;
