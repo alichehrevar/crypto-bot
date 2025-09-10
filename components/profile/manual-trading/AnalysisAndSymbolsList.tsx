@@ -27,8 +27,7 @@ export default function AnalysisAndSymbolsList({ onSymbolClickAction }: Analysis
                     <MarketListWithSearch onSymbolClickAction={onSymbolClickAction} />
                 </Tab>
                 <Tab key="TechnicalAnalysis" title="Analysis">
-                    {/*<TechnicalAnalysis />*/}
-                    <FearAndGreedGauge />
+                    <TechnicalAnalysis />
                 </Tab>
             </Tabs>
         </div>

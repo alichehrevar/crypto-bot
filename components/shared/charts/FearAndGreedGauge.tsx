@@ -1,6 +1,7 @@
 "use client";
 
 import React, {useEffect, useMemo, useRef, useState} from "react";
+import LoadingWithSpinner from "@/components/loading/LoadingWithSpinner";
 
 // --- Types ---
 type Action = "Sell" | "Neutral" | "Buy";
@@ -184,7 +185,6 @@ function TechnicalAnalysisModal({
     timeframe: string;
 }) {
     const [activeTab, setActiveTab] = useState<"oscillators" | "movingAverages" | "sentiment">("oscillators");
-    const stop = (e: React.MouseEvent) => e.stopPropagation();
 
     const parseIndicatorName = (fullName: string) => {
         const match = fullName.match(/(.+?)\s?\((\d+.*)\)/);
@@ -399,9 +399,7 @@ export default function FearAndGreedMeter() {
 
     if (isLoading)
         return (
-            <div className="font-sans bg-zinc-900 text-white w-[360px] max-w-full rounded-3xl p-6 border border-white/10 shadow-2xl flex items-center justify-center h-[300px]">
-                Loading indicators...
-            </div>
+            <LoadingWithSpinner />
         );
 
     if (!data)
@@ -412,7 +410,7 @@ export default function FearAndGreedMeter() {
         );
 
     return (
-        <div className="font-sans bg-zinc-900 text-white w-[360px] max-w-full rounded-3xl p-6 border border-white/10 shadow-2xl">
+        <div className="font-sans text-white w-full max-w-full rounded-3xl py-3 shadow-2xl">
             {/* Timeframe selector */}
             <div className="relative grid grid-cols-[1fr_1fr_1fr_auto] gap-2 items-center mb-8 min-h-[38px]">
                 {visibleTimeframeIndices.map((index) => {
