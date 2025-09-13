@@ -65,7 +65,7 @@ export default function AcademyPage() {
             <div className="flex flex-col items-center w-full gap-8">
                 <AcademyHeader />
                 {items.map((section, index) => (
-                    <AcademySection key={index} lessons={section.lessons} title={section.title} section={section.section} />
+                    <AcademySection key={index} lessons={section.lessons} section={section.section} title={section.title} />
                 ))}
             </div>
         </div>
