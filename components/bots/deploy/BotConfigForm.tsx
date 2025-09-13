@@ -263,7 +263,7 @@ export default function BotConfigForm({mode, selectedParentTab, onCloseAction, s
 
                 {/* Trade Fund % */}
                 <NumericInput
-                    label="Trade Fund (%)"
+                    label="Investment"
                     max={100}
                     min={1}
                     step={0.1}
@@ -272,7 +272,6 @@ export default function BotConfigForm({mode, selectedParentTab, onCloseAction, s
                     onChange={e => setTradeFund(e)}
                 />
                 <div className="space-y-2">
-                    <LabelTag id="tradeFund" title="Trade Fund (%)"/>
                     <div className="flex items-center justify-between gap-2">
                         {[25, 50, 75, 100].map(p => (
                             <button

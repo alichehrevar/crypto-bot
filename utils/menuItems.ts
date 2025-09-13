@@ -52,9 +52,18 @@ export const MenuItems = [
         children: []
     },
     {
-        name: 'Academy',
-        link: '/academy',
-        children: []
+        name: 'Learn',
+        link: '#',
+        children: [
+            {
+                name: 'Academy',
+                link: '/learn/academy',
+            },
+            {
+                name: 'News',
+                link: '/learn/news',
+            },
+        ]
     },
     {
         name: 'Community',
