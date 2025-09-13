@@ -35,8 +35,8 @@ export default function AssetSummary({showExtraDetails = false}: { showExtraDeta
 
     return (
         <>
-            <div className="flex items-center justify-between w-full">
-                <div className="flex items-end justify-between gap-3 w-[45%]">
+            <div className="flex flex-col lg:flex-row gap-5 lg:gap-0 items-center justify-between w-full">
+                <div className="flex items-end justify-between gap-3 w-full lg:w-[45%]">
                     <div className="flex flex-col gap-3">
                         <h4 className="font-bold text-[24px]">
                             {showExtraDetails ? 'Portfolio Summary' : 'Welcome back !'}
@@ -136,7 +136,7 @@ export default function AssetSummary({showExtraDetails = false}: { showExtraDeta
                     }
                 </div>
                 {chartData && chartData.length > 1 &&
-                    <div className="w-[500px] h-[180px]">
+                    <div className="w-full lg:w-[500px] h-[180px]">
                         <ReusableAreaChart data={chartData}/>
                     </div>
                 }

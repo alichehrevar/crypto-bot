@@ -5,7 +5,7 @@ import type { Article } from '@/types/news/NewsData';
 /**
  * A constant holding Tailwind CSS classes to hide the scrollbar.
  */
-export const noScrollbar = 'scrollbar-thin scrollbar-none';
+export const noScrollbar = 'scrollbar-thin no-scrollbar';
 
 /**
  * An object mapping article sentiment to specific Tailwind CSS text color classes.

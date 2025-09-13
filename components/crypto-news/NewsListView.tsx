@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo, useCallback } from 'react';
 
+import { noScrollbar} from './utils';
 import NewsFilterBar from './NewsFilterBar';
 import NewsListItem from './NewsListItem';
 import NewsListSkeleton from './NewsListSkeleton';
@@ -13,8 +14,6 @@ interface NewsListViewProps {
     isLoading: boolean;
     onArticleSelect: (id: number) => void;
 }
-
-const noScrollbar = 'scrollbar-thin scrollbar-none';
 
 const NewsListView: React.FC<NewsListViewProps> = ({ isLoading, onArticleSelect }) => {
     const [searchTerm, setSearchTerm] = useState<string>('');
@@ -52,7 +51,7 @@ const NewsListView: React.FC<NewsListViewProps> = ({ isLoading, onArticleSelect 
     }, []);
 
     return (
-        <div className="p-6 flex flex-col h-full">
+        <div className="p-6 pt-0 flex flex-col h-[calc(100%-40px)]">
             <h1 className="text-3xl font-bold mb-4 flex-shrink-0 text-center text-black dark:text-white">
                 Crypto Market News
             </h1>
