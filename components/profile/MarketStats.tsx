@@ -93,6 +93,11 @@ export default function MarketStats({ symbolId }: Props) {
                         </div>
                     </div>
                 }
+                {!loading && !symbolData && (
+                    <div className="flex items-center justify-center w-full h-14">
+                        No data available.
+                    </div>
+                )}
             </div>
         </div>
     );

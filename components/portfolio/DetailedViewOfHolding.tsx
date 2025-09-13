@@ -11,7 +11,7 @@ export default function DetailedViewOfHolding() {
             </div>
             <div className="col-span-5 h-full">
                 <div className="relative h-full">
-                    <div className="sticky top-0">
+                    <div className="sticky top-[70px]">
                         <SummaryPieChartWithDetails />
                     </div>
                 </div>

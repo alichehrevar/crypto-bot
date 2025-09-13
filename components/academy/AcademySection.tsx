@@ -32,7 +32,7 @@ export default function AcademySection(props: {title: string, section: 'get-star
             <div className="relative">
                 {isClient ? (
                     <Swiper
-                        className="today-bots-swiper academy-swiper"
+                        className="today-bots-swiper academy-swiper w-full"
                         effect={'slide'}
                         grabCursor={true}
                         modules={[Pagination, Navigation]}

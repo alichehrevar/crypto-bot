@@ -47,7 +47,7 @@ export default function TabsList() {
     }, [searchParams]);
 
     return (
-        <div className="w-full mt-10 relative">
+        <div className="flex-1 overflow-y-auto w-full pt-10 relative">
             <Tabs
                 aria-label="Options"
                 classNames={{

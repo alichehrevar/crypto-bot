@@ -15,7 +15,7 @@ export default function TechnicalBotsPage() {
     const [selectedSymbol, setSelectedSymbol] = useState<MarketListItem | null>(null);
 
     return (
-        <div className="w-full mt-4 relative px-5 space-y-2">
+        <div className="w-full h-screen overflow-y-auto pt-8 relative px-5 space-y-2">
             <CoinSummarySection coinId={selectedSymbol?.id || "btc-bitcoin"} />
             <div className=" w-full flex items-start justify-center gap-2 mt-2 lg:h-[900px]">
                 <div className="w-full lg:w-[76%] self-stretch">

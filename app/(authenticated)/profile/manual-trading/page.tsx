@@ -16,7 +16,7 @@ export default function ManualTradingPage() {
     const [selectedSymbol, setSelectedSymbol] = useState<MarketListItem | null>(null);
 
     return (
-        <div className="w-full mt-4 relative px-5 pb-5">
+        <div className="w-full flex-1 h-screen overflow-y-auto pt-4 relative px-5 pb-5">
             {/*<PageTitleSection title="Manual Trading"/>*/}
             <div className="flex items-center justify-between w-full gap-6 backdrop-blur-sm rounded-xl min-h-[80px]">
                 <CoinSummarySection coinId={selectedSymbol?.id || "btc-bitcoin"} />

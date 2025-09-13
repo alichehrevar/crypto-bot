@@ -12,13 +12,13 @@ import AssetSummary from "@/components/profile/dashboard/assetSummary";
 export default function HoldingDetailsPage() {
 
     return (
-        <section className="container px-2 lg:px-4 mt-8 mx-auto space-y-4">
+        <section className="w-full px-2 lg:px-8 h-screen overflow-y-auto mx-auto space-y-4">
             <AssetSummary showExtraDetails={true} />
             <div className="relative">
                 <Tabs
                     aria-label="Tabs variants"
                     classNames={{
-                        base: 'w-full px-1 mt-4',
+                        base: 'w-full px-1 sticky top-0 bg-black z-50 h-[60px] flex items-center',
                         tabList: 'w-full mx-auto border-b-1 border-default-100',
                         tab: 'h-10 pb-4 font-bold text-[14px]',
                         panel: "w-full grid grid-cols-1 gap-4 mt-4 !overflow-visible"

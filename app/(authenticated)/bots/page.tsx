@@ -12,7 +12,7 @@ import DeployButton from "@/components/shared/ui/DeployButton";
 export default function BotsPage() {
 
     return (
-        <div className="container mx-auto mt-4 relative lg:px-5">
+        <div className="mx-auto flex-1 pt-8 relative lg:px-8 h-screen overflow-y-auto">
             <div className="flex items-center justify-center flex-col w-full gap-10">
                 <div className="w-full flex flex-col lg:flex-row gap-4 lg:gap-x-8 items-start">
                     <BotSelectionComponent/>

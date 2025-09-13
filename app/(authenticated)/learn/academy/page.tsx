@@ -61,7 +61,7 @@ const items = [
 
 export default function AcademyPage() {
     return (
-        <div className="container px-2 lg:px-4 mx-auto mt-4">
+        <div className="flex-1 h-screen overflow-y-auto w-full pt-4 px-8 lg:px-4 mx-auto">
             <div className="flex flex-col items-center w-full gap-8">
                 <AcademyHeader />
                 {items.map((section, index) => (

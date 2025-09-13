@@ -204,7 +204,7 @@ export default function StrategyTesterPage() {
     };
 
     return (
-        <div className="w-full mt-4 relative px-5 backtester-page overflow-y-auto h-full">
+        <div className="w-full pt-4 relative px-5 backtester-page overflow-y-auto h-screen">
             <div className="w-full flex flex-col gap-2">
                 <MarketStats symbolId={selectedSymbol ?? undefined} />
 

@@ -35,7 +35,7 @@ export default function AssetSummary({showExtraDetails = false}: { showExtraDeta
 
     return (
         <>
-            <div className="flex flex-col lg:flex-row gap-5 lg:gap-0 items-center justify-between w-full">
+            <div className={`flex flex-col lg:flex-row gap-5 lg:gap-0 items-center justify-between w-full ${showExtraDetails ? 'mb-10' : ''}`}>
                 <div className="flex items-end justify-between gap-3 w-full lg:w-[45%]">
                     <div className="flex flex-col gap-3">
                         <h4 className="font-bold text-[24px]">
