@@ -3,7 +3,7 @@
  */
 export interface ChartDataItem {
     date: string;
-    value: number;
+    value: number | string;
 }
 
 /**
