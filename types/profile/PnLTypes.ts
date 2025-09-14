@@ -5,7 +5,7 @@ export interface RealizedPoint {
   /** x‐axis label (e.g. “Jan 1” or ISO date string) */
   date: string;
   /** y‐axis value */
-  value: number;
+  value: number | null;
 }
 
 /** A single radial slice in the Unrealized PnL chart */

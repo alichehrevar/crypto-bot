@@ -28,7 +28,7 @@ export default function PnLSection() {
 
         (async () => {
             setLoading(true);
-            const period = '1D';
+            const period = '1W';
 
             try {
                 if (tab === 'realized-pnl') {
