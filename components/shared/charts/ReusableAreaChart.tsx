@@ -26,7 +26,12 @@ const CustomTooltip = ({ active, payload }: any) => {
             >
                 <div className="text-white flex justify-between items-baseline mb-1">
                     <p className="text-xs">Balance</p>
-                    <p className="font-bold text-sm">${data.value.toLocaleString()}</p>
+                    <p className="font-bold text-sm">
+                        {data.value > 0
+                            ? `$${data.value.toLocaleString()}`
+                            : 'N/A'
+                        }
+                    </p>
                 </div>
                 <div className="w-full bg-gray-700/70 rounded-full h-1.5">
                     <div className="bg-[#4CAF50] h-1.5 rounded-full" style={{ width: `${percentage}%` }} />
