@@ -467,15 +467,39 @@ exports.getSummary = async (req, res) => {
         const sevenDaysAgo = new Date();
         sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
+
+        // 1. Define the date range (last 5 days)
+        const fiveDaysAgo = new Date();
+        fiveDaysAgo.setDate(today.getDate() - 5);
+        fiveDaysAgo.setHours(0, 0, 0, 0); // Set to the beginning of the day for a clean range
+
+        // 2. Fetch snapshots from the database within this range
         const recentSnapshots = await AssetSnapshot.find({
             userId,
-            timestamp: { $gte: sevenDaysAgo }
+            timestamp: { $gte: fiveDaysAgo }
         }).sort({ timestamp: 'asc' }).lean();
 
-        const historyForChart = recentSnapshots.map(snap => ({
-            date: new Date(snap.timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-            value: snap.total,
-        }));
+        // 3. Create a lookup map for quick access to snapshot values by date
+        const snapshotMap = new Map();
+        recentSnapshots.forEach(snap => {
+            // Format the date as a key, e.g., "Sep 14"
+            const dateKey = new Date(snap.timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            // If multiple snapshots exist for one day, this will use the latest one because of the sort
+            snapshotMap.set(dateKey, snap.total);
+        });
+
+        // 4. Generate the final chart data, ensuring all 5 days are present
+        const historyForChart = [];
+        for (let i = 4; i >= 0; i--) { // Loop backwards to build the array in chronological order
+            const day = new Date();
+            day.setDate(today.getDate() - i);
+            const dateKey = day.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
+            historyForChart.push({
+                date: dateKey,
+                value: snapshotMap.has(dateKey) ? snapshotMap.get(dateKey) : 0
+            });
+        }
 
 
         // --- Step 6: Format and return the final API response ---
