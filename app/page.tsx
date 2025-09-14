@@ -1,8 +1,16 @@
 'use client'
 
 import Link from "next/link";
+import {useRouter} from "next/navigation";
+import {useEffect} from "react";
 
 export default function Home() {
+
+    const route = useRouter()
+
+    useEffect(() => {
+        route.replace('/dashboard')
+    })
 
     return (
         <section className="flex flex-col items-center justify-center gap-4 py-3 px-2 lg:px-4 w-full">
