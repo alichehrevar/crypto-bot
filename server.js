@@ -18,6 +18,7 @@ const tradingViewWS = require('./app/services/TradingViewWS');
 const bingXWS = require('./app/services/bingXWS');
 const botService = require('./app/services/botService/BotService');
 const wsServer = require('./app/services/WebSocketServer');
+const { seedSettings } = require('./db/seeds/settingsSeeder');
 const { seedAdminUser } = require('./db/seeds/adminUserSeeder');
 const seedSymbols = require('./db/seeds/currencySeeder');
 const { logEmitter, originalConsoleLog } = require('./logs/logEmitter');
@@ -64,6 +65,7 @@ connectDB().then(async () => {
 
     // seed admin user
     await seedAdminUser();
+    await seedSettings();
 
     // Start WS services
     binanceWS.connect();

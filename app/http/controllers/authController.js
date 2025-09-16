@@ -2,6 +2,7 @@ const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const emailService = require('../../services/emailService');
 const User = require('../../models/User');
+const Settings = require('../../models/Settings');
 const UserInfo = require('../../models/UserInfo');
 const AuthToken = require('../../models/AuthToken');
 const { validate } = require('deep-email-validator');
@@ -206,6 +207,13 @@ exports.logout = async (req, res) => {
 };
 
 async function sendOtpAndHandleFailure(user) {
+
+    const settings = Settings.findOne({});
+    if (!settings.enableEmail) {
+        return { message: 'Email Service is not enabled.', success: false };
+    }
+
+
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
     // Check if the OTP has expired
