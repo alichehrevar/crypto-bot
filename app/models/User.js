@@ -10,7 +10,12 @@ const userSchema = new mongoose.Schema({
     password: {
         type: String,
         required: true
-    }
+    },
+    verifiedAt: { type: Date, default: null },
+    enable2FA: { type: Boolean, default: false },
+    otp: { type: String, default: null },
+    otpExpires: { type: Date, default: null },
+    createdAt: { type: Date, default: Date.now }
 });
 
 userSchema.virtual('info', {

@@ -8,6 +8,7 @@ const authenticate = require("../app/http/middleware/auth");
 router.post('/check-email-existence', authController.checkEmailExistence);
 router.post('/login', authController.login);
 router.post('/register', authController.register);
+router.post('/verify-otp', authController.verifyOtp);
 router.post('/logout', authenticate, authController.logout);
 
 module.exports = router;

@@ -17,12 +17,15 @@ const seedAdminUser = async () => {
 
         // 2) Upsert the user atomically — use updateOne to get raw result (created vs updated)
         const userUpsert = await User.updateOne(
-            { email: adminEmail },
+            {email: adminEmail},
             {
-                $set: { password: hashedPassword },
-                $setOnInsert: { email: adminEmail },
+                $set: {password: hashedPassword},
+                $setOnInsert: {
+                    email: adminEmail,
+                    createdAt: new Date(Date.now() - 2 * 365 * 24 * 60 * 60 * 1000)
+                },
             },
-            { upsert: true }
+            {upsert: true}
         );
 
         // 3) Fetch the user doc (we need _id for UserInfo)
