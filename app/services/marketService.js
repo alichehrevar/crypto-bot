@@ -2,6 +2,7 @@
 
 const MarketSnapshot = require('../models/MarketSnapshot');
 const coinGeckoService = require('./api/coinGeckoService');
+const delay = require('../../utils/delay');
 const logger = require('../../logs/logger');
 
 /**
@@ -41,15 +42,21 @@ async function getTopMovers(limit = 5, direction = 'desc') {
 
 async function fetchAndStoreMarketData() {
     const COINGECKO_API_BASE = process.env.COINGECKO_API_URL || 'https://api.coingecko.com/api/v3';
+    const API_DELAY = 10000; // 10 seconds delay between API calls
 
     let allCoins = [];
     let page = 1;
-    const perPage = 250; // Max allowed by CoinGecko API
+    const perPage = 200; // Max allowed by CoinGecko API
 
     try {
         // 1) Fetch all coins with market data using pagination
         // CoinGecko requires pagination to get the full list.
         while (true) {
+            if (page > 1) {
+                console.log(`[Market] Waiting for ${API_DELAY / 1000} seconds before fetching next page...`);
+                await delay(API_DELAY);
+            }
+
             const url = `${COINGECKO_API_BASE}/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=${perPage}&page=${page}&sparkline=false`;
             const marketRes = await fetch(url);
 

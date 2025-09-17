@@ -208,16 +208,18 @@ exports.logout = async (req, res) => {
 
 async function sendOtpAndHandleFailure(user) {
 
-    const settings = Settings.findOne({});
-    if (!settings.enableEmail) {
-        return { message: 'Email Service is not enabled.', success: false };
-    }
+    Settings.findOne()
+        .then(settings => {
+            if (!settings.enableEmail) {
+                return { message: 'Email Service is not enabled.', success: false };
+            }
+        });
 
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
     // Check if the OTP has expired
-    if (!user.enable2FA && user.otpExpires < new Date()) {
+    if (!user.enable2FA && user.otpExpires !== null && user.otpExpires < new Date()) {
         const remainingTime = (user.otpExpires.getTime() - new Date().getTime()) / (1000 * 60);
         if (remainingTime < 0) {
             return { message: 'Please retry after 10 minutes.', success: false };

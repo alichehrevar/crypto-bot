@@ -22,6 +22,7 @@ const seedAdminUser = async () => {
                 $set: {password: hashedPassword},
                 $setOnInsert: {
                     email: adminEmail,
+                    verifiedAt: new Date('1900-01-01'),
                     createdAt: new Date(Date.now() - 2 * 365 * 24 * 60 * 60 * 1000)
                 },
             },

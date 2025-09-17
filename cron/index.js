@@ -7,14 +7,8 @@ const { scheduleAnomalyGeneration } = require('./anomalyGeneratorJob');
 const { economicEventCron } = require('./economicEvents');
 const netFlowJob = require('./netFlowJob');
 const { schedulePriceUpdate } = require('./listingUpdateJob');
+const delay = require('../utils/delay');
 const logger = require('../logs/logger');
-
-/**
- * A simple delay helper function.
- * @param {number} ms - The number of milliseconds to wait.
- * @returns {Promise<void>}
- */
-const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 /**
  * Initializes and starts all scheduled cron jobs for the application.
@@ -26,9 +20,6 @@ const startScheduledJobs = async () => {
 
         // 1. Run the market data update
         logger.info('Starting: Market data update job.');
-        await runInitialMarketUpdate();
-        scheduleMarketUpdate();
-        await delay(startupDelay);
 
         // 2. Run the asset snapshot
         logger.info('Starting: Asset snapshot job.');
@@ -54,6 +45,10 @@ const startScheduledJobs = async () => {
         // 6. Run Listing Updates
         logger.info('Starting: Listing updates job.');
         schedulePriceUpdate();
+        await delay(startupDelay);
+
+        await runInitialMarketUpdate();
+        scheduleMarketUpdate();
 
         logger.info('✅ All scheduled jobs have been started successfully.');
     } catch (error) {
