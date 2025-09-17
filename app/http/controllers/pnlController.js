@@ -1,4 +1,5 @@
 // app/http/controllers/pnlController.js
+const User = require('../../models/User');
 const Bot       = require('../../models/BotBase');
 const Trade     = require('../../models/Trade');
 
@@ -45,66 +46,94 @@ const periodToDays = (period) => {
  * @param {object} res - Express response object.
  */
 exports.getRealizedPnL = async (req, res) => {
-    const userId = req.user.id;
-    const period = (req.query.period || '1W').toUpperCase(); // Default to 1 week
-    const accountType = req.query.accountType;  // e.g., 'spot' or 'futures'
-    const days = periodToDays(period); // Convert period to days
-    const sinceDate = new Date();
-    sinceDate.setDate(sinceDate.getDate() - days);
-
     try {
-        // --- 1) Filter bots based on the requested accountType ---
+        const userId = req.user.id;
+        const period = (req.query.period || '1W').toUpperCase();
+        const accountType = req.query.accountType;
+        const days = periodToDays(period);
+
+        // --- 1) Fetch User's Registration Date ---
+        const user = await User.findById(userId).select('createdAt').lean();
+        const userRegisteredAt = moment(user.createdAt);
+
+        // --- 2) Fetch PnL Data (largely the same logic as before) ---
+        const sinceDate = new Date();
+        sinceDate.setDate(sinceDate.getDate() - days);
+
         const botFilter = { userId };
         if (accountType) {
-            botFilter.marketType = accountType; // Assuming your Bot model has 'marketType'
+            botFilter.marketType = accountType;
         }
-        const bots = await Bot.find(botFilter).lean();
+        const bots = await Bot.find(botFilter).select('_id').lean();
         const botIds = bots.map(b => b._id);
 
-        // --- 2) Fetch LOCAL closed trades ---
-        const localTrades = await Trade.find({
+        const localTradesPromise = Trade.find({
             bot: { $in: botIds },
             exitPrice: { $ne: null },
             timestamp: { $gte: sinceDate }
         }).select('timestamp profit').lean();
 
-        // --- 3) Fetch REMOTE closed trades ---
-        // (This logic remains largely the same, but now implicitly filtered by the bots' accounts)
         const [binAccts, okxAccts, bingxAccts] = await Promise.all([
             BinanceAccount.find({ userId }).lean(),
             OkxAccount.find({ userId }).lean(),
             BingxAccount.find({ userId }).lean()
         ]);
 
-        const remoteArrays = await Promise.all([
+        const remoteTradesPromises = [
             ...binAccts.map(a => BinanceService.getHistoricalRealizedPnL(a, { days })),
             ...okxAccts.map(a => OkxService.getHistoricalRealizedPnL(a, { days })),
             ...bingxAccts.map(a => BingxService.getHistoricalRealizedPnL(a, { days }))
-        ]);
+        ];
+
+        const [localTrades, ...remoteArrays] = await Promise.all([localTradesPromise, ...remoteTradesPromises]);
         const remoteTrades = remoteArrays.flat();
 
-        // --- 3) Merge, Deduplicate, Sort, and Format for Output ---
-        const merged = [...localTrades, ...remoteTrades]
-            .reduce((acc, p) => {
-                // Simple deduplication by timestamp
-                if (!acc.find(x => x.timestamp.getTime() === p.timestamp.getTime())) {
-                    acc.push(p);
-                }
-                return acc;
-            }, [])
-            .sort((a, b) => a.timestamp - b.timestamp); // Sort oldest to newest for the chart
+        const mergedTrades = [...localTrades, ...remoteTrades];
 
+        // --- 3) Aggregate PnL Data by Date ---
         const fmt = FORMAT_MAP[period] || FORMAT_MAP['1W'];
-        const data = merged.map(p => ({
-            date: moment(p.timestamp).format(fmt),
-            value: parseFloat(p.profit.toFixed(2))
-        }));
+        const pnlByDate = new Map();
 
-        return res.json({ success: true, data });
+        mergedTrades.forEach(trade => {
+            // A simple check can be used here if you expect duplicates
+            // For now, we'll assume they should be summed up if they occur on the same date key.
+
+            const dateKey = moment(trade.timestamp).format(fmt);
+            const currentPnl = pnlByDate.get(dateKey) || 0;
+            pnlByDate.set(dateKey, currentPnl + trade.profit);
+        });
+
+        // --- 4) Generate Date Series and Build Final Data Array ---
+        const finalData = [];
+
+        for (let i = 0; i < days; i++) {
+            const currentDate = moment().subtract(i, 'days');
+            const dateKey = currentDate.format(fmt);
+
+            let value;
+            // Check if the current date in the series is before the user registered
+            if (currentDate.isBefore(userRegisteredAt, 'day')) {
+                value = null; // Use null for 'N/A' (better for charting libraries)
+            } else {
+                // If registered, get the value or default to 0
+                const pnl = pnlByDate.get(dateKey) || 0;
+                value = parseFloat(pnl.toFixed(2));
+            }
+
+            finalData.push({
+                date: dateKey,
+                value: value
+            });
+        }
+
+        // The loop creates dates from today backwards, so we reverse for the chart
+        finalData.reverse();
+
+        return res.json({ success: true, data: finalData });
     } catch (err) {
         console.error('getRealizedPnL error', err);
         logger.error(`getRealizedPnL error: ${err.message}`, { stack: err.stack });
-        return res.status(500).json({ success: false, error: err.message });
+        return res.status(500).json({ success: false, error: 'An internal server error occurred.' });
     }
 };
 
