@@ -29,7 +29,6 @@ const Register = () => {
     const [password, setPassword] = useState("");
     const [repeatPassword, setRepeatPassword] = useState("");
     const [agreeTerms, setAgreeTerms] = useState(false);
-    const [profileData, setProfileData] = useState<any>(null);
     const [isTransitioning, setIsTransitioning] = useState(false);
 
     const handleStepTransition = (nextStep: number) => {
@@ -109,7 +108,6 @@ const Register = () => {
         phoneCountry: string,
         phoneNumber: string
     }) => {
-        setProfileData(data);
         register({
             email,
             password,
