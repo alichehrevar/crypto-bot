@@ -12,7 +12,7 @@ const OTPConfirmationForm = ({ onSubmit }: OTPConfirmationFormProps) => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (otp.length === 4) {
+    if (otp.length === 6) {
       onSubmit(otp);
     }
   };
@@ -21,7 +21,7 @@ const OTPConfirmationForm = ({ onSubmit }: OTPConfirmationFormProps) => {
     <div className="space-y-8">
       <div className="text-center">
         <p className="text-white/80 text-sm mb-4">
-          Enter the code sent to your E-mail
+          Enter the code sent to your Email
         </p>
 
         <form className="space-y-6" onSubmit={handleSubmit}>
@@ -30,7 +30,7 @@ const OTPConfirmationForm = ({ onSubmit }: OTPConfirmationFormProps) => {
               classNames={{
                 segment: 'mx-1'
               }}
-              length={4}
+              length={6}
               size="lg"
               value={otp}
               onValueChange={(value) => setOtp(value)}
@@ -39,7 +39,7 @@ const OTPConfirmationForm = ({ onSubmit }: OTPConfirmationFormProps) => {
 
           <Button
             className="w-full bg-transparent border-2 border-white text-white hover:bg-white hover:text-black transition-colors disabled:opacity-50"
-            disabled={otp.length !== 4}
+            disabled={otp.length !== 6}
             type="submit"
           >
             Continue

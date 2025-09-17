@@ -1,14 +1,11 @@
 import React, { Key, useState } from "react";
 import {
-  Button,
-  Input,
-  Autocomplete,
-  AutocompleteItem,
-  DateValue,
-  DatePicker
+    Button,
+    Input,
+    Autocomplete,
+    AutocompleteItem,
+    DateValue, DateInput
 } from "@heroui/react";
-import { getLocalTimeZone, parseDate, today } from "@internationalized/date";
-import { useDateFormatter } from "@react-aria/i18n";
 
 import {CountryCodes} from "@/utils/countryCodes";
 
@@ -20,18 +17,20 @@ interface ProfileSetupFormProps {
 const ProfileSetupForm = ({ onSubmit}: ProfileSetupFormProps) => {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
-  const [birthday, setBirthday] = React.useState<DateValue | null>(parseDate("2024-03-07"));
+  const [birthday, setBirthday] = React.useState<DateValue | null>(null);
   const [phoneCountry, setPhoneCountry] = useState('+1');
   const [phoneNumber, setPhoneNumber] = useState('');
 
-  let formatter = useDateFormatter({dateStyle: "full"});
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+      const formattedBirthday = birthday
+          ? `${String(birthday.month).padStart(2, '0')}/${String(birthday.day).padStart(2, '0')}/${birthday.year}`
+          : null;
+
     onSubmit({
       firstName,
       lastName,
-      birthday: birthday ? formatter.format(birthday.toDate(getLocalTimeZone())) : null,
+      birthday: formattedBirthday,
       phoneCountry,
       phoneNumber
     });
@@ -68,15 +67,11 @@ const ProfileSetupForm = ({ onSubmit}: ProfileSetupFormProps) => {
 
       <div className="space-y-2">
         <label className="text-white text-sm" htmlFor="birthday">Birthday</label>
-        <DatePicker
-          showMonthAndYearPickers
-          className="pointer-events-auto"
+        <DateInput
+          defaultValue={birthday}
           id="birthday"
           labelPlacement="outside"
-          maxValue={today(getLocalTimeZone())}
-          minValue={parseDate("1900-01-01")}
           size="md"
-          value={birthday}
           onChange={setBirthday}
         />
       </div>

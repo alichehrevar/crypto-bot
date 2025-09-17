@@ -1,7 +1,15 @@
 export type AuthResponse = {
   success: boolean
-  token: string,
+  message: string,
   error: string,
+}
+
+export type OtpVerification = {
+    success: boolean,
+    error: string,
+    data: {
+        token: string
+    }
 }
 
 export type checkEmailExistenceResponse = {

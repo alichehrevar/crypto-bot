@@ -17,10 +17,10 @@ export async function sendRequest(body: { [p: string]: File | string }, url: str
 
         const responseJson = await response.json()
 
-        if (responseJson.token) {
+        if (responseJson.data?.token) {
             const cookieStore = await cookies()
 
-            cookieStore.set('token', responseJson.token, {
+            cookieStore.set('token', responseJson.data.token, {
                 httpOnly: false,
                 secure: process.env.NODE_ENV === 'production',
                 maxAge: 60 * 60 * 24, // 1 month
