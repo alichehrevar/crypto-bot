@@ -91,9 +91,9 @@ const fetchAndStoreNetFlows = async () => {
 
 module.exports = {
     // Schedule to run at 2:00 AM every day
-    start: () => {
+    start: async () => {
         // Run once on start, then schedule
-        fetchAndStoreNetFlows();
+        await fetchAndStoreNetFlows();
 
         cron.schedule('0 2 * * *', fetchAndStoreNetFlows, {
             scheduled: true,

@@ -3,9 +3,9 @@ const logger = require('../logs/logger');
 
 // Schedule a task to run, for example, every 2 minutes
 // Use a random interval to make it feel more natural
-function scheduleAnomalyGeneration() {
-    const scheduleJob = () => {
-        anomalyService.detectAndStoreAnomaly();
+async function scheduleAnomalyGeneration() {
+    const scheduleJob = async () => {
+        await anomalyService.detectAndStoreAnomaly();
 
         // Schedule the next run at a random interval between 1 and 4 minutes
         const randomInterval = Math.floor(Math.random() * 180000) + 60000; // 1-4 minutes in ms
@@ -13,7 +13,7 @@ function scheduleAnomalyGeneration() {
     };
 
     logger.info('Starting anomaly generation job with random intervals...');
-    scheduleJob(); // Start the first job immediately
+    await scheduleJob(); // Start the first job immediately
 }
 
 module.exports = { scheduleAnomalyGeneration };

@@ -5,12 +5,7 @@ const cors = require('cors');
 const mongoose = require('mongoose');
 const http = require('http');
 const { WebSocketServer } = require('ws');
-const { runInitialMarketUpdate, scheduleMarketUpdate } = require('./cron/updateMarketData');
-const { runInitialSnapshot, scheduleSnapshots } = require('./cron/snapshotJob');
-const { scheduleAnomalyGeneration } = require('./cron/anomalyGeneratorJob');
-const { economicEventCron } = require('./cron/economicEvents');
-const netFlowJob = require('./cron/netFlowJob');
-const { schedulePriceUpdate } = require('./cron/listingUpdateJob');
+const { startScheduledJobs } = require('./cron');
 
 const connectDB = require('./config/db');
 const binanceWS = require('./app/services/binanceWS');
@@ -66,6 +61,9 @@ connectDB().then(async () => {
     // seed admin user
     await seedAdminUser();
     await seedSettings();
+
+    // Initialize and start all scheduled jobs
+    await startScheduledJobs();
 
     // Start WS services
     binanceWS.connect();
@@ -177,31 +175,6 @@ server.on('upgrade', (request, socket, head) => {
         socket.destroy();
     }
 });
-
-// IIFE to run startup tasks
-(async () => {
-    // Run the market data update
-    await runInitialMarketUpdate();
-    scheduleMarketUpdate();
-
-    // Run the asset snapshot
-    await runInitialSnapshot();
-    scheduleSnapshots();
-
-    // Run the anomaly generation
-    scheduleAnomalyGeneration()
-
-    // Run the economic events
-    economicEventCron()
-
-    // Run Net Flow Job
-    netFlowJob.start();
-
-    // Run Listing Updates
-    schedulePriceUpdate();
-})();
-
-scheduleSnapshots();
 
 // Start server
 const PORT = process.env.PORT || 8000;

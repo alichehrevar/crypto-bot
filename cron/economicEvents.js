@@ -61,11 +61,11 @@ const syncCoinGeckoEvents = async () => {
 /**
  * Starts the recurring scheduler job for fetching CoinGecko events.
  */
-const economicEventCron = () => {
+const economicEventCron = async () => {
     logger.info('CoinGecko event scheduler has been initialized.');
 
     // Run the scheduler once on startup to populate the DB immediately
-    syncCoinGeckoEvents();
+    await syncCoinGeckoEvents();
 
     // Schedule the job to run every 4 hours.
     // Cron expression: "at minute 0 past every 4th hour" -> 00:00, 04:00, 08:00, etc.
