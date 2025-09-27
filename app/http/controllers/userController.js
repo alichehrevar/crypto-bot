@@ -1,9 +1,10 @@
 // app/http/controllers/userController.js
 
+const bcrypt = require("bcryptjs");
 const User = require('../../models/User');
 const UserInfo = require('../../models/UserInfo');
 const FavoriteSymbol = require('../../models/FavoriteSymbol');
-const bcrypt = require("bcryptjs");
+const { sendOtpAndHandleFailure } = require('../../services/user/otpService');
 
 exports.userInfo = async (req, res) => {
     const user = await User.findById(req.user?.id).populate('info');
@@ -121,7 +122,6 @@ exports.updateUserSecurityInfo = async (req, res) => {
 
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(newPassword, salt);
-        console.log(newPassword)
 
         user.findOneAndUpdate(
             { userId: userId },
@@ -201,11 +201,40 @@ exports.toggleFavoriteSymbol = async (req, res) => {
     }
 };
 
-const updateUserInformation = async (userId, updateData) => {
-    return await UserInfo.findOneAndUpdate(
-        { userId: userId },
-        { $set: updateData },
-        { new: true, upsert: true, runValidators: true }
-    );
+exports.toggle2FA = async (req, res) => {
+
+    try {
+        const userId = req.user.id;
+        const { status, otp } = req.body;
+
+        const user = await User.findById(userId);
+
+        if (user.otp === null) {
+            return await sendOtpAndHandleFailure(user)
+        }
+
+        if (user.otp !== otp) {
+            return res.status(401).json({ success: false, error: 'Invalid OTP.' });
+        }
+
+        await User.findOneAndUpdate(
+            { _id: userId },
+            { $set: {enable2FA: status, otp: null, otpExpires: null} },
+            { new: true, upsert: true, runValidators: true }
+        );
+
+        return res.json({ message: '2FA status updated successfully!', success: true });
+
+    } catch (error) {
+        console.error('Error in toggle2FA:', error);
+        res.status(500).json({ success: false, message: 'Internal server error.' });
+    }
 }
 
+const updateUserInformation = async (userId, updateData) => {
+    return UserInfo.findOneAndUpdate(
+        {userId: userId},
+        {$set: updateData},
+        {new: true, upsert: true, runValidators: true}
+    );
+}

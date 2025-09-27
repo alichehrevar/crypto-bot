@@ -1,12 +1,10 @@
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
-const emailService = require('../../services/emailService');
 const User = require('../../models/User');
-const Settings = require('../../models/Settings');
 const UserInfo = require('../../models/UserInfo');
 const AuthToken = require('../../models/AuthToken');
-const { validate } = require('deep-email-validator');
 const logger = require("../../../logs/logger");
+const { sendOtpAndHandleFailure } = require('../../services/user/otpService');
 
 exports.checkEmailExistence = async (req, res) => {
     try {
@@ -205,48 +203,6 @@ exports.logout = async (req, res) => {
         res.status(500).json({ success: false, error: 'Internal server error during logout.' });
     }
 };
-
-async function sendOtpAndHandleFailure(user) {
-
-    Settings.findOne()
-        .then(settings => {
-            if (!settings.enableEmail) {
-                return { message: 'Email Service is not enabled.', success: false };
-            }
-        });
-
-
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-
-    // Check if the OTP has expired
-    if (!user.enable2FA && user.otpExpires !== null && user.otpExpires < new Date()) {
-        const remainingTime = (user.otpExpires.getTime() - new Date().getTime()) / (1000 * 60);
-        if (remainingTime < 0) {
-            return { message: 'Please retry after 10 minutes.', success: false };
-        }
-    }
-
-    // Send the OTP email
-    const emailSent = await emailService.sendOtpEmail(user.email, otp);
-
-    if (!emailSent) {
-        // This is an internal server error, as the email should have sent.
-        // You might want to log this failure more robustly.
-        logger.error(`Failed to send otp email, email: ${user.email}`, {stack: 'Otp email failed to send'});
-        return { message: 'Failed to send OTP email.', success: false };
-    }
-
-    // If OTP sent successfully, save the OTP and its expiry to the user model
-    await User.updateOne(
-        { _id: user._id },
-        {
-            otp: otp,
-            otpExpires: new Date(Date.now() + 10 * 60 * 1000)
-        }
-    )
-
-    return { message: 'Otp Sent', success: true };
-}
 
 async function generateToken(user, req){
     // 1. Generate a secure, random token string.

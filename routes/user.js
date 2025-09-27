@@ -38,4 +38,6 @@ router.put('/info/security/update',
  */
 router.post('/favorites/toggle', authenticate, userController.toggleFavoriteSymbol);
 
+router.post('/2fa/toggle', authenticate, userController.toggle2FA);
+
 module.exports = router;
