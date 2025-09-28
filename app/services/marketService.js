@@ -40,86 +40,81 @@ async function getTopMovers(limit = 5, direction = 'desc') {
     }));
 }
 
+/**
+ * Fetches latest market data from CoinGecko and efficiently updates the database.
+ * This is designed to be called by a scheduled cron job.
+ */
 async function fetchAndStoreMarketData() {
     const COINGECKO_API_BASE = process.env.COINGECKO_API_URL || 'https://api.coingecko.com/api/v3';
     const API_DELAY = 10000; // 10 seconds delay between API calls
 
     let allCoins = [];
     let page = 1;
-    const perPage = 200; // Max allowed by CoinGecko API
+    const perPage = 250;
 
     try {
         // 1) Fetch all coins with market data using pagination
-        // CoinGecko requires pagination to get the full list.
         while (true) {
             if (page > 1) {
-                console.log(`[Market] Waiting for ${API_DELAY / 1000} seconds before fetching next page...`);
-                await delay(API_DELAY);
+                await delay(API_DELAY); // Assuming you have a delay utility
             }
-
-            const url = `${COINGECKO_API_BASE}/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=${perPage}&page=${page}&sparkline=false`;
+            const url = `${COINGECKO_API_BASE}/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=${perPage}&page=${page}&sparkline=false&price_change_percentage=1h%2C24h%2C7d`;
             const marketRes = await fetch(url);
-
-            if (!marketRes.ok) {
-                throw new Error(`API call failed with status: ${marketRes.status}`);
-            }
-
+            if (!marketRes.ok) throw new Error(`API call failed: ${marketRes.status}`);
             const marketData = await marketRes.json();
-
-            // If the page returns no data, we've fetched everything
-            if (marketData.length === 0) {
-                break;
-            }
-
+            if (marketData.length === 0) break;
             allCoins = allCoins.concat(marketData);
             page++;
         }
+        console.log(`[Market Cron] Fetched ${allCoins.length} entries from CoinGecko.`);
 
-        console.log(`[Market] Fetched ${allCoins.length} entries from CoinGecko.`);
-
-        // 2) Upsert each coin into the database
-        for (const coin of allCoins) {
-            // Determine the type: If it has an 'asset_platform_id', it's a token.
-            // Otherwise, it's a native coin on its own blockchain.
-            const coinType = coin.asset_platform_id ? 'token' : 'coin';
-
-            await MarketSnapshot.updateOne(
-                { id: coin.id }, // Use CoinGecko's ID for matching
-                {
-                    id:                 coin.id,
-                    name:               coin.name,
-                    symbol:             coin.symbol,
-                    rank:               coin.market_cap_rank,
-                    type:               coinType, // Determined from asset_platform_id
-                    circulating_supply: coin.circulating_supply,
-                    total_supply:       coin.total_supply,
-                    max_supply:         coin.max_supply,
-                    // beta_value is not provided by this CoinGecko endpoint
-                    first_data_at:      coin.atl_date, // Using 'All Time Low' date as a proxy
-                    last_updated:       coin.last_updated,
-                    // Re-structure quotes to match your existing schema
-                    quotes: {
-                        USD: {
-                            price:                 coin.current_price,
-                            market_cap:            coin.market_cap,
-                            fully_diluted_valuation: coin.fully_diluted_valuation,
-                            total_volume:          coin.total_volume,
-                            percent_change_1h:     coin.price_change_percentage_1h_in_currency,
-                            percent_change_24h:    coin.price_change_percentage_24h_in_currency,
-                            percent_change_7d:     coin.price_change_percentage_7d_in_currency,
-                        }
-                    },
-                    imageUrl:           coin.image, // CoinGecko provides a direct image URL
-                    updatedAt:          new Date()
-                },
-                { upsert: true }
-            );
+        // 2) Prepare operations for a single bulk write
+        if (allCoins.length === 0) {
+            console.log('[Market Cron] No entries to sync.');
+            return;
         }
 
-        console.log(`[Market] Synced ${allCoins.length} entries with types.`);
+        const bulkOps = allCoins.map(coin => ({
+            updateOne: {
+                filter: { id: coin.id },
+                update: {
+                    $set: {
+                        name:               coin.name,
+                        symbol:             coin.symbol,
+                        rank:               coin.market_cap_rank,
+                        type:               coin.asset_platform_id ? 'token' : 'coin',
+                        circulating_supply: coin.circulating_supply,
+                        total_supply:       coin.total_supply,
+                        max_supply:         coin.max_supply,
+                        last_updated:       coin.last_updated,
+                        quotes: {
+                            USD: {
+                                price:                 coin.current_price,
+                                market_cap:            coin.market_cap,
+                                fully_diluted_valuation: coin.fully_diluted_valuation,
+                                total_volume:          coin.total_volume,
+                                percent_change_1h:     coin.price_change_percentage_1h_in_currency,
+                                percent_change_24h:    coin.price_change_percentage_24h_in_currency,
+                                percent_change_7d:     coin.price_change_percentage_7d_in_currency,
+                            }
+                        },
+                        imageUrl:           coin.image
+                    }
+                },
+                upsert: true
+            }
+        }));
+
+        // 3) Execute the bulk operation
+        console.log(`[Market Cron] Performing bulk write for ${bulkOps.length} operations...`);
+        const result = await MarketSnapshot.bulkWrite(bulkOps, { ordered: false });
+        console.log('[Market Cron] ✅ Sync complete.', {
+            upserted: result.upsertedCount,
+            modified: result.modifiedCount,
+        });
 
     } catch (error) {
-        console.error('Error fetching or storing market data:', error);
+        console.error('[Market Cron] ❌ Error during scheduled market data update:', error);
     }
 }
 

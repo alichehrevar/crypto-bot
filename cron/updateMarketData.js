@@ -15,18 +15,6 @@ const scheduleMarketUpdate = () => {
     console.log('[Cron] ⏰ Market data cron job scheduled.');
 };
 
-// run on project startup
-const runInitialMarketUpdate = async () => {
-    try {
-        console.log('[Startup] ⏳ Fetching market data (startup)…');
-        await fetchAndStoreMarketData();
-        console.log('[Startup] ✅ Market data fetched on startup.');
-    } catch (err) {
-        console.error('[Startup] ❌ Failed to fetch market data on startup:', err.message);
-    }
-};
-
 module.exports = {
-    runInitialMarketUpdate,
     scheduleMarketUpdate
 };
