@@ -2,21 +2,14 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
+import { addToast } from "@heroui/react";
+
+import { getData } from "@/actions/get";
+import { EconomicEvent, EconomicEventsApiResponse, EventImpact } from "@/types/market/EconomicEvent";
 
 // =====================================================================
 // --- TYPE DEFINITIONS ---
 // =====================================================================
-
-// Defines the structure for a single calendar event
-type Event = {
-    date: string;
-    time: string;
-    event: string;
-    impact: 'High' | 'Medium' | 'Low'; // Use a union type for specific values
-    forecast: string;
-    actual: string;
-    isPast?: boolean; // Optional property
-};
 
 // Props for the InfoButton component
 type InfoButtonProps = {
@@ -29,34 +22,23 @@ type CardHeaderProps = {
     title: string;
     infoTitle: string;
     infoContent: string;
-    children?: React.ReactNode; // Type for optional children
+    children?: React.ReactNode;
 };
 
 // Props for the EventTimeline component
 type EventTimelineProps = {
-    events: Event[];
+    events: EconomicEvent[]; // Updated to use the imported EconomicEvent type
     setHighlightedEvent: React.Dispatch<React.SetStateAction<string | null>>;
 };
 
 
 // =====================================================================
-// --- MOCK DATA ---
+// --- DATA FETCHER ---
 // =====================================================================
 
-// The function now returns a typed object
-const generateSentimentData = (): { events: Event[] } => {
-    return {
-        events: [
-            { date: '2025-08-08', time: '14:00 UTC', event: 'US Non-Farm Payrolls (July)', impact: 'High', forecast: '180k', actual: '205k', isPast: true },
-            { date: '2025-08-12', time: '12:30 UTC', event: 'US CPI Data Release (July)', impact: 'High', forecast: '3.1%', actual: '3.2%', isPast: true },
-            { date: '2025-08-15', time: '16:00 UTC', event: 'Ethereum "Pectra" Upgrade Spec', impact: 'Medium', forecast: 'N/A', actual: 'TBD' },
-            { date: '2025-08-18', time: '10:00 UTC', event: 'Token Unlocks (APT)', impact: 'Low', forecast: '11.3M', actual: 'TBD' },
-            { date: '2025-08-20', time: '18:00 UTC', event: 'FOMC Meeting Minutes', impact: 'High', forecast: 'N/A', actual: 'TBD' },
-            { date: '2025-08-28', time: '18:30 UTC', event: 'US GDP Growth Rate (Q2 Final)', impact: 'Medium', forecast: '2.5%', actual: 'TBD' },
-        ],
-    };
-};
-
+const getEventsData = async (): Promise<EconomicEventsApiResponse> => {
+    return await getData('/sentiment/events');
+}
 
 // =====================================================================
 // --- REUSABLE & UTILITY COMPONENTS ---
@@ -64,10 +46,10 @@ const generateSentimentData = (): { events: Event[] } => {
 
 const InfoButton: React.FC<InfoButtonProps> = ({ title, content }) => {
     const [isOpen, setIsOpen] = useState<boolean>(false);
-    const popupRef = useRef<HTMLDivElement>(null); // Type the ref
+    const popupRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => { // Type the event
+        const handleClickOutside = (event: MouseEvent) => {
             if (popupRef.current && !popupRef.current.contains(event.target as Node)) {
                 setIsOpen(false);
             }
@@ -111,12 +93,19 @@ const CardHeader: React.FC<CardHeaderProps> = ({ title, infoTitle, infoContent, 
 );
 
 const EventTimeline: React.FC<EventTimelineProps> = ({ events, setHighlightedEvent }) => {
-    const now = new Date('2025-08-13'); // Hardcoded for consistent demo
+    // Using current date for "Now" marker
+    const now = new Date();
+
+    // Return null if there are no events to prevent errors
+    if (events.length === 0) {
+        return null;
+    }
 
     const dates = events.map(e => new Date(e.date));
     const timelineStart = new Date(Math.min(...dates.map(d => d.getTime())));
     const timelineEnd = new Date(Math.max(...dates.map(d => d.getTime())));
 
+    // Add padding to the timeline
     timelineStart.setDate(timelineStart.getDate() - 1);
     timelineEnd.setDate(timelineEnd.getDate() + 1);
 
@@ -131,8 +120,24 @@ const EventTimeline: React.FC<EventTimelineProps> = ({ events, setHighlightedEve
         return (durationFromStart / totalDuration) * 100;
     };
 
+    // This function can be expanded to handle more date formats
+    const parseTime = (timeStr: string): string => {
+        // Example: "12:00 AM UTC" -> "00:00"
+        if (timeStr.includes("AM") || timeStr.includes("PM")) {
+            const [time, period] = timeStr.split(' ');
+            let [hours, minutes] = time.split(':').map(Number);
+
+            if (period.toUpperCase() === 'PM' && hours !== 12) hours += 12;
+            if (period.toUpperCase() === 'AM' && hours === 12) hours = 0;
+
+            return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+        }
+
+        return "00:00"; // Default fallback
+    }
+
     const formatRelativeDate = (eventDateStr: string, eventTimeStr: string): string => {
-        const eventDateTime = new Date(`${eventDateStr}T${eventTimeStr.split(' ')[0]}:00Z`);
+        const eventDateTime = new Date(`${eventDateStr}T${parseTime(eventTimeStr)}:00Z`);
         const diffDays = Math.ceil((eventDateTime.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
         const time = eventDateTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }).toLowerCase();
 
@@ -154,7 +159,7 @@ const EventTimeline: React.FC<EventTimelineProps> = ({ events, setHighlightedEve
                 </div>
                 {events.map((event) => (
                     <div
-                        key={event.event + event.date}
+                        key={event._id}
                         className="group absolute top-1/2 -translate-x-1/2 -translate-y-1/2"
                         style={{ left: `${getPosition(event.date)}%` }}
                         onMouseEnter={() => setHighlightedEvent(event.date)}
@@ -177,59 +182,104 @@ const EventTimeline: React.FC<EventTimelineProps> = ({ events, setHighlightedEve
 // =====================================================================
 
 const EventCalendar: React.FC = () => {
-    const data = generateSentimentData();
+    const [eventsData, setEventsData] = useState<EconomicEvent[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
     const [highlightedEvent, setHighlightedEvent] = useState<string | null>(null);
 
-    const getImpactClass = (impact: Event['impact']): string => {
+    useEffect(() => {
+        getEventsData()
+            .then((response) => { // Type is inferred from the function's return type
+                if (response.success) {
+                    setEventsData(response.data);
+                } else {
+                    addToast({
+                        title: "Could not fetch events",
+                        color: 'warning'
+                    });
+                }
+            })
+            .catch(() => {
+                addToast({
+                    title: 'Something went wrong!',
+                    description: 'Please try again later.',
+                    color: 'danger'
+                });
+            })
+            .finally(() => setIsLoading(false));
+    }, []);
+
+    const getImpactClass = (impact: EventImpact): string => { // Using imported EventImpact type
         switch (impact) {
             case 'High': return 'text-red-500 font-bold';
             case 'Medium': return 'text-orange-400 font-bold';
             case 'Low': return 'text-green-500 font-bold';
+            default: return 'text-gray-400';
         }
     };
 
-    const formatValue = (value: string): string => value.replace(' tokens', '');
-
     return (
-        <div className="bg-dark-gray rounded-lg p-6 shadow-lg flex flex-col">
+        <div className="bg-dark-gray rounded-lg p-6 shadow-lg flex flex-col min-h-[400px]">
             <CardHeader
                 infoContent="This calendar lists upcoming economic data releases and crypto-specific events that can act as major market catalysts. High-impact events like CPI data or FOMC meetings often cause significant volatility, and trading bots can be programmed to react to these specific events."
                 infoTitle="About the Event Calendar"
                 title="Economic Catalysts & Event Calendar"
             />
-            <EventTimeline events={data.events} setHighlightedEvent={setHighlightedEvent} />
-            <div className="w-full overflow-x-auto mt-4">
-                <table className="w-full border-collapse text-sm">
-                    <thead>
-                    <tr className="border-b border-white/10">
-                        <th className="text-left p-3 font-medium text-gray-400 text-xs uppercase tracking-wider">Date</th>
-                        <th className="text-left p-3 font-medium text-gray-400 text-xs uppercase tracking-wider">Time</th>
-                        <th className="text-left p-3 font-medium text-gray-400 text-xs uppercase tracking-wider">Event</th>
-                        <th className="text-left p-3 font-medium text-gray-400 text-xs uppercase tracking-wider">Impact</th>
-                        <th className="text-left p-3 font-medium text-gray-400 text-xs uppercase tracking-wider">Forecast</th>
-                        <th className="text-left p-3 font-medium text-gray-400 text-xs uppercase tracking-wider">Actual</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    {data.events.map((event) => (
-                        <tr
-                            key={event.event + event.date}
-                            className={`border-b border-white/10 last:border-b-0 transition-colors duration-300
-                                    ${event.date === highlightedEvent ? 'bg-white/10' : ''}
-                                    ${event.isPast ? 'text-gray-500' : 'text-gray-200'}
-                                `}
-                        >
-                            <td className="p-3">{event.date.replaceAll('-', '.')}</td>
-                            <td className="p-3">{event.time.replace(' UTC', '')}</td>
-                            <td className="p-3">{event.event}</td>
-                            <td className={`p-3 ${getImpactClass(event.impact)}`}>{event.impact}</td>
-                            <td className="p-3">{formatValue(event.forecast)}</td>
-                            <td className="p-3">{formatValue(event.actual)}</td>
-                        </tr>
-                    ))}
-                    </tbody>
-                </table>
-            </div>
+            {isLoading ? (
+                // --- Loading Skeleton ---
+                <div className="flex-grow flex flex-col justify-center animate-pulse">
+                    <div className="p-4 mt-12 mb-8">
+                        <div className="h-0.5 bg-gray-700 rounded-full" />
+                    </div>
+                    <div className="space-y-4 mt-4">
+                        <div className="h-4 bg-gray-700 rounded w-full" />
+                        <div className="h-4 bg-gray-700 rounded w-5/6" />
+                        <div className="h-4 bg-gray-700 rounded w-full" />
+                    </div>
+                </div>
+            ) : (
+                <>
+                    <EventTimeline events={eventsData} setHighlightedEvent={setHighlightedEvent} />
+                    <div className="w-full overflow-x-auto mt-4">
+                        {eventsData.length > 0 ? (
+                            <table className="w-full border-collapse text-sm">
+                                <thead>
+                                <tr className="border-b border-white/10">
+                                    <th className="text-left p-3 font-medium text-gray-400 text-xs uppercase tracking-wider">Date</th>
+                                    <th className="text-left p-3 font-medium text-gray-400 text-xs uppercase tracking-wider">Time</th>
+                                    <th className="text-left p-3 font-medium text-gray-400 text-xs uppercase tracking-wider">Event</th>
+                                    <th className="text-left p-3 font-medium text-gray-400 text-xs uppercase tracking-wider">Impact</th>
+                                    <th className="text-left p-3 font-medium text-gray-400 text-xs uppercase tracking-wider">Forecast</th>
+                                    <th className="text-left p-3 font-medium text-gray-400 text-xs uppercase tracking-wider">Actual</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                {eventsData.map((event) => (
+                                    <tr
+                                        key={event._id} // Use unique _id for the key
+                                        className={`border-b border-white/10 last:border-b-0 transition-colors duration-300
+                                            ${event.date === highlightedEvent ? 'bg-white/10' : ''}
+                                            ${event.isPast ? 'text-gray-500' : 'text-gray-200'}
+                                        `}
+                                    >
+                                        <td className="p-3 whitespace-nowrap">{event.date.replaceAll('-', '.')}</td>
+                                        <td className="p-3">{event.time.replace(' UTC', '')}</td>
+                                        <td className="p-3">{event.event}</td>
+                                        <td className={`p-3 ${getImpactClass(event.impact)}`}>{event.impact}</td>
+                                        <td className="p-3">{event.forecast}</td>
+                                        <td className="p-3">{event.actual}</td>
+                                    </tr>
+                                ))}
+                                </tbody>
+                            </table>
+                        ) : (
+                            // --- Empty State ---
+                            <div className="flex justify-center items-center h-48">
+                                <p className="text-gray-400">No upcoming events found.</p>
+                            </div>
+                        )}
+                    </div>
+                </>
+            )}
         </div>
     );
 };
