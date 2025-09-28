@@ -58,19 +58,20 @@ exports.run = async (req, res) => {
         if (!symbol || typeof symbol !== 'string') {
             return res.status(400).json({ success: false, error: 'A valid symbol is required.' });
         }
-        const baseAsset = symbol.split('-')[0].toUpperCase();
-        const binanceSymbol = `${baseAsset}USDT`;
+        // const baseAsset = symbol.split('-')[0].toUpperCase();
+        // const binanceSymbol = `${baseAsset}USDT`;
+        const binanceSymbol = symbol.toUpperCase().replaceAll('/', ''); // "BTCUSDT"
 
         const candleProvider = async (symbol, timeframe, from, to) => {
             const url = 'https://api.binance.com/api/v3/klines';
             let allCandles = [];
             if (mode === 'recent') {
-                const { data } = await axios.get(url, { params: { symbol, interval: timeframe, limit: Number(recentCount) || 1000 } });
+                const { data } = await axios.get(url, { params: { symbol: binanceSymbol, interval: timeframe, limit: Number(recentCount) || 1000 } });
                 allCandles = data.map(k => ({ time: k[0], open: parseFloat(k[1]), high: parseFloat(k[2]), low: parseFloat(k[3]), close: parseFloat(k[4]), volume: parseFloat(k[5]) }));
             } else {
                 let startTime = from;
                 while (startTime < to) {
-                    const { data } = await axios.get(url, { params: { symbol, interval: timeframe, startTime, endTime: to, limit: 1000 } });
+                    const { data } = await axios.get(url, { params: { symbol: binanceSymbol, interval: timeframe, startTime, endTime: to, limit: 1000 } });
                     if (!data || data.length === 0) break;
                     const batch = data.map(k => ({ time: k[0], open: parseFloat(k[1]), high: parseFloat(k[2]), low: parseFloat(k[3]), close: parseFloat(k[4]), volume: parseFloat(k[5]) }));
                     allCandles.push(...batch);
