@@ -135,7 +135,66 @@ exports.getMarketDataForIds = async (coinIds) => {
         return {};
     }
 }
+const CMC_EVENTS_CACHE_KEY = 'cmc_crypto_events'; // New cache key
 
-// NOTE: CoinGecko's free API doesn't have a reliable "upcoming listings" endpoint.
-// A real-world implementation would use a paid data provider or manual entry for this.
-// For this example, we will focus on updating the prices of recent launches.
+/**
+ * Fetches upcoming crypto events from the CoinMarketCal API, with a 2-minute cache.
+ * @returns {Promise<Array<Object>>} A promise that resolves to a formatted array of events.
+ */
+exports.fetchCryptoEventsFromCMC = async () => {
+    // --- Step 1: Check the cache first ---
+    const cachedEvents = cache.get(CMC_EVENTS_CACHE_KEY);
+    if (cachedEvents) {
+        logger.info('Serving crypto events from CoinMarketCal cache.');
+        return cachedEvents;
+    }
+
+    // --- Step 2: If cache miss, fetch from API ---
+    logger.info('Cache miss. Fetching fresh crypto events from CoinMarketCal.');
+    try {
+        // You must get an access token from https://coinmarketcal.com/en/api
+        const accessToken = process.env.COINMARKETCAL_ACCESS_TOKEN;
+        if (!accessToken) {
+            throw new Error('CoinMarketCal access token is not configured.');
+        }
+
+        const response = await axios.get('https://api.coinmarketcal.com/v1/events', {
+            params: {
+                accessToken: accessToken,
+                max: 100, // Fetch up to 100 upcoming events
+                showOnly: 'hot_events' // Optional: filter for popular events
+            },
+            timeout: API_TIMEOUT,
+        });
+
+        // The actual event data is in response.data.body
+        const events = response.data.body || [];
+
+        // Transform the CoinMarketCal data to match our internal Event schema
+        const formattedEvents = events.map(event => ({
+            date: event.date_event.split('T')[0], // API gives ISO string 'YYYY-MM-DDTHH:mm:ss.sssZ'
+            time: new Date(event.date_event).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' }) + ' UTC',
+            event: `[${event.coins.map(c => c.symbol).join(', ')}] ${event.title}`, // Prepend coin symbols
+            // Use votes to infer impact. This is just an example logic.
+            impact: event.votes > 500 ? 'High' : (event.votes > 200 ? 'Medium' : 'Low'),
+            forecast: 'N/A',
+            actual: 'TBD',
+            source: 'CoinMarketCal',
+            source_link: event.source, // CMC provides a source link!
+        }));
+
+        // --- Step 3: Store the fresh, formatted data in the cache ---
+        cache.set(CMC_EVENTS_CACHE_KEY, formattedEvents);
+        logger.info('Successfully fetched and cached new crypto events from CoinMarketCal.');
+
+        return formattedEvents;
+
+    } catch (error) {
+        logger.error(`CoinMarketCal API Error: ${error.message}`, {
+            status: error.response?.status,
+            data: error.response?.data,
+        });
+        // Return an empty array on failure
+        return [];
+    }
+};

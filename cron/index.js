@@ -1,7 +1,7 @@
 // cron/index.js
 
 // Import job schedulers
-const { scheduleMarketUpdate } = require('./updateMarketData');
+const { runInitialMarketUpdate, scheduleMarketUpdate } = require('./updateMarketData');
 const { scheduleSnapshots, runInitialSnapshot } = require('./snapshotJob');
 const { scheduleAnomalyGeneration } = require('./anomalyGeneratorJob');
 const { economicEventCron } = require('./economicEvents');
@@ -47,6 +47,7 @@ const startScheduledJobs = async () => {
         schedulePriceUpdate();
         await delay(startupDelay);
 
+        await runInitialMarketUpdate();
         scheduleMarketUpdate();
 
         logger.info('✅ All scheduled jobs have been started successfully.');

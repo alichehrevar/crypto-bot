@@ -41,39 +41,64 @@ async function getTopMovers(limit = 5, direction = 'desc') {
 }
 
 /**
- * Fetches latest market data from CoinGecko and efficiently updates the database.
- * This is designed to be called by a scheduled cron job.
+ * A resilient fetch wrapper that handles 429 rate-limiting errors automatically.
  */
+async function fetchWithRetries(url, maxRetries = 5) {
+    for (let i = 0; i < maxRetries; i++) {
+        const response = await fetch(url);
+        if (response.ok) {
+            return response; // Success!
+        }
+        if (response.status === 429) {
+            // CoinGecko's rate limit message is in the JSON body
+            const errorBody = await response.json();
+            const retryAfter = errorBody.status?.error_message?.match(/Wait (\d+) seconds/)?.[1] || '30';
+            const waitMs = parseInt(retryAfter, 10) * 1000 + 1000; // Add 1s buffer
+
+            logger.warn(`[Market Cron] Rate limit hit. Waiting for ${waitMs / 1000} seconds...`);
+            await delay(waitMs);
+            continue; // Retry the request
+        }
+        throw new Error(`API call failed with status: ${response.status}`);
+    }
+    throw new Error(`API call failed after ${maxRetries} retries.`);
+}
+
+
+// --- Main Cron Job Logic ---
+
 async function fetchAndStoreMarketData() {
     const COINGECKO_API_BASE = process.env.COINGECKO_API_URL || 'https://api.coingecko.com/api/v3';
-    const API_DELAY = 10000; // 10 seconds delay between API calls
+    const API_DELAY = 2000; // A short, 2-second polite delay between successful calls
+    const perPage = 250;
 
     let allCoins = [];
     let page = 1;
-    const perPage = 250;
 
     try {
-        // 1) Fetch all coins with market data using pagination
+        // 1) Fetch all coins using the resilient fetcher
         while (true) {
             if (page > 1) {
-                await delay(API_DELAY); // Assuming you have a delay utility
+                await delay(API_DELAY);
             }
             const url = `${COINGECKO_API_BASE}/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=${perPage}&page=${page}&sparkline=false&price_change_percentage=1h%2C24h%2C7d`;
-            const marketRes = await fetch(url);
-            if (!marketRes.ok) throw new Error(`API call failed: ${marketRes.status}`);
+
+            logger.info(`[Market Cron] Fetching page ${page}...`);
+            const marketRes = await fetchWithRetries(url); // Using the resilient fetcher
+
             const marketData = await marketRes.json();
             if (marketData.length === 0) break;
             allCoins = allCoins.concat(marketData);
             page++;
         }
-        console.log(`[Market Cron] Fetched ${allCoins.length} entries from CoinGecko.`);
+        logger.info(`[Market Cron] Fetched a total of ${allCoins.length} entries from CoinGecko.`);
 
-        // 2) Prepare operations for a single bulk write
         if (allCoins.length === 0) {
-            console.log('[Market Cron] No entries to sync.');
+            logger.info('[Market Cron] No entries to sync.');
             return;
         }
 
+        // 2) Prepare bulk operations with COMPLETE data mapping
         const bulkOps = allCoins.map(coin => ({
             updateOne: {
                 filter: { id: coin.id },
@@ -86,11 +111,23 @@ async function fetchAndStoreMarketData() {
                         circulating_supply: coin.circulating_supply,
                         total_supply:       coin.total_supply,
                         max_supply:         coin.max_supply,
+                        ath:                coin.ath,
+                        ath_change_percentage: coin.ath_change_percentage,
+                        ath_date:           coin.ath_date,
+                        atl:                coin.atl,
+                        atl_change_percentage: coin.atl_change_percentage,
+                        first_data_at:      coin.atl_date,
                         last_updated:       coin.last_updated,
+                        roi:                coin.roi,
                         quotes: {
                             USD: {
                                 price:                 coin.current_price,
+                                high_24h:              coin.high_24h,
+                                low_24h:               coin.low_24h,
+                                price_change_24h:      coin.price_change_24h,
                                 market_cap:            coin.market_cap,
+                                market_cap_change_24h: coin.market_cap_change_24h,
+                                market_cap_change_percentage_24h: coin.market_cap_change_percentage_24h,
                                 fully_diluted_valuation: coin.fully_diluted_valuation,
                                 total_volume:          coin.total_volume,
                                 percent_change_1h:     coin.price_change_percentage_1h_in_currency,
@@ -106,15 +143,15 @@ async function fetchAndStoreMarketData() {
         }));
 
         // 3) Execute the bulk operation
-        console.log(`[Market Cron] Performing bulk write for ${bulkOps.length} operations...`);
+        logger.info(`[Market Cron] Performing bulk write for ${bulkOps.length} operations...`);
         const result = await MarketSnapshot.bulkWrite(bulkOps, { ordered: false });
-        console.log('[Market Cron] ✅ Sync complete.', {
+        logger.info('[Market Cron] ✅ Sync complete.', {
             upserted: result.upsertedCount,
             modified: result.modifiedCount,
         });
 
     } catch (error) {
-        console.error('[Market Cron] ❌ Error during scheduled market data update:', error);
+        logger.error('[Market Cron] ❌ Error during scheduled market data update:', error);
     }
 }
 

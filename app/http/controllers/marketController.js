@@ -53,46 +53,48 @@ exports.getTopMovers = async (req, res) => {
 
 exports.getMarketList = async (req, res) => {
     try {
-        // Get the authenticated user's ID from the request object.
         const userId = req.user.id;
 
-        // 1. Fetch base data, exchange symbols, and the user's personal favorites in parallel.
+        // 1. Fetch data in parallel.
         const [coinsFromDB, binanceSymbols, okxSymbols, userFavorites] = await Promise.all([
-            MarketSnapshot.find({ type: 'coin' }).sort({ rank: 1 }).lean(),
+            // Fetch all fields needed for the frontend.
+            MarketSnapshot.find({ type: 'coin', rank: { $ne: null } }).sort({ rank: 1 }).lean(),
             getBinanceSymbols(),
             getOkxSymbols(),
-            // Fetch all favorite symbols for this specific user.
             FavoriteSymbol.find({ userId }).select('symbol').lean()
         ]);
 
-        // Create a Set of the user's favorite symbols for fast lookups.
+        console.log(coinsFromDB)
+
         const favoriteSymbolsSet = new Set(userFavorites.map(fav => fav.symbol));
 
-        // 2. Enrich the database data with live exchange info and the correct favorite status.
-        const marketListData = coinsFromDB.map((coin, _) => {
+        // 2. Enrich and format the data.
+        const marketListData = coinsFromDB.map(coin => {
             let broker = 'Other';
             let category = 'Spot';
 
-            if (binanceSymbols.has(coin.symbol)) {
+            // Uppercase the symbol for consistent matching.
+            const baseSymbol = coin.symbol.toUpperCase();
+
+            if (binanceSymbols.has(baseSymbol)) {
                 broker = 'Binance';
-                category = binanceSymbols.get(coin.symbol).category;
-            } else if (okxSymbols.has(coin.symbol)) {
+                category = binanceSymbols.get(baseSymbol).category;
+            } else if (okxSymbols.has(baseSymbol)) {
                 broker = 'OKX';
-                category = okxSymbols.get(coin.symbol).category;
+                category = okxSymbols.get(baseSymbol).category;
             }
 
-            const fullSymbol = `${coin.symbol}/${category === 'Spot' ? 'USDT' : 'PERP'}`;
-
-            // Check if the full symbol exists in the user's favorite set.
+            // Construct the full symbol for display and favorite checking.
+            const fullSymbol = `${baseSymbol}/${category === 'Spot' ? 'USDT' : 'PERP'}`;
             const isFavorite = favoriteSymbolsSet.has(fullSymbol);
 
-            // 3. Format the final object to match the frontend's `SymbolData` interface.
+            // 3. Format the final object to EXACTLY match the frontend's `MarketListItem` type.
             return {
                 id: coin.id,
                 symbol: fullSymbol,
                 category: category,
                 broker: broker,
-                volume: coin.quotes.USD.volume_24h,
+                volume: coin.quotes.USD.total_volume,
                 lastPrice: coin.quotes.USD.price,
                 dailyChange: coin.quotes.USD.percent_change_24h,
                 isFavorite: isFavorite,

@@ -1,6 +1,17 @@
 const cron = require('node-cron');
 const { fetchAndStoreMarketData } = require('../app/services/marketService');
 
+// run on project startup
+const runInitialMarketUpdate = async () => {
+    try {
+        console.log('[Startup] ⏳ Fetching market data (startup)…');
+        await fetchAndStoreMarketData();
+        console.log('[Startup] ✅ Market data fetched on startup.');
+    } catch (err) {
+        console.error('[Startup] ❌ Failed to fetch market data on startup:', err.message);
+    }
+};
+
 const scheduleMarketUpdate = () => {
     // Run every 24 hours
     cron.schedule('0 * * * *', async () => {
@@ -16,5 +27,6 @@ const scheduleMarketUpdate = () => {
 };
 
 module.exports = {
+    runInitialMarketUpdate,
     scheduleMarketUpdate
 };

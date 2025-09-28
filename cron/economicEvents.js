@@ -1,6 +1,6 @@
 const schedule = require('node-schedule');
 const EconomicEvent = require('../app/models/EconomicEvent');
-const { fetchCryptoEvents } = require('../app/services/api/coinGeckoService');
+const { fetchCryptoEventsFromCMC } = require('../app/services/api/coinGeckoService');
 const logger = require('../logs/logger');
 
 /**
@@ -10,7 +10,7 @@ const logger = require('../logs/logger');
 const syncCoinGeckoEvents = async () => {
     logger.info('CRON (CoinGecko): Starting event synchronization...');
     try {
-        const eventsFromApi = await fetchCryptoEvents();
+        const eventsFromApi = await fetchCryptoEventsFromCMC();
         if (!eventsFromApi || eventsFromApi.length === 0) {
             logger.info('CRON (CoinGecko): No events returned from the API.');
             return;
