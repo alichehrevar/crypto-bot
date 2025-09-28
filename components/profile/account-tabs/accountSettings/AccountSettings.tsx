@@ -1,6 +1,6 @@
 'use client';
 
-import React from "react";
+import React, {useState} from "react";
 import { observer } from 'mobx-react'; // [1] Import observer and the new hook
 import { Avatar, Select, SelectItem } from "@heroui/react";
 import Image from "next/image";
@@ -9,6 +9,8 @@ import { useUserStore } from '@/hooks/useUserStore';
 import AccountDetailsLoading from "@/components/loading/profile/AccountDetailsLoading";
 import SecuritySettingsLoading from "@/components/loading/profile/SecuritySettingsLoading";
 import EditAccountSettingsModal from "@/components/profile/account-tabs/accountSettings/EditAccountSettingsModal";
+import Switcher from "@/components/shared/ui/Switcher";
+import Enable2FAModal from "@/components/profile/account-tabs/accountSettings/Enable2FAModal";
 
 // [2] Wrap the component with observer to make it reactive
 const AccountSettingsTab = observer(() => {
@@ -99,6 +101,10 @@ const AccountSettingsTab = observer(() => {
                         <li className="flex items-center justify-center">
                             <span className="text-gray-400 w-[200px]">Phone Verification</span>
                             <span>{userData?.info?.phoneNumber ? `(${userData.info.phoneCountry}) ${userData.info.phoneNumber}` : 'N/A'}</span>
+                        </li>
+                        <li className="flex items-center justify-center mt-1">
+                            <span className="text-gray-400 w-[200px]">Enable 2FA</span>
+                            <Enable2FAModal />
                         </li>
                     </ul>
                 </div>

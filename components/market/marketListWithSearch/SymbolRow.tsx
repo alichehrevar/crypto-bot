@@ -32,7 +32,7 @@ export const SymbolRow = React.memo<Props>(({ symbol, onToggleFavorite, onSymbol
                         <BrokerLogo broker={symbol.broker} />
                         {activeMainTab === 'Favorites' && <span className="px-1.5 py-0.5 bg-zinc-700 text-zinc-300 text-[10px] rounded">{categoryTagMap[symbol.category] || symbol.category}</span>}
                     </div>
-                    <div className="text-xs text-zinc-400 mt-1">Vol {formatVolume(symbol.volume)}</div>
+                    {/*<div className="text-xs text-zinc-400 mt-1">Vol {formatVolume(symbol.volume)}</div>*/}
                 </div>
                 <div className="text-right">
                     <div className="font-semibold text-sm text-white">{formatPrice(symbol.lastPrice)}</div>

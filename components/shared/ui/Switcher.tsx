@@ -17,13 +17,13 @@ const Switch: React.FC<{ selected: boolean; onChange: () => void }> = ({selected
     </button>
 );
 
-const Switcher: React.FC<{ title: string; isEnabled: boolean; setIsEnabled: (value: boolean) => void }> = ({
+const Switcher: React.FC<{ title?: string; isEnabled: boolean; setIsEnabled: (value: boolean) => void }> = ({
     title,
     isEnabled,
     setIsEnabled
 }) => (
     <div className="flex items-center justify-between">
-        <h3 className="font-medium text-gray-200">{title}</h3>
+        {title && <h3 className="font-medium text-gray-200">{title}</h3>}
         <Switch selected={isEnabled} onChange={() => setIsEnabled(!isEnabled)}/>
     </div>
 );

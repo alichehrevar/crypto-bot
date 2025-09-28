@@ -17,3 +17,8 @@ export type checkEmailExistenceResponse = {
   exists: boolean,
   error: string
 }
+
+export type Toggle2faResponse = {
+    success: boolean,
+    message: string,
+}
