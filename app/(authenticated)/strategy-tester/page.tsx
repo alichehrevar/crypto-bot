@@ -18,7 +18,7 @@ import { getData } from '@/actions/get';
 import { sendRequest } from '@/actions/post';
 import {OrderIcon} from '@/utils/icons';
 import BacktestResultChart from '@/components/shared/charts/BacktestResultChart';
-import MarketStats from '@/components/profile/MarketStats';
+// import MarketStats from '@/components/profile/MarketStats';
 import { SymbolFilter, SymbolFilterResponse } from '@/types/profile/CurrencyType';
 import MarketListWithSearch from "@/components/market/marketListWithSearch/MarketListWithSearch";
 import RealTimeCandlestickChart from "@/components/shared/charts/TradingViewLightweightChart";
