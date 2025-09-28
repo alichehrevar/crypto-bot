@@ -1,8 +1,6 @@
 // cron/index.js
 
 // Import job schedulers
-const MarketSnapshot = require('../app/models/MarketSnapshot');
-const { seedMarketDataFromFile } = require('../db/seeds/marketSeeder');
 const { scheduleMarketUpdate } = require('./updateMarketData');
 const { scheduleSnapshots, runInitialSnapshot } = require('./snapshotJob');
 const { scheduleAnomalyGeneration } = require('./anomalyGeneratorJob');
