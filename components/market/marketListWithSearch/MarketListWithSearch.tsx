@@ -52,6 +52,16 @@ export default function MarketListWithSearch({ onSymbolClickAction }: MarketList
     }, [filteredAndSortedSymbols.length, visibleRange.start, visibleRange.end]);
 
     useEffect(() => {
+        if (!loading) {
+            const btcBitcoinSymbol = filteredAndSortedSymbols.find(symbol => symbol.id === 'bitcoin');
+
+            if (btcBitcoinSymbol) {
+                onSymbolClickAction(btcBitcoinSymbol);
+            }
+        }
+    }, [loading])
+
+    useEffect(() => {
         const container = scrollContainerRef.current;
 
         if (container) {
@@ -77,7 +87,9 @@ export default function MarketListWithSearch({ onSymbolClickAction }: MarketList
     // --- RENDER ---
     return (
         <div className="bg-dark-gray text-white w-full h-full rounded-lg shadow-2xl pt-4 flex flex-col">
-            <div className="px-4 mb-4"><SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} /></div>
+            <div className="px-4 mb-4">
+                <SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
+            </div>
             <MainTabs activeTab={activeMainTab} setActiveTab={setActiveMainTab} />
             <FilterChips activeFilter={activeFilter} setActiveFilter={setActiveFilter} />
             <MarketListHeader handleSort={handleSort} isSortActive={isSortActive} sortConfig={sortConfig} />

@@ -28,6 +28,7 @@ import IndicatorsSection, {IndicatorItem} from "@/components/shared/ui/Indicator
 import Switcher from "@/components/shared/ui/Switcher";
 import RadioGroup from "@/components/shared/ui/RadioGroup";
 import {MarketListItem} from "@/types/MarketList";
+import CoinSummarySection from "@/components/shared/CoinSummarySection";
 
 // ---------------- helpers ----------------
 function formatDuration(mins: number) {
@@ -137,7 +138,7 @@ export default function StrategyTesterPage() {
         setLoading(true);
 
         const payload: any = {
-            symbol: selectedSymbol,
+            symbol: selectedSymbol?.symbol,
             mode: useRecent === 'recent-candles' ? 'recent' : 'range',
             recentCount: useRecent === 'recent-candles' ? +recentCount : undefined,
             startDate: useRecent === 'time-range' ? startDate : undefined,
@@ -206,7 +207,8 @@ export default function StrategyTesterPage() {
     return (
         <div className="w-full pt-4 relative px-5 backtester-page overflow-y-auto h-screen">
             <div className="w-full flex flex-col gap-2">
-                <MarketStats symbolId={selectedSymbol ?? undefined} />
+                {/*<MarketStats symbolId={selectedSymbol ?? undefined} />*/}
+                <CoinSummarySection coinId={selectedSymbol?.id || "btc-bitcoin"} />
 
                 {/* Main Content */}
                 <div className="w-full flex flex-col lg:flex-row items-start gap-2 mt-4 lg:h-[650px]">

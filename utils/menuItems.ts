@@ -38,12 +38,12 @@ export const MenuItems = [
     },
     {
         name: 'Trade',
-        link: '/profile/manual-trading',
+        link: '/manual-trading',
         children: []
     },
     {
         name: 'Strategy Tester',
-        link: '/profile/strategy-tester',
+        link: '/strategy-tester',
         children: []
     },
     {
