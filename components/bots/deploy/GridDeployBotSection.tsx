@@ -24,7 +24,7 @@ export default function TechnicalDeployBotSection({
     { key: 'dynamic', title: 'Dynamic' }
   ] as const;
 
-  const [selectedParentTab, setSelectedParentTab] = React.useState("spot");
+  const [selectedParentTab, setSelectedParentTab] = React.useState<"spot" | "futures">("spot");
 
   return (
     <div className="flex w-full flex-col bg-dark-gray backdrop-blur-md pt-4 px-4 rounded-lg bot-config-form__tabs-screen-height">
@@ -36,9 +36,9 @@ export default function TechnicalDeployBotSection({
           cursor: "w-full",
           tab: "h-10 px-0",
         }}
-        selectedKey={selectedParentTab}
+        selectedKey={selectedParentTab as string}
         variant="underlined"
-        onSelectionChange={(k) => setSelectedParentTab(k as string)}
+        onSelectionChange={(k) => setSelectedParentTab(k as "spot" | "futures")}
       >
         {parentTabs.map(({ key, title }) => (
           <Tab key={key} title={title} />
@@ -58,7 +58,7 @@ export default function TechnicalDeployBotSection({
         {tabs.map(({ key, title }) => (
           <Tab key={key} title={title}>
             <GridConfigForm
-              mode={key}
+              key={key}
               selectedParentTab={selectedParentTab}
               selectedSymbol={selectedSymbol}
               onCloseAction={() => onSuccessAction()}

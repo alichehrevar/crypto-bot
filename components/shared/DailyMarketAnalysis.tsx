@@ -59,19 +59,6 @@ export default function DailyMarketAnalysis() {
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <div className="flex items-center gap-3 relative">
-                    <Image
-                        alt="Analysis Icon"
-                        className="size-7"
-                        height={100}
-                        src="https://img.icons8.com/?size=100&id=3AgLyqORovLL&format=png&color=FFFFFF"
-                        width={100}
-                        onError={(e) => {
-                            const t = e.currentTarget as HTMLImageElement;
-
-                            t.onerror = null;
-                            t.src = 'data:image/svg+xml;charset=UTF-8,<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28"><rect width="100%" height="100%" fill="%23fff"/></svg>';
-                        }}
-                    />
                     <h3 className="text-lg font-semibold">Daily Market Analysis</h3>
                 </div>
 
