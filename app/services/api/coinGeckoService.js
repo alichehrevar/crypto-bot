@@ -138,7 +138,7 @@ exports.getMarketDataForIds = async (coinIds) => {
 const CMC_EVENTS_CACHE_KEY = 'cmc_crypto_events'; // New cache key
 
 /**
- * Fetches upcoming crypto events from the CoinMarketCal API, with a 2-minute cache.
+ * Fetches crypto events from the CoinMarketCal API.
  * @returns {Promise<Array<Object>>} A promise that resolves to a formatted array of events.
  */
 exports.fetchCryptoEventsFromCMC = async () => {
@@ -152,36 +152,48 @@ exports.fetchCryptoEventsFromCMC = async () => {
     // --- Step 2: If cache miss, fetch from API ---
     logger.info('Cache miss. Fetching fresh crypto events from CoinMarketCal.');
     try {
-        // You must get an access token from https://coinmarketcal.com/en/api
-        const accessToken = process.env.COINMARKETCAL_ACCESS_TOKEN;
-        if (!accessToken) {
-            throw new Error('CoinMarketCal access token is not configured.');
+        const apiKey = process.env.COINMARKETCAL_API_KEY;
+        if (!apiKey) {
+            throw new Error('CoinMarketCal API key is not configured.');
         }
 
-        const response = await axios.get('https://api.coinmarketcal.com/v1/events', {
+        const response = await axios.get('https://developers.coinmarketcal.com/v1/events', {
             params: {
-                accessToken: accessToken,
-                max: 100, // Fetch up to 100 upcoming events
-                showOnly: 'hot_events' // Optional: filter for popular events
+                max: 100,
+            },
+            headers: {
+                'x-api-key': apiKey,
+                'Accept': 'application/json',
+                'Accept-Encoding': 'deflate, gzip',
             },
             timeout: API_TIMEOUT,
         });
 
-        // The actual event data is in response.data.body
+        // CORRECTED: Access the 'body' property for the events array
         const events = response.data.body || [];
 
         // Transform the CoinMarketCal data to match our internal Event schema
-        const formattedEvents = events.map(event => ({
-            date: event.date_event.split('T')[0], // API gives ISO string 'YYYY-MM-DDTHH:mm:ss.sssZ'
-            time: new Date(event.date_event).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' }) + ' UTC',
-            event: `[${event.coins.map(c => c.symbol).join(', ')}] ${event.title}`, // Prepend coin symbols
-            // Use votes to infer impact. This is just an example logic.
-            impact: event.votes > 500 ? 'High' : (event.votes > 200 ? 'Medium' : 'Low'),
-            forecast: 'N/A',
-            actual: 'TBD',
-            source: 'CoinMarketCal',
-            source_link: event.source, // CMC provides a source link!
-        }));
+        const formattedEvents = events.map(event => {
+            // CORRECTED: Logic to infer impact from votes, as 'hot_event' is unavailable.
+            // These thresholds are examples and can be adjusted.
+            let impact = 'Low';
+            if (event.votes > 500) {
+                impact = 'High';
+            } else if (event.votes > 200) {
+                impact = 'Medium';
+            }
+
+            return {
+                date: event.date_event.split('T')[0],
+                time: new Date(event.date_event).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' }) + ' UTC',
+                event: `[${event.coins.map(c => c.symbol).join(', ')}] ${event.title.en}`,
+                impact: impact,
+                forecast: 'N/A',
+                actual: 'TBD',
+                source: 'CoinMarketCal',
+                source_link: event.source,
+            };
+        });
 
         // --- Step 3: Store the fresh, formatted data in the cache ---
         cache.set(CMC_EVENTS_CACHE_KEY, formattedEvents);
@@ -190,11 +202,10 @@ exports.fetchCryptoEventsFromCMC = async () => {
         return formattedEvents;
 
     } catch (error) {
-        logger.error(`CoinMarketCal API Error: ${error.message}`, {
-            status: error.response?.status,
-            data: error.response?.data,
-        });
-        // Return an empty array on failure
+        const status = error.response?.status;
+        const data = error.response?.data;
+        logger.error(`CoinMarketCal API Error: ${error.message}`, { status, data });
+
         return [];
     }
 };

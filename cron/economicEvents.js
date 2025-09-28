@@ -8,11 +8,14 @@ const logger = require('../logs/logger');
  * 'Upsert' means it will update an existing event if found, or insert it if it's new.
  */
 const syncCoinGeckoEvents = async () => {
-    logger.info('CRON (CoinGecko): Starting event synchronization...');
+    // CHANGED: Updated log context
+    logger.info('CRON (CoinMarketCal): Starting event synchronization...');
     try {
+        // FIXED: Renamed function call to reflect its purpose
         const eventsFromApi = await fetchCryptoEventsFromCMC();
+
         if (!eventsFromApi || eventsFromApi.length === 0) {
-            logger.info('CRON (CoinGecko): No events returned from the API.');
+            logger.info('CRON (CoinMarketCal): No new events returned from the API.');
             return;
         }
 
@@ -20,25 +23,24 @@ const syncCoinGeckoEvents = async () => {
         let failedCount = 0;
 
         for (const event of eventsFromApi) {
-            // We use a combination of title and date to create a unique source ID.
-            const sourceId = `coingecko-${event.title.replace(/\s+/g, '-')}-${event.start_date}`;
+            // FIXED: Use the formatted 'event' and 'date' fields for the ID
+            const sourceId = `coinmarketcal-${event.event.replace(/\s+/g, '-')}-${event.date}`;
 
+            // This object now maps the fields from the formatted API response
             const eventData = {
-                date: event.start_date,
-                time: event.start_date ? '00:00 UTC' : 'N/A', // CoinGecko often lacks specific times
-                event: event.title,
-                impact: 'Low', // Default impact for crypto events
-                forecast: 'N/A',
-                actual: 'TBD',
-                description: event.description,
-                organizer: event.organizer,
-                eventType: event.type,
-                source: 'CoinGecko',
+                date: event.date,
+                time: event.time,
+                event: event.event, // FIXED: Use 'event.event' from formatted object
+                impact: event.impact, // FIXED: Use dynamic impact from service
+                forecast: event.forecast,
+                actual: event.actual,
+                source: 'CoinMarketCal', // CHANGED: Correct source name
                 sourceId: sourceId,
+                source_link: event.source_link, // NEW: Storing the source link
             };
 
             try {
-                // Find an event by its unique sourceId and update it, or insert if it doesn't exist.
+                // Upsert logic remains the same, it's solid
                 await EconomicEvent.findOneAndUpdate(
                     { sourceId: eventData.sourceId },
                     { $set: eventData },
@@ -46,17 +48,20 @@ const syncCoinGeckoEvents = async () => {
                 );
                 successCount++;
             } catch (upsertError) {
-                logger.error(`CRON (CoinGecko): Failed to upsert event "${event.title}"`, { error: upsertError.message });
+                logger.error(`CRON (CoinMarketCal): Failed to upsert event "${event.event}"`, { error: upsertError.message });
                 failedCount++;
             }
         }
-        logger.info(`CRON (CoinGecko): Synchronization complete. Success: ${successCount}, Failed: ${failedCount}.`);
+        logger.info(`CRON (CoinMarketCal): Synchronization complete. Success: ${successCount}, Failed: ${failedCount}.`);
 
     } catch (error) {
-        logger.error('CRON (CoinGecko): A critical error occurred during the sync process.', { error: error.message });
+        // The detailed error logging you added is great
+        logger.error('CRON (CoinMarketCal): A critical error occurred during the sync process.', {
+            errorMessage: error.message,
+            errorStack: error.stack,
+        });
     }
 };
-
 
 /**
  * Starts the recurring scheduler job for fetching CoinGecko events.

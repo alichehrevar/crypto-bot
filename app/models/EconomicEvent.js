@@ -49,6 +49,10 @@ const economicEventSchema = new Schema({
         type: String,
         sparse: true, // Allows nulls but enforces uniqueness for non-null values
         unique: true,
+    },
+    source_link: {
+        type: String,
+        trim: true,
     }
 }, {
     timestamps: true,
