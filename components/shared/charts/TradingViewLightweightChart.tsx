@@ -11,7 +11,7 @@ import {
 import {addToast, Spinner} from '@heroui/react';
 
 interface RealTimeCandlestickChartProps {
-    symbol?: string;
+    symbol?: 'BTCUSDT' | string;
     interval?: '1m' | '5m' | '15m' | '30m';
     timeZone?: 'UTC' | 'local' | string;
     locale?: string;
