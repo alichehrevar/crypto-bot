@@ -1,7 +1,6 @@
 import React from "react";
 
-import { GridStrategySetupProps } from "../../../../types/GridFormTypes";
-
+import { GridStrategySetupProps } from "@/types/GridFormTypes";
 import NumericInput from "@/components/shared/ui/NumericInput";
 import Combobox from "@/components/shared/ui/Combobox";
 

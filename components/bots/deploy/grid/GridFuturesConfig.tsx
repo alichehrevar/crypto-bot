@@ -1,8 +1,7 @@
 import React from "react";
 import { Switch, Tabs, Tab } from "@heroui/react";
 
-import { GridFuturesConfigProps } from "../../../../types/GridFormTypes";
-
+import { GridFuturesConfigProps } from "@/types/GridFormTypes";
 import Combobox from "@/components/shared/ui/Combobox";
 import NumericInput from "@/components/shared/ui/NumericInput";
 

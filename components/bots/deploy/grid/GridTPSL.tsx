@@ -1,8 +1,7 @@
 import React from "react";
 import { Switch } from "@heroui/react";
 
-import { GridTPSLProps } from "../../../../types/GridFormTypes";
-
+import { GridTPSLProps } from "@/types/GridFormTypes";
 import NumericInput from "@/components/shared/ui/NumericInput";
 
 export function GridTPSL({

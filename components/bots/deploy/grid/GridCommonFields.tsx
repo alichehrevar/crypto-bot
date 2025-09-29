@@ -1,7 +1,6 @@
 import React from "react";
 
-import { GridCommonFieldsProps } from "../../../../types/GridFormTypes";
-
+import { GridCommonFieldsProps } from "@/types/GridFormTypes";
 import Input from "@/components/shared/ui/Input";
 import Combobox from "@/components/shared/ui/Combobox";
 
