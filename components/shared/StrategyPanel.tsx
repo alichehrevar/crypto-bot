@@ -16,6 +16,7 @@ import {
     SIMULATED_TRADES_OPTIONS,
     STANDARD_INDICATOR_OPTIONS
 } from "@/utils/strategyPanelData";
+import {sectionAnimationProps} from "@/utils/animations";
 
 // =====================================================================
 // --- MOCK DATA & CONSTANTS ---
@@ -37,13 +38,6 @@ export default function StrategyPanel() {
     const [minOptimizationAccuracy, setMinOptimizationAccuracy] = useState(OPTIMIZATION_ACCURACY_OPTIONS[2].name);
     const [minBotAccuracy, setMinBotAccuracy] = useState(BOT_ACCURACY_OPTIONS[2].name);
     const [accuracyInterval, setAccuracyInterval] = useState(ACCURACY_INTERVAL_OPTIONS[1].name);
-
-    const sectionAnimationProps = {
-        initial: {opacity: 0, height: 0},
-        animate: {opacity: 1, height: 'auto'},
-        exit: {opacity: 0, height: 0},
-        transition: {type: "spring", stiffness: 300, damping: 30}
-    };
 
     return (
         <div className="bg-dark-gray text-white p-8 pb-4 rounded-xl shadow-2xl flex flex-col w-xl">

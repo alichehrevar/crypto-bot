@@ -5,6 +5,7 @@ import Switcher from "@/components/shared/ui/Switcher";
 import IndicatorsSection from "@/components/shared/ui/IndicatorsSection";
 import {MAIN_INDICATOR_OPTIONS, STANDARD_INDICATOR_OPTIONS} from "@/utils/strategyPanelData";
 import {IndicatorItem} from "@/components/shared/ui/IndicatorRow";
+import {sectionAnimationProps} from "@/utils/animations";
 
 
 export default function SecurityIndicator({
@@ -14,12 +15,6 @@ export default function SecurityIndicator({
 }) {
 
     const [securityIndicatorEnabled, setSecurityIndicatorEnabled] = useState(true);
-    const sectionAnimationProps = {
-        initial: {opacity: 0, height: 0},
-        animate: {opacity: 1, height: 'auto'},
-        exit: {opacity: 0, height: 0},
-        transition: {type: "spring", stiffness: 300, damping: 30}
-    };
 
     return (
         <motion.div layout className="flex flex-col mb-6">

@@ -29,6 +29,7 @@ import Switcher from "@/components/shared/ui/Switcher";
 import RadioGroup from "@/components/shared/ui/RadioGroup";
 import {MarketListItem} from "@/types/MarketList";
 import CoinSummarySection from "@/components/shared/CoinSummarySection";
+import {sectionAnimationProps} from "@/utils/animations";
 
 // ---------------- helpers ----------------
 function formatDuration(mins: number) {
@@ -122,13 +123,6 @@ export default function StrategyTesterPage() {
         if (dateRangeValue?.start) setStartDate(dateRangeValue.start.toString());
         if (dateRangeValue?.end) setEndDate(dateRangeValue.end.toString());
     }, [dateRangeValue]);
-
-    const sectionAnimationProps = {
-        initial: {opacity: 0, height: 0},
-        animate: {opacity: 1, height: 'auto'},
-        exit: {opacity: 0, height: 0},
-        transition: {type: "spring", stiffness: 300, damping: 30}
-    };
 
 
     const handleSubmit = async (e: FormEvent) => {

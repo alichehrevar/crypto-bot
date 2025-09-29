@@ -20,6 +20,7 @@ import Combobox from "@/components/shared/ui/Combobox";
 import NumericInput from "@/components/shared/ui/NumericInput";
 import Switcher from "@/components/shared/ui/Switcher";
 import {MarketListItem} from "@/types/MarketList";
+import {sectionAnimationProps} from "@/utils/animations";
 
 export interface ManualTradeFormProps {
     onTradeExecuted?: () => void,
@@ -65,13 +66,6 @@ export default function ManualTradeForm({
     const [costError, setCostError] = useState<string>("");
 
     const [loading, setLoading] = useState<boolean>(false);
-
-    const sectionAnimationProps = {
-        initial: {opacity: 0, height: 0},
-        animate: {opacity: 1, height: 'auto'},
-        exit: {opacity: 0, height: 0},
-        transition: {type: "spring", stiffness: 300, damping: 30}
-    };
 
     //
     // ─── EFFECT TO LOAD ACCOUNTS & SYMBOLS ─────────────────────────────────

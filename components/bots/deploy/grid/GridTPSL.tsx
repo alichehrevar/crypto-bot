@@ -4,6 +4,7 @@ import { Switch } from "@heroui/react";
 
 import { GridTPSLProps } from "@/types/GridFormTypes";
 import NumericInput from "@/components/shared/ui/NumericInput";
+import {sectionAnimationProps} from "@/utils/animations";
 
 export function GridTPSL({
      isSpot,
@@ -16,13 +17,6 @@ export function GridTPSL({
      sellBaseOnStop,
      onSellBaseOnStopChange,
 }: GridTPSLProps) {
-
-    const sectionAnimationProps = {
-        initial: {opacity: 0, height: 0},
-        animate: {opacity: 1, height: 'auto'},
-        exit: {opacity: 0, height: 0},
-        transition: {type: "spring", stiffness: 300, damping: 30}
-    };
 
     return (
         <motion.div layout className="border-t border-default-100 pt-4 space-y-4">
