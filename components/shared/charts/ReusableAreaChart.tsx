@@ -126,6 +126,7 @@ export default function ReusableAreaChart({ data }: { data: ChartData }) {
                         domain={['dataMin', 'dataMax']}
                         tick={{ fill: '#6B7280', fontSize: 12 }}
                         tickLine={false}
+                        tickMargin={20}
                         ticks={ticks}
                     />
 
