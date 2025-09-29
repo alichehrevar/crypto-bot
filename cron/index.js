@@ -47,8 +47,8 @@ const startScheduledJobs = async () => {
         schedulePriceUpdate();
         await delay(startupDelay);
 
-        await runInitialMarketUpdate();
-        scheduleMarketUpdate();
+        // await runInitialMarketUpdate();
+        // scheduleMarketUpdate();
 
         logger.info('✅ All scheduled jobs have been started successfully.');
     } catch (error) {

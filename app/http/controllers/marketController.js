@@ -64,8 +64,6 @@ exports.getMarketList = async (req, res) => {
             FavoriteSymbol.find({ userId }).select('symbol').lean()
         ]);
 
-        console.log(coinsFromDB)
-
         const favoriteSymbolsSet = new Set(userFavorites.map(fav => fav.symbol));
 
         // 2. Enrich and format the data.

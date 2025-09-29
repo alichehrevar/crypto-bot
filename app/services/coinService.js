@@ -1,60 +1,22 @@
 // app/services/coinService.js
 const axios = require('axios');
+const delay = require('../../utils/delay');
 
 const COINGECKO = process.env.COINGECKO_API_URL || 'https://api.coingecko.com/api/v3';
-const CACHE_TTL_MS = 2 * 60 * 60 * 1000; // 2 hours
 
 // Simple in-memory cache
 const cache = new Map();
 
-/**
- * Converts a common symbol or a coinpaprika-style ID to a CoinGecko ID.
- * e.g., 'BTC', 'btc-bitcoin' -> 'bitcoin'
- * @param {string} coinIdOrSymbol
- * @returns {string} The CoinGecko coin ID.
- */
-function toCoingeckoId(coinIdOrSymbol) {
-    if (!coinIdOrSymbol) throw new Error('No coin identifier provided');
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+const toCoingeckoId = (id) => id.toLowerCase(); // Placeholder for your ID mapping function
 
-    const lower = coinIdOrSymbol.toLowerCase();
-
-    // Mapping for common symbols to CoinGecko IDs
-    const special = {
-        'btc': 'bitcoin',
-        'eth': 'ethereum',
-        'bnb': 'binancecoin',
-        'sol': 'solana',
-        'xrp': 'ripple',
-        'ada': 'cardano',
-        'doge': 'dogecoin',
-        'ton': 'the-open-network', // Note: CoinGecko ID for Toncoin
-        'trx': 'tron',
-        'dot': 'polkadot',
-        'matic': 'matic-network',
-        'link': 'chainlink',
-        'ltc': 'litecoin',
-        'bch': 'bitcoin-cash',
-        'etc': 'ethereum-classic',
-    };
-
-    // Check if the input is a known symbol
-    if (special[lower]) return special[lower];
-
-    // Rule: if it contains a hyphen (like 'btc-bitcoin'), take the second part.
-    if (lower.includes('-')) {
-        const parts = lower.split('-');
-        return parts[1] || parts[0]; // 'btc-bitcoin' -> 'bitcoin'
-    }
-
-    // Fallback: assume the input itself is the ID (e.g., 'bitcoin')
-    return lower;
-}
+// --- New Configuration for Retry Logic ---
+const MAX_RETRIES = 4; // The total attempts will be MAX_RETRIES + 1
+const INITIAL_DELAY_MS = 1000; // Start with a 1-second delay
 
 /**
- * Fetches a comprehensive summary for a given coin using CoinGecko.
- * Accepts a CoinGecko ID ('bitcoin'), symbol ('BTC'), or CoinPaprika-like id ('btc-bitcoin').
- * @param {string} coinIdOrSymbol
- * @returns {Promise<object|null>}
+ * A simple helper function to wait for a specified duration.
+ * @param coinIdOrSymbol
  */
 async function getCoinSummary(coinIdOrSymbol) {
     const id = toCoingeckoId(coinIdOrSymbol);
@@ -69,14 +31,16 @@ async function getCoinSummary(coinIdOrSymbol) {
         }
     }
 
-    // 2. If no valid cache, fetch from API
-    try {
-        const id = toCoingeckoId(coinIdOrSymbol);
+    // 2. If no valid cache, fetch from API with retry logic
+    let retries = MAX_RETRIES;
+    let currentDelay = INITIAL_DELAY_MS;
+    let coinDetailsRes = null; // Use let to allow reassignment inside the loop
 
-        // 1) Fetch main coin data and 7-day OHLC in parallel
-        const [coinDetailsRes, ohlc7dRes] = await Promise.all([
+    while (retries >= 0) {
+        try {
+            console.log(`Attempting to fetch data for ${id}...`);
             // This single endpoint provides most of what we need!
-            axios.get(`${COINGECKO}/coins/${id}`, {
+            coinDetailsRes = await axios.get(`${COINGECKO}/coins/${id}`, {
                 params: {
                     localization: false,
                     tickers: false,
@@ -85,38 +49,53 @@ async function getCoinSummary(coinIdOrSymbol) {
                     developer_data: false,
                     sparkline: false,
                 },
-            }),
-            // A separate call for 7-day high/low
-            // axios.get(`${COINGECKO}/coins/${id}/ohlc`, {
-            //     params: {
-            //         vs_currency: 'usd',
-            //         days: '7',
-            //     },
-            // }),
-        ]);
+            });
 
-        if (coinDetailsRes.status !== 200) {
-            throw new Error(`Failed to fetch CoinGecko details for ${id}`);
+            // If the request was successful, break out of the retry loop
+            if (coinDetailsRes.status === 200) {
+                console.log(`Successfully fetched data for ${id}.`);
+                break;
+            }
+
+        } catch (error) {
+            // Check if the error is a 429 (Too Many Requests) and we still have retries left
+            if (error.response?.status === 429 && retries > 0) {
+                console.warn(`Rate limit hit for ${id}. Retrying in ${currentDelay / 1000}s... (${retries} retries left)`);
+                await delay(currentDelay);
+                retries--;
+                currentDelay *= 2; // Exponential backoff: double the delay for the next attempt
+            } else {
+                // For any other error, or if we are out of retries, re-throw the error
+                // to be handled by the outer catch block.
+                const errorMessage = error.response ? JSON.stringify(error.response.data) : error.message;
+                console.error(`Error in getCoinSummary (CoinGecko) for ${coinIdOrSymbol}:`, errorMessage);
+
+                // If API fails, check for an expired cache entry and return it if it exists
+                if (cache.has(id)) {
+                    console.warn(`API call failed for ${id}. Returning stale cache data.`);
+                    return cache.get(id).data;
+                }
+                return null;
+            }
         }
+    }
 
+    // If coinDetailsRes is still null after the loop, it means all retries failed.
+    if (!coinDetailsRes) {
+        console.error(`All retry attempts failed for ${id}.`);
+        if (cache.has(id)) {
+            console.warn(`Returning stale cache data for ${id} after all retries failed.`);
+            return cache.get(id).data;
+        }
+        return null;
+    }
+
+    try {
+        // --- Process and return the successful response ---
         const data = coinDetailsRes.data;
         const marketData = data.market_data;
 
-        // --- Process 7-day OHLC data for 1-week high/low ---
-        // Each ohlc item: [timestamp, open, high, low, close]
-        // const ohlc7d = Array.isArray(ohlc7dRes.data) ? ohlc7dRes.data : [];
-        // let high_1w = null;
-        // let low_1w = null;
-        //
-        // if (ohlc7d.length > 0) {
-        //     const highs = ohlc7d.map(k => k[2]); // high is at index 2
-        //     const lows = ohlc7d.map(k => k[3]);  // low is at index 3
-        //     high_1w = Math.max(...highs);
-        //     low_1w = Math.min(...lows);
-        // }
-
-        // --- Return combined summary object ---
-        console.log(`Coin ${coinIdOrSymbol} (${id}) summary fetched successfully via CoinGecko.`);
+        console.log(`Coin ${coinIdOrSymbol} (${id}) summary processed successfully.`);
         const summaryData = {
             id: data.id,
             name: data.name,
@@ -131,8 +110,6 @@ async function getCoinSummary(coinIdOrSymbol) {
             percent_change_1y: marketData.price_change_percentage_1y_in_currency?.usd,
             high_24h: marketData.high_24h?.usd,
             low_24h: marketData.low_24h?.usd,
-            // high_1w,
-            // low_1w,
             ath: marketData.ath?.usd,
             imageUrl: data.image?.large,
         };
@@ -144,18 +121,10 @@ async function getCoinSummary(coinIdOrSymbol) {
         });
 
         return summaryData;
-    } catch (error) {
-        const errorMessage = error.response ? JSON.stringify(error.response.data) : error.message;
-        console.error(`Error in getCoinSummary (CoinGecko) for ${coinIdOrSymbol}:`, errorMessage);
 
-        // If API fails, check for an expired cache entry and return it if it exists
-        // This is better than returning nothing.
-        if (cache.has(id)) {
-            console.warn(`API call failed for ${id}. Returning stale cache data.`);
-            return cache.get(id).data;
-        }
-
-        return null;
+    } catch (processingError) {
+        console.error(`Failed to process data for ${id} after successful fetch:`, processingError.message);
+        return null; // Or return stale cache if available
     }
 }
 
