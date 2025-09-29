@@ -22,7 +22,7 @@ export default function TechnicalDeployBotSection({
 
     return (
         <div
-            className="flex w-full flex-col bg-dark-gray backdrop-blur-md pt-4 px-4 rounded-lg bot-config-form__tabs-screen-height">
+            className="flex w-full flex-col bg-dark-gray backdrop-blur-md pt-1 px-4 rounded-lg">
             <Tabs
                 fullWidth
                 aria-label="Options"
