@@ -1,6 +1,7 @@
 'use client'
 
 import React, {useState} from "react";
+
 import BotsList from "@/components/bots/BotsList";
 import GridDeployBotSection from "@/components/bots/deploy/GridDeployBotSection";
 import RealTimeCandlestickChart from "@/components/shared/charts/TradingViewLightweightChart";
