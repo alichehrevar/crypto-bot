@@ -12,6 +12,7 @@ const binanceWS = require('./app/services/binanceWS');
 const tradingViewWS = require('./app/services/TradingViewWS');
 const bingXWS = require('./app/services/bingXWS');
 const botService = require('./app/services/botService/BotService');
+const botManagerService = require('./app/services/botService/BotManagerService');
 const wsServer = require('./app/services/WebSocketServer');
 const { seedSettings } = require('./db/seeds/settingsSeeder');
 const { seedAdminUser } = require('./db/seeds/adminUserSeeder');
@@ -97,6 +98,8 @@ connectDB().then(async () => {
 
     // Initialize bots
     await botService.initialize();
+    // Initialize grid bot manager
+    await botManagerService.initialize();
 });
 
 // Health check

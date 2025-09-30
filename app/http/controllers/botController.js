@@ -2,7 +2,7 @@
 
 const BotBase        = require('../../models/BotBase');
 const IndicatorBot   = require('../../models/IndicatorBot');
-const GridBotModel   = require('../../models/GridBotModel');
+const GridBotModel   = require('../../models/GridBotModel'); // This is our new, detailed model
 const User           = require('../../models/User');
 const Trade          = require('../../models/Trade');
 const Candle         = require('../../models/Candle');
@@ -12,9 +12,52 @@ const BingxAccount   = require('../../models/BingxAccount');
 const BotService     = require('../../services/botService/BotService');
 const PnLService     = require('../../services/PnLService');
 const logger = require("../../../logs/logger"); // for getBots enrichment
+const BotManagerService = require('../../services/botService/BotManagerService'); // Import our new manager
 
 // Default indicator parameters
 const defaultStrategyParams = require('../../../config/defaultStrategyParams');
+
+
+// NEW: Controller to create an advanced grid bot using the new service structure
+exports.createGridBot = async (req, res) => {
+    try {
+        const userId = req.user?.id;
+        if (!userId) {
+            return res.status(401).json({ error: 'User not found.' });
+        }
+
+        // The bot configuration should match our new GridBotModel schema
+        const botConfig = { ...req.body, userId };
+
+        // Basic validation
+        if (!botConfig.name || !botConfig.symbol || !botConfig.exchange || !botConfig.marketType) {
+            return res.status(400).json({ error: 'Name, symbol, exchange, and marketType are required.' });
+        }
+
+        const botInstance = await BotManagerService.createAndStartBot(botConfig);
+
+        res.status(201).json({ success: true, message: "Grid bot created and started successfully.", bot: botInstance.bot });
+
+    } catch(err) {
+        console.error('createGridBot error:', err);
+        logger.error(`createGridBot error: ${err.message}`, { stack: err.stack });
+        return res.status(500).json({ success: false, error: err.message });
+    }
+};
+
+// NEW: Controller to hard-stop an advanced grid bot
+exports.stopGridBot = async (req, res) => {
+    try {
+        const { id } = req.params;
+        await BotManagerService.stopBot(id);
+        res.status(200).json({ success: true, message: `Grid bot ${id} stopped successfully.` });
+    } catch(err) {
+        console.error('stopGridBot error:', err);
+        logger.error(`stopGridBot error: ${err.message}`, { stack: err.stack });
+        return res.status(500).json({ success: false, error: err.message });
+    }
+};
+
 
 /**
  * Deploy a new bot (either an indicator bot or a grid bot).

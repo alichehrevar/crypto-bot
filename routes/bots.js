@@ -6,6 +6,10 @@ const { validateBotParams } = require('../app/http/middleware/validation');
 const botController = require('../app/http/controllers/botController');
 const authenticate = require('../app/http/middleware/auth');
 
+// --- ADVANCED GRID BOT ROUTES ---
+router.post('/grid/create', authenticate, botController.createGridBot);
+router.post('/grid/:id/stop', authenticate, botController.stopGridBot);
+
 // Get lookup props (risk strategies, etc.)
 router.get('/botProps', authenticate, botController.botProps);
 
