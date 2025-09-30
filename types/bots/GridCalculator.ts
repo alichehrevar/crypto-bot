@@ -1,5 +1,6 @@
 // src/utils/gridCalculator.ts
 import Decimal from 'decimal.js';
+import {addToast} from "@heroui/react";
 
 // --- Configuration ---
 if (Decimal.precision < 30) {
@@ -29,7 +30,7 @@ export function roundToTickNeutral(price: Decimal, tick: Decimal): Decimal {
 
     try {
         precision = tick.decimalPlaces();
-    } catch (e) {
+    } catch {
         const s = tick.toString().toLowerCase();
 
         if (s.includes('e')) {
@@ -66,7 +67,10 @@ export function calculateGridLevels(params: GridCalculationParams): Decimal[] {
             calculatedLines = Array.from({ length: grids + 1 }, (_, i) => lower.mul(ratio.pow(i)));
         }
     } catch (error) {
-        console.error("Grid calculation failed:", error);
+        addToast({
+            title: "Grid calculation failed: " + error,
+            color: 'danger'
+        })
 
         return [];
     }
@@ -129,7 +133,10 @@ export const fetchSymbolFilters = async (symbol: string): Promise<{ tickSize: De
     } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
 
-        console.warn(`Failed to fetch tick size for ${symbol}: ${message}. Using fallback.`);
+        addToast({
+            title: `Failed to fetch tick size for ${symbol}: ${message}. Using fallback.`,
+            color: 'warning'
+        })
 
         return { tickSize: FALLBACK_TICK_SIZE };
     }
