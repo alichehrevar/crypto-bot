@@ -35,27 +35,62 @@ async function getFearAndGreedIndex() {
  * The data is kept up-to-date by background cron jobs.
  * @returns {Promise<Array<Object>>} A promise that resolves to an array of events.
  */
-async function getEconomicEvents () {
+/**
+ * Fetches crypto economic events from the CoinMarketCal API.
+ */
+async function getEconomicEvents() {
     try {
-        // Fetch all events and sort them by date in ascending order
-        const allEvents = await EconomicEvent.find({}).sort({ date: 'asc' }).lean();
+        // Retrieve your API key from environment variables
+        const accessToken = process.env.COINMARKETCAL_API_KEY;
+        if (!accessToken) {
+            throw new Error('CoinMarketCal API key is not set.');
+        }
 
-        const now = new Date();
+        // Fetch events for the next 7 days (you can adjust the date range)
+        const response = await axios.get('https://developers.coinmarketcal.com/v1/events', {
+            params: {
+                // Parameters are optional, but good for filtering
+                max: 100, // Limit the number of results
+                // You can also specify date ranges:
+                // dateRangeStart: '30-09-2025',
+                // dateRangeEnd: '07-10-2025',
+            },
+            headers: {
+                'x-api-key': accessToken,
+                'Accept': 'application/json',
+            }
+        });
 
-        // Map over the raw data to format it for the frontend
-        return allEvents.map(event => {
-            const eventDate = new Date(event.date);
-            const isPast = eventDate < now;
-            const dateString = eventDate.toISOString().split('T')[0];
+        const events = response.data.body; // The events are in the 'body' property
+
+        // Map over the API data to format it for your frontend
+        return events.map(event => {
+            // This is the full UTC timestamp, e.g., "2025-09-30T00:00:00Z"
+            const eventDateUtc = new Date(event.date_event).toISOString();
 
             return {
+                // 1. Spread all original properties from the API event object
                 ...event,
-                date: dateString,
-                isPast,
+
+                // 2. Overwrite the 'title' object with the English string for convenience
+                title: event.title.en,
+
+                // 3. Add our formatted UTC date for the frontend to use
+                dateUtc: eventDateUtc,
             };
         });
+
     } catch (error) {
-        logger.error('Error fetching economic events from database:', error);
+        // Better error handling for API calls
+        if (error.response) {
+            logger.error('API Error fetching CoinMarketCal events:', {
+                status: error.response.status,
+                data: error.response.data,
+            });
+        } else {
+            console.log(error)
+            logger.error('Error fetching economic events:', error.message);
+        }
         throw new Error('Could not retrieve economic events.');
     }
 }

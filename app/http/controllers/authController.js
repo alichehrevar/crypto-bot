@@ -47,6 +47,11 @@ exports.login = async (req, res) => {
             return res.status(401).json({ success: false, error: 'Invalid credentials..' });
         }
 
+        const tokenString = await generateToken(user, req);
+
+        // 4. Return the new token string to the client.
+        return res.json({ success: true, data: { token: tokenString } });
+
         if (user.verifiedAt === null || user.enable2FA === true) {
             const sendEmail = await sendOtpAndHandleFailure(user);
             if (sendEmail.success === false) {
@@ -61,10 +66,10 @@ exports.login = async (req, res) => {
             });
         }
 
-        const tokenString = await generateToken(user, req);
-
-        // 4. Return the new token string to the client.
-        return res.json({ success: true, data: { token: tokenString } });
+        // const tokenString = await generateToken(user, req);
+        //
+        // // 4. Return the new token string to the client.
+        // return res.json({ success: true, data: { token: tokenString } });
 
     } catch (err) {
         console.error('Error in login:', err);
