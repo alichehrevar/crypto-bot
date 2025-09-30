@@ -1,5 +1,6 @@
 // services/MarketService.js
 
+const NodeCache = require('node-cache');
 const MarketSnapshot = require('../models/MarketSnapshot');
 const coinGeckoService = require('./api/coinGeckoService');
 const delay = require('../../utils/delay');
@@ -156,17 +157,34 @@ async function fetchAndStoreMarketData() {
 }
 
 // Configuration constants
-const MOVER_COUNT = 10;
+const MOVER_COUNT = 20;
 const VOLATILITY_COUNT = 50;
 const RVOL_PERIOD_DAYS = 20; // CoinGecko doesn't provide rVol, so we will simulate it conceptually.
+
+// Create a cache instance. Data will be stored for 5 minutes (300 seconds).
+// You can adjust stdTTL (standard Time-To-Live) to your needs.
+const marketDataCache = new NodeCache({ stdTTL: 300 });
+
+// Define a key for our cached data
+const CACHE_KEY = 'moversAndVolatility';
+
 
 /**
  * Calculates and retrieves market movers and volatility data using the CoinGecko API.
  * @returns {Promise<object|null>} The formatted MoversData object or null.
  */
 async function getMoversAndVolatilityData () {
+    // Step 1: Check if valid data is already in the cache
+    const cachedData = marketDataCache.get(CACHE_KEY);
+    if (cachedData) {
+        logger.info('Returning movers and volatility data from cache.');
+        return cachedData;
+    }
+
+    // If not in cache, proceed with fetching and processing
+    logger.info('Cache miss. Fetching fresh movers and volatility data from CoinGecko.');
     try {
-        // Step 1: Fetch live market data from CoinGecko
+        // Step 2: Fetch live market data from CoinGecko
         // We fetch 250 to ensure we have a large pool to find significant movers.
         const marketData = await coinGeckoService.getMarketData(250);
 
@@ -175,24 +193,29 @@ async function getMoversAndVolatilityData () {
             return null;
         }
 
-        // Step 2: Transform CoinGecko data into the structure our frontend expects
+        // Step 3: Transform CoinGecko data into the structure our frontend expects
         const enrichedAssets = marketData.map(transformCoinData).filter(asset => asset.volume > 1000000); // Filter out low-volume assets
 
-        // Step 3: Sort by 24h change to find gainers and losers
+        // Step 4: Sort by 24h change to find gainers and losers
         enrichedAssets.sort((a, b) => (b.change || 0) - (a.change || 0));
 
         const gainers = enrichedAssets.slice(0, MOVER_COUNT);
         const losers = enrichedAssets.slice(-MOVER_COUNT).sort((a, b) => (a.change || 0) - (b.change || 0));
 
-        // Step 4: For the scatter plot, use the assets with the highest volume from our pool
+        // Step 5: For the scatter plot, use the assets with the highest volume from our pool
         enrichedAssets.sort((a, b) => b.volume - a.volume);
         const volatilityScatter = enrichedAssets.slice(0, VOLATILITY_COUNT);
 
-        return {
+        const result = {
             gainers,
             losers,
             volatilityScatter,
         };
+
+        // Step 4: Store the fresh result in the cache before returning
+        marketDataCache.set(CACHE_KEY, result);
+
+        return result;
 
     } catch (error) {
         // The error is already logged in coinGeckoService, but we log it here too for context
