@@ -11,6 +11,7 @@ import SecuritySettingsLoading from "@/components/loading/profile/SecuritySettin
 import EditAccountSettingsModal from "@/components/profile/account-tabs/accountSettings/EditAccountSettingsModal";
 import Switcher from "@/components/shared/ui/Switcher";
 import Enable2FAModal from "@/components/profile/account-tabs/accountSettings/Enable2FAModal";
+import AvatarInput from "@/components/profile/account-tabs/accountSettings/AvatarInput";
 
 // [2] Wrap the component with observer to make it reactive
 const AccountSettingsTab = observer(() => {
@@ -37,15 +38,7 @@ const AccountSettingsTab = observer(() => {
                 <>
                     <div className="flex items-center justify-between w-full">
                         <div className="flex items-center justify-center gap-8">
-                            <Avatar
-                                isBordered
-                                as="button"
-                                className="w-[60px] h-[60px]  transition-transform"
-                                color="primary"
-                                name={userStore.userData.info?.firstName + ' ' + userStore.userData.info?.lastName}
-                                size="sm"
-                                src={userStore.userData.info?.avatar || '/images/icons/default.svg'}
-                            />
+                            <AvatarInput userStore={userStore} />
                             <div className="flex flex-col items-start justify-center text-[13px] gap-4 text-gray-400">
                                 <span>Username</span>
                                 <span>User ID</span>

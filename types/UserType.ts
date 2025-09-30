@@ -15,6 +15,6 @@ export type User = {
 
 export type UserResponse = {
     success: boolean,
-    data: User,
+    data: User
     message: string
 }
