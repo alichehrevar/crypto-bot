@@ -62,7 +62,7 @@ const CustomChartTooltip: React.FC<any> = ({ active, payload }) => {
 // --- MAIN COMPONENT (Updated with API Logic) ---
 // =====================================================================
 
-const MoversAndVolatility: React.FC = () => {
+const MoversAndVolatility: React.FC<{ className?: string }> = ({ className = '' }) => {
     // --- STATE MANAGEMENT ---
     // The component now manages its own data, loading, and error states.
     const [data, setData] = useState<MoversData | null>(null);
@@ -107,11 +107,11 @@ const MoversAndVolatility: React.FC = () => {
 
     // --- MAIN RENDER ---
     return (
-        <div className="bg-dark-gray rounded-xl p-6 border border-white/5 shadow-md flex flex-col h-full">
+        <div className={`bg-dark-gray rounded-lg p-6 border border-white/5 shadow-md flex flex-col ${className}`}>
+            {/* Header section (This part is unchanged) */}
             <div className="flex justify-between items-center mb-4 flex-wrap gap-4">
                 <h3 className="text-lg font-semibold text-white m-0">Market Movers & Volatility</h3>
                 <div className="flex items-center gap-4">
-                    {/* Mover Type Toggles (Gainers/Losers) */}
                     <div className={`flex gap-2 ${activeSubTab !== 'table' ? 'invisible' : ''}`}>
                         <button className={`p-1.5 rounded-md ${moverView === 'gainers' ? 'text-white' : 'text-gray-500 hover:text-white'}`} disabled={isLoading} onClick={() => setMoverView('gainers')}>
                             <svg fill="none" height="20" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" width="20"><path d="M18 8l-4-4-4 4M18 16V4M3 8h11M3 12h11M3 16h8" /></svg>
@@ -120,7 +120,6 @@ const MoversAndVolatility: React.FC = () => {
                             <svg fill="none" height="20" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" width="20"><path d="M18 16l-4 4-4-4M18 8v12M3 8h11M3 12h11M3 16h8" /></svg>
                         </button>
                     </div>
-                    {/* View Toggles (Table/Chart) */}
                     <div className="flex overflow-hidden text-sm">
                         <button className={`px-3 py-1.5 ${activeSubTab === 'table' ? 'border-b-2 border-blue-500 text-white' : 'text-gray-400'}`} disabled={isLoading} onClick={() => setActiveSubTab('table')}>Table</button>
                         <button className={`px-3 py-1.5 ${activeSubTab === 'chart' ? 'border-b-2 border-blue-500 text-white' : 'text-gray-400'}`} disabled={isLoading} onClick={() => setActiveSubTab('chart')}>Chart</button>
@@ -128,23 +127,32 @@ const MoversAndVolatility: React.FC = () => {
                 </div>
             </div>
 
+            {/* --- MODIFIED CONTENT AREA --- */}
             {isLoading
-                ? <LoadingWithSpinner />
+                ? <div className="flex-1 flex items-center justify-center min-h-0"><LoadingWithSpinner /></div>
                 : <>
                     {activeSubTab === 'table' && (
-                        <div className="overflow-x-auto">
+                        // This is the key change: apply overflow directly to the growing flex container.
+                        <div className="flex-1 overflow-y-auto min-h-0">
                             <table className="w-full border-collapse text-sm text-center">
-                                <thead><tr>{['Asset', '24h Change', 'Volume (USD)', 'RVOL', 'Trend (7d)'].map(h => <th key={h} className={`p-3 border-b border-white/10 font-medium text-gray-400 text-xs ${h === 'Asset' ? 'text-left' : ''}`}>{h === 'RVOL' ? <GlossaryTerm term={h} /> : h}</th>)}</tr></thead>
+                                {/* I added a sticky header for better UX when scrolling */}
+                                <thead>
+                                <tr>
+                                    {['Asset', '24h Change', 'Volume (USD)', 'RVOL', 'Trend (7d)'].map(h => (
+                                        <th key={h} className={`p-3 border-b border-white/10 font-medium text-gray-400 text-xs sticky top-0 z-30 bg-dark-gray ${h === 'Asset' ? 'text-left' : ''}`}>
+                                            {h === 'RVOL' ? <GlossaryTerm term={h} /> : h}
+                                        </th>
+                                    ))}
+                                </tr>
+                                </thead>
                                 <tbody>
-                                {items.map((item) => (
-                                    <tr key={item.asset} className="hover:bg-white/5">
+                                {items.map((item, index) => (
+                                    <tr key={index} className="hover:bg-white/5">
                                         <td className="p-3 border-b border-white/10 text-left font-semibold text-white">{item.asset}</td>
                                         <td className={`p-3 border-b border-white/10 font-medium ${item.change >= 0 ? 'text-green-500' : 'text-red-500'}`}>{item.change.toFixed(2)}%</td>
                                         <td className="p-3 border-b border-white/10">${(item.volume / 1000000).toFixed(2)}M</td>
                                         <td className={`p-3 border-b border-white/10 font-medium ${item.rVol > 2.5 ? 'text-yellow-400' : ''}`}>{item.rVol.toFixed(2)}x</td>
-                                        <td className="p-3 border-b border-white/10 h-[40px]">
-                                            <ResponsiveContainer height={30} width="100%"><LineChart data={item.sparkline.map(v => ({ pv: v }))}><Line dataKey="pv" dot={false} stroke={item.change >= 0 ? "#4CAF50" : "#F44336"} strokeWidth={2} type="monotone" /></LineChart></ResponsiveContainer>
-                                        </td>
+                                        <td className="p-3 border-b border-white/10 h-[40px]"><ResponsiveContainer height={30} width="100%"><LineChart data={item.sparkline.map(v => ({ pv: v }))}><Line dataKey="pv" dot={false} stroke={item.change >= 0 ? "#4CAF50" : "#F44336"} strokeWidth={2} type="monotone" /></LineChart></ResponsiveContainer></td>
                                     </tr>
                                 ))}
                                 </tbody>
@@ -153,7 +161,8 @@ const MoversAndVolatility: React.FC = () => {
                     )}
 
                     {activeSubTab === 'chart' && (
-                        <div className="w-full h-[500px] mt-4">
+                        // The chart container also needs to be a growing flex item.
+                        <div className="flex-1 mt-4 min-h-0">
                             <ResponsiveContainer height="100%" width="100%">
                                 <ScatterChart margin={{ top: 20, right: 30, bottom: 20, left: 30 }}>
                                     <CartesianGrid stroke="rgba(255, 255, 255, 0.05)" strokeDasharray="3 3" />
@@ -162,12 +171,7 @@ const MoversAndVolatility: React.FC = () => {
                                     <ZAxis dataKey="rVol" name="Relative Volume" range={[50, 600]} type="number" />
                                     <Tooltip content={<CustomChartTooltip />} cursor={{ strokeDasharray: '3 3' }} />
                                     <ReferenceLine stroke="#a0a0a0" strokeDasharray="2 2" x={0} />
-                                    {!data
-                                        ? <div className="bg-dark-gray rounded-xl p-6 border border-white/5 shadow-md min-h-[400px] flex items-center justify-center text-white/50">No data available.</div>
-                                        : <Scatter data={data.volatilityScatter} name="Assets">
-                                            {data.volatilityScatter.map((entry, index) => (<Cell key={`cell-${index}`} fill={entry.change > 0 ? '#4CAF50' : '#F44336'} fillOpacity={Math.min(1, entry.rVol / 5 + 0.3)} />))}
-                                        </Scatter>
-                                    }
+                                    {data && <Scatter data={data.volatilityScatter} name="Assets">{data.volatilityScatter.map((entry, index) => (<Cell key={`cell-${index}`} fill={entry.change > 0 ? '#4CAF50' : '#F44336'} fillOpacity={Math.min(1, entry.rVol / 5 + 0.3)} />))}</Scatter>}
                                 </ScatterChart>
                             </ResponsiveContainer>
                         </div>
