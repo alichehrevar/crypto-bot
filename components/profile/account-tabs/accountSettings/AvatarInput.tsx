@@ -102,17 +102,23 @@ export default function AvatarInput({userStore}: { userStore: any }) {
                 onChange={handleFileChange}
             />
 
-            <Avatar
-                isBordered
-                as="button"
-                className="w-[55px] h-[55px] transition-transform" // Made it larger for better UX
-                color="primary"
-                name={userStore.userData.info?.firstName + ' ' + userStore.userData.info?.lastName}
-                size="lg" // Made it larger
-                // Show preview, then existing avatar, then default
-                src={imagePreview || process.env.API_URL + userStore.userData.info?.avatar || '/images/icons/default.svg'}
-                onClick={handleAvatarClick}
-            />
+            <div className="overflow-hidden relative group w-[63px] h-[63px] flex items-center justify-center">
+                <button
+                    className="flex items-center text-small bg-black/50 rounded-full cursor-pointer justify-center opacity-0 z-10 group-hover:opacity-100 transition-opacity duration-250 absolute bottom-0 right-0 left-0 top-0 w-[55px] h-[55px] m-auto"
+                    onClick={handleAvatarClick}
+                >
+                    Edit
+                </button>
+                <Avatar
+                    isBordered
+                    as="button"
+                    className="w-[55px] h-[55px]"
+                    name={userStore.userData.info?.firstName + ' ' + userStore.userData.info?.lastName}
+                    size="lg" // Made it larger
+                    // Show preview, then existing avatar, then default
+                    src={imagePreview || process.env.API_URL + userStore.userData.info?.avatar || '/images/icons/default.svg'}
+                />
+            </div>
             {isUploading &&
                 <div className="absolute bottom-[-30px] right-0 left-0 mx-auto flex justify-center">
                     <Spinner color="primary" size="sm" variant="wave" />
