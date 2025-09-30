@@ -5,6 +5,7 @@ export type ExchangeAccount = {
   secretKey: string;
   createdAt: string;
   name?: string;
+  exchange?: string;
   __v: number;
 };
 

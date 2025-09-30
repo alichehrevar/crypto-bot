@@ -24,10 +24,10 @@ export interface GridConfigFormProps {
 }
 
 export default function GridConfigForm({
-   selectedParentTab,
-   onCloseAction,
-   selectedSymbol
-}: GridConfigFormProps) {
+       selectedParentTab,
+       onCloseAction,
+       selectedSymbol
+   }: GridConfigFormProps) {
     //
     // ─── STATE MANAGEMENT (Remains in the parent container) ──────────────────
     //
@@ -74,7 +74,13 @@ export default function GridConfigForm({
         if (selectedSymbol) {
             setName(`${selectedSymbol.symbol} ${selectedParentTab === 'spot' ? 'Spot' : 'Futures'} Grid`);
         }
-        // ... existing async calls to load accounts and botProps ...
+        // This is where you would fetch your accounts data
+        const fetchAccounts = async () => {
+            // const res = await getData('/accounts');
+            // if (res.success) setAccounts(res.data);
+        };
+
+        fetchAccounts();
     }, [selectedSymbol, selectedParentTab]);
 
     useEffect(() => {
@@ -132,64 +138,71 @@ export default function GridConfigForm({
 
         setLoading(true);
 
+        // Find the selected account to determine the exchange name
+        const selectedAccount = accounts.find(acc => acc._id === selectedAccountId);
+
+        if (!selectedAccount) {
+            addToast({ title: "Please select an account.", color: "danger" });
+            setLoading(false);
+
+            return;
+        }
+
         let payload: any;
 
         if (selectedParentTab === 'spot') {
             payload = {
-                botType: "grid",
-                gridType: "spot",
                 name: name.trim() || `${selectedSymbol?.symbol} Spot Grid`,
-                accountId: selectedAccountId,
+                exchange: selectedAccount.exchange, // e.g., 'binance'
                 symbol: selectedSymbol?.symbol,
+                marketType: 'SPOT',
+
+                // Grid Parameters
+                lowerPrice: parseFloat(lowerPrice),
+                upperPrice: parseFloat(upperPrice),
+                grids: parseInt(gridCount, 10),
+                gridMode: gridMode.toUpperCase(), // ARITHMETIC or GEOMETRIC
                 investment: parseFloat(investment),
 
-                // Spot Grid Parameters
-                range: {
-                    lower: parseFloat(lowerPrice),
-                    upper: parseFloat(upperPrice)
-                },
-                grids: parseInt(gridCount, 10),
-                stepType: gridMode, // Arithmetic or Geometric [cite: 11]
-                trailingUp: trailingUp, // [cite: 253]
+                // TP/SL & Stop settings
+                takeProfitPrice: enableTPSL && takeProfitPrice ? parseFloat(takeProfitPrice) : null,
+                stopLossPrice: enableTPSL && stopLossPrice ? parseFloat(stopLossPrice) : null,
+                flattenOnExit: sellBaseOnStop,
 
-                // Optional advanced params
-                triggerPrice: triggerPriceSpot ? parseFloat(triggerPriceSpot) : null,
-                stopLoss: enableTPSL && stopLossPrice ? parseFloat(stopLossPrice) : null,
-                takeProfit: enableTPSL && takeProfitPrice ? parseFloat(takeProfitPrice) : null,
-                sellBaseOnStop: sellBaseOnStop,
+                // NOTE: TrailingUp and TriggerPrice are advanced features.
+                // The current backend model needs to be updated to support them.
+                // trailingUp: trailingUp,
+                // triggerPrice: triggerPriceSpot ? parseFloat(triggerPriceSpot) : null,
             };
         } else { // Futures
             payload = {
-                botType: "grid",
-                gridType: "futures",
                 name: name.trim() || `${selectedSymbol?.symbol} Futures Grid`,
-                accountId: selectedAccountId,
+                exchange: selectedAccount.exchange,
                 symbol: selectedSymbol?.symbol,
+                marketType: 'FUTURES',
 
                 // Futures Grid Parameters
-                direction: direction, // [cite: 9]
-                leverage: parseInt(leverage, 10), // [cite: 7]
-                marginMode: marginMode, // [cite: 14]
+                direction: direction.toUpperCase(), // NEUTRAL, LONG, or SHORT [cite: 409]
+                leverage: parseInt(leverage, 10),
+            marginMode: marginMode.toUpperCase(), // ISOLATED or CROSSED [cite: 411]
                 investment: parseFloat(investment),
+                openOnCreation: (direction === 'Long' || direction === 'Short') ? openOnCreation : false,
 
-                range: {
-                    lower: parseFloat(lowerPrice),
-                    upper: parseFloat(upperPrice)
-                },
+            // Common Grid Parameters
+            lowerPrice: parseFloat(lowerPrice),
+                upperPrice: parseFloat(upperPrice),
                 grids: parseInt(gridCount, 10),
-                stepType: gridMode, // Arithmetic or Geometric [cite: 11]
+                gridMode: gridMode.toUpperCase(), // ARITHMETIC or GEOMETRIC
 
-                openOnCreation: (direction === 'Long' || direction === 'Short') ? openOnCreation : false, // [cite: 10]
-
-                // Stops are different for Futures modes [cite: 36-39]
-                stopLoss: enableTPSL && stopLossPrice ? parseFloat(stopLossPrice) : null,
-                takeProfit: enableTPSL && takeProfitPrice ? parseFloat(takeProfitPrice) : null,
-            };
+                // Stops
+                stopLossPrice: enableTPSL && stopLossPrice ? parseFloat(stopLossPrice) : null,
+                takeProfitPrice: enableTPSL && takeProfitPrice ? parseFloat(takeProfitPrice) : null,
+        };
         }
 
         try {
-            // The sendRequest function might need adjustment if it doesn't handle nested objects
-            const res = await sendRequest({ botConfig: JSON.stringify(payload) }, "/bots/deploy");
+            // Send the raw payload object to the new endpoint
+            const res = await sendRequest(payload, "/bots/grid/create");
 
             if (res.success) {
                 addToast({ title: "Grid Bot deployed!", color: "success" });
@@ -277,7 +290,7 @@ export default function GridConfigForm({
 
                 <Button
                     className="w-full"
-                    disabled={loading || !!priceRangeError || !!investmentError || parseFloat(investment) <= 0}
+                    disabled={loading || !!priceRangeError || !!investmentError || !investment || parseFloat(investment) <= 0}
                     isLoading={loading}
                     type="submit"
                 >
