@@ -33,6 +33,9 @@ app.use((req, res, next) => {
     next();
 });
 
+// access to public folder
+app.use(express.static('public'));
+
 // CORS
 const allowedOrigins = [
     'http://localhost:8080',

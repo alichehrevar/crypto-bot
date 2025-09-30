@@ -1,5 +1,7 @@
 // app/http/controllers/userController.js
 
+const fs = require('fs').promises;
+const path = require('path');
 const bcrypt = require("bcryptjs");
 const User = require('../../models/User');
 const UserInfo = require('../../models/UserInfo');
@@ -82,6 +84,75 @@ exports.updateUserInfo = async (req, res) => {
             return res.status(400).json({ success: false, message: error.message });
         }
         res.status(500).json({ success: false, message: 'Internal server error.' });
+    }
+};
+
+// This is your controller function
+exports.updateUserAvatar = async (req, res) => {
+    try {
+        // The upload is handled by the middleware. If this function is called,
+        // the file is already uploaded, or an error was thrown.
+
+        // req.file contains information about the uploaded file
+        if (!req.file) {
+            return res.status(400).json({ success: false, message: 'No file was uploaded.' });
+        }
+
+        const userId = req.user.id;
+
+        // 1. Find the existing user info to get the old avatar path
+        const userInfo = await UserInfo.findOne({ userId: userId });
+
+        // 2. If an old avatar exists, delete it from the filesystem
+        if (userInfo && userInfo.avatar) {
+            // Construct the physical path to the old avatar file
+            // e.g., 'public/uploads/avatars/avatar-user123-timestamp.png'
+            const oldAvatarPath = path.join('public', userInfo.avatar);
+
+            try {
+                await fs.unlink(oldAvatarPath);
+                console.log(`Successfully deleted old avatar: ${oldAvatarPath}`);
+            } catch (err) {
+                // If the file doesn't exist, we don't need to throw an error.
+                // We can just log it and continue. This handles cases where the
+                // file was manually deleted or the DB is out of sync.
+                if (err.code !== 'ENOENT') { // ENOENT = Error NO ENTry (file not found)
+                    console.error('Error deleting old avatar file:', err);
+                }
+            }
+        }
+
+        // Construct the URL to the avatar
+        // Make sure your server serves the 'public' folder statically
+        const avatarUrl = `/uploads/avatars/${req.file.filename}`;
+
+        // Save the avatarUrl to the user's record in your database
+        const updatedUserInfo = await UserInfo.findOneAndUpdate(
+            {userId: userId},
+            {avatar: avatarUrl},
+            { new: true, upsert: true, runValidators: true }
+        );
+
+        const user = await User.findById(userId);
+
+        res.status(200).json({
+            success: true,
+            message: 'Avatar updated successfully!',
+            data: {
+                id: user._id,
+                email: user.email,
+                info: {
+                    firstName: updatedUserInfo.firstName,
+                    lastName:  updatedUserInfo.lastName,
+                    birthday:     updatedUserInfo.birthday,
+                    avatar:       updatedUserInfo.avatar,
+                }
+            }
+        });
+
+    } catch (error) {
+        console.error('Error updating avatar:', error);
+        res.status(500).json({ success: false, message: 'Server error while updating avatar.' });
     }
 };
 

@@ -3,6 +3,7 @@ const express = require('express');
 const router = express.Router();
 const { updateUserSecurityInfoRules, validate } = require('../app/http/validators/updateUserSecurityInfoRequest');
 const authenticate = require('../app/http/middleware/auth'); // Authentication middleware
+const uploadAvatar = require('../app/http/middleware/upload'); // Avatar upload middleware
 const userController = require('../app/http/controllers/userController');
 
 /**
@@ -11,6 +12,13 @@ const userController = require('../app/http/controllers/userController');
  * @access  Private
  */
 router.get('/info', authenticate, userController.userInfo);
+
+/**
+ * @route   POST /api/user/avatar/update
+ * @desc    Update the authenticated user's avatar
+ * @access  Private
+ */
+router.post('/avatar/update', authenticate, uploadAvatar, userController.updateUserAvatar);
 
 /**
  * @route   PUT /api/user/info/update
