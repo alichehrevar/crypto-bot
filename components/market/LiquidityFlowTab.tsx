@@ -1,6 +1,5 @@
 import React from "react";
 
-import EventCalendar from "@/components/shared/charts/EventCalendar";
 import ExchangeNetFlowCard from "@/components/shared/charts/ExchangeNetFlowCard";
 
 // =====================================================================
@@ -9,8 +8,6 @@ import ExchangeNetFlowCard from "@/components/shared/charts/ExchangeNetFlowCard"
 export default function LiquidityFlowTab() {
 
     return (
-        <>
-            <ExchangeNetFlowCard />
-        </>
+        <ExchangeNetFlowCard />
     )
 }
