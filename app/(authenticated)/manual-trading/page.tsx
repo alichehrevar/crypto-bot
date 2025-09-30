@@ -19,7 +19,7 @@ export default function ManualTradingPage() {
         <div className="w-full flex-1 h-screen overflow-y-auto pt-4 relative px-5 pb-5">
             {/*<PageTitleSection title="Manual Trading"/>*/}
             <div className="flex items-center justify-between w-full gap-6 backdrop-blur-sm rounded-xl min-h-[80px]">
-                <CoinSummarySection coinId={selectedSymbol?.id || "btc-bitcoin"} />
+                <CoinSummarySection coinId={selectedSymbol?.id || "bitcoin"} />
             </div>
             <div className=" w-full grid grid-cols-12 items-start justify-center gap-2 mt-2">
                 <div className="col-span-3 h-full">

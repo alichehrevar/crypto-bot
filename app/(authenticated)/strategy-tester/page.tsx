@@ -202,12 +202,12 @@ export default function StrategyTesterPage() {
         <div className="w-full pt-4 relative px-5 backtester-page overflow-y-auto h-screen">
             <div className="w-full flex flex-col gap-2">
                 {/*<MarketStats symbolId={selectedSymbol ?? undefined} />*/}
-                <CoinSummarySection coinId={selectedSymbol?.id || "btc-bitcoin"} />
+                <CoinSummarySection coinId={selectedSymbol?.id || "bitcoin"} />
 
                 {/* Main Content */}
-                <div className="w-full flex flex-col lg:flex-row items-start gap-2 mt-4 lg:h-[650px]">
+                <div className="w-full flex flex-col lg:flex-row items-start gap-2 mt-4 lg:h-[600px]">
                     {/* Left: Chart */}
-                    <div className="flex self-stretch w-full gap-2 lg:w-[76%] h-full">
+                    <div className="flex self-stretch w-full gap-2 lg:w-[76%] lg:h-[600px]">
                         <div className="w-1/3 h-full grid grid-cols-1">
                             {/* MarketList */}
                             <MarketListWithSearch onSymbolClickAction={(symbol: MarketListItem) => setSelectedSymbol(symbol)} />
