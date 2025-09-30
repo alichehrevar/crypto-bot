@@ -68,6 +68,7 @@ exports.updateUserInfo = async (req, res) => {
             data: {
                 id: user._id,
                 email: user.email,
+                enable2Fa: user.enable2FA,
                 info: {
                     firstName: updatedUserInfo.firstName,
                     lastName:  updatedUserInfo.lastName,
@@ -141,6 +142,7 @@ exports.updateUserAvatar = async (req, res) => {
             data: {
                 id: user._id,
                 email: user.email,
+                enable2Fa: user.enable2FA,
                 info: {
                     firstName: updatedUserInfo.firstName,
                     lastName:  updatedUserInfo.lastName,
@@ -207,6 +209,7 @@ exports.updateUserSecurityInfo = async (req, res) => {
             data: {
                 id: user._id,
                 email: user.email,
+                enable2Fa: user.enable2FA,
                 info: {
                     firstName: updatedUserInfo.firstName,
                     lastName:  updatedUserInfo.lastName,
@@ -273,34 +276,54 @@ exports.toggleFavoriteSymbol = async (req, res) => {
 };
 
 exports.toggle2FA = async (req, res) => {
-
     try {
         const userId = req.user.id;
-        const { status, otp } = req.body;
+        // `otp` is the code submitted by the user for verification
+        const { otp } = req.body;
 
         const user = await User.findById(userId);
-
-        if (user.otp === null) {
-            return await sendOtpAndHandleFailure(user)
+        if (!user) {
+            return res.status(404).json({ success: false, error: 'User not found.' });
         }
 
-        if (user.otp !== otp) {
-            return res.status(401).json({ success: false, error: 'Invalid OTP.' });
+        // --- SCENARIO 1: User is SUBMITTING an OTP to verify the change ---
+        if (otp) {
+            // Check if there's a pending OTP and if it has expired
+            if (!user.otp || user.otpExpires < new Date()) {
+                return res.status(400).json({ success: false, message: 'OTP is invalid or has expired. Please request a new one.' });
+            }
+
+            // Check if the submitted OTP matches the stored one
+            if (user.otp !== otp) {
+                return res.status(401).json({ success: false, message: 'Invalid OTP.' });
+            }
+
+            // --- Success! OTP is valid ---
+            // Update the 2FA status and clear the OTP fields
+            await User.findByIdAndUpdate(userId, {
+                $set: { enable2FA: !user.enable2FA, otp: null, otpExpires: null }
+            });
+
+            const message = `2FA has been successfully ${!user.enable2FA ? 'enabled' : 'disabled'}.`;
+            return res.json({ success: true, message, isEnabled: !user.enable2FA });
         }
 
-        await User.findOneAndUpdate(
-            { _id: userId },
-            { $set: {enable2FA: status, otp: null, otpExpires: null} },
-            { new: true, upsert: true, runValidators: true }
-        );
+        // --- SCENARIO 2: User is INITIATING the change, so we send an OTP ---
+        else {
 
-        return res.json({ message: '2FA status updated successfully!', success: true });
+            // Send a new OTP
+            await sendOtpAndHandleFailure(user);
+            return res.json({
+                success: true,
+                message: 'An OTP has been sent to your email to confirm the change.'
+            });
+        }
 
     } catch (error) {
         console.error('Error in toggle2FA:', error);
         res.status(500).json({ success: false, message: 'Internal server error.' });
     }
-}
+};
 
 const updateUserInformation = async (userId, updateData) => {
     return UserInfo.findOneAndUpdate(
