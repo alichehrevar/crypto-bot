@@ -11,7 +11,7 @@ import {
 } from "@heroui/react";
 
 import { PauseIcon } from "@/utils/icons";
-import { CloseTradeResponse } from "@/types/profile/bots/DeployedBots";
+import { CloseTradeResponse } from "@/types/bots/DeployedBots";
 import { deleteRequest } from "@/actions/delete";
 
 export default function CloseBotModal(props: {botId: string;}) {

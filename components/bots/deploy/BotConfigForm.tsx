@@ -12,7 +12,7 @@ import {getData} from '@/actions/get';
 import {ExchangeAccount, AccountsResponse} from '@/types/profile/AccountType';
 import {RawBalanceResponse} from "@/types/profile/WalletBalanceType";
 import {sendRequest} from '@/actions/post';
-import {BotProps} from '@/types/profile/bots/StrategyParams';
+import {BotProps} from '@/types/bots/StrategyParams';
 import NumericInput from "@/components/shared/ui/NumericInput";
 import Combobox from "@/components/shared/ui/Combobox";
 import IndicatorsSection, {IndicatorItem} from "@/components/shared/ui/IndicatorsSection";

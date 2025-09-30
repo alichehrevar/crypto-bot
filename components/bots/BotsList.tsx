@@ -5,7 +5,7 @@ import TradesList from "./technical/TradesList";
 import CloseBotModal from "./technical/modals/closeBotModal";
 import PlayPauseBotModal from "./technical/modals/playPauseBotModal";
 
-import {Bot, DeployedBotsResponse} from "@/types/profile/bots/DeployedBots";
+import {Bot, DeployedBotsResponse} from "@/types/bots/DeployedBots";
 import {getData} from "@/actions/get";
 import {OrderIcon} from "@/utils/icons";
 import DeployButton from "@/components/shared/ui/DeployButton";

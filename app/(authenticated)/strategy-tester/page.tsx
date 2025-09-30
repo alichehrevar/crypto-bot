@@ -1,6 +1,6 @@
 'use client';
 
-import type { BotProps } from '@/types/profile/bots/StrategyParams';
+import type { BotProps } from '@/types/bots/StrategyParams';
 
 import React, { FormEvent, useEffect, useState } from 'react';
 import {

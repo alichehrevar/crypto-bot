@@ -2,7 +2,7 @@ import React from 'react';
 
 const CoinSummarySectionLoading: React.FC = () => {
     return (
-        <div className="text-white rounded-xl px-4 pb-6 pt-2 w-full mx-auto animate-pulse">
+        <div className="text-white rounded-xl px-4 pb-6 pt-4 w-full mx-auto animate-pulse">
             <div className="flex flex-col lg:flex-row justify-between">
                 {/* Left Side Placeholder */}
                 <div className="lg:w-4/6 space-y-2">

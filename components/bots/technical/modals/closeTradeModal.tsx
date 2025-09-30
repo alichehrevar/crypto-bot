@@ -12,7 +12,7 @@ import {
 
 import { XIcon } from "@/utils/icons";
 import { sendRequest } from "@/actions/post";
-import { CloseTradeResponse } from "@/types/profile/bots/DeployedBots";
+import { CloseTradeResponse } from "@/types/bots/DeployedBots";
 
 export default function CloseTradeModal(props: {botId: string; tradeId: string; refreshBotsList: () => void}) {
 

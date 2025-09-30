@@ -4,7 +4,7 @@ import React, {useState} from "react";
 
 import BotsList from "@/components/bots/BotsList";
 import GridDeployBotSection from "@/components/bots/deploy/GridDeployBotSection";
-import RealTimeCandlestickChart from "@/components/shared/charts/TradingViewLightweightChart";
+import RealTimeCandlestickChart, { ChartGridConfig }  from "@/components/shared/charts/TradingViewLightweightChartWithGrids";
 import MarketListWithSearch from "@/components/market/marketListWithSearch/MarketListWithSearch";
 import CoinSummarySection from "@/components/shared/CoinSummarySection";
 import {MarketListItem} from "@/types/MarketList";
@@ -12,6 +12,27 @@ import {MarketListItem} from "@/types/MarketList";
 export default function TechnicalBotsPage() {
     const [refreshBotsList, setRefreshBotsList] = useState<boolean>(false)
     const [selectedSymbol, setSelectedSymbol] = useState<MarketListItem | null>(null);
+
+    // 1. Set up the state for the grid configuration using useState
+    // This is your "mock data" that the chart will display.
+    const [gridConfig, setGridConfig] = useState<ChartGridConfig>({
+        enabled: true,         // The grid should be visible
+        lower: 2950,           // A realistic lower price for ETHUSDT
+        upper: 3250,           // A realistic upper price for ETHUSDT
+        grids: 50,             // The number of grid lines to draw
+        mode: 'geometric',     // Use 'geometric' for percentage-based spacing
+    });
+
+    // 2. Create the callback function to handle updates from the chart
+    // This function is crucial for making the draggable lines work.
+    const handleGridConfigChange = (newConfig: Partial<ChartGridConfig>) => {
+        // When the chart calls this function (e.g., after dragging a line),
+        // we update our state with the new values.
+        setGridConfig(prevConfig => ({
+            ...prevConfig,
+            ...newConfig,
+        }));
+    };
 
     return (
         <div className="w-full h-screen overflow-y-auto pt-8 relative px-5">
@@ -27,7 +48,11 @@ export default function TechnicalBotsPage() {
                             <MarketListWithSearch onSymbolClickAction={(symbol: MarketListItem) => setSelectedSymbol(symbol)} />
                         </div>
                         <div className="w-2/3 h-full">
-                            <RealTimeCandlestickChart interval="1m" symbol="BTCUSDT" timeZone="local"/>
+                            <RealTimeCandlestickChart
+                                gridConfig={gridConfig}
+                                symbol={selectedSymbol?.symbol.replaceAll('/', '')}
+                                onGridConfigChange={handleGridConfigChange}
+                            />
                         </div>
                     </div>
 

@@ -4,7 +4,7 @@
 import React, { useState, useEffect } from 'react'
 
 import CloseTradeModal from '@/components/bots/technical/modals/closeTradeModal'
-import { Bot, Trade } from '@/types/profile/bots/DeployedBots'
+import { Bot, Trade } from '@/types/bots/DeployedBots'
 import { ChevronUpIcon } from '@/utils/icons'
 
 interface TradesListProps {

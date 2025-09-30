@@ -12,7 +12,7 @@ import { GridTPSL } from "./GridTPSL";
 
 import { MarketListItem } from "@/types/MarketList";
 import { ExchangeAccount } from "@/types/profile/AccountType";
-import { BotProps } from "@/types/profile/bots/StrategyParams";
+import { BotProps } from "@/types/bots/StrategyParams";
 import {RawBalanceResponse} from "@/types/profile/WalletBalanceType";
 import {getData} from "@/actions/get";
 import {sendRequest} from "@/actions/post";
