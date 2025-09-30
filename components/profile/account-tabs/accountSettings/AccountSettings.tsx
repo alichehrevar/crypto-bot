@@ -96,7 +96,7 @@ const AccountSettingsTab = observer(() => {
                         </li>
                         <li className="flex items-center justify-center mt-1">
                             <span className="text-gray-400 w-[200px]">Enable 2FA</span>
-                            <Enable2FAModal />
+                            <Enable2FAModal isEnabled={userStore.userData.enable2Fa} />
                         </li>
                     </ul>
                 </div>

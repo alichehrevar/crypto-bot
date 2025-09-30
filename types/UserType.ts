@@ -10,6 +10,7 @@ type UserInfo = {
 export type User = {
     id: string,
     email: string,
+    enable2Fa: boolean,
     info: UserInfo | null
 }
 

@@ -21,4 +21,5 @@ export type checkEmailExistenceResponse = {
 export type Toggle2faResponse = {
     success: boolean,
     message: string,
+    isEnabled: boolean
 }

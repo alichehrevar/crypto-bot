@@ -1,46 +1,60 @@
-import React, {useState} from "react";
+import React, {useEffect, useState} from "react";
 import {addToast, Modal, ModalBody, ModalContent, ModalHeader, useDisclosure} from "@heroui/react";
 
 import Switcher from "@/components/shared/ui/Switcher";
 import OTPConfirmationForm from "@/components/auth/OTPConfirmationForm";
 import {Toggle2faResponse} from "@/types/auth";
 import {sendRequest} from "@/actions/post";
-import {siteConfig} from "@/config/site";
 
-export default function Enable2FAModal() {
+interface Enable2FAModalProps {
+    isEnabled: boolean
+}
+
+export default function Enable2FAModal({isEnabled}: Enable2FAModalProps) {
 
     const {isOpen, onOpen, onOpenChange} = useDisclosure();
-    const [securityIndicatorEnabled, setSecurityIndicatorEnabled] = useState(true);
+    const [securityIndicatorEnabled, setSecurityIndicatorEnabled] = useState<boolean>(isEnabled);
+    const [isLoading, setIsLoading] = useState(false);
 
-    const sendOTP = async () => {
-        try {
-            const response = sendRequest({},'/send-otp')
-        } catch {
-            addToast({
-                title: "Something went wrong !",
-                description: "Please try again later.",
-                color: "danger"
-            })
-        }
+    async function sendOtp() {
+        return await sendRequest({}, '/user/2fa/toggle')
     }
 
+    useEffect(() => {
+        if (isOpen) {
+            try {
+                sendOtp()
+                    .then((response: Toggle2faResponse) => {
+                        addToast({
+                            title: response.message,
+                            color: response.success ? 'success' : 'warning'
+                        })
+                    })
+            } catch {
+                addToast({
+                    title: "Something went wrong !",
+                    description: "Please try again later.",
+                    color: "danger"
+                })
+            }
+        }
+    }, [isOpen])
+
     const handleOTPConfirmation = async (otp: string) => {
+        setIsLoading(true)
         try {
             const response: Toggle2faResponse = await sendRequest({
                 otp: otp
-            }, '/auth/verify-otp');
+            }, '/user/2fa/toggle');
+
+            addToast({
+                title: response.message,
+                color: response.success ? 'success' : 'warning'
+            })
 
             if (response.success) {
-                addToast({
-                    title: "Registration successful !",
-                    description: `Welcome to ${siteConfig.name} !`,
-                    color: "success"
-                });
-            } else {
-                addToast({
-                    title: response.message,
-                    color: "danger"
-                });
+                onOpenChange()
+                setSecurityIndicatorEnabled(response.isEnabled)
             }
         } catch {
             addToast({
@@ -48,6 +62,8 @@ export default function Enable2FAModal() {
                 description: "Please try again later.",
                 color: "danger"
             })
+        } finally {
+            setIsLoading(false)
         }
     }
 
@@ -70,7 +86,10 @@ export default function Enable2FAModal() {
                             <ModalHeader className="flex flex-col gap-1">Enable / Disable 2FA</ModalHeader>
                             <ModalBody className="pb-5">
                                 <OTPConfirmationForm
-                                    onBack={() => {}}
+                                    buttonText={isLoading ? 'Submitting...' : 'Submit'}
+                                    isLoading={isLoading}
+                                    onBack={() => {
+                                    }}
                                     onSubmit={handleOTPConfirmation}
                                 />
                             </ModalBody>
