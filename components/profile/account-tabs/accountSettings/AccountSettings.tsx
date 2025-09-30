@@ -1,15 +1,14 @@
 'use client';
 
-import React, {useState} from "react";
+import React from "react";
 import { observer } from 'mobx-react'; // [1] Import observer and the new hook
-import { Avatar, Select, SelectItem } from "@heroui/react";
+import { Select, SelectItem } from "@heroui/react";
 import Image from "next/image";
 
 import { useUserStore } from '@/hooks/useUserStore';
 import AccountDetailsLoading from "@/components/loading/profile/AccountDetailsLoading";
 import SecuritySettingsLoading from "@/components/loading/profile/SecuritySettingsLoading";
 import EditAccountSettingsModal from "@/components/profile/account-tabs/accountSettings/EditAccountSettingsModal";
-import Switcher from "@/components/shared/ui/Switcher";
 import Enable2FAModal from "@/components/profile/account-tabs/accountSettings/Enable2FAModal";
 import AvatarInput from "@/components/profile/account-tabs/accountSettings/AvatarInput";
 
