@@ -18,10 +18,10 @@ export default function Page() {
             <Tabs
                 aria-label="Tabs variants"
                 classNames={{
-                    base: 'w-full px-1 sticky top-0 bg-black z-50 h-[60px] flex items-center',
+                    base: 'w-full px-1 sticky top-0 pt-[20px] bg-black z-50 h-[80px] flex items-center',
                     tabList: 'w-full mx-auto border-b-1 border-default-100',
                     tab: 'h-10 pb-4 font-bold text-[14px]',
-                    panel: "w-full grid grid-cols-1 gap-4 mt-4"
+                    panel: "w-full grid grid-cols-1 gap-2 mt-4"
                 }}
                 variant="underlined"
             >

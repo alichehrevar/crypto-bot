@@ -102,8 +102,8 @@ export default function NewListingsPage() {
     }, []);
 
     return (
-        <main className="min-h-screen p-4 md:p-8">
-            <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1fr_2fr]">
+        <main className="">
+            <div className="grid grid-cols-1 gap-2 xl:grid-cols-[1fr_2fr]">
 
                 {/* Card for Upcoming Listings */}
                 <div className="flex h-full flex-col rounded-xl border border-white/5 bg-dark-gray p-6 shadow-2xl">

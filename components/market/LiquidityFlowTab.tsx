@@ -10,7 +10,6 @@ export default function LiquidityFlowTab() {
 
     return (
         <>
-            <EventCalendar />
             <ExchangeNetFlowCard />
         </>
     )

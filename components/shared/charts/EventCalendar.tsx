@@ -218,7 +218,7 @@ const EventCalendar: React.FC = () => {
     };
 
     return (
-        <div className="bg-dark-gray rounded-lg p-6 shadow-lg flex flex-col min-h-[400px]">
+        <div className="bg-dark-gray rounded-xl border border-white/5 p-6 shadow-lg flex flex-col min-h-[400px]">
             <CardHeader
                 infoContent="This calendar lists upcoming economic data releases and crypto-specific events that can act as major market catalysts. High-impact events like CPI data or FOMC meetings often cause significant volatility, and trading bots can be programmed to react to these specific events."
                 infoTitle="About the Event Calendar"

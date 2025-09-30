@@ -3,6 +3,7 @@ import React, {useEffect, useState} from "react";
 import UpcomingListings from "@/components/shared/charts/UpcomingListings";
 import LaunchPerformanceTracker, {PerformanceTrackerData} from "@/components/shared/charts/LaunchPerformanceTracker";
 import TrendingTopicsTable, {TrendingTopicsData} from "@/components/shared/charts/TrendingTopicsTable";
+import EventCalendar from "@/components/shared/charts/EventCalendar";
 
 // =====================================================================
 // --- TYPE DEFINITIONS ---
@@ -42,7 +43,8 @@ export default function SentimentEventsTab() {
 
     return (
         <>
-            {<UpcomingListings />}
+            <EventCalendar />
+            <UpcomingListings />
             <LaunchPerformanceTracker data={listingsData} />
             <TrendingTopicsTable data={trendingTopicsData} />
         </>
