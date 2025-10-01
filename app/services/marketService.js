@@ -1,6 +1,7 @@
 // services/MarketService.js
 
 const NodeCache = require('node-cache');
+const axios = require('axios')
 const MarketSnapshot = require('../models/MarketSnapshot');
 const coinGeckoService = require('./api/coinGeckoService');
 const delay = require('../../utils/delay');
@@ -40,6 +41,41 @@ async function getTopMovers(limit = 5, direction = 'desc') {
         changePct: d.quotes.USD.percent_change_24h
     }));
 }
+
+const getTopMoversFromBinance = async (limit = 5, direction = 'desc') => {
+    try {
+        // 1. Fetch 24hr ticker data for ALL symbols from Binance
+        const response = await axios.get('https://api.binance.com/api/v3/ticker/24hr');
+        const tickers = response.data;
+
+        // 2. Filter, parse, and sort the data
+        const movers = tickers
+            // We only want pairs trading against a stablecoin like USDT for a fair comparison
+            .filter(ticker => ticker.symbol.endsWith('USDT'))
+            // Convert the price change percent from a string to a number
+            .map(ticker => ({
+                symbol: ticker.symbol,
+                priceChangePercent: parseFloat(ticker.priceChangePercent),
+                lastPrice: parseFloat(ticker.lastPrice),
+                volume: parseFloat(ticker.volume),
+            }))
+            // Sort by priceChangePercent
+            .sort((a, b) => {
+                if (direction === 'asc') {
+                    return a.priceChangePercent - b.priceChangePercent; // Gainers
+                }
+                return b.priceChangePercent - a.priceChangePercent; // Losers
+            });
+
+        // 3. Return the top N results based on the limit
+        return movers.slice(0, limit);
+
+    } catch (error) {
+        console.error('Error fetching top movers from Binance:', error.message);
+        // Re-throw the error to be caught by the controller
+        throw new Error('Failed to fetch market data from Binance.');
+    }
+};
 
 /**
  * A resilient fetch wrapper that handles 429 rate-limiting errors automatically.
@@ -249,6 +285,7 @@ const transformCoinData = (coin) => {
 
 module.exports = {
     getTopMovers,
+    getTopMoversFromBinance,
     fetchAndStoreMarketData,
     getMoversAndVolatilityData,
 };

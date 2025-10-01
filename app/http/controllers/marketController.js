@@ -20,30 +20,9 @@ exports.getTopMovers = async (req, res) => {
         const direction = req.query.direction === 'asc' ? 'asc' : 'desc';
 
         // Fetch the raw movers from Binance via MarketService
-        const movers = await MarketService.getTopMovers(limit, direction);
+        const movers = await MarketService.getTopMoversFromBinance(limit, direction);
 
-        // Enrich with imageUrl from your Currency collection (if you stored one)
-        const symbols = movers.map(m => m.symbol);
-        const currencies = await Currency.find({ symbol: { $in: symbols } })
-            .select('symbol imageUrl')
-            .lean();
-
-        const lookup = currencies.reduce((acc, cur) => {
-            acc[cur.symbol] = cur.imageUrl;
-            return acc;
-        }, {});
-
-        const enriched = movers.map(m => ({
-            ...m,
-            imageUrl:
-                lookup[m.symbol] ||
-                // fallback to the popular crypto‐icons CDN
-                `https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/${m.symbol
-                    .split('/')[0]
-                    .toLowerCase()}.png`
-        }));
-
-        res.json({ success: true, data: enriched });
+        res.json({ success: true, data: movers });
     } catch (err) {
         console.error('getTopMovers error:', err);
         logger.error(`getTopMovers error: ${err.message}`, { stack: err.stack });
