@@ -3,7 +3,6 @@
 const axios = require('axios');
 
 const MarketService = require('../../services/marketService');
-const Currency      = require('../../models/Currency');
 const MarketSnapshot = require('../../models/MarketSnapshot');
 const FavoriteSymbol = require('../../models/FavoriteSymbol');
 const logger = require("../../../logs/logger");
