@@ -229,6 +229,8 @@ async function getMoversAndVolatilityData () {
             return null;
         }
 
+        console.log(marketData)
+
         // Step 3: Transform CoinGecko data into the structure our frontend expects
         const enrichedAssets = marketData.map(transformCoinData).filter(asset => asset.volume > 1000000); // Filter out low-volume assets
 
@@ -284,7 +286,6 @@ const transformCoinData = (coin) => {
 };
 
 module.exports = {
-    getTopMovers,
     getTopMoversFromBinance,
     fetchAndStoreMarketData,
     getMoversAndVolatilityData,

@@ -1,6 +1,7 @@
 const axios = require('axios');
 const NodeCache = require('node-cache');
 const logger = require('../../../logs/logger');
+const delay = require("../../../utils/delay");
 
 // --- Caching Setup ---
 // Initialize a cache with a 2-minute (120 seconds) TTL (Time To Live)
@@ -11,6 +12,9 @@ const CRYPTO_EVENTS_CACHE_KEY = 'coingecko_crypto_events'; // unique key for eve
 
 const API_BASE_URL = process.env.COINGECKO_API_URL || 'https://api.coingecko.com/api/v3';
 const API_TIMEOUT = 10000; // 10 seconds
+
+const MAX_RETRIES = 3; // Maximum number of retries
+const INITIAL_DELAY_MS = 2000; // Initial delay of 2 seconds
 
 const apiClient = axios.create({
     baseURL: API_BASE_URL,
@@ -32,29 +36,48 @@ exports.getMarketData = async (limit = 250) => {
 
     // --- Step 2: If cache miss, fetch from API ---
     logger.info(`Cache miss. Fetching fresh market data for top ${limit} coins from CoinGecko.`);
-    try {
-        const response = await apiClient.get('/coins/markets', {
-            params: {
-                vs_currency: 'usd',
-                order: 'market_cap_desc',
-                per_page: limit,
-                page: 1,
-                sparkline: true,
-                price_change_percentage: '24h',
-            },
-        });
+    const maxRetries = 5;
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+            const response = await axios.get(`${API_BASE_URL}/coins/markets`, {
+                params: {
+                    vs_currency: 'usd',
+                    order: 'market_cap_desc',
+                    per_page: limit,
+                    page: 1,
+                    sparkline: true,
+                    price_change_percentage: '24h',
+                },
+            });
 
-        // --- Step 3: Store the fresh data in the cache ---
-        cache.set(MARKET_DATA_CACHE_KEY, response.data);
-        logger.info('Successfully fetched and cached new market data.');
+            // --- SUCCESS: If we reach here, the status is 2xx ---
+            cache.set(MARKET_DATA_CACHE_KEY, response.data);
+            logger.info('Successfully fetched and cached new market data.');
+            return response.data; // Exit function on success
 
-        return response.data;
-    } catch (error) {
-        logger.error(`CoinGecko API Error - getMarketData: ${error.message}`, {
-            status: error.response?.status,
-            data: error.response?.data,
-        });
-        throw new Error('Failed to fetch market data from CoinGecko.');
+        } catch (error) {
+            // --- FAILURE: Check if the error is a 429 and retry ---
+            if (error.response?.status === 429 && attempt < maxRetries) {
+                // Use the error data from the axios error object
+                const errorBody = error.response.data;
+                // Your logic to parse the wait time from CoinGecko's response body
+                const retryAfter = errorBody.status?.error_message?.match(/Wait (\d+) seconds/)?.[1] || '30';
+                const waitMs = parseInt(retryAfter, 10) * 1000 + 1000; // Add 1s buffer
+
+                logger.warn(
+                    `Rate limit hit. Retrying in ${waitMs / 1000}s... (Attempt ${attempt}/${maxRetries})`
+                );
+                await delay(waitMs); // Wait before the next iteration
+                continue; // Go to the next attempt
+            }
+
+            // --- FINAL FAILURE: For non-429 errors or after all retries failed ---
+            logger.error(`CoinGecko API Error - getMarketData: ${error.message}`, {
+                status: error.response?.status,
+                data: error.response?.data,
+            });
+            throw new Error('Failed to fetch market data from CoinGecko.');
+        }
     }
 };
 
