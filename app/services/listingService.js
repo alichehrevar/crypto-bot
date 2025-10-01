@@ -1,29 +1,116 @@
+const axios = require('axios')
 const UpcomingListing = require('../models/UpcomingListing');
 const RecentLaunch = require('../models/RecentLaunch');
-// In a real scenario, you'd use a service like coinGeckoService or a dedicated API client.
-// const coinGeckoService = require('./api/coinGeckoService');
+const sleep = require('../../utils/delay');
 
 /**
- * Mocks fetching data from an external API (e.g., CryptoRank, CoinGecko).
- * Replace this with your actual data source.
+ * Fetches data from a given API endpoint with headers and a retry mechanism.
+ * @param {string} url - The API URL to fetch.
+ * @param {object} headers - The headers for the request (e.g., for authorization).
+ * @param {number} maxRetries - Maximum number of retry attempts.
+ * @param {number} initialDelay - Initial delay in ms for exponential backoff.
  */
-async function fetchExternalListingData() {
-    console.log('Simulating fetch from external API for new listings...');
-    // This function should return data in a structured format.
-    // In a real-world app, this would involve HTTP requests to a third-party API.
-    return {
-        upcoming: [
-            { date: '2025-09-15 12:00 UTC', asset: 'ZetaChain (ZETA)', type: 'Listing', exchange: 'OKX' },
-            { date: '2025-09-22 14:00 UTC', asset: 'Monad (MONAD)', type: 'Token Generation Event (TGE)', exchange: 'Multiple' },
-        ],
-        recent: [
-            { asset: 'Wormhole (W)', launchDate: '2025-07-10', launchPrice: 1.25, currentPrice: 0.98, velocity: 'Medium' },
-            { asset: 'Ethena (ENA)', launchDate: '2025-07-15', launchPrice: 0.60, currentPrice: 1.85, velocity: 'Very High' },
-            { asset: 'Tensor (TNSR)', launchDate: '2025-08-01', launchPrice: 1.50, currentPrice: 1.62, velocity: 'High' },
-        ]
-    };
+async function fetchWithRetries(url, headers, maxRetries = 3, initialDelay = 2000) {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+            const response = await axios.get(url, { headers });
+            return response.data; // Return the full response data
+        } catch (error) {
+            if (error.response) {
+                // Handle rate limiting
+                if (error.response.status === 429) {
+                    if (attempt === maxRetries) {
+                        console.error(`Failed to fetch from ${url} after ${maxRetries} attempts due to rate limiting.`);
+                        throw error;
+                    }
+                    const delay = initialDelay * Math.pow(2, attempt - 1);
+                    console.warn(`Rate limit hit for ${url}. Retrying in ${delay / 1000} seconds...`);
+                    await sleep(delay);
+                    // Handle invalid API key
+                } else if (error.response.status === 401) {
+                    console.error(`Authentication failed. Please check if your COINMARKETCAL_API_KEY is correct.`);
+                    throw error;
+                } else {
+                    console.error(`An unexpected error occurred while fetching from ${url}:`, error.message);
+                    throw error;
+                }
+            } else {
+                console.error(`A network error occurred:`, error.message);
+                throw error;
+            }
+        }
+    }
+    return null; // Return null if all retries fail
 }
 
+/**
+ * Fetches upcoming and recent listing events from the CoinMarketCal API.
+ */
+async function fetchExternalListingData() {
+    console.log('Fetching data from CoinMarketCal API...');
+
+    if (!process.env.COINMARKETCAL_API_KEY) {
+        console.error("API Key for CoinMarketCal is not set. Please update the COINMARKETCAL_API_KEY constant.");
+        return { upcoming: [], recent: [] };
+    }
+
+    try {
+        const url = 'https://developers.coinmarketcal.com/v1/events?max=100&categories=Exchanges';
+        const headers = { 'Authorization': `Bearer ${process.env.COINMARKETCAL_API_KEY}` };
+
+        const responseData = await fetchWithRetries(url, headers);
+
+        if (!responseData || !responseData.body) {
+            console.log('No data returned from CoinMarketCal API.');
+            return { upcoming: [], recent: [] };
+        }
+
+        const now = new Date();
+        const upcoming = [];
+        const recent = [];
+
+        // --- Process All Events ---
+        responseData.body.forEach(event => {
+            if (!event.coins || event.coins.length === 0) return; // Skip events without an associated coin
+
+            const eventDate = new Date(event.date_event);
+            const coin = event.coins[0];
+            const exchange = event.exchanges && event.exchanges.length > 0 ? event.exchanges[0].name : 'TBA';
+
+            if (eventDate >= now) {
+                upcoming.push({
+                    date: event.date_event,
+                    asset: `${coin.name} (${coin.symbol.toUpperCase()})`,
+                    type: event.title,
+                    exchange: exchange,
+                });
+            } else {
+                recent.push({
+                    asset: `${coin.name} (${coin.symbol.toUpperCase()})`,
+                    launchDate: event.date_event,
+                    launchPrice: 'N/A', // CoinMarketCal does not provide price data
+                    currentPrice: 'N/A',
+                    velocity: 'N/A',
+                });
+            }
+        });
+
+        console.log('Successfully fetched and processed data from CoinMarketCal.');
+
+        // Sort events by date
+        upcoming.sort((a, b) => new Date(a.date) - new Date(b.date));
+        recent.sort((a, b) => new Date(b.launchDate) - new Date(a.launchDate));
+
+        return {
+            upcoming: upcoming,
+            recent: recent
+        };
+
+    } catch (error) {
+        console.error('Failed to complete listing data update due to an error.');
+        return { upcoming: [], recent: [] };
+    }
+}
 
 /**
  * Fetches data from an external source and updates the database.
@@ -75,20 +162,4 @@ async function updateListingsData() {
     }
 }
 
-/**
- * Retrieves all listings from the database for the frontend.
- */
-async function getListings() {
-    // Fetch upcoming listings, sorted by date
-    const upcoming = await UpcomingListing.find({}).sort({ eventDate: 'asc' });
-
-    // Fetch recent launches, sorted by launch date descending
-    const recent = await RecentLaunch.find({}).sort({ launchDate: 'desc' });
-
-    return { upcoming, recent };
-}
-
-module.exports = {
-    updateListingsData,
-    getListings,
-};
+module.exports = { updateListingsData };

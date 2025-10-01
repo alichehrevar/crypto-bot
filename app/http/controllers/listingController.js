@@ -1,10 +1,12 @@
 const UpcomingListing = require('../../models/UpcomingListing');
 const RecentLaunch = require('../../models/RecentLaunch');
+const {updateListingsData} = require("../../services/listingService");
 
 /**
  * Get all upcoming and recent listings.
  */
 async function getListings(req, res) {
+    const data = await updateListingsData();
     try {
         const upcoming = await UpcomingListing.find().sort({ date: 'asc' });
         const recent = await RecentLaunch.find().sort({ launchDate: 'desc' });

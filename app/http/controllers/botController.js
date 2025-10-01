@@ -2,7 +2,7 @@
 
 const BotBase        = require('../../models/BotBase');
 const IndicatorBot   = require('../../models/IndicatorBot');
-const GridBotModel   = require('../../models/GridBotModel'); // This is our new, detailed model
+const GridBotModel   = require('../../models/GridBotModel');
 const User           = require('../../models/User');
 const Trade          = require('../../models/Trade');
 const Candle         = require('../../models/Candle');
@@ -11,8 +11,8 @@ const OkxAccount     = require('../../models/OkxAccount');
 const BingxAccount   = require('../../models/BingxAccount');
 const BotService     = require('../../services/botService/BotService');
 const PnLService     = require('../../services/PnLService');
-const logger = require("../../../logs/logger"); // for getBots enrichment
-const BotManagerService = require('../../services/botService/BotManagerService'); // Import our new manager
+const logger = require("../../../logs/logger");
+const BotManagerService = require('../../services/botService/BotManagerService');
 
 // Default indicator parameters
 const defaultStrategyParams = require('../../../config/defaultStrategyParams');
@@ -26,6 +26,7 @@ exports.createGridBot = async (req, res) => {
             return res.status(401).json({ error: 'User not found.' });
         }
 
+
         // The bot configuration should match our new GridBotModel schema
         const botConfig = { ...req.body, userId };
 
@@ -34,6 +35,7 @@ exports.createGridBot = async (req, res) => {
             return res.status(400).json({ error: 'Name, symbol, exchange, and marketType are required.' });
         }
 
+        console.log(botConfig)
         const botInstance = await BotManagerService.createAndStartBot(botConfig);
 
         res.status(201).json({ success: true, message: "Grid bot created and started successfully.", bot: botInstance.bot });
