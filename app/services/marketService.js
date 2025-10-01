@@ -197,9 +197,9 @@ const MOVER_COUNT = 20;
 const VOLATILITY_COUNT = 50;
 const RVOL_PERIOD_DAYS = 20; // CoinGecko doesn't provide rVol, so we will simulate it conceptually.
 
-// Create a cache instance. Data will be stored for 5 minutes (300 seconds).
+// Create a cache instance. Data will be stored for 10 minutes (600 seconds).
 // You can adjust stdTTL (standard Time-To-Live) to your needs.
-const marketDataCache = new NodeCache({ stdTTL: 300 });
+const marketDataCache = new NodeCache({ stdTTL: 600 });
 
 // Define a key for our cached data
 const CACHE_KEY = 'moversAndVolatility';
