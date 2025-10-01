@@ -8,21 +8,51 @@ const MarketSnapshot = require('../../models/MarketSnapshot');
 const FavoriteSymbol = require('../../models/FavoriteSymbol');
 const logger = require("../../../logs/logger");
 
-/**
- * GET /api/market/top-movers
- * Query params:
- *   - limit: how many symbols to return (default 5)
- *   - direction: 'desc' for top gainers, 'asc' for top losers (default 'desc')
- */
+// A list of common quote currencies on Binance to strip from the symbol
+const QUOTE_CURRENCIES = ['USDT', 'BUSD', 'TUSD', 'FDUSD', 'USDC', 'BTC', 'ETH'];
+
 exports.getTopMovers = async (req, res) => {
     try {
-        const limit     = parseInt(req.query.limit, 10) || 5;
+        const limit = parseInt(req.query.limit, 10) || 10;
         const direction = req.query.direction === 'asc' ? 'asc' : 'desc';
 
-        // Fetch the raw movers from Binance via MarketService
+        // 1. Get top movers data from Binance
         const movers = await MarketService.getTopMoversFromBinance(limit, direction);
 
-        res.json({ success: true, data: movers });
+        // 2. Extract and normalize the base symbols to match your database
+        const baseSymbols = movers.map(mover => {
+            let base = mover.symbol;
+            // Find and remove the first matching quote currency from the end
+            for (const quote of QUOTE_CURRENCIES) {
+                if (base.endsWith(quote)) {
+                    base = base.slice(0, -quote.length);
+                    break;
+                }
+            }
+            return base.toLowerCase();
+        });
+
+        // 3. Efficiently fetch all matching documents from your database in ONE query
+        const snapshotDocs = await MarketSnapshot.find({
+            symbol: { $in: baseSymbols }
+        }).select('symbol imageUrl').lean(); // Use .lean() for faster, plain JS objects
+
+        // 4. Create a fast lookup map for enrichment (O(1) access)
+        // Maps 'btc' -> 'https://.../bitcoin.png'
+        const imageLookup = new Map(
+            snapshotDocs.map(doc => [doc.symbol, doc.imageUrl])
+        );
+
+        // 5. Enrich the original Binance data with the imageUrl from your database
+        const enriched = movers.map((mover, index) => {
+            const correspondingBaseSymbol = baseSymbols[index];
+            return {
+                ...mover,
+                imageUrl: imageLookup.get(correspondingBaseSymbol) || null // Fallback to null if no image found
+            };
+        });
+
+        res.json({ success: true, data: enriched });
     } catch (err) {
         console.error('getTopMovers error:', err);
         logger.error(`getTopMovers error: ${err.message}`, { stack: err.stack });
