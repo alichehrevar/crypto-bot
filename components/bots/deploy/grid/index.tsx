@@ -11,7 +11,7 @@ import { GridSpotAdvanced } from "./GridSpotAdvanced";
 import { GridTPSL } from "./GridTPSL";
 
 import { MarketListItem } from "@/types/MarketList";
-import { ExchangeAccount } from "@/types/profile/AccountType";
+import {AccountsResponse, ExchangeAccount} from "@/types/profile/AccountType";
 import { BotProps } from "@/types/bots/StrategyParams";
 import {RawBalanceResponse} from "@/types/profile/WalletBalanceType";
 import {getData} from "@/actions/get";
@@ -76,8 +76,29 @@ export default function GridConfigForm({
         }
         // This is where you would fetch your accounts data
         const fetchAccounts = async () => {
-            // const res = await getData('/accounts');
-            // if (res.success) setAccounts(res.data);
+            try {
+                const res: AccountsResponse = await getData('/accounts');
+
+                if (!res.accounts) {
+                    addToast({title: 'No accounts found !', color: 'danger'});
+
+                    return;
+                }
+                const arr = Object.entries(res.accounts).map(([exchange, acc]) => ({
+                    ...acc,
+                    _id: acc._id!,
+                    userId: acc.userId!,
+                    apiKey: acc.apiKey!,
+                    secretKey: acc.secretKey!,
+                    name: exchange,
+                    createdAt: acc.createdAt ?? new Date().toISOString(),
+                    __v: acc.__v ?? 0,
+                }));
+
+                setAccounts(arr);
+            } catch {
+                addToast({title: 'Failed to load accounts', color: 'danger'});
+            }
         };
 
         fetchAccounts();
@@ -152,7 +173,7 @@ export default function GridConfigForm({
 
         if (selectedParentTab === 'spot') {
             payload = {
-                name: name.trim() || `${selectedSymbol?.symbol} Spot Grid`,
+                name: name,
                 exchange: selectedAccount.exchange, // e.g., 'binance'
                 symbol: selectedSymbol?.symbol,
                 marketType: 'SPOT',
@@ -228,7 +249,6 @@ export default function GridConfigForm({
                     accounts={accounts}
                     availableBalance={availableBalance}
                     loading={loading}
-                    name={name}
                     selectedAccountId={selectedAccountId}
                     onAccountChange={handleAccountChange}
                     onNameChange={setName}

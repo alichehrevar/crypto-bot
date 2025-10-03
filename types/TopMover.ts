@@ -1,8 +1,9 @@
 export type TopMover = {
-  name: string;
-  symbol: string;
-  changePct: number;
-  imageUrl: string;
+    symbol: string,
+    priceChangePercent: number,
+    lastPrice: number,
+    volume: number,
+    imageUrl: string
 }
 export type TopMoversResponse = {
   success: boolean,

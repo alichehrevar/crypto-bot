@@ -5,7 +5,6 @@ import Input from "@/components/shared/ui/Input";
 import Combobox from "@/components/shared/ui/Combobox";
 
 export function GridCommonFields({
-     name,
      onNameChange,
      accounts,
      selectedAccountId,
@@ -18,6 +17,7 @@ export function GridCommonFields({
                 id="bot-name"
                 placeholder="e.g., ETH Momentum Scalper"
                 title="Bot Name"
+                onChange={onNameChange}
             />
             <Combobox
                 label="Account"

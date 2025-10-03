@@ -45,7 +45,7 @@ export default function TopMovers() {
 
   // find the tallest absolute change so bars scale properly
   const maxPct = items.length
-    ? Math.max(...items.map(i => Math.abs(i.changePct)))
+    ? Math.max(...items.map(i => Math.abs(i.priceChangePercent)))
     : 1
 
   return (
@@ -79,7 +79,7 @@ export default function TopMovers() {
       {!isLoading &&
         <div className="grid grid-flow-col auto-cols-fr gap-4 items-end h-36">
           {items.map(item => {
-            const pct = item.changePct
+            const pct = item.priceChangePercent
             const heightPct = (Math.abs(pct) / maxPct) * 100
             const isUp = pct >= 0
 
@@ -111,7 +111,7 @@ export default function TopMovers() {
                   alt={item.symbol}
                   className="w-6 h-6 mt-3 rounded-full"
                   height={24}
-                  src={item.imageUrl}
+                  src={item.imageUrl || '/images/icons/default.svg'}
                   width={24}
                   onError={(e) => {
                     e.currentTarget.src = '/images/icons/default.svg';

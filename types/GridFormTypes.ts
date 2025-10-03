@@ -8,7 +8,6 @@ interface BaseProps {
 }
 
 export interface GridCommonFieldsProps extends BaseProps {
-    name: string;
     onNameChange: (value: string) => void;
     accounts: ExchangeAccount[];
     selectedAccountId?: Key;

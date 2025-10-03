@@ -38,7 +38,7 @@ export default function BotConfigForm({mode, selectedParentTab, onCloseAction, s
     });
 
     // common form state
-    const [name, setName] = useState('');
+    const [name, setName] = useState('technical bot name');
     const [accounts, setAccounts] = useState<ExchangeAccount[]>([]);
     const [selectedAccountId, setSelectedAccountId] = useState<string>();
     const [availableBalance, setAvailableBalance] = useState(0);
@@ -208,6 +208,8 @@ export default function BotConfigForm({mode, selectedParentTab, onCloseAction, s
             }),
         };
 
+        console.log(name)
+
         // stringify all fields
         const body = Object.fromEntries(
             Object.entries(payload).map(([k, v]) => [k, typeof v === 'object' ? JSON.stringify(v) : String(v)])
@@ -241,6 +243,7 @@ export default function BotConfigForm({mode, selectedParentTab, onCloseAction, s
                     id="bot-name"
                     placeholder="e.g., ETH Momentum Scalper"
                     title="Bot Name"
+                    onChange={setName}
                 />
 
                 {/* Account */}
@@ -315,18 +318,14 @@ export default function BotConfigForm({mode, selectedParentTab, onCloseAction, s
                 {/* TP/SL */}
                 <NumericInput
                     label="Take Profit"
-                    max={100}
-                    min={1}
-                    step={0.1}
+                    min={0}
                     usePercentageStep={true}
                     value={takeProfit.toString()}
                     onChange={e => setTakeProfit(Number(e))}
                 />
                 <NumericInput
                     label="Stop Loss"
-                    max={100}
-                    min={1}
-                    step={0.1}
+                    min={0}
                     usePercentageStep={true}
                     value={stopLoss.toString()}
                     onChange={e => setStopLoss(Number(e))}
@@ -361,7 +360,6 @@ export default function BotConfigForm({mode, selectedParentTab, onCloseAction, s
                             label="Minimum optimization accuracy (%)"
                             max={100}
                             min={1}
-                            step={0.1}
                             usePercentageStep={true}
                             value={minOptAccuracy.toString()}
                             onChange={(e) => setMinOptAccuracy(Number(e))}

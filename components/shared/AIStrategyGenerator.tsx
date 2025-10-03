@@ -144,7 +144,7 @@ const WinRatioGauge: React.FC<{ ratio: number }> = ({ ratio }) => {
 };
 
 const ConditionsReportView: React.FC<{ report: StrategyReport }> = ({ report }) => (
-    <div className="bg-[#191919] p-5 rounded-md border border-gray-600 overflow-y-auto h-[400px]">
+    <div className="bg-dark-semi-black p-5 rounded-md border border-gray-600 overflow-y-auto h-[400px]">
         <h3 className="text-lg font-semibold text-white mb-3">Market Analysis Overview</h3>
         <p className="text-sm text-gray-300 leading-relaxed mb-6">{report.overview}</p>
         <h3 className="text-lg font-semibold text-white mb-3">Recommended Technical Strategy</h3>
@@ -236,7 +236,7 @@ export default function AIStrategyGenerator() {
                         Describe Your Strategy (Prompt) or Paste Code
                     </label>
                     <textarea
-                        className="w-full bg-[#191919] border border-gray-600 text-white rounded-md px-3 py-2 text-sm focus:ring-1 focus:ring-blue-500/50 focus:border-blue-500 focus:outline-none resize-none"
+                        className="w-full bg-dark-semi-black border border-gray-600 text-white rounded-md px-3 py-2 text-sm focus:ring-1 focus:ring-blue-500/50 focus:border-blue-500 focus:outline-none resize-none"
                         id="prompt"
                         placeholder="e.g., Create a mean reversion strategy for BTC/USDT on the 1H timeframe..."
                         rows={5}

@@ -7,7 +7,7 @@ const NumericInput: React.FC<{
     placeholder?: string;
     unit?: string;
     min: number;
-    max: number;
+    max?: number;
     step?: number;
     usePercentageStep?: boolean;
 }> = ({ label, value, onChange, placeholder, unit, min, max, step = 0.1, usePercentageStep = false }) => {
@@ -31,7 +31,7 @@ const NumericInput: React.FC<{
         if (isNaN(numValue)) {
             onChange(String(min));
         } else {
-            const clampedValue = Math.max(min, Math.min(max, numValue));
+            const clampedValue = Math.max(min, Math.min(max ?? numValue, numValue));
 
             onChange(String(clampedValue));
         }
@@ -50,7 +50,9 @@ const NumericInput: React.FC<{
         }
         let newValue = currentValue + (actualStep * direction);
 
-        newValue = Math.max(min, Math.min(max, newValue));
+        if (max) {
+            newValue = Math.max(min, Math.min(max, newValue));
+        }
         const decimalPlaces = String(step).includes('.') && !usePercentageStep ? String(step).split('.')[1].length : 0;
 
         onChange(newValue.toFixed(decimalPlaces));
@@ -66,7 +68,7 @@ const NumericInput: React.FC<{
             {label && <label className="block text-sm font-medium text-gray-300 mb-2">{label}</label>}
             <div className="relative group">
                 <input
-                    className="w-full bg-[#191919] border border-gray-600 text-white rounded-md px-3 py-2 text-sm focus:ring-1 focus:ring-blue-500/50 focus:border-blue-500 focus:outline-none transition-colors duration-200 hide-number-spinners"
+                    className="w-full bg-dark-semi-black border border-gray-600 text-white rounded-md px-3 py-2 text-sm focus:ring-1 focus:ring-blue-500/50 focus:border-blue-500 focus:outline-none transition-colors duration-200 hide-number-spinners"
                     max={max}
                     min={min}
                     placeholder={placeholder}
