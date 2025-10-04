@@ -4,7 +4,7 @@ import React, {useState, useEffect, useRef} from 'react';
 import {addToast} from "@heroui/react";
 
 import {getData} from "@/actions/get";
-import {ListingsData, UpcomingListingResponse} from "@/types/UpcomingListing";
+import {ApiResponse, CryptoEvent} from "@/types/UpcomingListing";
 import LoadingWithSpinner from "@/components/loading/LoadingWithSpinner";
 
 
@@ -73,7 +73,8 @@ const CardHeader = ({ title, infoContent }: { title: string; infoContent?: strin
 // =====================================================================
 
 export default function NewListingsPage() {
-    const [listingsData, setListingsData] = useState<ListingsData>({ upcoming: [], recent: [] });
+    const [upcomingListingsData, setUpcomingListingsData] = useState<CryptoEvent[]>([]);
+    const [recentListingData, setRecentListingData] = useState<CryptoEvent[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
     async function fetchListings () {
@@ -82,12 +83,13 @@ export default function NewListingsPage() {
 
     useEffect(() => {
         fetchListings()
-            .then((response: UpcomingListingResponse) => {
+            .then((response: ApiResponse) => {
                 if (response.success) {
-                    setListingsData(response.data)
+                    setUpcomingListingsData(response.data.upcoming)
+                    setRecentListingData(response.data.recent)
                 } else {
                     addToast({
-                        title: response.error,
+                        title: response.message,
                         color: "warning"
                     })
                 }
@@ -102,32 +104,32 @@ export default function NewListingsPage() {
     }, []);
 
     return (
-        <main className="">
+        <main>
             <div className="grid grid-cols-1 gap-2 xl:grid-cols-[1fr_2fr]">
 
                 {/* Card for Upcoming Listings */}
-                <div className="flex h-full flex-col rounded-xl border border-white/5 bg-dark-gray p-6 shadow-2xl">
+                <div className="flex h-full flex-col rounded-xl border border-white/5 bg-dark-gray py-6 px-4 shadow-2xl">
                     <CardHeader
                         infoContent="This timeline tracks high-anticipation events like Token Generation Events (TGEs), exchange listings, and airdrop claims. These are often volatile periods that present unique trading opportunities."
                         title="Upcoming Listings"
                     />
-                    <div className="mt-6">
+                    <div className="mt-6 max-h-[300px] px-2 overflow-y-auto h-full no-scrollbar">
                         {isLoading
                             ? <LoadingWithSpinner />
                             : <>
-                                {listingsData.upcoming.map((item, index) => (
+                                {upcomingListingsData.map((item, index) => (
                                     <div key={index} className="relative border-l-2 border-white/20 pb-2 pl-8 last:mb-0 mb-8">
                                         <span className="absolute -left-[9px] top-0 h-4 w-4 rounded-full border-2 border-[#1a1a1a] bg-blue-500" />
-                                        <div className="mb-1 text-sm text-gray-400">{new Date(item.date).toUTCString()}</div>
-                                        <div className="text-base font-semibold">{item.asset}</div>
+                                        <div className="mb-1 text-sm text-gray-400">{item.displayed_date} {new Date(item.date_event).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                                        <div className="text-base font-semibold">{item.coins[0].name}</div>
                                         <div className="text-sm text-gray-300">
-                                            <strong>{item.type}</strong> | {item.exchange}
+                                            <strong>{item.title}</strong>
                                         </div>
                                     </div>
                                 ))}
                             </>
                         }
-                        {!isLoading && listingsData.upcoming.length === 0 && (
+                        {!isLoading && upcomingListingsData.length === 0 && (
                             <div className="text-center text-sm text-gray-400">
                                 No upcoming listings.
                             </div>
@@ -161,13 +163,13 @@ export default function NewListingsPage() {
                                         </td>
                                     </tr>
                                     : <>
-                                        {listingsData.recent.map(item => {
+                                        {recentListingData.map((item, index) => {
                                             const roi = ((item.currentPrice - item.launchPrice) / item.launchPrice) * 100;
 
                                             return (
-                                                <tr key={item.asset} className="border-b border-white/10 last:border-b-0">
-                                                    <td className="p-3 font-medium">{item.asset}</td>
-                                                    <td className="p-3 text-gray-300">{new Date(item.launchDate).toLocaleDateString()}</td>
+                                                <tr key={index} className="border-b border-white/10 last:border-b-0">
+                                                    <td className="p-3 font-medium">{item.launchPrice}</td>
+                                                    <td className="p-3 text-gray-300">{new Date(item.displayed_date).toLocaleDateString()}</td>
                                                     <td className="p-3 text-gray-300">${item.launchPrice.toFixed(2)}</td>
                                                     <td className="p-3 text-gray-300">${item.currentPrice.toFixed(2)}</td>
                                                     <td className={`p-3 font-semibold ${roi >= 0 ? 'text-green-500' : 'text-red-500'}`}>
@@ -181,7 +183,7 @@ export default function NewListingsPage() {
                                         })}
                                     </>
                                 }
-                                {!isLoading && listingsData.recent.length === 0 && (
+                                {!isLoading && recentListingData.length === 0 && (
                                     <tr>
                                         <td className="p-3 text-center text-sm text-gray-400 h-32" colSpan={6}>
                                             No recent launch data available.
