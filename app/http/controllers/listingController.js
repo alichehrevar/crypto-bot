@@ -1,11 +1,9 @@
 const UpcomingListing = require('../../models/UpcomingListing');
-const {updateListingsData} = require("../../services/listingService");
 
 /**
  * Get all upcoming and recent listings.
  */
 async function getListings(req, res) {
-    await updateListingsData()
     try {
         const now = new Date();
 
