@@ -2,6 +2,7 @@
 
 const axios = require('axios')
 const EconomicEvent = require('../../models/EconomicEvent');
+const {investing} = require('investing-com-api');
 const logger = require('../../../logs/logger.js');
 
 /**
@@ -31,14 +32,9 @@ async function getFearAndGreedIndex() {
 
 
 /**
- * Fetches all processed economic events directly from the database.
- * The data is kept up-to-date by background cron jobs.
- * @returns {Promise<Array<Object>>} A promise that resolves to an array of events.
- */
-/**
  * Fetches crypto economic events from the CoinMarketCal API.
  */
-async function getEconomicEvents() {
+async function getEconomicEventsFromCoinMarketCal() {
     try {
         // Retrieve your API key from environment variables
         const accessToken = process.env.COINMARKETCAL_API_KEY;
@@ -95,7 +91,19 @@ async function getEconomicEvents() {
     }
 }
 
+/**
+ * Fetches forex economic calendar events for the next 7 days using the investing-com-api library.
+ * @returns {Promise<Array>} A promise that resolves to an array of event objects.
+ */
+async function getEconomicEvents() {
+    const response1 = await investing('currencies/eur-usd');
+    const response2 = await investing('currencies/eur-usd', 3600, 24, '1-day');
+
+}
+
+
 module.exports = {
     getFearAndGreedIndex,
+    getEconomicEventsFromCoinMarketCal,
     getEconomicEvents
 };

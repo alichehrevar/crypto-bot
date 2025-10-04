@@ -1,7 +1,9 @@
 const axios = require('axios')
 const UpcomingListing = require('../models/UpcomingListing');
-const RecentLaunch = require('../models/RecentLaunch');
 const sleep = require('../../utils/delay');
+
+const COINGECKO_API_KEY = process.env.COINGECKO_API_KEY;
+const COINGECKO_BASE_URL = 'https://api.coingecho.com/api/v3';
 
 /**
  * Fetches data from a given API endpoint with headers and a retry mechanism.
@@ -44,121 +46,125 @@ async function fetchWithRetries(url, headers, maxRetries = 3, initialDelay = 200
 }
 
 /**
- * Fetches upcoming and recent listing events from the CoinMarketCal API.
+ * Fetches event data, enriches it with pricing info, and transforms it.
  */
-async function fetchExternalListingData() {
+async function fetchAndTransformEvents() {
     console.log('Fetching data from CoinMarketCal API...');
 
     if (!process.env.COINMARKETCAL_API_KEY) {
-        console.error("API Key for CoinMarketCal is not set. Please update the COINMARKETCAL_API_KEY constant.");
-        return { upcoming: [], recent: [] };
+        console.error("API Key for CoinMarketCal or CoinGecko is not set.");
+        return [];
     }
 
     try {
-        const url = 'https://developers.coinmarketcal.com/v1/events?max=100&categories=Exchanges';
-        const headers = { 'Authorization': `Bearer ${process.env.COINMARKETCAL_API_KEY}` };
+        const url = 'https://developers.coinmarketcal.com/v1/events?max=10&categories=4'; // 4 is exhanges
+        const headers = {
+            'x-api-key': process.env.COINMARKETCAL_API_KEY,
+            'Accept': 'application/json',
+            'Accept-Encoding': 'deflate, gzip',
+        };
 
         const responseData = await fetchWithRetries(url, headers);
 
-        if (!responseData || !responseData.body) {
-            console.log('No data returned from CoinMarketCal API.');
-            return { upcoming: [], recent: [] };
+        if (!responseData || !responseData.body || responseData.body.length === 0) {
+            console.log('No new events returned from CoinMarketCal API.');
+            return [];
         }
 
-        const now = new Date();
-        const upcoming = [];
-        const recent = [];
+        // --- MODIFIED: Enrich and Transform Data ---
+        // Use Promise.all to fetch enrichment data for all events in parallel for performance
+        const enrichedEventPromises = responseData.body.map(async (event) => {
+            if (!event.coins || event.coins.length === 0) return null; // Skip if no coin data
 
-        // --- Process All Events ---
-        responseData.body.forEach(event => {
-            if (!event.coins || event.coins.length === 0) return; // Skip events without an associated coin
-
-            const eventDate = new Date(event.date_event);
             const coin = event.coins[0];
-            const exchange = event.exchanges && event.exchanges.length > 0 ? event.exchanges[0].name : 'TBA';
+            const coinId = coin.id;
+            const launchDate = new Date(event.date_event);
+            const formattedLaunchDate = `${launchDate.getDate()}-${launchDate.getMonth() + 1}-${launchDate.getFullYear()}`;
 
-            if (eventDate >= now) {
-                upcoming.push({
-                    date: event.date_event,
-                    asset: `${coin.name} (${coin.symbol.toUpperCase()})`,
-                    type: event.title,
-                    exchange: exchange,
-                });
-            } else {
-                recent.push({
-                    asset: `${coin.name} (${coin.symbol.toUpperCase()})`,
-                    launchDate: event.date_event,
-                    launchPrice: 'N/A', // CoinMarketCal does not provide price data
-                    currentPrice: 'N/A',
-                    velocity: 'N/A',
-                });
+            let enrichmentData = { launchPrice: 0, currentPrice: 0, velocity: 'N/A' };
+
+            try {
+                // Fetch pricing data from CoinGecko
+                const [currentPriceData, historicalPriceData] = await Promise.all([
+                    axios.get(`${COINGECKO_BASE_URL}/simple/price`, {
+                        params: { ids: coinId, vs_currencies: 'usd', include_24hr_change: 'true' },
+                    }),
+                    axios.get(`${COINGECKO_BASE_URL}/coins/${coinId}/history`, {
+                        params: { date: formattedLaunchDate },
+                    })
+                ]);
+
+                const currentPrice = currentPriceData.data[coinId]?.usd || 0;
+                const priceChange24h = currentPriceData.data[coinId]?.usd_24h_change || 0;
+                const launchPrice = historicalPriceData.data?.market_data?.current_price?.usd || 0;
+
+                let velocity = 'Medium';
+                if (priceChange24h > 5) velocity = 'High ↑';
+                if (priceChange24h < -5) velocity = 'High ↓';
+
+                enrichmentData = { launchPrice, currentPrice, velocity };
+
+            } catch (error) {
+                console.warn(`Could not fetch pricing for ${coin.name} (${coinId}). Reason: ${error.message}. Using default values.`);
             }
+
+            // Return the complete, merged event object matching our schema
+            return {
+                eventId: event.id,
+                title: event.title.en,
+                coins: event.coins.map(c => ({
+                    coinId: c.id, name: c.name, rank: c.rank, symbol: c.symbol, fullname: c.fullname
+                })),
+                date_event: event.date_event,
+                can_occur_before: event.can_occur_before,
+                created_date: event.created_date,
+                displayed_date: event.displayed_date,
+                categories: event.categories.map(cat => ({ categoryId: cat.id, name: cat.name })),
+                proof: event.proof,
+                source: event.source,
+                ...enrichmentData, // Spread the new pricing data here
+            };
         });
 
-        console.log('Successfully fetched and processed data from CoinMarketCal.');
+        // Wait for all enrichment promises to complete and filter out any nulls
+        const transformedEvents = (await Promise.all(enrichedEventPromises)).filter(Boolean);
 
-        // Sort events by date
-        upcoming.sort((a, b) => new Date(a.date) - new Date(b.date));
-        recent.sort((a, b) => new Date(b.launchDate) - new Date(a.launchDate));
-
-        return {
-            upcoming: upcoming,
-            recent: recent
-        };
+        console.log(`Successfully fetched and enriched ${transformedEvents.length} events.`);
+        return transformedEvents;
 
     } catch (error) {
-        console.error('Failed to complete listing data update due to an error.');
-        return { upcoming: [], recent: [] };
+        console.error('Failed to fetch and transform event data:', error);
+        return [];
     }
 }
 
 /**
- * Fetches data from an external source and updates the database.
- * This function is designed to be idempotent.
+ * Updates the database with the latest events.
+ * This function is idempotent: it updates existing events or inserts new ones.
  */
 async function updateListingsData() {
     try {
-        const { upcoming, recent } = await fetchExternalListingData();
+        const eventsToSync = await fetchAndTransformEvents();
 
-        // --- Update Upcoming Listings ---
-        if (upcoming && upcoming.length > 0) {
-            const upcomingOps = upcoming.map(item => ({
-                updateOne: {
-                    filter: { asset: item.asset },
-                    update: {
-                        $set: {
-                            asset: item.asset,
-                            eventDate: new Date(item.date),
-                            eventType: item.type,
-                            exchange: item.exchange,
-                        }
-                    },
-                    upsert: true
-                }
-            }));
-            await UpcomingListing.bulkWrite(upcomingOps);
-            console.log(`${upcoming.length} upcoming listings updated.`);
+        if (eventsToSync.length === 0) {
+            console.log('No events to sync. Database is up to date.');
+            return;
         }
 
-        // --- Update Recent Launches ---
-        if (recent && recent.length > 0) {
-            const recentOps = recent.map(item => ({
-                updateOne: {
-                    filter: { asset: item.asset },
-                    update: {
-                        $set: {
-                            ...item,
-                            launchDate: new Date(item.launchDate)
-                        }
-                    },
-                    upsert: true
-                }
-            }));
-            await RecentLaunch.bulkWrite(recentOps);
-            console.log(`${recent.length} recent launches updated.`);
-        }
+        // --- Prepare bulk operations for efficient DB update ---
+        const bulkOperations = eventsToSync.map(event => ({
+            updateOne: {
+                filter: { eventId: event.eventId }, // Find document by the unique eventId from the API
+                update: { $set: event },             // Update the document with new data
+                upsert: true,                        // If no document is found, insert it
+            },
+        }));
+
+        const result = await UpcomingListing.bulkWrite(bulkOperations);
+        console.log(`Database sync complete. Matched: ${result.matchedCount}, Upserted: ${result.upsertedCount}, Modified: ${result.modifiedCount}.`);
+
     } catch (error) {
-        console.error('Error updating listings data:', error);
+        console.error('Error during database sync:', error);
     }
 }
 
