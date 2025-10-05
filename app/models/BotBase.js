@@ -46,9 +46,13 @@ const marketInfoSchema = new Schema({
 const tradeInfoSchema = new Schema({
     takeProfit:            { type: Number },
     stopLoss:              { type: Number },
-    leverage:              { type: Number, default: 1 },
+    // leverage: { type: Number, default: 1 },
+    // Fields for separate long and short leverage
+    leverageLong:          { type: Number, default: 1 },
+    leverageShort:         { type: Number, default: 1 },
     side:                  { type: String, enum: ['buy','sell'] },
     positionSide:          { type: String, enum: ['long','short'] },
+
     winProbability:        { type: Number },
     payoffRatio:           { type: Number },
     lastTradeOutcome:      { type: String },
@@ -58,6 +62,8 @@ const tradeInfoSchema = new Schema({
     minimumTrade:          { type: Number },
     minimumWinRatio:       { type: Number },
     minimumAccuracy:       { type: Number },
+    minSimulatedTrades:    { type: Number },
+    minBotAccuracy:        { type: Number },
     configId:              { type: String },
     signalProcessingMethod:{ type: String, enum: ['weighted','consensus'] }
 }, { _id: false });
@@ -92,7 +98,6 @@ const baseBotSchema = new Schema({
     symbol:    {
         type: String,
         required: true,
-        match: [/^[A-Z0-9]+\/[A-Z0-9]+$/, 'Use format BASE/QUOTE (e.g. BTC/USDT)']
     },
     timeframe: {
         type: String,

@@ -66,13 +66,13 @@ exports.stopGridBot = async (req, res) => {
  */
 exports.deployBot = async (req, res) => {
     try {
-        // 0) Authenticate user
+        // 0) Authenticate user (No changes here)
         const user = await User.findById(req.user?.id);
         if (!user) {
             return res.status(401).json({ error: 'User not found.' });
         }
 
-        // 1) Determine which account the user selected
+        // 1) Determine which account the user selected (No changes here)
         const { accountId } = req.body;
         let account, accountType;
         account = await BinanceAccount.findById(accountId);
@@ -89,130 +89,123 @@ exports.deployBot = async (req, res) => {
             return res.status(400).json({ error: 'Invalid account selected' });
         }
 
-        // 2) Extract common fields
-        //    Note: front end no longer sends timeframe for grid → we default it to "1m"
+        // 2) Extract and process fields from the new frontend payload
         let {
-            botType          = 'indicator',  // default to 'indicator' if not provided
+            botType = 'indicator',
             name,
             symbol,
-            timeframe,
-            riskStrategy,
-            takeProfit,
-            stopLoss,
-            leverage,
+            strategy, // "default", "optimized", or "dynamic"
             baseFund,
             tradeFund,
-            strategy         // indicator‐strategy ("default"|"optimized"|"dynamic") or ignored for grid
+            takeProfit,
+            stopLoss,
+            compoundPositionSizing, // this is now a boolean
+            indicators, // this is now a structured array
+            // Fields for optimized/dynamic strategies
+            optimizationMethod,
+            minOptimizationAccuracy,
+            minSimulatedTrades,
+            minBotAccuracy,
+            marginType,
+            positionMode,
+            singleModeSide,
+            leverageLong,
+            leverageShort,
         } = req.body;
 
-        // If no timeframe was provided (e.g. grid), default to 1m
-        let normalizedTF = typeof timeframe === 'string'
-            ? timeframe.toLowerCase()
-            : '1m';
+        // CHANGED: The top-level timeframe is no longer sent.
+        // We derive it from the first indicator, as the BotBase model requires it.
+        // Check if indicators is a string and parse it
+        if (typeof indicators === 'string') {
+            try {
+                indicators = JSON.parse(indicators);
+            } catch (e) {
+                return res.status(400).json({ success: false, error: 'Invalid format for indicators.' });
+            }
+        }
+        if (!Array.isArray(indicators) || indicators.length === 0) {
+            return res.status(400).json({ error: 'At least one indicator is required.' });
+        }
+        // The frontend sends "timeFrame", the model expects "timeframe".
+        const primaryTimeframe = indicators[0].timeFrame || '1h';
+        const normalizedTF = primaryTimeframe.toLowerCase();
 
-        const normalizedSymbol = typeof symbol === 'string'
-            ? symbol.toUpperCase()
-            : symbol;
-
-        // 3) Build “marketInfo” and “tradeInfo”
+        // 3) Build “marketInfo”, “tradeInfo”, and "riskParams"
         const marketInfo = {
-            baseFund:  baseFund  != null ? Number(baseFund)  : 10000,
-            tradeFund: tradeFund != null ? Number(tradeFund) : 50
+            baseFund:  Number(baseFund) || 10000,
+            tradeFund: Number(tradeFund) || 50
         };
+
         const tradeInfo = {
-            takeProfit:  takeProfit != null ? Number(takeProfit) : undefined,
-            stopLoss:    stopLoss   != null ? Number(stopLoss)   : undefined,
-            leverage:    leverage   != null ? Number(leverage)   : 1
+            takeProfit:  Number(takeProfit),
+            stopLoss:    Number(stopLoss),
+            leverageLong: Number(leverageLong) || 50,
+            leverageShort: Number(leverageShort) || 50,
+            positionSide: (singleModeSide || 'long').toLowerCase() !== 'both'
+                ? (singleModeSide || 'long').toLowerCase()
+                : 'long',
+            // ADDED: Populate new strategy fields based on bot mode
+            ...( (strategy === 'optimized' || strategy === 'dynamic') && {
+                optimizationMethod: optimizationMethod,
+                minimumAccuracy: Number(minOptimizationAccuracy),
+                minSimulatedTrades: Number(minSimulatedTrades),
+            }),
+            ...( strategy === 'dynamic' && {
+                minBotAccuracy: Number(minBotAccuracy),
+            }),
+        };
+
+        // ADDED: Build riskParams object from new fields
+        const riskParams = {
+            positionSizingMethod: compoundPositionSizing === true || compoundPositionSizing === 'true' ? 'compound' : 'simple'
         };
 
         // 4) Branch on botType
         let bot;
 
         if (botType === 'indicator') {
-            //
+            ///
             // ── I N D I C A T O R   B O T ─────────────────────────────────────────
             //
-            const {
-                indicator,
-                timeframe: indTF,
-                strategyParams: rawParams,
-                additionalIndicators: rawAddIns
-            } = req.body;
 
-            if (!indicator || !indTF) {
-                return res.status(400).json({ error: 'Indicator name and timeframe are required.' });
-            }
+            // CHANGED: The 'indicators' field is now a direct array, not a JSON string.
+            // We just need to map it to the expected schema format.
+            const formattedIndicators = indicators.map(ind => ({
+                name:      ind.indicator.name, // Frontend sends "indicator", model wants "name"
+                timeframe: (ind.timeFrame || '1h').toString().toLowerCase(), // Frontend sends "timeFrame"
+                params:    {} // Assuming default params for now, can be extended if frontend sends them
+            }));
 
-            const normalizedIndTF = indTF.toString().toLowerCase();
 
-            // i) Parse strategyParams (JSON string → object)
-            let strategyParams;
-            if (typeof rawParams === 'string') {
-                try {
-                    strategyParams = JSON.parse(rawParams);
-                } catch {
-                    strategyParams = {};
-                }
-            } else {
-                strategyParams = rawParams || {};
-            }
-
-            // ii) Parse additionalIndicators (JSON string → array)
-            let additionalIndicators = [];
-            if (Array.isArray(rawAddIns)) {
-                additionalIndicators = rawAddIns;
-            } else if (typeof rawAddIns === 'string') {
-                try {
-                    const parsed = JSON.parse(rawAddIns);
-                    if (Array.isArray(parsed)) additionalIndicators = parsed;
-                } catch {
-                    additionalIndicators = [];
-                }
-            }
-
-            // iii) Build the “indicators” array
-            const indicators = [
-                {
-                    name:      indicator,
-                    timeframe: normalizedIndTF,
-                    params:    strategyParams || defaultStrategyParams[indicator] || {}
-                },
-                ...additionalIndicators.map(ai => ({
-                    name:      ai.indicator,
-                    timeframe: ai.timeframe.toString().toLowerCase(),
-                    params:    defaultStrategyParams[ai.indicator] || {}
-                }))
-            ];
-
-            // iv) Create new IndicatorBot document
+            // iv) Create a new IndicatorBot document with an updated structure
             bot = await IndicatorBot.create({
                 botType:       'indicator',
                 name,
-                symbol:        normalizedSymbol,
-                timeframe:     normalizedIndTF,
+                symbol,
+                timeframe:     normalizedTF, // ADDED: Pass the derived primary timeframe
                 userId:        user._id,
                 accountType,
                 accountId:     account._id,
 
-                riskStrategy,
-                riskParams:    {},            // placeholders (caller could pass more if needed)
+                riskStrategy:  'SimpleStrategy', // Keeping default, can be dynamic if sent from frontend
+                riskParams, // UPDATED
                 marketInfo,
-                tradeInfo,
+                tradeInfo, // UPDATED
 
-                indicators,
+                indicators:    formattedIndicators, // UPDATED
                 strategy:      strategy || 'default',
 
-                positionMode:  'single',
-                fundMode:      'cross',
+                fundMode: (marginType || 'isolated').toLowerCase(), // 'Isolated' -> 'isolated'
+                positionMode: (positionMode || 'single').toLowerCase(), // 'Single' -> 'single'
                 active:        true,
                 mode:          'live'
             });
         }
         else if (botType === 'grid') {
             //
-            // ── G R I D   B O T ─────────────────────────────────────────────────────────
+            // ── G R I D B O T ─────────────────────────────────────────────────────────
             //
-            // Front end sends gridConfig as a JSON string, so parse it here
+            // the Front end sends gridConfig as a JSON string, so parse it here
             let rawGridConfig = req.body.gridConfig;
             let gridConfig;
             if (typeof rawGridConfig === 'string') {
