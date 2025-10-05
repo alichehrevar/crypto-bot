@@ -41,7 +41,9 @@ const IndicatorRowLocal: React.FC<{
                 label="Indicator"
                 options={indicatorOptions}
                 selected={indicatorData.indicator.name}
-                setSelected={(indicator) => onChange({ ...indicatorData, indicator })}
+                setSelected={(indicatorName) =>
+                    onChange({ ...indicatorData, indicator: { name: indicatorName } })
+                }
             />
         </div>
         <Combobox

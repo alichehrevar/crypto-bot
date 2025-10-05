@@ -257,7 +257,7 @@ export default function RealTimeCandlestickChart({
     }
 
     return (
-        <div ref={containerRef} className="relative w-full flex-grow rounded-lg h-[600px]">
+        <div ref={containerRef} className="relative w-full flex-grow rounded-lg h-full">
             <div className="absolute top-0 right-0 left-0 z-10 bg-dark-gray rounded-tl-lg rounded-tr-lg shadow-lg p-2 flex gap-1 items-center">
                 <div className="flex-grow flex items-center gap-4 pl-2">
                     {ohlc ? (

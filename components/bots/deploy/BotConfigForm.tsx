@@ -3,7 +3,6 @@
 import React, {FormEvent, Key, useEffect, useState} from "react";
 import {
     addToast,
-    Checkbox,
     Button,
 } from '@heroui/react';
 
@@ -54,12 +53,12 @@ export default function BotConfigForm({mode, selectedParentTab, onCloseAction, s
 
     const [baseFund, setBaseFund] = useState(0);
     const [tradeFund, setTradeFund] = useState<string>('50');
-    const [leverage, setLeverage] = useState(1);
+    // const [leverage, setLeverage] = useState(1);
     // const [compoundSizing, setCompoundSizing] = useState(true);
     const [takeProfit, setTakeProfit] = useState(1.02);
     const [stopLoss, setStopLoss] = useState(0.98);
     const [indicator, setIndicator] = useState<string>('');
-    const [selectedIndicators, setSelectedIndicators] = useState<IndicatorItem[]>([]);
+    const [selectedIndicators, setSelectedIndicators] = useState<IndicatorItem[]>([{id: 1, indicator: STANDARD_INDICATOR_OPTIONS[0], timeFrame: "1h"}]);
     const [loading, setLoading] = useState(false);
 
     // optimized-dynamic state
@@ -172,7 +171,6 @@ export default function BotConfigForm({mode, selectedParentTab, onCloseAction, s
 
     /** POST to deploy */
     const handleDeploy = async (e: FormEvent<HTMLFormElement>) => {
-
         e.preventDefault();
         setLoading(true);
 
@@ -182,34 +180,53 @@ export default function BotConfigForm({mode, selectedParentTab, onCloseAction, s
             symbol: string | undefined;
             baseFund: number;
             tradeFund: number;
-            leverage: number;
+            // leverage: number;
             compoundPositionSizing: boolean;
             takeProfit: number;
             stopLoss: number;
-            indicator: string;
+            indicators: IndicatorItem[];
+            // Include the values from the modals
+            marginType: string,         // e.g., 'Isolated' or 'Cross'
+            positionMode: string,       // e.g., 'Single' or 'Hedge'
+            leverageLong: number,
+            leverageShort: number,
+            singleModeSide: string,     // e.g., 'Long', 'Short', or 'Both'
             strategy: "default" | "optimized" | "dynamic";
-            strategyParams: any
+            strategyParams: any,
+            optimizationMethod?: string;
+            minOptimizationAccuracy?: number;
+            minSimulatedTrades?: number;
+            minBotAccuracy?: number;
         } = {
             name,
             accountId: selectedAccountId?.toString() || '',
             symbol: selectedSymbol,
             baseFund,
             tradeFund: parseFloat(tradeFund),
-            leverage,
+            // leverage: 1,
             compoundPositionSizing: false,
             takeProfit,
             stopLoss,
-            indicator,
+            indicators: selectedIndicators,
             strategy: mode,
+
+            // Include the values from the modals
+            marginType,         // e.g., 'Isolated' or 'Cross'
+            positionMode,       // e.g., 'Single' or 'Hedge'
+            leverageLong,
+            leverageShort,
+            singleModeSide,     // e.g., 'Long', 'Short', or 'Both'
+
             strategyParams: botProps.defaultStrategyParams[indicator] || {},
             // optimized extras:
             ...((mode === 'optimized' || mode === 'dynamic') && {
                 optimizationMethod: optMethod,
                 minOptimizationAccuracy: minOptAccuracy,
+                minSimulatedTrades: minSimTrades,
             }),
             // dynamic extras:
             ...(mode === 'dynamic' && {
-                minSimulatedTrades: minBotAccuracy,
+                minBotAccuracy: minBotAccuracy,
             }),
         };
 
@@ -287,7 +304,7 @@ export default function BotConfigForm({mode, selectedParentTab, onCloseAction, s
                 {/* Trade Fund % */}
                 <NumericInput
                     label="Investment"
-                    max={100}
+                    max={availableBalance}
                     min={1}
                     step={0.1}
                     usePercentageStep={true}
@@ -301,7 +318,7 @@ export default function BotConfigForm({mode, selectedParentTab, onCloseAction, s
                                 key={p}
                                 className="w-1/4 h-[30px] bg-default-100 rounded-lg text-sm"
                                 type="button"
-                                onClick={() => setTradeFund(String(p))}
+                                onClick={() => setTradeFund(String(Number(availableBalance * p) / 100))}
                             >
                                 {p}%
                             </button>
