@@ -18,7 +18,7 @@ export function GridFuturesConfig({
     return (
         <div className="border-t border-default-100 pt-4 space-y-4">
             <h3 className="font-semibold">Futures Configuration</h3>
-            <Tabs aria-label="Futures Direction" selectedKey={direction} onSelectionChange={(key) => onDirectionChange(key as any)}>
+            <Tabs aria-label="Futures Direction" classNames={{base: 'w-full', tabList: 'w-full'}} selectedKey={direction} onSelectionChange={(key) => onDirectionChange(key as any)}>
                 <Tab key="Neutral" title="Neutral" />
                 <Tab key="Long" title="Long" />
                 <Tab key="Short" title="Short" />

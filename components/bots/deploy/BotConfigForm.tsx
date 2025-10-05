@@ -70,10 +70,6 @@ export default function BotConfigForm({mode, selectedParentTab, onCloseAction, s
     // dynamic‐only state
     const [minBotAccuracy, setMinBotAccuracy] = useState(5);
 
-    const showLongLeverage = positionMode === 'Hedge' || (positionMode === 'Single' && (singleModeSide === 'Long' || singleModeSide === 'Both'));
-    const showShortLeverage = positionMode === 'Hedge' || (positionMode === 'Single' && (singleModeSide === 'Short' || singleModeSide === 'Both'));
-    const isDualLeverage = showLongLeverage && showShortLeverage;
-
     // fetch lookups on mount
     useEffect(() => {
         (async () => {
