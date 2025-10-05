@@ -26,16 +26,52 @@ exports.createGridBot = async (req, res) => {
             return res.status(401).json({ error: 'User not found.' });
         }
 
+        const {
+            name,
+            accountId,
+            accountType,
+            exchange,
+            symbol,
+            marketType,
+            lowerPrice,
+            upperPrice,
+            grids, // Note this name difference
+            gridMode,
+            investment,
+            takeProfitPrice,
+            stopLossPrice,
+            flattenOnExit
+        } = req.body;
+
 
         // The bot configuration should match our new GridBotModel schema
-        const botConfig = { ...req.body, userId };
+        const botConfig = {
+            name,
+            accountId,
+            accountType,
+            exchange,
+            symbol,
+            marketType,
+            investment,
+            takeProfitPrice,
+            stopLossPrice,
+            flattenOnExit,
+            userId, // from your authenticated user
+            riskStrategy: 'SimpleStrategy',
+            timeframe: '1h',
+            gridConfig: { // Create the required nested object
+                lowerPrice,
+                upperPrice,
+                gridCount: grids, // Map 'grids' to 'gridCount'
+                // gridType: gridMode // You might need to map this too, see below
+            }
+        };
 
         // Basic validation
         if (!botConfig.name || !botConfig.symbol || !botConfig.exchange || !botConfig.marketType) {
             return res.status(400).json({ error: 'Name, symbol, exchange, and marketType are required.' });
         }
 
-        console.log(botConfig)
         const botInstance = await BotManagerService.createAndStartBot(botConfig);
 
         res.status(201).json({ success: true, message: "Grid bot created and started successfully.", bot: botInstance.bot });
@@ -123,7 +159,7 @@ exports.deployBot = async (req, res) => {
                 return res.status(400).json({ success: false, error: 'Invalid format for indicators.' });
             }
         }
-        if (!Array.isArray(indicators) || indicators.length === 0) {
+        if (botType === 'indicator' && (!Array.isArray(indicators) || indicators.length === 0)) {
             return res.status(400).json({ error: 'At least one indicator is required.' });
         }
         // The frontend sends "timeFrame", the model expects "timeframe".
@@ -240,13 +276,13 @@ exports.deployBot = async (req, res) => {
             bot = await GridBotModel.create({
                 botType:       'grid',
                 name,
-                symbol:        normalizedSymbol,
-                timeframe:     normalizedTF,
+                symbol:        symbol,
+                timeframe:     '1h', // set a default, doesn't matter
                 userId:        user._id,
                 accountType,
                 accountId:     account._id,
 
-                riskStrategy,
+                riskStrategy: 'SimpleStrategy',
                 riskParams:    {},        // placeholders
                 marketInfo,
                 tradeInfo,

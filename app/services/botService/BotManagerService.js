@@ -43,6 +43,7 @@ class BotManagerService {
      * @returns {GridStrategyService} The running instance.
      */
     async createAndStartBot(botConfig) {
+        console.log(botConfig)
         const newBot = new GridBotModel(botConfig);
         await newBot.save();
         console.log(`New bot created with ID: ${newBot._id}`);
