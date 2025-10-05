@@ -11,4 +11,8 @@ const sentimentController = require('../../app/http/controllers/market/sentiment
 router.get('/', authenticate, sentimentController.getSentiment);
 router.get('/events', authenticate, sentimentController.getEvents);
 
+// GET /api/market/sentiment/trending-topics
+// Fetches the social trending topics for the dashboard widget.
+router.get('/trending-topics', authenticate, sentimentController.getTrendingTopics);
+
 module.exports = router;
