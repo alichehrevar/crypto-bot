@@ -142,6 +142,11 @@ export default function IndicatorsSection(props: {
                             initial={{ opacity: 0, height: 0 }}
                             transition={{ type: "spring", stiffness: 300, damping: 30 }}
                         >
+                            {index > 0 &&
+                                <span className="block mt-3 mb-2 font-extrabold uppercase text-transparent bg-clip-text bg-gradient-to-r from-white/80 to-white/30">
+                                  And
+                                </span>
+                            }
                             <div className="flex items-center gap-x-2">
                                 <div className="flex-grow">
                                     <IndicatorRowLocal
