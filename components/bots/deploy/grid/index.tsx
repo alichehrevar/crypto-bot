@@ -71,9 +71,6 @@ export default function GridConfigForm({
     // ─── EFFECTS & HANDLERS (Remain in parent) ──────────────────────────────
     //
     useEffect(() => {
-        if (selectedSymbol) {
-            setName(`${selectedSymbol.symbol} ${selectedParentTab === 'spot' ? 'Spot' : 'Futures'} Grid`);
-        }
         // This is where you would fetch your accounts data
         const fetchAccounts = async () => {
             try {
@@ -169,13 +166,16 @@ export default function GridConfigForm({
             return;
         }
 
+
         let payload: any;
 
         if (selectedParentTab === 'spot') {
             payload = {
-                name: name,
-                exchange: selectedAccount.exchange, // e.g., 'binance'
-                symbol: selectedSymbol?.symbol,
+                name,
+                accountId: selectedAccountId,
+                accountType: selectedAccount.name, // e.g., 'bingx'
+                exchange: selectedSymbol?.broker, // e.g., 'binance'
+                symbol: selectedSymbol?.id,
                 marketType: 'SPOT',
 
                 // Grid Parameters
@@ -197,20 +197,22 @@ export default function GridConfigForm({
             };
         } else { // Futures
             payload = {
-                name: name.trim() || `${selectedSymbol?.symbol} Futures Grid`,
-                exchange: selectedAccount.exchange,
+                name,
+                accountId: selectedAccountId,
+                accountType: selectedAccount.name, // e.g., 'bingx'
+                exchange: selectedSymbol?.broker, // e.g., 'binance'
                 symbol: selectedSymbol?.symbol,
                 marketType: 'FUTURES',
 
                 // Futures Grid Parameters
                 direction: direction.toUpperCase(), // NEUTRAL, LONG, or SHORT [cite: 409]
                 leverage: parseInt(leverage, 10),
-            marginMode: marginMode.toUpperCase(), // ISOLATED or CROSSED [cite: 411]
+                marginMode: marginMode.toUpperCase(), // ISOLATED or CROSSED [cite: 411]
                 investment: parseFloat(investment),
                 openOnCreation: (direction === 'Long' || direction === 'Short') ? openOnCreation : false,
 
-            // Common Grid Parameters
-            lowerPrice: parseFloat(lowerPrice),
+                // Common Grid Parameters
+                lowerPrice: parseFloat(lowerPrice),
                 upperPrice: parseFloat(upperPrice),
                 grids: parseInt(gridCount, 10),
                 gridMode: gridMode.toUpperCase(), // ARITHMETIC or GEOMETRIC
@@ -218,7 +220,7 @@ export default function GridConfigForm({
                 // Stops
                 stopLossPrice: enableTPSL && stopLossPrice ? parseFloat(stopLossPrice) : null,
                 takeProfitPrice: enableTPSL && takeProfitPrice ? parseFloat(takeProfitPrice) : null,
-        };
+            };
         }
 
         try {
@@ -243,7 +245,7 @@ export default function GridConfigForm({
     //
     return (
         <div className="py-4">
-            <form className="space-y-4 overflow-x-hidden" onSubmit={handleDeploy}>
+            <form className="space-y-4 overflow-x-hidden px-0.5" onSubmit={handleDeploy}>
 
                 <GridCommonFields
                     accounts={accounts}
