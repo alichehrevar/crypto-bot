@@ -18,7 +18,9 @@ import Combobox from "@/components/shared/ui/Combobox";
 import IndicatorsSection, {IndicatorItem} from "@/components/shared/ui/IndicatorsSection";
 import {MAIN_INDICATOR_OPTIONS, STANDARD_INDICATOR_OPTIONS} from "@/utils/strategyPanelData";
 import SecurityIndicator from "@/components/shared/ui/SecurityIndicator";
-import Slider from "@/components/shared/ui/Slider";
+import MarginModal from "@/components/shared/modals/MarginModal";
+import {ChevronRightIcon} from "@/utils/icons";
+import PositionLeverageModal from "@/components/shared/modals/PositionLeverageModal";
 
 export interface BotConfigFormProps {
     mode: 'default' | 'optimized' | 'dynamic',
@@ -44,10 +46,15 @@ export default function BotConfigForm({mode, selectedParentTab, onCloseAction, s
     const [availableBalance, setAvailableBalance] = useState(0);
     const [leverageOptions, setLeverageOptions] = useState<number[]>([]);
 
+    const [marginType, setMarginType] = useState('Isolated');
+    const [positionMode, setPositionMode] = useState('Single');
+    const [singleModeSide, setSingleModeSide] = useState('Long');
+    const [leverageLong, setLeverageLong] = useState(50);
+    const [leverageShort, setLeverageShort] = useState(50);
+
     const [baseFund, setBaseFund] = useState(0);
     const [tradeFund, setTradeFund] = useState<string>('50');
     const [leverage, setLeverage] = useState(1);
-    const [riskStrategy, setRiskStrategy] = useState<string>('');
     const [compoundSizing, setCompoundSizing] = useState(true);
     const [takeProfit, setTakeProfit] = useState(1.02);
     const [stopLoss, setStopLoss] = useState(0.98);
@@ -62,6 +69,10 @@ export default function BotConfigForm({mode, selectedParentTab, onCloseAction, s
 
     // dynamic‐only state
     const [minBotAccuracy, setMinBotAccuracy] = useState(5);
+
+    const showLongLeverage = positionMode === 'Hedge' || (positionMode === 'Single' && (singleModeSide === 'Long' || singleModeSide === 'Both'));
+    const showShortLeverage = positionMode === 'Hedge' || (positionMode === 'Single' && (singleModeSide === 'Short' || singleModeSide === 'Both'));
+    const isDualLeverage = showLongLeverage && showShortLeverage;
 
     // fetch lookups on mount
     useEffect(() => {
@@ -103,7 +114,6 @@ export default function BotConfigForm({mode, selectedParentTab, onCloseAction, s
                 } else {
                     setBotProps(res.props);
                     // seed defaults
-                    setRiskStrategy(res.props.riskStrategyOptions[0] || '');
                     setIndicator(res.props.indicatorOptions[0] || '');
                 }
             } catch {
@@ -176,7 +186,6 @@ export default function BotConfigForm({mode, selectedParentTab, onCloseAction, s
             baseFund: number;
             tradeFund: number;
             leverage: number;
-            riskStrategy: string;
             compoundPositionSizing: boolean;
             takeProfit: number;
             stopLoss: number;
@@ -190,7 +199,6 @@ export default function BotConfigForm({mode, selectedParentTab, onCloseAction, s
             baseFund,
             tradeFund: parseFloat(tradeFund),
             leverage,
-            riskStrategy,
             compoundPositionSizing: compoundSizing,
             takeProfit,
             stopLoss,
@@ -207,8 +215,6 @@ export default function BotConfigForm({mode, selectedParentTab, onCloseAction, s
                 minSimulatedTrades: minBotAccuracy,
             }),
         };
-
-        console.log(name)
 
         // stringify all fields
         const body = Object.fromEntries(
@@ -233,7 +239,26 @@ export default function BotConfigForm({mode, selectedParentTab, onCloseAction, s
     };
 
     return (
-        <div className="py-4">
+        <div>
+            {selectedParentTab === 'futures' &&
+                <div className="flex items-center justify-start w-full mb-3 gap-3">
+                    <MarginModal
+                        selectedValue={marginType ?? 'Isolated'}
+                        onChange={setMarginType}
+                    />
+                    <ChevronRightIcon className="size-3" />
+                    <PositionLeverageModal
+                        leverageLong={leverageLong}
+                        leverageShort={leverageShort}
+                        positionMode={positionMode}
+                        setLeverageLong={setLeverageLong}
+                        setLeverageShort={setLeverageShort}
+                        setPositionMode={setPositionMode}
+                        setSingleModeSide={setSingleModeSide}
+                        singleModeSide={singleModeSide}
+                    />
+                </div>
+            }
             <form
                 className="space-y-4 overflow-x-hidden"
                 onSubmit={handleDeploy}
@@ -286,26 +311,6 @@ export default function BotConfigForm({mode, selectedParentTab, onCloseAction, s
                         ))}
                     </div>
                 </div>
-
-                {/* Leverage */}
-                <Slider
-                    colorClass="text-green-500"
-                    label="Leverage"
-                    max={leverageOptions.length}
-                    simple={true}
-                    value={leverage}
-                    onChange={k => k && setLeverage(Number(k.toString()))}
-                />
-
-                {/* Risk Strategy */}
-                <Combobox
-                    label="Risk Strategy"
-                    options={botProps.riskStrategyOptions.map(a => ({
-                        name: a.toString(),
-                    }))}
-                    selected={riskStrategy.toString()}
-                    setSelected={k => k && setRiskStrategy(k.toString())}
-                />
 
                 {/* Compound sizing */}
                 <Checkbox
