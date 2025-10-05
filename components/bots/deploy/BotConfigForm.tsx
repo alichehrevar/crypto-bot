@@ -40,7 +40,7 @@ export default function BotConfigForm({mode, selectedParentTab, onCloseAction, s
     });
 
     // common form state
-    const [name, setName] = useState('technical bot name');
+    const [name, setName] = useState('');
     const [accounts, setAccounts] = useState<ExchangeAccount[]>([]);
     const [selectedAccountId, setSelectedAccountId] = useState<string>();
     const [availableBalance, setAvailableBalance] = useState(0);
@@ -55,7 +55,7 @@ export default function BotConfigForm({mode, selectedParentTab, onCloseAction, s
     const [baseFund, setBaseFund] = useState(0);
     const [tradeFund, setTradeFund] = useState<string>('50');
     const [leverage, setLeverage] = useState(1);
-    const [compoundSizing, setCompoundSizing] = useState(true);
+    // const [compoundSizing, setCompoundSizing] = useState(true);
     const [takeProfit, setTakeProfit] = useState(1.02);
     const [stopLoss, setStopLoss] = useState(0.98);
     const [indicator, setIndicator] = useState<string>('');
@@ -172,6 +172,7 @@ export default function BotConfigForm({mode, selectedParentTab, onCloseAction, s
 
     /** POST to deploy */
     const handleDeploy = async (e: FormEvent<HTMLFormElement>) => {
+
         e.preventDefault();
         setLoading(true);
 
@@ -195,7 +196,7 @@ export default function BotConfigForm({mode, selectedParentTab, onCloseAction, s
             baseFund,
             tradeFund: parseFloat(tradeFund),
             leverage,
-            compoundPositionSizing: compoundSizing,
+            compoundPositionSizing: false,
             takeProfit,
             stopLoss,
             indicator,
@@ -309,12 +310,12 @@ export default function BotConfigForm({mode, selectedParentTab, onCloseAction, s
                 </div>
 
                 {/* Compound sizing */}
-                <Checkbox
-                    defaultSelected={compoundSizing}
-                    onChange={e => setCompoundSizing(e.target.checked)}
-                >
-                    Use compound position sizing
-                </Checkbox>
+                {/*<Checkbox*/}
+                {/*    defaultSelected={compoundSizing}*/}
+                {/*    onChange={e => setCompoundSizing(e.target.checked)}*/}
+                {/*>*/}
+                {/*    Use compound position sizing*/}
+                {/*</Checkbox>*/}
 
                 {/* TP/SL */}
                 <NumericInput
