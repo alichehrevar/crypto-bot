@@ -55,8 +55,10 @@ export default function BotConfigForm({mode, selectedParentTab, onCloseAction, s
     const [tradeFund, setTradeFund] = useState<string>('50');
     // const [leverage, setLeverage] = useState(1);
     // const [compoundSizing, setCompoundSizing] = useState(true);
-    const [takeProfit, setTakeProfit] = useState(1.02);
-    const [stopLoss, setStopLoss] = useState(0.98);
+    const [takeProfit, setTakeProfit] = useState<number>(10);
+    const [stopLoss, setStopLoss] = useState<number>(10);
+    const [positionTakeProfit, setPositionTakeProfit] = useState<number>(10);
+    const [positionStopLoss, setPositionStopLoss] = useState<number>(10);
     const [indicator, setIndicator] = useState<string>('');
     const [selectedIndicators, setSelectedIndicators] = useState<IndicatorItem[]>([{id: 1, indicator: STANDARD_INDICATOR_OPTIONS[0], timeFrame: "1h"}]);
     const [loading, setLoading] = useState(false);
@@ -184,6 +186,8 @@ export default function BotConfigForm({mode, selectedParentTab, onCloseAction, s
             compoundPositionSizing: boolean;
             takeProfit: number;
             stopLoss: number;
+            positionTakeProfit: number;
+            positionStopLoss: number;
             indicators: IndicatorItem[];
             // Include the values from the modals
             marginType: string,         // e.g., 'Isolated' or 'Cross'
@@ -207,6 +211,8 @@ export default function BotConfigForm({mode, selectedParentTab, onCloseAction, s
             compoundPositionSizing: false,
             takeProfit,
             stopLoss,
+            positionTakeProfit,
+            positionStopLoss,
             indicators: selectedIndicators,
             strategy: mode,
 
@@ -281,7 +287,7 @@ export default function BotConfigForm({mode, selectedParentTab, onCloseAction, s
                 <Input
                     id="bot-name"
                     placeholder="e.g., ETH Momentum Scalper"
-                    title="Bot Name"
+                    title="Technical Bot Name"
                     onChange={setName}
                 />
 
@@ -335,20 +341,39 @@ export default function BotConfigForm({mode, selectedParentTab, onCloseAction, s
                 {/*</Checkbox>*/}
 
                 {/* TP/SL */}
-                <NumericInput
-                    label="Take Profit"
-                    min={0}
-                    usePercentageStep={true}
-                    value={takeProfit.toString()}
-                    onChange={e => setTakeProfit(Number(e))}
-                />
-                <NumericInput
-                    label="Stop Loss"
-                    min={0}
-                    usePercentageStep={true}
-                    value={stopLoss.toString()}
-                    onChange={e => setStopLoss(Number(e))}
-                />
+                <div className="grid grid-cols-2 gap-2">
+                    <NumericInput
+                        label="Bot Take Profit (%)"
+                        min={0}
+                        usePercentageStep={true}
+                        value={takeProfit.toString()}
+                        onChange={e => setTakeProfit(Number(e))}
+                    />
+                    <NumericInput
+                        label="Bot Stop Loss (%)"
+                        min={0}
+                        usePercentageStep={true}
+                        value={stopLoss.toString()}
+                        onChange={e => setStopLoss(Number(e))}
+                    />
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                    <NumericInput
+                        label="Position Take Profit (%)"
+                        min={0}
+                        usePercentageStep={true}
+                        value={positionTakeProfit.toString()}
+                        onChange={e => setPositionTakeProfit(Number(e))}
+                    />
+                    <NumericInput
+                        label="Position Stop Loss (%)"
+                        min={0}
+                        usePercentageStep={true}
+                        value={positionStopLoss.toString()}
+                        onChange={e => setPositionStopLoss(Number(e))}
+                    />
+                </div>
 
                 <IndicatorsSection
                     defaultNewTimeframe="1h"
