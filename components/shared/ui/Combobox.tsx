@@ -49,7 +49,7 @@ const Combobox: React.FC<{
                             width={20}
                         />
                     )}
-                    <span className={selected ? "text-white" : "text-gray-400"}>
+                    <span className={`capitalize ${selected ? "text-white" : "text-gray-400"}`}>
                         {selectedOption?.name ?? placeholder}
                     </span>
                 </div>
@@ -92,7 +92,7 @@ const Combobox: React.FC<{
                                 <li key={value} className="rounded-sm" role="presentation">
                                     <button
                                         aria-selected={isSelected}
-                                        className="w-full px-3 py-1.5 text-sm text-white hover:bg-blue-500/75 rounded-sm transition-colors duration-150 flex items-center text-left"
+                                        className="w-full px-3 py-1.5 capitalize text-sm text-white hover:bg-blue-500/75 rounded-sm transition-colors duration-150 flex items-center text-left"
                                         role="option"
                                         type="button"
                                         onClick={handleSelect}
