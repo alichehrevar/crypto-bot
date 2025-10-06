@@ -35,7 +35,7 @@ const IndicatorRowLocal: React.FC<{
     onChange: (value: any) => void;
     indicatorOptions: DropdownOption[];
 }> = ({ indicatorData, onChange, indicatorOptions }) => (
-    <div className="grid grid-cols-3 gap-x-4">
+    <div className="grid grid-cols-3 gap-x-2">
         <div className="col-span-2">
             <Combobox
                 label="Indicator"

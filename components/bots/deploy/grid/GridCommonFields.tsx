@@ -16,7 +16,7 @@ export function GridCommonFields({
             <Input
                 id="bot-name"
                 placeholder="e.g., ETH Momentum Scalper"
-                title="Bot Name"
+                title="Grid Bot Name"
                 onChange={onNameChange}
             />
             <Combobox
