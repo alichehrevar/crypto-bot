@@ -120,9 +120,9 @@ export default function BotsList({refreshList = false, title = "Active Bots", li
                                 <span className="capitalize">{bot.strategy}</span>
                                 <span className="capitalize">{bot.accountType}</span>
                                 <span>{bot.symbol}</span>
-                                <span>{bot.marketInfo.tradeFund} <small>USDT</small></span>
+                                <span>{bot.marketInfo?.tradeFund} <small>USDT</small></span>
                                 <span>{bot.trades ? bot.trades.length : 0}</span>
-                                <span>{bot.marketInfo.lastSignal ?? "—"}</span>
+                                <span>{bot.marketInfo?.lastSignal ?? "—"}</span>
                                 <span
                                     className={`${
                                         bot.pnl.pct > 0 ? "text-green-500" : bot.pnl.pct < 0 ? "text-red-500" : ""
