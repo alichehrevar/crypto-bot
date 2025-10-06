@@ -135,6 +135,8 @@ exports.deployBot = async (req, res) => {
             tradeFund,
             takeProfit,
             stopLoss,
+            positionTakeProfit,
+            positionStopLoss,
             compoundPositionSizing, // this is now a boolean
             indicators, // this is now a structured array
             // Fields for optimized/dynamic strategies
@@ -175,6 +177,8 @@ exports.deployBot = async (req, res) => {
         const tradeInfo = {
             takeProfit:  Number(takeProfit),
             stopLoss:    Number(stopLoss),
+            positionTakeProfit: Number(positionTakeProfit),
+            positionStopLoss: Number(positionStopLoss),
             leverageLong: Number(leverageLong) || 50,
             leverageShort: Number(leverageShort) || 50,
             positionSide: (singleModeSide || 'long').toLowerCase() !== 'both'
