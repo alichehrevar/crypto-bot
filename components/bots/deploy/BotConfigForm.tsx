@@ -3,7 +3,7 @@
 import React, {FormEvent, Key, useEffect, useState} from "react";
 import {
     addToast,
-    Button,
+    Button, Spinner,
 } from '@heroui/react';
 
 import Input from '@/components/shared/ui/Input'
@@ -62,6 +62,7 @@ export default function BotConfigForm({mode, selectedParentTab, onCloseAction, s
     const [indicator, setIndicator] = useState<string>('');
     const [selectedIndicators, setSelectedIndicators] = useState<IndicatorItem[]>([{id: 1, indicator: STANDARD_INDICATOR_OPTIONS[0], timeFrame: "1h"}]);
     const [loading, setLoading] = useState(false);
+    const [balanceLoading, setBalanceLoading] = useState(false);
 
     // optimized-dynamic state
     const [optMethod, setOptMethod] = useState<string>('');
@@ -143,6 +144,7 @@ export default function BotConfigForm({mode, selectedParentTab, onCloseAction, s
 
     // fetch balance when account changes
     async function handleAccountChange(accountId: Key | null) {
+        setBalanceLoading(true)
         setSelectedAccountId(accountId?.toString())
         try {
             const getBalance: RawBalanceResponse = await getData(`/accounts/${accountId}/balance?accountType=${selectedParentTab}`);
@@ -168,6 +170,8 @@ export default function BotConfigForm({mode, selectedParentTab, onCloseAction, s
             });
             setAvailableBalance(0);
             setBaseFund(0);
+        } finally {
+            setBalanceLoading(false)
         }
     }
 
@@ -303,9 +307,15 @@ export default function BotConfigForm({mode, selectedParentTab, onCloseAction, s
                     setSelected={(k: Key | null) => handleAccountChange(k)}
                 />
 
-                <p className="text-sm text-gray-600">
-                    Available balance: <b>{availableBalance.toFixed(2)} USDT</b>
-                </p>
+                <div className="text-sm text-gray-600 flex items-center">
+                    Available balance:
+                    {balanceLoading
+                        ? <span className="inline h-3 -mt-10 ms-3">
+                            <Spinner color="primary" size="sm" variant="wave" />
+                        </span>
+                        : <b className="ms-1">{availableBalance.toFixed(2)} USDT</b>
+                    }
+                </div>
 
                 {/* Trade Fund % */}
                 <NumericInput
