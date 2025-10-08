@@ -1,6 +1,7 @@
 const axios = require("axios");
 
 // app/http/controllers/accountController.js
+const UserInfo = require('../../models/UserInfo')
 const BinanceAccount = require('../../models/BinanceAccount');
 const OkxAccount = require('../../models/OkxAccount');
 const BingxAccount = require('../../models/BingxAccount');
@@ -424,6 +425,16 @@ exports.getSummary = async (req, res) => {
 
         const totalBalance = binanceBalance + okxBalance + bingxBalance;
 
+        let exchangeRate = 1;
+        const userInfo = await UserInfo.findOne({userId: userId});
+        if (!userInfo) {
+            return res.status(404).json({ success: false, error: 'User info not found' });
+        }
+
+        if (userInfo && userInfo.currency === 'euro') {
+            exchangeRate = await fetchExchangeRate();
+        }
+
 
         // --- Step 2: Calculate Portfolio Balance from Closed Trades ---
 
@@ -497,7 +508,7 @@ exports.getSummary = async (req, res) => {
 
             historyForChart.push({
                 date: dateKey,
-                value: snapshotMap.has(dateKey) ? snapshotMap.get(dateKey) : 0
+                value: snapshotMap.has(dateKey) ? snapshotMap.get(dateKey) * exchangeRate : 0
             });
         }
 
@@ -506,10 +517,11 @@ exports.getSummary = async (req, res) => {
         return res.json({
             success: true,
             data: {
+                currency: userInfo.currency,
                 summary: {
-                    portfolioBalance: parseFloat(portfolioBalance.toFixed(2)),
-                    availableFunds: parseFloat(availableFunds.toFixed(2)),
-                    totalBalance: parseFloat(totalBalance.toFixed(2)),
+                    portfolioBalance: parseFloat((portfolioBalance * exchangeRate).toFixed(2)),
+                    availableFunds: parseFloat((availableFunds * exchangeRate).toFixed(2)),
+                    totalBalance: parseFloat((totalBalance * exchangeRate).toFixed(2)),
                     pctChange: parseFloat(pctChange.toFixed(2)),
                 },
                 history: historyForChart,
@@ -521,5 +533,10 @@ exports.getSummary = async (req, res) => {
         return res.status(500).json({ success: false, error: 'Internal server error while fetching summary' });
     }
 };
+
+async function fetchExchangeRate () {
+    const response = await axios.get('https://api.exchangerate-api.com/v4/latest/USD');
+    return response.data.rates.EUR;
+}
 
 
