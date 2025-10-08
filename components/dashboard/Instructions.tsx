@@ -73,7 +73,7 @@ const ctaData: Cta[] = [
 ];
 
 // --- Main Component ---
-const OverviewInstructions: React.FC = () => {
+const Instructions: React.FC = () => {
     const [activeStep, setActiveStep] = useState<number>(1);
 
     // NOTE: In a real Next.js project, these custom colors would be defined
@@ -156,5 +156,5 @@ const OverviewInstructions: React.FC = () => {
     );
 };
 
-export default OverviewInstructions;
+export default Instructions;
 
