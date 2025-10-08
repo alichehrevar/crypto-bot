@@ -31,6 +31,15 @@ const userInfoSchema = new mongoose.Schema({
     avatar: {
         type: String,
         required: false
+    },
+    currency: {
+        type: String,
+        enum: ['dollar','euro',],
+        default: 'dollar'
+    },
+    timezone: {
+        type: String,
+        required: false
     }
 });
 

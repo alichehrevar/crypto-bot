@@ -3,7 +3,7 @@
  */
 const bcrypt = require('bcryptjs');
 const User = require('../../app/models/User');
-const UserInfo = require('../../app/models/UserInfo'); // <-- add this
+const UserInfo = require('../../app/models/UserInfo');
 
 const seedAdminUser = async () => {
     try {
@@ -46,7 +46,8 @@ const seedAdminUser = async () => {
             phoneCountry: '+1',
             phoneNumber: '0000000000',
             birthday: new Date('1990-01-01'),
-            // avatar: '',               // optional
+            currency: 'dollar',
+            timezone: 'Europe/Berlin'
         };
 
         const infoUpsert = await UserInfo.updateOne(

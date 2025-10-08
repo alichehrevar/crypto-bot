@@ -26,6 +26,8 @@ exports.userInfo = async (req, res) => {
                 phoneNumber:  user.info.phoneNumber,
                 birthday:     user.info.birthday,
                 avatar:       user.info.avatar,
+                currency:       user.info.currency,
+                timezone:       user.info.timezone,
             } : null,
         },
     });
@@ -74,6 +76,62 @@ exports.updateUserInfo = async (req, res) => {
                     lastName:  updatedUserInfo.lastName,
                     birthday:     updatedUserInfo.birthday,
                     avatar:       updatedUserInfo.avatar,
+                    currency: updatedUserInfo.currency,
+                    timezone: updatedUserInfo.timezone,
+                }
+            }
+        });
+
+    } catch (error) {
+        console.error('Error in updateUserInfo:', error);
+        // Provide more specific error messages if possible, e.g., for validation errors
+        if (error.name === 'ValidationError') {
+            return res.status(400).json({ success: false, message: error.message });
+        }
+        res.status(500).json({ success: false, message: 'Internal server error.' });
+    }
+};
+
+/**
+ * @description Updates the preferences for the authenticated user.
+ * It finds the user's associated info document or creates one if it doesn't exist.
+ */
+exports.updateUserPreference = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const {
+            currency,
+            timezone,
+        } = req.body;
+
+        // Prepare the fields to be updated
+        const updateData = {
+            currency,
+            timezone,
+        };
+
+        // Use findOneAndUpdate with upsert to find the UserInfo by userId or create it.
+        // This is more efficient than finding the user first.
+        const updatedUserInfo = updateUserInformation(userId, updateData);
+
+        // Find the user to return the complete data structure
+        const user = await User.findById(userId);
+
+        // Return a success response with the updated, populated data
+        return res.status(200).json({
+            success: true,
+            message: 'User information updated successfully.',
+            data: {
+                id: user._id,
+                email: user.email,
+                enable2Fa: user.enable2FA,
+                info: {
+                    firstName: updatedUserInfo.firstName,
+                    lastName:  updatedUserInfo.lastName,
+                    birthday:     updatedUserInfo.birthday,
+                    avatar:       updatedUserInfo.avatar,
+                    currency: updatedUserInfo.currency,
+                    timezone: updatedUserInfo.timezone,
                 }
             }
         });

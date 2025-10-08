@@ -28,6 +28,13 @@ router.post('/avatar/update', authenticate, uploadAvatar, userController.updateU
 router.put('/info/update', authenticate, userController.updateUserInfo);
 
 /**
+ * @route   PUT /api/user/preference/update
+ * @desc    Update the authenticated user's information
+ * @access  Private
+ */
+router.put('/preference/update', authenticate, userController.updateUserPreference);
+
+/**
  * @route   PUT /api/user/info/security/update
  * @desc    Update the authenticated user's security information (e.g., password)
  * @access  Private
