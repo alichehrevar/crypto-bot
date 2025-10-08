@@ -3,12 +3,14 @@ import React from "react";
 import { GridCommonFieldsProps } from "@/types/GridFormTypes";
 import Input from "@/components/shared/ui/Input";
 import Combobox from "@/components/shared/ui/Combobox";
+import {Spinner} from "@heroui/react";
 
 export function GridCommonFields({
      onNameChange,
      accounts,
      selectedAccountId,
      onAccountChange,
+     balanceLoading,
      availableBalance,
 }: GridCommonFieldsProps) {
     return (
@@ -25,9 +27,15 @@ export function GridCommonFields({
                 selected={selectedAccountId ? String(selectedAccountId) : ""}
                 setSelected={onAccountChange}
             />
-            <p className="text-sm text-gray-600">
-                Available balance: <b>{availableBalance.toFixed(4)} USDT</b>
-            </p>
+            <div className="text-sm text-gray-600 flex items-center">
+                Available balance:
+                {balanceLoading
+                    ? <span className="inline h-3 -mt-12 ms-3">
+                            <Spinner color="primary" size="sm" variant="wave" />
+                        </span>
+                    : <b className="ms-1">{availableBalance.toFixed(2)} USDT</b>
+                }
+            </div>
         </>
     );
 }

@@ -33,6 +33,7 @@ export default function GridConfigForm({
     //
     const [botProps, setBotProps] = useState<BotProps>();
     const [accounts, setAccounts] = useState<ExchangeAccount[]>([]);
+    const [balanceLoading, setBalanceLoading] = useState<boolean>(false);
     const [selectedAccountId, setSelectedAccountId] = useState<Key>();
     const [availableBalance, setAvailableBalance] = useState<number>(0);
     const [loading, setLoading] = useState<boolean>(false);
@@ -121,6 +122,7 @@ export default function GridConfigForm({
     }, [investment, availableBalance]);
 
     async function handleAccountChange(accountId: Key | null) {
+        setBalanceLoading(true)
         setSelectedAccountId(accountId?.toString());
         if (!accountId) {
             setAvailableBalance(0);
@@ -140,6 +142,8 @@ export default function GridConfigForm({
         } catch {
             addToast({ title: "Failed to load balance", color: "danger" });
             setAvailableBalance(0);
+        } finally {
+            setBalanceLoading(false);
         }
     }
 
@@ -184,6 +188,7 @@ export default function GridConfigForm({
                 grids: parseInt(gridCount, 10),
                 gridMode: gridMode.toUpperCase(), // ARITHMETIC or GEOMETRIC
                 investment: parseFloat(investment),
+                baseFund: parseFloat(availableBalance.toString()),
 
                 // TP/SL & Stop settings
                 takeProfitPrice: enableTPSL && takeProfitPrice ? parseFloat(takeProfitPrice) : null,
@@ -209,6 +214,7 @@ export default function GridConfigForm({
                 leverage: parseInt(leverage, 10),
                 marginMode: marginMode.toUpperCase(), // ISOLATED or CROSSED [cite: 411]
                 investment: parseFloat(investment),
+                baseFund: parseFloat(availableBalance.toString()),
                 openOnCreation: (direction === 'Long' || direction === 'Short') ? openOnCreation : false,
 
                 // Common Grid Parameters
@@ -250,6 +256,7 @@ export default function GridConfigForm({
                 <GridCommonFields
                     accounts={accounts}
                     availableBalance={availableBalance}
+                    balanceLoading={balanceLoading}
                     loading={loading}
                     selectedAccountId={selectedAccountId}
                     onAccountChange={handleAccountChange}

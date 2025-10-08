@@ -10,6 +10,7 @@ interface BaseProps {
 export interface GridCommonFieldsProps extends BaseProps {
     onNameChange: (value: string) => void;
     accounts: ExchangeAccount[];
+    balanceLoading: boolean;
     selectedAccountId?: Key;
     onAccountChange: (key: Key | null) => void;
     availableBalance: number;

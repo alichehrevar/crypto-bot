@@ -9,6 +9,7 @@ import {Bot, DeployedBotsResponse} from "@/types/bots/DeployedBots";
 import {getData} from "@/actions/get";
 import {OrderIcon} from "@/utils/icons";
 import DeployButton from "@/components/shared/ui/DeployButton";
+import {gridBotListHeader, indicatorBotListHeader} from "@/utils/BotType";
 
 export default function BotsList({refreshList = false, title = "Active Bots", listType, active = true, showTitle = true, showDeployButton = true}: {
     refreshList?: boolean,
@@ -49,17 +50,7 @@ export default function BotsList({refreshList = false, title = "Active Bots", li
         setExpandedIndex(expandedIndex === botIndex ? null : botIndex);
     }
 
-    const tableHeaderItems = [
-        "Bot",
-        "Strategy",
-        "Account",
-        "Symbol",
-        "Investment",
-        "Trade Count",
-        "Signal",
-        "PnL",
-        ""
-    ];
+    const tableHeaderItems = listType === "indicator" ? indicatorBotListHeader : gridBotListHeader;
 
     return (
         <>
@@ -100,8 +91,8 @@ export default function BotsList({refreshList = false, title = "Active Bots", li
                         ))}
                     </div>
 
-                    {/* bots list */}
-                    {deployedBots.map((bot, botIndex) => (
+                    {/* indicator bots list */}
+                    {listType === 'indicator' && deployedBots.map((bot, botIndex) => (
                         <React.Fragment key={botIndex}>
                             <div
                                 aria-controls={`bot-content-${botIndex}`}
@@ -118,6 +109,55 @@ export default function BotsList({refreshList = false, title = "Active Bots", li
                             >
                                 <span className="capitalize">{bot.botType}</span>
                                 <span className="capitalize">{bot.strategy}</span>
+                                <span className="capitalize">{bot.accountType}</span>
+                                <span>{bot.symbol}</span>
+                                <span>{bot.marketInfo?.tradeFund} <small>USDT</small></span>
+                                <span>{bot.trades ? bot.trades.length : 0}</span>
+                                <span>{bot.marketInfo?.lastSignal ?? "—"}</span>
+                                <span
+                                    className={`${
+                                        bot.pnl.pct > 0 ? "text-green-500" : bot.pnl.pct < 0 ? "text-red-500" : ""
+                                    }`}
+                                >
+                                  {bot.pnl.pct}%
+                                </span>
+                                {active &&
+                                    <div className="flex space-x-2 justify-end items-center">
+                                        <PlayPauseBotModal botId={bot._id}/>
+                                        <CloseBotModal botId={bot._id} refreshBotsList={loadBots}/>
+                                    </div>
+                                }
+                            </div>
+
+                            <div
+                                className={`bot-content overflow-hidden transition-all duration-500 ease-in-out ${expandedIndex === botIndex ? 'max-h-[120px] opacity-100' : 'max-h-0 opacity-0'}`}
+                                id={`bot-content-${botIndex}`}
+                            >
+                                <TradesList
+                                    bot={bot}
+                                    refreshBotsList={loadBots}
+                                />
+                            </div>
+                        </React.Fragment>
+                    ))}
+                    {/* grid bots list */}
+                    {listType === 'grid' && deployedBots.map((bot, botIndex) => (
+                        <React.Fragment key={botIndex}>
+                            <div
+                                aria-controls={`bot-content-${botIndex}`}
+                                className={`grid ${active ? 'grid-cols-9' : 'grid-cols-8 min-h-14'} items-center text-[13px] dark:bg-dark-gray rounded-md px-4 py-3 cursor-pointer hover:shadow-lg transition-all duration-300`}
+                                role="button"
+                                tabIndex={0}
+                                onClick={() => handleDesktopClick(botIndex)}
+                                onKeyDown={e => {
+                                    if (e.key === 'Enter' || e.key === ' ') {
+                                        e.preventDefault();
+                                        handleDesktopClick(botIndex);
+                                    }
+                                }}
+                            >
+                                <span className="capitalize">{bot.name}</span>
+                                <span className="capitalize">{bot.marketInfo?.tradeFund}</span>
                                 <span className="capitalize">{bot.accountType}</span>
                                 <span>{bot.symbol}</span>
                                 <span>{bot.marketInfo?.tradeFund} <small>USDT</small></span>
