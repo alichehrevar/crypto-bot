@@ -5,6 +5,8 @@ type UserInfo = {
     phoneNumber: string,
     birthday: string,
     avatar: string | null | undefined,
+    currency: string | null,
+    timezone: string | null,
 }
 
 export type User = {

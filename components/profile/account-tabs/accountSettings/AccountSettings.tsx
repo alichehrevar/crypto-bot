@@ -1,8 +1,8 @@
 'use client';
 
-import React from "react";
+import React, {useEffect, useState} from "react";
 import { observer } from 'mobx-react'; // [1] Import observer and the new hook
-import { Select, SelectItem } from "@heroui/react";
+import {addToast, Autocomplete, AutocompleteItem, Select, SelectItem, Spinner} from "@heroui/react";
 import Image from "next/image";
 
 import { useUserStore } from '@/hooks/useUserStore';
@@ -11,19 +11,54 @@ import SecuritySettingsLoading from "@/components/loading/profile/SecuritySettin
 import EditAccountSettingsModal from "@/components/profile/account-tabs/accountSettings/EditAccountSettingsModal";
 import Enable2FAModal from "@/components/profile/account-tabs/accountSettings/Enable2FAModal";
 import AvatarInput from "@/components/profile/account-tabs/accountSettings/AvatarInput";
+import {allTimezones} from "@/utils/timezones";
+import {UserResponse} from "@/types/UserType";
+import {updateRequest} from "@/actions/put";
 
 // [2] Wrap the component with observer to make it reactive
 const AccountSettingsTab = observer(() => {
 
-    // [3] Initialize the store via the hook. This also triggers the one-time data fetch.
+    const [submitting, setSubmitting] = useState(false);
+
     const userStore = useUserStore();
 
     // [4] Derive the loading state directly from the store. The component is now purely reactive.
     const isLoading = !userStore.isInitialized;
     const userData = userStore.userData;
 
+    const [currency, setCurrency] = React.useState<React.Key | null>();
+    const [timezone, setTimezone] = React.useState<React.Key | null>();
+
+    useEffect(() => {
+        // This check prevents the function from running on the initial component render
+        // before the user has made a selection.
+        if (currency || timezone) {
+            handlePreferenceChange();
+        }
+    }, [currency, timezone]); // Dependency array
+
     if (!userStore.userData) {
         return null;
+    }
+
+    const handlePreferenceChange = async () => {
+        setSubmitting(true)
+        try {
+            const response: UserResponse = await updateRequest({currency: currency as string, timezone: timezone as string},'/user/preference/update')
+
+            addToast({
+                title: response.message,
+                color: response.success ? 'success' : 'danger',
+            })
+        } catch {
+            addToast({
+                title: "Something went wrong !",
+                description: 'Please try again later',
+                color: "danger",
+            })
+        } finally {
+            setSubmitting(false)
+        }
     }
 
     return (
@@ -104,26 +139,41 @@ const AccountSettingsTab = observer(() => {
 
             {/* Preferences Section */}
             <div className="w-full flex items-start justify-center flex-col gap-4">
-                <h2 className="text-left font-bold">Preferences</h2>
+                <div className="flex items-center justify-between w-full">
+                    <h2 className="text-left font-bold">Preferences</h2>
+                    {submitting &&
+                        <div className="inline h-3 -mt-12 ms-3">
+                            <Spinner color="primary" size="sm" variant="wave" />
+                        </div>
+                    }
+                </div>
                 <ul className="flex items-start justify-center flex-col gap-4 text-[13px] mt-4">
-                    <li className="flex items-center justify-center">
-                        <span className="text-gray-400 w-[200px]">Language</span>
-                        <Select className="w-[300px]" classNames={{ trigger: 'border-[1.4px]' }} placeholder="Select language" variant="bordered">
-                            <SelectItem key="1" textValue={'English'}>English</SelectItem>
-                            <SelectItem key="2" textValue={'Spanish'}>Spanish</SelectItem>
-                            <SelectItem key="3" textValue={'Persian'}>Persian</SelectItem>
-                        </Select>
-                    </li>
+                    {/*<li className="flex items-center justify-center">*/}
+                    {/*    <span className="text-gray-400 w-[200px]">Language</span>*/}
+                    {/*    <Select className="w-[300px]" classNames={{ trigger: 'border-[1.4px]' }} placeholder="Select language" variant="bordered">*/}
+                    {/*        <SelectItem key="1" textValue={'English'}>English</SelectItem>*/}
+                    {/*        <SelectItem key="2" textValue={'Spanish'}>Spanish</SelectItem>*/}
+                    {/*        <SelectItem key="3" textValue={'Persian'}>Persian</SelectItem>*/}
+                    {/*    </Select>*/}
+                    {/*</li>*/}
                     <li className="flex items-center justify-center">
                         <span className="text-gray-400 w-[200px]">Currency</span>
-                        <Select className="w-[300px]" classNames={{ trigger: 'border-[1.4px]' }} placeholder="Select currency" variant="bordered">
-                            <SelectItem key="1" textValue={'Dollar'}>Dollar</SelectItem>
-                            <SelectItem key="2" textValue={'Euro'}>Euro</SelectItem>
-                        </Select>
+                        <Autocomplete
+                            className="w-[300px]"
+                            defaultSelectedKey={userData?.info?.currency as string}
+                            disabled={submitting}
+                            isClearable={false}
+                            placeholder="Select currency"
+                            variant="bordered"
+                            onSelectionChange={setCurrency}
+                        >
+                            <AutocompleteItem key="dollar" textValue={'Dollar'}>Dollar</AutocompleteItem>
+                            <SelectItem key="euro" textValue={'Euro'}>Euro</SelectItem>
+                        </Autocomplete>
                     </li>
                     <li className="flex items-center justify-center">
                         <span className="text-gray-400 w-[200px]">Appearance</span>
-                        <Select className="w-[300px]" classNames={{ trigger: 'border-[1.4px]' }} placeholder="Select appearance" variant="bordered">
+                        <Select className="w-[300px]" classNames={{ trigger: 'border-[1.4px]' }} selectedKeys={['2']} placeholder="Select appearance" variant="bordered">
                             <SelectItem key="1" textValue={'System'}>System</SelectItem>
                             <SelectItem key="2" textValue={'Dark'}>Dark</SelectItem>
                             <SelectItem key="3" textValue={'Light'}>Light</SelectItem>
@@ -131,9 +181,21 @@ const AccountSettingsTab = observer(() => {
                     </li>
                     <li className="flex items-center justify-center">
                         <span className="text-gray-400 w-[200px]">Timezone</span>
-                        <Select className="w-[300px]" classNames={{ trigger: 'border-[1.4px]' }} placeholder="Select timezone" variant="bordered">
-                            <SelectItem key="1" textValue={'UTC'}>UTC</SelectItem>
-                        </Select>
+                        <Autocomplete
+                            className="w-[300px]"
+                            defaultSelectedKey={userData?.info?.timezone as string}
+                            disabled={submitting}
+                            isClearable={false}
+                            placeholder="Select timezone"
+                            variant="bordered"
+                            onSelectionChange={setTimezone}
+                        >
+                            {allTimezones.map((timezone) => (
+                                <AutocompleteItem key={timezone.value} textValue={timezone.value}>
+                                    {timezone.label}
+                                </AutocompleteItem>
+                            ))}
+                        </Autocomplete>
                     </li>
                 </ul>
             </div>
