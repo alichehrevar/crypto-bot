@@ -40,8 +40,14 @@ exports.createGridBot = async (req, res) => {
             investment,
             takeProfitPrice,
             stopLossPrice,
-            flattenOnExit
+            flattenOnExit,
+            baseFund,
         } = req.body;
+
+        const marketInfo = {
+            baseFund:  Number(baseFund) || 10000,
+            tradeFund: Number(investment) || 50
+        };
 
 
         // The bot configuration should match our new GridBotModel schema
@@ -56,7 +62,10 @@ exports.createGridBot = async (req, res) => {
             takeProfitPrice,
             stopLossPrice,
             flattenOnExit,
+            gridMode,
             userId, // from your authenticated user
+            active: true,
+            marketInfo,
             riskStrategy: 'SimpleStrategy',
             timeframe: '1h',
             gridConfig: { // Create the required nested object
