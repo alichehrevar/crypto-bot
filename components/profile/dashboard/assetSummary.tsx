@@ -10,6 +10,7 @@ export default function AssetSummary({showExtraDetails = false}: { showExtraDeta
 
     const [assetData, setAssetData] = useState<Summary>();
     const [chartData, setChartData] = useState<ChartData>();
+    const [currency, setCurrency] = useState<'dollar' | 'euro'>('dollar')
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -17,6 +18,8 @@ export default function AssetSummary({showExtraDetails = false}: { showExtraDeta
             .then((response: AssetSummaryResponse) => {
                 setAssetData(response.data.summary)
                 setChartData(response.data.history)
+                console.log(response)
+                setCurrency(response.data.currency as string === 'euro' ? 'euro' : 'dollar')
             })
             .catch((err) => {
                 addToast({
@@ -49,7 +52,7 @@ export default function AssetSummary({showExtraDetails = false}: { showExtraDeta
                                     <Skeleton className="h-1 w-[20px] rounded-lg"/>
                                 </div>
                                 : <>
-                                    <p className="font-extrabold text-[28px]">{`$ ${assetData?.totalBalance === undefined ? 0.00 : assetData?.totalBalance}`}</p>
+                                    <p className="font-extrabold text-[28px]">{`${currency === 'euro' ? '€' : '$'} ${assetData?.totalBalance ?? 0.00}`}</p>
                                     {assetData && assetData.pctChange !== undefined &&
                                         <span
                                             className={`text-[14px] font-bold mt-2.5 ${assetData && assetData.pctChange < 0 ? 'text-[var(--text-red)]' : 'text-[var(--text-green)]'}`}>
@@ -67,7 +70,7 @@ export default function AssetSummary({showExtraDetails = false}: { showExtraDeta
                                 {loading
                                     ? <Skeleton className="h-1.5 w-[40px] mt-2.5 rounded-lg"/>
                                     : <span className="dark:text-white text-black font-semibold text-[14px]">
-                                    {`$ ${assetData?.availableFunds === undefined ? 0.00 : assetData?.availableFunds}`}
+                                    {`${currency === 'euro' ? '€' : '$'} ${assetData?.availableFunds === undefined ? 0.00 : assetData?.availableFunds}`}
                             </span>}
                             </div>
                             <div className="flex items-start justify-center flex-col gap-1 text-gray-400">
@@ -77,7 +80,7 @@ export default function AssetSummary({showExtraDetails = false}: { showExtraDeta
                                 {loading
                                     ? <Skeleton className="h-1.5 w-[40px] mt-2.5 rounded-lg"/>
                                     : <span className="dark:text-white text-black font-semibold text-[14px]">
-                                    {`$ ${assetData?.portfolioBalance === undefined ? 0.00 : assetData?.portfolioBalance}`}
+                                    {`${currency === 'euro' ? '€' : '$'} ${assetData?.portfolioBalance === undefined ? 0.00 : assetData?.portfolioBalance}`}
                             </span>}
                             </div>
                         </div>
