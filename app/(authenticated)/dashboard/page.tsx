@@ -11,11 +11,13 @@ import AssetSummary from "@/components/profile/dashboard/assetSummary";
 import {RecentActivities} from "@/components/shared/RecentActivities";
 import CommunityBotList from "@/components/shared/communityBot/CommunityBotList";
 import TopCreators from "@/components/shared/TopCreators";
+import OverviewInstructions from "@/components/OverviewInstructions";
 
 export default function Dashboard() {
 
     return (
         <section className="px-2 lg:px-8 pt-8 mx-auto w-full flex-1 h-screen overflow-y-auto">
+            <OverviewInstructions />
             <AssetSummary/>
             <Divider className="my-8"/>
             <div className="flex flex-row items-center lg:grid overflow-x-auto lg:grid-cols-3 gap-4 min-h-[220px]">
