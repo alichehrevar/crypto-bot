@@ -3,7 +3,7 @@
 import React, {FormEvent, Key, useEffect, useState} from "react";
 import {
     addToast,
-    Button, Spinner,
+    Button, Checkbox, Spinner,
 } from '@heroui/react';
 
 import Input from '@/components/shared/ui/Input'
@@ -20,6 +20,7 @@ import SecurityIndicator from "@/components/shared/ui/SecurityIndicator";
 import MarginModal from "@/components/shared/modals/MarginModal";
 import {ChevronRightIcon} from "@/utils/icons";
 import PositionLeverageModal from "@/components/shared/modals/PositionLeverageModal";
+import Switcher from "@/components/shared/ui/Switcher";
 
 export interface BotConfigFormProps {
     mode: 'default' | 'optimized' | 'dynamic',
@@ -61,6 +62,8 @@ export default function BotConfigForm({mode, selectedParentTab, onCloseAction, s
     const [positionStopLoss, setPositionStopLoss] = useState<number>(10);
     const [indicator, setIndicator] = useState<string>('');
     const [selectedIndicators, setSelectedIndicators] = useState<IndicatorItem[]>([{id: 1, indicator: STANDARD_INDICATOR_OPTIONS[0], timeFrame: "1h"}]);
+    const [isPaperTrade, setIsPaperTrade] = useState(true);
+    const [shareWithCommunity, setShareWithCommunity] = useState(false);
     const [loading, setLoading] = useState(false);
     const [balanceLoading, setBalanceLoading] = useState(false);
 
@@ -205,6 +208,7 @@ export default function BotConfigForm({mode, selectedParentTab, onCloseAction, s
             minOptimizationAccuracy?: number;
             minSimulatedTrades?: number;
             minBotAccuracy?: number;
+            mode: string; // paper or live trade
         } = {
             name,
             accountId: selectedAccountId?.toString() || '',
@@ -226,6 +230,7 @@ export default function BotConfigForm({mode, selectedParentTab, onCloseAction, s
             leverageLong,
             leverageShort,
             singleModeSide,     // e.g., 'Long', 'Short', or 'Both'
+            mode: isPaperTrade ? 'paper' : 'live',
 
             strategyParams: botProps.defaultStrategyParams[indicator] || {},
             // optimized extras:
@@ -443,6 +448,19 @@ export default function BotConfigForm({mode, selectedParentTab, onCloseAction, s
                         onChange={(e) => setMinBotAccuracy(Number(e))}
                     />
                 )}
+
+                <Switcher
+                    isEnabled={isPaperTrade}
+                    setIsEnabled={setIsPaperTrade}
+                    title="Paper Trade"
+                />
+
+                <Checkbox
+                    defaultSelected={shareWithCommunity}
+                    onChange={e => setShareWithCommunity(e.target.checked)}
+                >
+                    Share this Bot with Community
+                </Checkbox>
 
                 {/* submit */}
                 <Button
