@@ -81,9 +81,9 @@ export default function BotsList({refreshList = false, title = "Active Bots", li
             }
 
             {!isLoading && deployedBots.length > 0 &&
-                <div className="flex flex-col w-full gap-2 p-4 rounded-md overflow-y-auto thin-scrollbar">
+                <div className="flex flex-col w-full gap-2 p-4 pt-0 rounded-md overflow-y-auto thin-scrollbar relative">
                     {/* header row */}
-                    <div className={`grid ${active ? 'grid-cols-9' : 'grid-cols-8'} font-semibold text-sm pb-2 mb-4 mx-4`}>
+                    <div className={`grid ${active ? 'grid-cols-9' : 'grid-cols-8'} font-semibold text-sm pb-4 mb-2 mx-4 sticky top-0 bg-dark-gray pt-4 border-b border-gray-800`}>
                         {tableHeaderItems.map((item, ix) => (
                             <div key={ix} className="truncate">
                                 {item}
@@ -157,10 +157,17 @@ export default function BotsList({refreshList = false, title = "Active Bots", li
                                 }}
                             >
                                 <span className="capitalize">{bot.name}</span>
-                                <span className="capitalize">{bot.marketInfo?.tradeFund}</span>
-                                <span className="capitalize">{bot.accountType}</span>
-                                <span>{bot.symbol}</span>
                                 <span>{bot.marketInfo?.tradeFund} <small>USDT</small></span>
+                                <span className="capitalize">{bot.gridConfig?.gridCount}</span>
+                                <div>
+                                    <span className="text-green-500 font-semibold">
+                                        {bot.gridConfig?.takeProfitPct}
+                                    </span>
+                                    <span className="mx-1.5">/</span>
+                                    <span className="text-red-500 font-semibold">
+                                        {bot.gridConfig?.stopLossPct}
+                                    </span>
+                                </div>
                                 <span>{bot.trades ? bot.trades.length : 0}</span>
                                 <span>{bot.marketInfo?.lastSignal ?? "—"}</span>
                                 <span

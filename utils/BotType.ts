@@ -20,6 +20,8 @@ export const gridBotListHeader = [
     'Investment',
     'Number of Grids',
     'TP / SL',
+    "Trade Count",
+    "Signal",
     'PnL',
     ''
 ]
