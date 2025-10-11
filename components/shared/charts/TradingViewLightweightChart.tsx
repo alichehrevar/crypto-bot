@@ -22,7 +22,11 @@ interface Ohlc {
     high: number;
     low: number;
     close: number;
+    color: string;
 }
+
+const UP_COLOR = '#26a69a';
+const DOWN_COLOR = '#ef5350';
 
 const THEME = {
     dark: {
@@ -90,7 +94,8 @@ export default function RealTimeCandlestickChart({
             const data = param.seriesData.get(series) as CandlestickData;
 
             if (data) {
-                setOhlc({ open: data.open, high: data.high, low: data.low, close: data.close });
+                const candleColor = data.close >= data.open ? UP_COLOR : DOWN_COLOR;
+                setOhlc({ open: data.open, high: data.high, low: data.low, close: data.close, color: candleColor });
             } else {
                 setOhlc(null);
             }
@@ -113,12 +118,12 @@ export default function RealTimeCandlestickChart({
             });
 
             series = chart.addSeries(CandlestickSeries, {
-                upColor: '#26a69a',
-                downColor: '#ef5350',
-                borderUpColor: '#26a69a',
-                borderDownColor: '#ef5350',
-                wickUpColor: '#26a69a',
-                wickDownColor: '#ef5350',
+                upColor: UP_COLOR,
+                downColor: DOWN_COLOR,
+                borderUpColor: UP_COLOR,
+                borderDownColor: DOWN_COLOR,
+                wickUpColor: UP_COLOR,
+                wickDownColor: DOWN_COLOR,
             });
 
             chart.subscribeCrosshairMove(handleCrosshairMove);
@@ -258,14 +263,17 @@ export default function RealTimeCandlestickChart({
 
     return (
         <div ref={containerRef} className="relative w-full flex-grow rounded-lg h-full">
-            <div className="absolute top-0 right-0 left-0 z-10 bg-dark-gray rounded-tl-lg rounded-tr-lg shadow-lg p-2 flex gap-1 items-center">
+            <div className="absolute top-0 right-0 left-0 z-10 bg-dark-gray rounded-tl-lg rounded-tr-lg shadow-lg p-2 flex flex-col-reverse gap-2 items-start">
                 <div className="flex-grow flex items-center gap-4 pl-2">
                     {ohlc ? (
-                        <div className="flex gap-3 text-xs text-white/90 font-mono">
-                            <span><span className="text-white/60">O:</span> {formatPrice(ohlc.open)}</span>
-                            <span><span className="text-white/60">H:</span> {formatPrice(ohlc.high)}</span>
-                            <span><span className="text-white/60">L:</span> {formatPrice(ohlc.low)}</span>
-                            <span><span className="text-white/60">C:</span> {formatPrice(ohlc.close)}</span>
+                        <div
+                            className="flex gap-3 text-xs font-mono"
+                            style={{ color: ohlc.color }}
+                        >
+                            <span><span className="text-white font-bold">O:</span> {formatPrice(ohlc.open)}</span>
+                            <span><span className="text-white font-bold">H:</span> {formatPrice(ohlc.high)}</span>
+                            <span><span className="text-white font-bold">L:</span> {formatPrice(ohlc.low)}</span>
+                            <span><span className="text-white font-bold">C:</span> {formatPrice(ohlc.close)}</span>
                         </div>
                     ) : (
                         <div className="text-sm font-bold text-white/90">

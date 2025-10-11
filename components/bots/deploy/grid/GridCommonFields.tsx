@@ -27,13 +27,13 @@ export function GridCommonFields({
                 selected={selectedAccountId ? String(selectedAccountId) : ""}
                 setSelected={onAccountChange}
             />
-            <div className="text-sm text-gray-600 flex items-center">
+            <div className="text-sm  flex items-center text-blue-400/80">
                 Available balance:
                 {balanceLoading
                     ? <span className="inline h-3 -mt-12 ms-3">
                             <Spinner color="primary" size="sm" variant="wave" />
                         </span>
-                    : <b className="ms-1">{availableBalance.toFixed(2)} USDT</b>
+                    : <span className="ms-1">{availableBalance.toFixed(2)} USDT</span>
                 }
             </div>
         </>

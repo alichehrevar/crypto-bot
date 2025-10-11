@@ -52,9 +52,12 @@ interface Ohlc {
     high: number;
     low: number;
     close: number;
+    color: string;
 }
 
 const COLORS = {
+    UP: '#26a69a',
+    DOWN: '#ef5350',
     BUY_ZONE: '#26a69a',
     SELL_ZONE: '#ef5350',
     NEUTRAL: '#9598A1',
@@ -107,7 +110,11 @@ export default function TradingViewLightweightChart({
             }
             const data = param.seriesData.get(series) as CandlestickData;
 
-            if (data) setCrosshairOhlc(data);
+            if (data) {
+                const candleColor = data.close >= data.open ? COLORS.UP : COLORS.DOWN;
+
+                setCrosshairOhlc({ ...data, color: candleColor });
+            }
         };
 
         const initializeChart = async () => {
@@ -183,10 +190,11 @@ export default function TradingViewLightweightChart({
 
                 if (formattedData.length > 0) {
                     const lastCandle = formattedData[formattedData.length - 1];
+                    const candleColor = lastCandle.close >= lastCandle.open ? COLORS.UP : COLORS.DOWN;
 
                     setInitialPrice(lastCandle.close);
                     setLastPrice(lastCandle.close);
-                    setLiveOhlc(lastCandle);
+                    setLiveOhlc({ ...lastCandle, color: candleColor });
                     // Set smart initial zoom
                     const dataSize = formattedData.length;
 
@@ -214,9 +222,11 @@ export default function TradingViewLightweightChart({
                     high: parseFloat(kline.h), low: parseFloat(kline.l), close: parseFloat(kline.c),
                 };
 
+                const candleColor = formattedUpdate.close >= formattedUpdate.open ? COLORS.UP : COLORS.DOWN;
+
                 series.update(formattedUpdate);
                 setLastPrice(formattedUpdate.close);
-                setLiveOhlc(formattedUpdate);
+                setLiveOhlc({ ...formattedUpdate, color: candleColor });
             };
             ws.onerror = () => addToast({ title: 'WebSocket connection error', intent: 'error' });
         };
@@ -360,14 +370,14 @@ export default function TradingViewLightweightChart({
     return (
         <div className="relative h-full w-full bg-dark-gray rounded-lg">
             {/* Header with OHLC and Interval Selector */}
-            <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between p-2 bg-dark-gray border-b border-stone-800">
+            <div className="absolute top-0 left-0 right-0 z-10 flex flex-col-reverse gap-1 items-start justify-between p-2 bg-dark-gray border-b border-stone-800">
                 <div className="flex items-center gap-4 text-xs text-gray-400 font-mono">
                     {displayOhlc ? (
                         <>
-                            <span>O: <span className="text-gray-200">{displayOhlc.open.toFixed(precision)}</span></span>
-                            <span>H: <span className="text-gray-200">{displayOhlc.high.toFixed(precision)}</span></span>
-                            <span>L: <span className="text-gray-200">{displayOhlc.low.toFixed(precision)}</span></span>
-                            <span>C: <span className="text-gray-200">{displayOhlc.close.toFixed(precision)}</span></span>
+                            <span className="font-bold text-white">O: <span className="font-normal" style={{ color: displayOhlc.color }}>{displayOhlc.open.toFixed(precision)}</span></span>
+                            <span className="font-bold text-white">H: <span className="font-normal" style={{ color: displayOhlc.color }}>{displayOhlc.high.toFixed(precision)}</span></span>
+                            <span className="font-bold text-white">L: <span className="font-normal" style={{ color: displayOhlc.color }}>{displayOhlc.low.toFixed(precision)}</span></span>
+                            <span className="font-bold text-white">C: <span className="font-normal" style={{ color: displayOhlc.color }}>{displayOhlc.close.toFixed(precision)}</span></span>
                         </>
                     ) : (
                         <span className="font-sans text-sm font-bold text-gray-200">{symbol}</span>

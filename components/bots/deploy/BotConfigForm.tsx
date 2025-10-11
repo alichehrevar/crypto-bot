@@ -314,13 +314,13 @@ export default function BotConfigForm({mode, selectedParentTab, onCloseAction, s
                     setSelected={(k: Key | null) => handleAccountChange(k)}
                 />
 
-                <div className="text-sm text-gray-600 flex items-center">
+                <div className="text-sm  flex items-center text-blue-400/80">
                     Available balance:
                     {balanceLoading
                         ? <span className="inline h-3 -mt-10 ms-3">
                             <Spinner color="primary" size="sm" variant="wave" />
                         </span>
-                        : <b className="ms-1">{availableBalance.toFixed(2)} USDT</b>
+                        : <span className="ms-1">{availableBalance.toFixed(2)} USDT</span>
                     }
                 </div>
 
