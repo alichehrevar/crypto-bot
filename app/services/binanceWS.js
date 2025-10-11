@@ -361,6 +361,107 @@ class BinanceWS {
             return [];
         }
     }
+
+    /**
+     * @description Fetches a detailed breakdown of assets for Spot, Futures, and Earn accounts.
+     * @param {object} account The user's Binance account credentials.
+     * @returns {Promise<Array<object>>} A promise resolving to an array of account types with their assets.
+     */
+    async getDetailedBalance(account) {
+        const { apiKey, secretKey } = account;
+
+        try {
+            // 1. Fetch all ticker prices for converting asset amounts to USDT value
+            const priceRes = await axios.get('https://api.binance.com/api/v3/ticker/price');
+            const priceMap = new Map(priceRes.data.map(t => [t.symbol, parseFloat(t.price)]));
+            const getUsdtValue = (asset, amount) => {
+                if (asset.toUpperCase() === 'USDT') return amount;
+                const price = priceMap.get(`${asset.toUpperCase()}USDT`);
+                return price ? amount * price : 0;
+            };
+
+            const result = [];
+
+            // 2. Fetch Spot Balance
+            const spotParams = { timestamp: Date.now() };
+            const spotQuery = this._sign(spotParams, secretKey);
+            const spotUrl = `https://api.binance.com/api/v3/account?${spotQuery}`;
+            const spotRes = await axios.get(spotUrl, { headers: { 'X-MBX-APIKEY': apiKey } });
+
+            const spotAssets = spotRes.data.balances
+                .map(b => ({ name: b.asset, amount: parseFloat(b.free) + parseFloat(b.locked) }))
+                .filter(b => b.amount > 0.000001) // Avoid processing dust assets
+                .map(b => ({ ...b, value: getUsdtValue(b.name, b.amount) }))
+                .filter(b => b.value > 0.01); // Only include assets worth more than 1 cent
+
+            const spotTotal = spotAssets.reduce((sum, asset) => sum + asset.value, 0);
+            if (spotTotal > 0.01) {
+                result.push({
+                    accountType: 'Spot',
+                    value: spotTotal,
+                    children: spotAssets.map(a => ({ name: a.name, value: a.value })).sort((a,b) => b.value - a.value)
+                });
+            }
+
+            // 3. Fetch Futures Balance (collateral + open positions)
+            const futParams = { timestamp: Date.now() };
+            const futQuery = this._sign(futParams, secretKey);
+            const futBalanceUrl = `https://fapi.binance.com/fapi/v2/balance?${futQuery}`;
+            const futPositionUrl = `https://fapi.binance.com/fapi/v2/positionRisk?${futQuery}`;
+
+            const [futBalanceRes, futPositionRes] = await Promise.all([
+                axios.get(futBalanceUrl, { headers: { 'X-MBX-APIKEY': apiKey } }),
+                axios.get(futPositionUrl, { headers: { 'X-MBX-APIKEY': apiKey } })
+            ]);
+
+            const totalFuturesBalance = futBalanceRes.data.reduce((sum, b) => sum + parseFloat(b.balance), 0);
+
+            if (totalFuturesBalance > 0.01) {
+                const futPositions = futPositionRes.data
+                    .filter(p => parseFloat(p.notional) !== 0)
+                    .map(p => ({ name: p.symbol, value: Math.abs(parseFloat(p.notional)) }));
+
+                const futWalletAssets = futBalanceRes.data
+                    .map(b => ({ name: b.asset, amount: parseFloat(b.balance) }))
+                    .filter(b => b.amount > 0.01)
+                    .map(b => ({ ...b, value: getUsdtValue(b.name, b.amount) }));
+
+                const futureChildren = [...futWalletAssets, ...futPositions].filter(a => a.value > 0.01);
+
+                result.push({
+                    accountType: 'Future',
+                    value: totalFuturesBalance,
+                    children: futureChildren.sort((a,b) => b.value - a.value)
+                });
+            }
+
+            // 4. Fetch Fund/Earn Balance
+            const earnParams = { timestamp: Date.now() };
+            const earnQuery = this._sign(earnParams, secretKey);
+            const earnUrl = `https://api.binance.com/sapi/v1/simple-account?${earnQuery}`;
+            try {
+                const earnRes = await axios.get(earnUrl, { headers: { 'X-MBX-APIKEY': apiKey }});
+                const earnTotal = parseFloat(earnRes.data?.totalAmountInUSDT || '0');
+                if (earnTotal > 0.01) {
+                    // API doesn't give asset breakdown, so we create a single child
+                    result.push({
+                        accountType: 'Fund',
+                        value: earnTotal,
+                        children: [{ name: 'Earn Products', value: earnTotal }]
+                    });
+                }
+            } catch (err) {
+                // This can fail if user has no Earn account, which is normal.
+                console.log(`[BinanceWS] Could not fetch Earn balance for account. Error: ${err.message}`);
+            }
+
+            return result;
+
+        } catch (err) {
+            console.error('BinanceWS getDetailedBalance error:', err.response?.data || err.message);
+            return []; // Return empty on error to not break the entire summary
+        }
+    }
 }
 
 module.exports = new BinanceWS();

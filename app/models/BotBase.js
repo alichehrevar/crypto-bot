@@ -128,6 +128,8 @@ const baseBotSchema = new Schema({
     botTP:      { type: Number, default: 0 },
     botSL:      { type: Number, default: 0 },
 
+    share:      { type: Boolean, default: false },
+
     accountType:{ type: String, required: true, enum: ['binance','okx','bingx'] },
     accountId:  {
         type: Schema.Types.ObjectId,

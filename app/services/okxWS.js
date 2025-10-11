@@ -273,6 +273,116 @@ class OKXWS {
             return [];
         }
     }
+
+    /**
+     * @description Fetches a detailed breakdown of assets for Funding, Trading, and Financial accounts.
+     * @param {object} account The user's OKX account credentials.
+     * @returns {Promise<Array<object>>} A promise resolving to an array of account types with their assets.
+     */
+    async getDetailedBalance(account) {
+        const { apiKey, apiSecret, passphrase } = account;
+
+        const getHeaders = (method, requestPath, body = '') => {
+            const timestamp = new Date().toISOString();
+            const prehash = timestamp + method + requestPath + body;
+            const signature = crypto.createHmac('sha256', apiSecret).update(prehash).digest('base64');
+            return {
+                'OK-ACCESS-KEY': apiKey,
+                'OK-ACCESS-SIGN': signature,
+                'OK-ACCESS-TIMESTAMP': timestamp,
+                'OK-ACCESS-PASSPHRASE': passphrase,
+                'Content-Type': 'application/json',
+            };
+        };
+
+        try {
+            // 1. Fetch all ticker prices for value conversion
+            const priceRes = await axios.get('https://www.okx.com/api/v5/market/tickers?instType=SPOT');
+            const priceMap = new Map(priceRes.data.data.map(t => [t.instId.replace('-', ''), parseFloat(t.last)]));
+            const getUsdtValue = (asset, amount) => {
+                if (asset.toUpperCase() === 'USDT') return amount;
+                const price = priceMap.get(`${asset.toUpperCase()}USDT`);
+                return price ? amount * price : 0;
+            };
+
+            const result = [];
+
+            // 2. Fetch Funding Account Balance (Spot assets)
+            const fundingPath = '/api/v5/account/balance';
+            const fundingRes = await axios.get(`https://www.okx.com${fundingPath}`, { headers: getHeaders('GET', fundingPath) });
+
+            if (fundingRes.data.code === '0' && fundingRes.data.data.length > 0) {
+                const fundingAssets = fundingRes.data.data[0].details
+                    .map(b => ({
+                        name: b.ccy,
+                        amount: parseFloat(b.availBal) + parseFloat(b.frozenBal),
+                    }))
+                    .filter(b => b.amount > 0.000001)
+                    .map(b => ({ ...b, value: getUsdtValue(b.name, b.amount) }))
+                    .filter(b => b.value > 0.01);
+
+                const fundingTotal = fundingAssets.reduce((sum, asset) => sum + asset.value, 0);
+
+                if (fundingTotal > 0.01) {
+                    result.push({
+                        accountType: 'Spot',
+                        value: fundingTotal,
+                        children: fundingAssets.map(a => ({ name: a.name, value: a.value })).sort((a,b) => b.value - a.value)
+                    });
+                }
+            }
+
+            // 3. Fetch Trading Account Balance (Futures/Swaps)
+            const tradingPath = '/api/v5/account/balance?ccy=USDT'; // For total equity
+            const positionsPath = '/api/v5/account/positions?instType=SWAP'; // For positions
+
+            const [tradingRes, positionsRes] = await Promise.all([
+                axios.get(`https://www.okx.com${tradingPath}`, { headers: getHeaders('GET', tradingPath) }),
+                axios.get(`https://www.okx.com${positionsPath}`, { headers: getHeaders('GET', positionsPath) })
+            ]);
+
+            let tradingTotal = 0;
+            if (tradingRes.data.code === '0' && tradingRes.data.data.length > 0) {
+                tradingTotal = parseFloat(tradingRes.data.data[0].totalEq);
+            }
+
+            if (tradingTotal > 0.01) {
+                const tradingPositions = (positionsRes.data.data || [])
+                    .map(p => ({
+                        name: p.instId,
+                        value: parseFloat(p.notionalUsd)
+                    }))
+                    .filter(p => p.value > 0.01);
+
+                result.push({
+                    accountType: 'Future',
+                    value: tradingTotal,
+                    children: tradingPositions.sort((a,b) => b.value - a.value)
+                });
+            }
+
+            // 4. Fetch Financial Account Balance (Earn/Grow products)
+            const assetPath = '/api/v5/asset/asset-valuation?ccy=USDT';
+            const assetRes = await axios.get(`https://www.okx.com${assetPath}`, { headers: getHeaders('GET', assetPath) });
+            if(assetRes.data.code === '0' && assetRes.data.data.length > 0) {
+                const details = assetRes.data.data[0].details;
+                const earnTotal = parseFloat(details.earn || '0');
+                if (earnTotal > 0.01) {
+                    result.push({
+                        accountType: 'Fund',
+                        value: earnTotal,
+                        children: [{ name: 'Earn Products', value: earnTotal }]
+                    });
+                }
+            }
+
+            return result;
+
+        } catch (err) {
+            console.error('OKXWS getDetailedBalance error:', err.response?.data || err.message);
+            return [];
+        }
+    }
 }
 
 module.exports = new OKXWS();

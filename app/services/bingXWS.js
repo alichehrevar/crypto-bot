@@ -700,6 +700,101 @@ class BingXWS {
             return [];
         }
     }
+
+    /**
+     * @description Fetches a detailed breakdown of assets for Spot and Futures accounts.
+     * @param {object} account The user's BingX account credentials.
+     * @returns {Promise<Array<object>>} A promise resolving to an array of account types with their assets.
+     */
+    async getDetailedBalance(account) {
+        const { apiKey, secretKey } = account;
+
+        const sendRequest = async (path, params = {}) => {
+            const timestamp = Date.now();
+            const queryParams = new URLSearchParams({ ...params, timestamp });
+            const signature = crypto.createHmac('sha256', secretKey).update(queryParams.toString()).digest('hex');
+            queryParams.append('signature', signature);
+            const url = `https://open-api.bingx.com${path}?${queryParams.toString()}`;
+
+            try {
+                const resp = await axios.get(url, { headers: { "X-BX-APIKEY": apiKey } });
+                if (resp.data.code !== 0) {
+                    throw new Error(`BingX API Error (${path}): ${resp.data.msg}`);
+                }
+                return resp.data.data;
+            } catch (err) {
+                const errorMessage = err.response?.data?.msg || err.message;
+                console.error(`[BingXWS] Request failed for ${path}:`, errorMessage);
+                throw err;
+            }
+        };
+
+        try {
+            // 1. Fetch all ticker prices for value conversion
+            const priceData = await axios.get('https://open-api.bingx.com/openApi/spot/v1/ticker/24hr');
+            const priceMap = new Map(priceData.ticker.map(t => [t.symbol.replace('-', ''), parseFloat(t.lastPrice)]));
+            const getUsdtValue = (asset, amount) => {
+                if (asset.toUpperCase() === 'USDT') return amount;
+                const price = priceMap.get(`${asset.toUpperCase()}USDT`);
+                return price ? amount * price : 0;
+            };
+
+            const result = [];
+
+            // 2. Fetch Spot Balance (Fund Account)
+            const spotData = await axios.get('https://open-api.bingx.com/openApi/spot/v1/account/balance');
+            const spotAssets = spotData.balances
+                .map(b => ({
+                    name: b.asset,
+                    amount: parseFloat(b.free),
+                }))
+                .filter(b => b.amount > 0.000001)
+                .map(b => ({ ...b, value: getUsdtValue(b.name, b.amount) }))
+                .filter(b => b.value > 0.01);
+
+            const spotTotal = spotAssets.reduce((sum, asset) => sum + asset.value, 0);
+
+            if (spotTotal > 0.01) {
+                result.push({
+                    accountType: 'Spot',
+                    value: spotTotal,
+                    children: spotAssets.map(a => ({ name: a.name, value: a.value })).sort((a,b) => b.value - a.value)
+                });
+            }
+
+            // 3. Fetch Futures Balance (Perpetual Swap Account)
+            const [futBalanceData, futPositionsData] = await Promise.all([
+                await axios.get('https://open-api.bingx.com/openApi/swap/v2/user/balance'),
+                await axios.get('https://open-api.bingx.com/openApi/swap/v2/user/positions')
+            ]);
+
+            const futureTotal = parseFloat(futBalanceData.balance.balance);
+
+            if (futureTotal > 0.01) {
+                const futPositions = futPositionsData
+                    .map(p => ({
+                        name: p.symbol,
+                        value: parseFloat(p.positionValue),
+                    }))
+                    .filter(p => p.value > 0.01);
+
+                result.push({
+                    accountType: 'Future',
+                    value: futureTotal,
+                    children: futPositions.sort((a,b) => b.value - a.value)
+                });
+            }
+
+            // BingX doesn't have a simple summary endpoint for Earn products,
+            // so we will stick to Spot and Futures.
+
+            return result;
+
+        } catch (err) {
+            console.error('BingXWS getDetailedBalance error:', err.message);
+            return [];
+        }
+    }
 }
 
 // Export a singleton instance.

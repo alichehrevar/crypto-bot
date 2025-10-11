@@ -18,6 +18,7 @@ router.post('/bingx', authenticate, accountController.linkBingxAccount);
 
 router.get('/assets', authenticate, accountController.getAssetsDistribution);
 router.get('/summary', authenticate, accountController.getSummary)
+router.get('/summary/details', authenticate, accountController.getDetailedSummary)
 
 router.get('/:accountId/leverage-options', authenticate, accountController.getLeverageOptions);
 

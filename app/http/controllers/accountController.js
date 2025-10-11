@@ -534,6 +534,84 @@ exports.getSummary = async (req, res) => {
     }
 };
 
+/**
+ * @description Fetches a detailed, hierarchical summary of all assets across all exchanges.
+ * The data is structured to match the frontend's AssetNode tree component.
+ */
+exports.getDetailedSummary = async (req, res) => {
+    try {
+        const userId = req.user.id;
+
+        const [binanceAccts, okxAccts, bingxAccts] = await Promise.all([
+            BinanceAccount.find({ userId }).lean(),
+            OkxAccount.find({ userId }).lean(),
+            BingxAccount.find({ userId }).lean(),
+        ]);
+
+        const fetchDetails = async (accounts, Service) => {
+            if (!accounts || accounts.length === 0) return [];
+            // This assumes one account per exchange. If a user can have multiple,
+            // you'll need to loop through `accounts` and merge the results.
+            if (accounts.length > 0) {
+                console.log(accounts[0])
+                return await Service.getDetailedBalance(accounts[0]);
+            }
+            return [];
+        };
+
+        const [binanceDetails, okxDetails, bingxDetails] = await Promise.all([
+            fetchDetails(binanceAccts, BinanceService),
+            fetchDetails(okxAccts, OkxService),
+            fetchDetails(bingxAccts, BingxService),
+        ]);
+
+        const assetTreeChildren = [];
+        let totalValue = 0;
+
+        const processExchangeData = (name, details, color) => {
+            if (!details || details.length === 0) return;
+
+            const exchangeTotal = details.reduce((sum, accType) => sum + accType.value, 0);
+            if (exchangeTotal <= 0.01) return;
+
+            totalValue += exchangeTotal;
+
+            assetTreeChildren.push({
+                name: name,
+                value: exchangeTotal,
+                color: color,
+                children: details.map(accType => ({
+                    name: accType.accountType,
+                    value: accType.value,
+                    children: accType.children,
+                })),
+            });
+        };
+
+        processExchangeData('Binance', binanceDetails, '#30B5D3');
+        processExchangeData('OKX', okxDetails, '#DDE000');
+        processExchangeData('BingX', bingxDetails, '#87D30D');
+
+        const assetTree = {
+            name: 'Assets',
+            value: totalValue,
+            children: assetTreeChildren,
+        };
+
+        // Note: Currency conversion is not applied in this endpoint, returning raw USDT values.
+        // The frontend can handle conversion using the user's currency preference if needed.
+
+        return res.json({
+            success: true,
+            data: assetTree,
+        });
+
+    } catch (err) {
+        console.error('getDetailedSummary controller error:', err.message);
+        return res.status(500).json({ success: false, error: 'Internal server error while fetching detailed summary' });
+    }
+};
+
 async function fetchExchangeRate () {
     const response = await axios.get('https://api.exchangerate-api.com/v4/latest/USD');
     return response.data.rates.EUR;
