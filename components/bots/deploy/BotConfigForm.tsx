@@ -209,6 +209,7 @@ export default function BotConfigForm({mode, selectedParentTab, onCloseAction, s
             minSimulatedTrades?: number;
             minBotAccuracy?: number;
             mode: string; // paper or live trade
+            share: boolean;
         } = {
             name,
             accountId: selectedAccountId?.toString() || '',
@@ -231,6 +232,7 @@ export default function BotConfigForm({mode, selectedParentTab, onCloseAction, s
             leverageShort,
             singleModeSide,     // e.g., 'Long', 'Short', or 'Both'
             mode: isPaperTrade ? 'paper' : 'live',
+            share: shareWithCommunity,
 
             strategyParams: botProps.defaultStrategyParams[indicator] || {},
             // optimized extras:

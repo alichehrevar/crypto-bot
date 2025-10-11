@@ -78,6 +78,7 @@ export type Bot = {
     botType: string;
     strategy: string;
     riskStrategy: string;
+    share: boolean;
     __v: number;
 };
 

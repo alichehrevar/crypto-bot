@@ -18,7 +18,7 @@ export const indicatorBotListHeader = [
 export const gridBotListHeader = [
     'Bot name',
     'Investment',
-    'Number of Grids',
+    'Grids',
     'TP / SL',
     "Trade Count",
     "Signal",

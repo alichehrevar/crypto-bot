@@ -89,7 +89,7 @@ const Instructions: React.FC = () => {
     };
 
     return (
-        <div className="mb-7 items-center justify-center font-sans" style={{ backgroundColor: colors.bgPrimary, color: colors.textPrimary }}>
+        <div className="my-7 items-center justify-center font-sans bg-dark-gray" style={{ color: colors.textPrimary }}>
             <div className="w-full">
                 <div
                     className="rounded-xl p-8 border"

@@ -12,14 +12,19 @@ import {RecentActivities} from "@/components/shared/RecentActivities";
 import CommunityBotList from "@/components/shared/communityBot/CommunityBotList";
 import TopCreators from "@/components/shared/TopCreators";
 import Instructions from "@/components/dashboard/Instructions";
+import Watchlist from "@/components/dashboard/WatchList";
+// import {ActiveBots} from "@/components/ActiveBots";
 
 export default function Dashboard() {
 
     return (
         <section className="px-2 lg:px-8 pt-8 mx-auto w-full flex-1 h-screen overflow-y-auto">
-            <Instructions />
             <AssetSummary/>
             <Divider className="my-8"/>
+            <Instructions />
+            <div className="grid grid-cols-2">
+                <Watchlist />
+            </div>
             <div className="flex flex-row items-center lg:grid overflow-x-auto lg:grid-cols-3 gap-4 min-h-[220px]">
                 <div
                     className="flex items-start justify-start flex-col bg-dark-gray rounded-lg p-6 gap-4 min-h-[250px] min-w-[348px]">

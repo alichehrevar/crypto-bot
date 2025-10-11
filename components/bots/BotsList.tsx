@@ -7,7 +7,7 @@ import PlayPauseBotModal from "./technical/modals/playPauseBotModal";
 
 import {Bot, DeployedBotsResponse} from "@/types/bots/DeployedBots";
 import {getData} from "@/actions/get";
-import {OrderIcon} from "@/utils/icons";
+import {EyeSlashFilledIcon, GlobeIcon, OrderIcon} from "@/utils/icons";
 import DeployButton from "@/components/shared/ui/DeployButton";
 import {gridBotListHeader, indicatorBotListHeader} from "@/utils/BotType";
 
@@ -107,7 +107,10 @@ export default function BotsList({refreshList = false, title = "Active Bots", li
                                     }
                                 }}
                             >
-                                <span className="capitalize">{bot.botType}</span>
+                                <span className="capitalize flex items-center gap-1">
+                                    {bot.share ? <GlobeIcon /> : <EyeSlashFilledIcon />}
+                                    {bot.botType}
+                                </span>
                                 <span className="capitalize">{bot.strategy}</span>
                                 <span className="capitalize">{bot.accountType}</span>
                                 <span>{bot.symbol}</span>
