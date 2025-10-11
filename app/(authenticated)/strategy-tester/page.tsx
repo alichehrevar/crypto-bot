@@ -270,7 +270,7 @@ export default function StrategyTesterPage() {
                                 initialIndicators={[
                                     { id: 1, indicator: STANDARD_INDICATOR_OPTIONS[0], timeFrame: "1h" },
                                 ]}
-                                mainOptions={MAIN_INDICATOR_OPTIONS}
+                                mainOptions={STANDARD_INDICATOR_OPTIONS}
                                 showAddIndicatorButton={true}
                                 standardOptions={STANDARD_INDICATOR_OPTIONS}
                                 onChange={setSelectedIndicators}
