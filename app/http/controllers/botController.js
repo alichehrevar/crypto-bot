@@ -158,6 +158,7 @@ exports.deployBot = async (req, res) => {
             singleModeSide,
             leverageLong,
             leverageShort,
+            share,
         } = req.body;
 
         // CHANGED: The top-level timeframe is no longer sent.
@@ -247,7 +248,8 @@ exports.deployBot = async (req, res) => {
                 fundMode: (marginType || 'isolated').toLowerCase(), // 'Isolated' -> 'isolated'
                 positionMode: (positionMode || 'single').toLowerCase(), // 'Single' -> 'single'
                 active:        true,
-                mode:          'live'
+                mode:          'live',
+                share
             });
         }
         else if (botType === 'grid') {
