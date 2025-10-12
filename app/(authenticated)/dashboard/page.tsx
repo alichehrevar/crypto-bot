@@ -12,8 +12,7 @@ import CommunityBotList from "@/components/shared/communityBot/CommunityBotList"
 import TopCreators from "@/components/shared/TopCreators";
 import Instructions from "@/components/dashboard/Instructions";
 import Watchlist from "@/components/dashboard/WatchList";
-import PnLChart from "@/components/dashboard/PnLChart";
-// import {ActiveBots} from "@/components/ActiveBots";
+import PnLSection from "@/components/pnl/PnLSection";
 
 export default function Dashboard() {
 
@@ -24,7 +23,7 @@ export default function Dashboard() {
             <Instructions />
             <div className="flex flex-row items-center lg:grid overflow-x-auto lg:grid-cols-2 gap-4 min-h-[220px]">
                 <AssetSection/>
-                <PnLChart/>
+                <PnLSection/>
                 <TopMovers/>
                 <Watchlist/>
             </div>

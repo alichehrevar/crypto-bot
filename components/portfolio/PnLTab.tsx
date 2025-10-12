@@ -10,7 +10,7 @@ import {addToast} from "@heroui/react";
 
 import {getData} from "@/actions/get";
 import {RecentActivities} from "@/components/shared/RecentActivities";
-import RealizedView from "@/components/shared/RealizedView";
+import RealizedView from "@/components/pnl/RealizedView";
 
 export default function PnLTab() {
 

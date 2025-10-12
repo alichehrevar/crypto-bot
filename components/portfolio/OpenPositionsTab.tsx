@@ -5,7 +5,7 @@ import type { UnrealizedPnLResponse, UnrealizedPoint} from "@/types/profile/PnLT
 import React, {useEffect, useState} from "react";
 import {addToast} from "@heroui/react";
 
-import UnrealizedView from "@/components/shared/UnrealizedView";
+import UnrealizedView from "@/components/pnl/UnrealizedView";
 import {getData} from "@/actions/get";
 import {RecentActivities} from "@/components/shared/RecentActivities";
 

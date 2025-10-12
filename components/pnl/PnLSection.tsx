@@ -11,8 +11,8 @@ import React, { useEffect, useState} from 'react';
 import { Tabs, Tab, addToast } from '@heroui/react';
 
 import { getData } from '@/actions/get';
-import UnrealizedView from "@/components/shared/UnrealizedView";
-import RealizedView from "@/components/shared/RealizedView";
+import UnrealizedView from "@/components/pnl/UnrealizedView";
+import RealizedPnLChart from "@/components/pnl/RealizedPnLChart";
 
 
 /* ---------------- main component ---------------- */
@@ -67,7 +67,7 @@ export default function PnLSection() {
     }, [tab]);
 
     return (
-        <div className="ua-card p-4">
+        <div className="ua-card min-h-[320px] p-4">
             <div className="flex items-center justify-between w-full">
                 <h4 className="font-bold text-[16px]">PnL</h4>
 
@@ -87,16 +87,11 @@ export default function PnLSection() {
                 </Tabs>
             </div>
 
-            <div
-                className={`
-          w-full h-[150px] transition-all duration-200
-          ${tab === 'unrealized-pnl' ? 'ml-[-35px] overflow-x-hidden' : ''}
-        `}
-            >
+            <div className={`w-full h-full transition-all duration-200 ${tab === 'unrealized-pnl' ? 'ml-[-35px] overflow-x-hidden' : ''}`}>
                 {loading ? (
                     <div className="flex items-center justify-center h-full text-gray-500">Loading…</div>
                 ) : tab === 'realized-pnl' ? (
-                    <RealizedView data={realizedData} />
+                    <RealizedPnLChart data={realizedData} />
                 ) : (
                     <UnrealizedView data={unrealizedData} />
                 )}
