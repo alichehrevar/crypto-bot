@@ -1,8 +1,8 @@
-// routes/index.js
 const express = require('express');
 const router = express.Router();
+const { adminOnlyAccess, clientAccess, protectedRoutes } = require('./route-protector');
 
-// Import all individual route files
+// --- Import all individual route files ---
 const authRoutes = require('./auth');
 const accountRoutes = require('./accounts');
 const candleRoutes = require('./candles');
@@ -23,27 +23,42 @@ const sectorRoutes = require('./market/sectors');
 const netFlowsRoutes = require('./market/netFlows');
 const listingsRoutes = require('./listings');
 
+// --- Route Definitions ---
+const routes = {
+    '/auth': authRoutes,
+    '/accounts': accountRoutes,
+    '/candles': candleRoutes,
+    '/bots': botRoutes,
+    '/backtest': backtestRoutes,
+    '/visualize': visualizationRoutes,
+    '/currencies': currencyRoutes,
+    '/indicators': indicatorsRoutes,
+    '/market': marketRoutes,
+    '/pnl': pnlRoutes,
+    '/orders': ordersRouter,
+    '/asset': ordersRouter,
+    '/coins': coinRoutes,
+    '/user': userRoutes,
+    '/logs': logsRouter,
+    '/sentiment': sentimentRoutes,
+    '/anomalies': anomalyRoutes,
+    '/sectors': sectorRoutes,
+    '/market/net-flows': netFlowsRoutes,
+    '/listings': listingsRoutes,
+};
 
-// Mount each router on its designated path
-router.use('/auth', authRoutes);
-router.use('/accounts', accountRoutes);
-router.use('/candles', candleRoutes);
-router.use('/bots', botRoutes);
-router.use('/backtest', backtestRoutes);
-router.use('/visualize', visualizationRoutes);
-router.use('/currencies', currencyRoutes);
-router.use('/indicators', indicatorsRoutes);
-router.use('/market', marketRoutes);
-router.use('/pnl', pnlRoutes);
-router.use('/orders', ordersRouter);
-router.use('/asset', ordersRouter); // Note: Both /asset and /orders point to the same router
-router.use('/coins', coinRoutes);
-router.use('/user', userRoutes);
-router.use('/logs', logsRouter);
-router.use('/sentiment', sentimentRoutes);
-router.use('/anomalies', anomalyRoutes);
-router.use('/sectors', sectorRoutes);
-router.use('/market/net-flows', netFlowsRoutes);
-router.use('/listings', listingsRoutes);
+// --- Mount Routers with Middleware ---
+for (const path in routes) {
+    const routeKey = path.substring(1); // remove leading slash
+    if (protectedRoutes.adminOnly.includes(routeKey)) {
+        router.use(path, ...adminOnlyAccess, routes[path]);
+    } else if (protectedRoutes.client.includes(routeKey)) {
+        router.use(path, ...clientAccess, routes[path]);
+    } else {
+        // Public routes or routes not explicitly protected
+        router.use(path, routes[path]);
+    }
+}
 
 module.exports = router;
+

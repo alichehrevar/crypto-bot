@@ -19,11 +19,11 @@ const seedAdminUser = async () => {
         const userUpsert = await User.updateOne(
             {email: adminEmail},
             {
-                $set: {password: hashedPassword},
+                $set: {password: hashedPassword, role: 'admin'},
                 $setOnInsert: {
                     email: adminEmail,
                     verifiedAt: new Date('1900-01-01'),
-                    createdAt: new Date(Date.now() - 2 * 365 * 24 * 60 * 60 * 1000)
+                    createdAt: new Date(Date.now() - 2 * 365 * 24 * 60 * 60 * 1000),
                 },
             },
             {upsert: true}

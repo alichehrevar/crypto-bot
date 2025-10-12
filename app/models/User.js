@@ -11,6 +11,11 @@ const userSchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    role: {
+        type: String,
+        enum: ['admin', 'client'],
+        default: 'client'
+    },
     verifiedAt: { type: Date, default: null },
     enable2FA: { type: Boolean, default: false },
     otp: { type: String, default: null },
