@@ -173,7 +173,7 @@ export default function MarketComparativeSectorRotation({
     return (
         <div
             className={[
-                'rounded-lg border border-white/5 bg-dark-gray p-4 shadow-[0_6px_24px_rgba(0,0,0,0.35)]',
+                'ua-card p-4 shadow-[0_6px_24px_rgba(0,0,0,0.35)]',
                 className || '',
             ].join(' ')}
         >

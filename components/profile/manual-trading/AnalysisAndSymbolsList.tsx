@@ -11,7 +11,7 @@ interface AnalysisAndSymbolsListProps {
 
 export default function AnalysisAndSymbolsList({ onSymbolClickAction }: AnalysisAndSymbolsListProps) {
     return (
-        <div className="flex flex-col bg-dark-gray rounded-lg py-3 w-full h-full">
+        <div className="flex flex-col bg-dark-gray rounded-xl py-3 w-full h-full">
             <Tabs
                 aria-label="AnalysisAndSymbolsList"
                 classNames={{

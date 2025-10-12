@@ -46,10 +46,10 @@ export default function OpenPositionsTab() {
 
     return (
         <div className="grid grid-cols-12 gap-2">
-            <div className="col-span-8 bg-dark-gray rounded-lg p-4">
+            <div className="col-span-8">
                 <RecentActivities showTabs={false} visibleTab="open" />
             </div>
-            <div className="col-span-4 h-[250px] bg-dark-gray py-6 rounded-lg">
+            <div className="col-span-4 h-[250px] ua-card py-6">
                 {loading
                     ? <div className="flex items-center justify-center h-full text-gray-500">Loading…</div>
                     : <UnrealizedView data={unrealizedData} />

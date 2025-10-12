@@ -368,9 +368,9 @@ export default function TradingViewLightweightChart({
     const intervals: Interval[] = ['1m', '5m', '15m', '30m', '1h', '4h', '1d'];
 
     return (
-        <div className="relative h-full w-full bg-dark-gray rounded-lg">
+        <div className="relative h-full w-full bg-dark-gray rounded-xl">
             {/* Header with OHLC and Interval Selector */}
-            <div className="absolute top-0 left-0 right-0 z-10 flex flex-col-reverse gap-1 items-start justify-between p-2 bg-dark-gray border-b border-stone-800">
+            <div className="absolute top-0 left-0 right-0 z-10 flex flex-col-reverse gap-1 items-start justify-between p-2 bg-dark-gray border-b border-stone-800 rounded-t-xl">
                 <div className="flex items-center gap-4 text-xs text-gray-400 font-mono">
                     {displayOhlc ? (
                         <>

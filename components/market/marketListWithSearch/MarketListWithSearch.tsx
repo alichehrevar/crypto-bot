@@ -86,7 +86,7 @@ export default function MarketListWithSearch({ onSymbolClickAction }: MarketList
 
     // --- RENDER ---
     return (
-        <div className="bg-dark-gray text-white w-full h-full rounded-lg shadow-2xl pt-4 flex flex-col overflow-y-hidden">
+        <div className="bg-dark-gray text-white w-full h-full rounded-xl pb-2 shadow-2xl pt-4 flex flex-col overflow-y-hidden">
             <div className="px-4 mb-4">
                 <SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
             </div>

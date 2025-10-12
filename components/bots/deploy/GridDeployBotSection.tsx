@@ -22,7 +22,7 @@ export default function TechnicalDeployBotSection({
 
     return (
         <div
-            className="flex w-full flex-col bg-dark-gray backdrop-blur-md pt-1 px-4 rounded-lg">
+            className="flex w-full flex-col backdrop-blur-md pt-1 px-4 rounded-xl">
             <Tabs
                 fullWidth
                 aria-label="Options"

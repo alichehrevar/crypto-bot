@@ -14,7 +14,7 @@ export default function TechnicalDeployBotSection({
 }) {
 
   return (
-    <div className="flex w-full h-full flex-col bg-dark-gray backdrop-blur-md rounded-lg">
+    <div className="flex w-full h-full flex-col ua-card">
       <ManualTradeForm selectedSymbol={selectedSymbol} onTradeExecuted={() => onSuccessAction()} />
     </div>
   )

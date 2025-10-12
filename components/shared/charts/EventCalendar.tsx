@@ -239,7 +239,7 @@ const EventCalendar: React.FC = () => {
     // REMOVED: getImpactClass is no longer needed
 
     return (
-        <div className="bg-dark-gray rounded-xl border border-white/5 p-6 shadow-lg flex flex-col min-h-[400px]">
+        <div className="ua-card p-6 shadow-lg flex flex-col min-h-[400px]">
             <CardHeader
                 infoContent="This calendar lists upcoming crypto-specific events that can act as market catalysts. Events like mainnet launches, token unlocks, and major announcements can influence market volatility."
                 infoTitle="About the Event Calendar"

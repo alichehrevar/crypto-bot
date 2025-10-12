@@ -35,9 +35,7 @@ export default function HoldingDetailsPage() {
                         <PnLTab />
                     </Tab>
                     <Tab key="sentiment-events" title="Trade History">
-                        <div className="bg-dark-gray rounded-lg py-4">
-                            <BotsList active={false} showTitle={false} />
-                        </div>
+                        <BotsList active={false} showTitle={false} />
                     </Tab>
                 </Tabs>
             </div>

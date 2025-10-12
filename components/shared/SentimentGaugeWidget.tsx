@@ -189,7 +189,7 @@ export default function SentimentGaugeWidget() {
     }, []);
 
     return (
-        <div className="w-full rounded-lg bg-dark-gray p-4 shadow-sm h-full">
+        <div className="w-full rounded-lg bg-dark-gray p-4 shadow-sm h-full ua-card">
             <CardHeader infoContent={infoContent} infoTitle={infoTitle} title="Fear & Greed Index" />
             <div className="flex h-full flex-col">
                 {isLoading

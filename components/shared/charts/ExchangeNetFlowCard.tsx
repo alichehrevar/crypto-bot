@@ -112,7 +112,7 @@ const ExchangeNetFlowCard: React.FC = () => {
     }, [chartData]);
 
     return (
-        <div className="bg-dark-gray text-white rounded-lg p-6 shadow-md flex flex-col h-full">
+        <div className="ua-card text-white p-6 shadow-md flex flex-col h-full">
             <div className="flex justify-between items-center mb-4">
                 <div className="flex items-center gap-3">
                     <h3 className="text-lg font-semibold text-white m-0">On-Chain Bitcoin Net Flows</h3>

@@ -55,7 +55,7 @@ export default function DailyMarketAnalysis() {
     }, [activeFilter]);
 
     return (
-        <div className="w-full rounded-lg bg-dark-gray text-white shadow-xl p-6 h-64 sm:h-72 flex flex-col">
+        <div className="w-full h-full text-white shadow-xl p-6 flex flex-col ua-card">
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <div className="flex items-center gap-3 relative">

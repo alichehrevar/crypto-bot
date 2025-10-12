@@ -524,7 +524,7 @@ export default function SummaryPieChartWithDetails({
     return (
         <div
             ref={containerRef}
-            className="bg-dark-gray text-white rounded-lg select-none flex flex-col p-6"
+            className="ua-card text-white select-none flex flex-col p-6"
             style={{ width: '100%', height: containerHeightPx }}
         >
             <div className="text-[22px] font-semibold">{title}</div>

@@ -26,7 +26,7 @@ export default function TechnicalDeployBotSection({
   const [selectedParentTab, setSelectedParentTab] = React.useState("spot");
 
   return (
-    <div className="flex w-full h-full flex-col bg-dark-gray backdrop-blur-md px-2 rounded-lg">
+    <div className="flex w-full h-full flex-col bg-dark-gray backdrop-blur-md px-2 rounded-xl">
       <Tabs
         fullWidth
         aria-label="Options"

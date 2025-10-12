@@ -107,7 +107,7 @@ const MoversAndVolatility: React.FC<{ className?: string }> = ({ className = '' 
 
     // --- MAIN RENDER ---
     return (
-        <div className={`bg-dark-gray rounded-lg p-6 border border-white/5 shadow-md flex flex-col ${className}`}>
+        <div className={`ua-card p-6 shadow-md flex flex-col ${className}`}>
             {/* Header section (This part is unchanged) */}
             <div className="flex justify-between items-center mb-4 flex-wrap gap-4">
                 <h3 className="text-lg font-semibold text-white m-0">Market Movers & Volatility</h3>

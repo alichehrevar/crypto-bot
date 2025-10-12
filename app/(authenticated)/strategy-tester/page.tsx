@@ -208,11 +208,11 @@ export default function StrategyTesterPage() {
                 <div className="w-full flex flex-col lg:flex-row items-start gap-2 mt-4 lg:h-[600px]">
                     {/* Left: Chart */}
                     <div className="flex self-stretch w-full gap-2 lg:w-[76%] lg:h-[600px]">
-                        <div className="w-1/3 h-full grid grid-cols-1">
+                        <div className="w-1/3 h-full grid grid-cols-1 ua-card">
                             {/* MarketList */}
                             <MarketListWithSearch onSymbolClickAction={(symbol: MarketListItem) => setSelectedSymbol(symbol)} />
                         </div>
-                        <div className="bg-dark-gray rounded-lg p-0.5 w-2/3 h-full">
+                        <div className="ua-card p-0.5 w-2/3 h-full">
                             {/* RENDER THE NEW CHART WHENEVER WE HAVE chartData (even if candles are empty) */}
                             {chartData && chartData.candles.length > 0 ? (
                                 <BacktestResultChart
@@ -233,7 +233,7 @@ export default function StrategyTesterPage() {
                     </div>
 
                     {/* Right: Form */}
-                    <div className="w-full lg:w-[24%] h-full p-3 bg-dark-gray rounded-lg text-white overflow-y-auto">
+                    <div className="w-full lg:w-[24%] h-full p-3 ua-card text-white overflow-y-auto">
                         <form className="space-y-6 py-2" onSubmit={handleSubmit}>
                             <div className="flex items-center gap-2 mb-4">
                                 <h3 className="text-lg font-semibold text-white">Strategy Parameters</h3>
@@ -322,7 +322,7 @@ export default function StrategyTesterPage() {
                     </div>
                 </div>
 
-                <div className="bg-dark-gray rounded-lg pt-4 px-4">
+                <div className="ua-card pt-4 px-4">
                     <div className="flex items-center justify-between w-full">
                         <div className="flex items-center justify-between">
                             <h3 className="text-xl font-bold mb-4">Backtest Result</h3>

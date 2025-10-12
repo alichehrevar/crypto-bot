@@ -16,8 +16,7 @@ export default function SummaryTab() {
                     <DailyMarketAnalysis />
                 </div>
                 <div className="col-span-5">
-                    <div
-                        className="flex items-center justify-start flex-col bg-dark-gray rounded-lg py-6 px-3 gap-4 h-full min-h-[250px]">
+                    <div className="min-h-[250px]">
                         <TopMovers/>
                     </div>
                 </div>

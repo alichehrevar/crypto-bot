@@ -202,7 +202,7 @@ export default function MarketAnomalyFeed() {
     }, []);
 
     return (
-        <div className="rounded-lg bg-dark-gray p-4">
+        <div className="rounded-lg bg-dark-gray p-4 ua-card">
             <CardHeader infoContent={infoContent} infoTitle={infoTitle} title={title} />
 
             {/* Feed List */}

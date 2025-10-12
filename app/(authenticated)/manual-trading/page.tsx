@@ -22,15 +22,15 @@ export default function ManualTradingPage() {
                 <CoinSummarySection coinId={selectedSymbol?.id || "bitcoin"} />
             </div>
             <div className=" w-full grid grid-cols-12 items-start justify-center gap-2 mt-2">
-                <div className="col-span-3 h-full">
+                <div className="col-span-3 h-full ua-card">
                     <AnalysisAndSymbolsList onSymbolClickAction={(symbol: MarketListItem) => setSelectedSymbol(symbol)} />
                 </div>
                 <div className="col-span-6 h-full">
                     <div className="flex items-center justify-center flex-col gap-2 h-full">
-                        <div className="flex w-full h-[400px]">
+                        <div className="flex w-full h-[400px] ua-card">
                             <RealTimeCandlestickChart interval="1m" symbol="BTCUSDT" timeZone="local"/>
                         </div>
-                        <div className="flex w-full h-full flex-1 technical-analysis">
+                        <div className="flex w-full h-full flex-1 technical-analysis ua-card">
                             <OrderBook/>
                         </div>
                     </div>

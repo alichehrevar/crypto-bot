@@ -239,7 +239,7 @@ const SectorPerformanceRanking: React.FC = () => {
     };
 
     return (
-        <div className="bg-dark-gray rounded-lg p-6 border border-white/5 shadow-md flex flex-col">
+        <div className="p-6 ua-card shadow-md flex flex-col">
             <CardHeader
                 infoContent="This chart ranks market sectors by their collective performance over the last 24 hours. It helps identify which narratives or categories (like AI, Gaming, or DeFi) are currently attracting capital and showing strength."
                 infoTitle="About Sector Performance"

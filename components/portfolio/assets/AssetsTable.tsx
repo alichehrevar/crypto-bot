@@ -101,7 +101,7 @@ export default function AssetsTable({ data = demoData }: AssetsTableProps) {
         new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(v);
 
     return (
-        <div className="bg-dark-gray text-white rounded-lg p-6">
+        <div className="ua-card text-white p-6">
             <div className="text-[22px] font-semibold mb-2">Asset Details</div>
 
             {/* Header Row */}
