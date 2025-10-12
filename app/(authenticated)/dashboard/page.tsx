@@ -4,9 +4,8 @@ import React from "react";
 import {Divider} from "@heroui/react";
 
 import AssetSection from "@/components/dashboard/AssetSection";
-import PnLSection from "@/components/dashboard/PnLSection";
 import TopMovers from "@/components/dashboard/TopMovers";
-import BotsListTable from "@/components/bots/BotsListTable";
+import BotsList from "@/components/bots/BotsList";
 import AssetSummary from "@/components/dashboard/assetSummary";
 import {RecentActivities} from "@/components/shared/RecentActivities";
 import CommunityBotList from "@/components/shared/communityBot/CommunityBotList";
@@ -33,7 +32,7 @@ export default function Dashboard() {
             <div className="pt-7 pb-12">
                 <TopCreators />
             </div>
-            <BotsListTable listType="indicator" />
+            <BotsList listType="indicator" />
             <RecentActivities/>
         </section>
     )
