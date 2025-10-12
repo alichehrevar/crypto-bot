@@ -7,6 +7,7 @@ const candleStore = require('../../../utils/candleStore');
 const wsServer     = require('../WebSocketServer');
 const OrderExecutionService = require('./OrderExecutionService');
 const RiskManagementService = require('./RiskManagementService');
+const botLogger = require('../../../logs/botLogger');
 
 class BotService {
     constructor() {
@@ -117,6 +118,9 @@ class BotService {
 
     /** per-bot handler called by processCandle queue */
     async _handleBot(bot, candle, symbol, timeframe) {
+
+        const logger = botLogger.getLogger(bot._id.toString());
+
         // ——— A) MarketInfo update ———
         const last    = bot.marketInfo.lastCandle;
         const sameTs  = last && new Date(last.timestamp).getTime() === candle.timestamp.getTime();
@@ -135,6 +139,9 @@ class BotService {
             wsServer.broadcastBotUpdate(bot.toObject());
             return;
         }
+
+        // Log the start of processing for a closed candle
+        logger.info(`Processing closed candle. Price: ${candle.close}, Timestamp: ${candle.timestamp.toISOString()}`);
 
         // ——— B) compute each indicator’s raw signal ———
         const signals = [];
@@ -171,23 +178,29 @@ class BotService {
 
             // grab recent
             let recent = candleStore.getLatestCandles(symbol, timeframe, needed);
+            logger.info(`Got ${recent.length} candles for ${cfg.name} (needed ${needed})`);
             if (recent.length < needed) {
                 const more = await this._fetchHistorical(symbol, timeframe, needed - recent.length);
+                logger.info(`Fetched ${more.length} more candles for ${cfg.name} (needed ${needed})`);
                 recent      = more.concat(recent);
+                logger.info(`Now have ${recent.length} candles for ${cfg.name}`);
+                logger.info(`Candles: ${JSON.stringify(recent.slice(-5), null, 2)}`);
             }
 
             // run it
             const key = cfg.name.replace(/-/g,'');
             const Cls = Indicators[key];
             if (!Cls) {
-                console.error(`Unknown indicator "${cfg.name}" on bot "${bot.name}"`);
+                logger.error(`Unknown indicator "${cfg.name}"`);
                 signals.push('HOLD');
             } else {
                 try {
                     const inst = new Cls(cfg.params);
-                    signals.push(inst.calculateSignal(recent));
+                    const signal = inst.calculateSignal(recent);
+                    signals.push(signal);
+                    logger.info(`Indicator '${cfg.name}' produced signal: ${signal}`);
                 } catch (err) {
-                    console.error(`Signal error for "${bot.name}" → ${cfg.name}:`, err.message);
+                    logger.error(`Signal error for ${cfg.name}: ${err.message}`, { stack: err.stack });
                     signals.push('HOLD');
                 }
             }
@@ -199,13 +212,16 @@ class BotService {
             ? this._aggregateWeighted(signals)
             : this._aggregateConsensus(signals);
 
+        logger.info(`Aggregated signals [${signals.join(', ')}] to final signal: ${finalSignal} using '${method}' method.`);
+
         bot.marketInfo.lastSignal = finalSignal;
 
         // ——— D) risk check and order execution ———
         const { canTrade, reason } = await RiskManagementService.checkRisk(bot);
         if (!canTrade) {
-            console.log(`Bot "${bot.name}" blocked:`, reason);
+            logger.warn(`Trade blocked by Risk Management: ${reason}`);
         } else if (finalSignal !== 'HOLD') {
+            logger.info(`Risk management passed. Executing '${finalSignal}' order.`);
             await OrderExecutionService.executeOrder(bot, finalSignal, candle.close, null);
         }
 
