@@ -2,7 +2,7 @@
 
 import React, {useState} from "react";
 
-import BotsList from "@/components/bots/BotsList";
+import BotsListTable from "@/components/bots/BotsListTable";
 import GridDeployBotSection from "@/components/bots/deploy/GridDeployBotSection";
 import RealTimeCandlestickChart, { ChartGridConfig }  from "@/components/shared/charts/TradingViewLightweightChartWithGrids";
 import MarketListWithSearch from "@/components/market/marketListWithSearch/MarketListWithSearch";
@@ -59,7 +59,7 @@ export default function TechnicalBotsPage() {
                     {/* Bottom part of Left Column */}
                     {/* This part remains the same. It will grow to fill the available space. */}
                     <div className="grid grid-cols-1 flex-grow">
-                        <BotsList listType="grid" refreshList={refreshBotsList}/>
+                        <BotsListTable listType="grid" refreshList={refreshBotsList}/>
                     </div>
                 </div>
 

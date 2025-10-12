@@ -6,8 +6,8 @@ import {Tabs, Tab} from "@heroui/react";
 import DetailedViewOfHolding from "@/components/portfolio/DetailedViewOfHolding";
 import OpenPositionsTab from "@/components/portfolio/OpenPositionsTab";
 import PnLTab from "@/components/portfolio/PnLTab";
-import BotsList from "@/components/bots/BotsList";
-import AssetSummary from "@/components/profile/dashboard/assetSummary";
+import BotsListTable from "@/components/bots/BotsListTable";
+import AssetSummary from "@/components/dashboard/assetSummary";
 
 export default function HoldingDetailsPage() {
 
@@ -35,7 +35,7 @@ export default function HoldingDetailsPage() {
                         <PnLTab />
                     </Tab>
                     <Tab key="sentiment-events" title="Trade History">
-                        <BotsList active={false} showTitle={false} />
+                        <BotsListTable active={false} showTitle={false} />
                     </Tab>
                 </Tabs>
             </div>

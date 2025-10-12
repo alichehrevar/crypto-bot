@@ -2,7 +2,7 @@
 
 import React, {useState} from "react";
 
-import BotsList from "@/components/bots/BotsList";
+import BotsListTable from "@/components/bots/BotsListTable";
 import ManualTradeSection from "@/components/bots/deploy/ManualTradeSection";
 import {OrderBook} from "@/components/shared/OrderBook";
 import CoinSummarySection from "@/components/shared/CoinSummarySection";
@@ -41,7 +41,7 @@ export default function ManualTradingPage() {
                 </div>
             </div>
             <div className="grid grid-cols-1 bg-dark-gray mt-2 rounded-lg py-6 px-3 h-[32.2svh]">
-                <BotsList refreshList={refreshBotsList} showDeployButton={false} title="Trading Activities"/>
+                <BotsListTable refreshList={refreshBotsList} showDeployButton={false} title="Trading Activities"/>
             </div>
         </div>
     )

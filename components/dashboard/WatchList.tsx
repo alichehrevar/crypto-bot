@@ -94,7 +94,7 @@ const AddSymbolModal: React.FC<AddSymbolModalProps> = ({ isOpen, onClose, watchl
     const [message, setMessage] = useState('');
     const [isActionMessage, setIsActionMessage] = useState(false);
     const messageTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-    const modalPanelRef = useRef<HTMLDivElement>(null);
+    const modalPanelRef = useRef<HTMLButtonElement>(null);
 
     const watchlistSymbols = watchlist.map(c => c.symbol);
 

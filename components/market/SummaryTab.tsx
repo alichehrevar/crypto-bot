@@ -1,7 +1,7 @@
 import React from "react";
 
 import DailyMarketAnalysis from "@/components/shared/DailyMarketAnalysis";
-import TopMovers from "@/components/profile/dashboard/TopMovers";
+import TopMovers from "@/components/dashboard/TopMovers";
 import MarketAnomalyFeed from "@/components/shared/MarketAnomalyFeed";
 import SentimentGaugeWidget from "@/components/shared/SentimentGaugeWidget";
 

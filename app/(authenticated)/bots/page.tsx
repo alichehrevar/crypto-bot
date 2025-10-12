@@ -5,7 +5,7 @@ import {Tab, Tabs} from "@heroui/react";
 
 import BotSelectionComponent from "@/components/bots/BotSelectionComponent";
 import BotProgressChart from "@/components/shared/charts/BotProgressChart";
-import BotsList from "@/components/bots/BotsList";
+import BotsListTable from "@/components/bots/BotsListTable";
 import {RecentBots} from "@/components/shared/RecentBots";
 import DeployButton from "@/components/shared/ui/DeployButton";
 
@@ -33,10 +33,10 @@ export default function BotsPage() {
                         variant="underlined"
                     >
                         <Tab key="active-bots" title="Active Bots">
-                            <BotsList showDeployButton={false} showTitle={false} />
+                            <BotsListTable showDeployButton={false} showTitle={false} />
                         </Tab>
                         <Tab key="recent-bots" title="Recent Bots">
-                            <BotsList active={false} showTitle={false} />
+                            <BotsListTable active={false} showTitle={false} />
                         </Tab>
                     </Tabs>
                 </div>

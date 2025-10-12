@@ -2,7 +2,7 @@
 
 import React, {useState} from "react";
 
-import BotsList from "@/components/bots/BotsList";
+import BotsListTable from "@/components/bots/BotsListTable";
 import TechnicalDeployBotSection from "@/components/bots/deploy/TechnicalDeployBotSection";
 import CoinSummarySection from "@/components/shared/CoinSummarySection";
 import RealTimeCandlestickChart from "@/components/shared/charts/TradingViewLightweightChart";
@@ -30,7 +30,7 @@ export default function TechnicalBotsPage() {
                     </div>
 
                     <div className="grid grid-cols-1 mt-2 rounded-lg h-[34%]">
-                        <BotsList listType="indicator" refreshList={refreshBotsList}/>
+                        <BotsListTable listType="indicator" refreshList={refreshBotsList}/>
                     </div>
                 </div>
                 <div className="w-full lg:w-[24%] lg:h-[900px] ua-card">

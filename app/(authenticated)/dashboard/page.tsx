@@ -3,16 +3,17 @@
 import React from "react";
 import {Divider} from "@heroui/react";
 
-import AssetSection from "@/components/profile/dashboard/AssetSection";
-import PnLSection from "@/components/profile/dashboard/PnLSection";
-import TopMovers from "@/components/profile/dashboard/TopMovers";
-import BotsList from "@/components/bots/BotsList";
-import AssetSummary from "@/components/profile/dashboard/assetSummary";
+import AssetSection from "@/components/dashboard/AssetSection";
+import PnLSection from "@/components/dashboard/PnLSection";
+import TopMovers from "@/components/dashboard/TopMovers";
+import BotsListTable from "@/components/bots/BotsListTable";
+import AssetSummary from "@/components/dashboard/assetSummary";
 import {RecentActivities} from "@/components/shared/RecentActivities";
 import CommunityBotList from "@/components/shared/communityBot/CommunityBotList";
 import TopCreators from "@/components/shared/TopCreators";
 import Instructions from "@/components/dashboard/Instructions";
 import Watchlist from "@/components/dashboard/WatchList";
+import PnLChart from "@/components/dashboard/PnLChart";
 // import {ActiveBots} from "@/components/ActiveBots";
 
 export default function Dashboard() {
@@ -24,7 +25,7 @@ export default function Dashboard() {
             <Instructions />
             <div className="flex flex-row items-center lg:grid overflow-x-auto lg:grid-cols-2 gap-4 min-h-[220px]">
                 <AssetSection/>
-                <PnLSection/>
+                <PnLChart/>
                 <TopMovers/>
                 <Watchlist/>
             </div>
@@ -32,7 +33,7 @@ export default function Dashboard() {
             <div className="pt-7 pb-12">
                 <TopCreators />
             </div>
-            <BotsList listType="indicator" />
+            <BotsListTable listType="indicator" />
             <RecentActivities/>
         </section>
     )
