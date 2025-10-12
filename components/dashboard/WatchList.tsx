@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback, DragEvent } from 'react';
-import Image from 'next/image'
 
 // --- TYPE DEFINITIONS ---
 interface Crypto {
