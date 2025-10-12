@@ -47,6 +47,10 @@ body {
     background-color: #191919;
 }
 
+.ua-card {
+    @apply border border-gray-700 bg-dark-gray rounded-xl;
+}
+
 label[data-slot="label"]:after {
     display: none;
 }

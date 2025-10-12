@@ -18,39 +18,22 @@ import Watchlist from "@/components/dashboard/WatchList";
 export default function Dashboard() {
 
     return (
-        <section className="px-2 lg:px-8 pt-8 mx-auto w-full flex-1 h-screen overflow-y-auto">
+        <section className="px-2 lg:px-8 pt-8 mx-auto w-full flex-1 h-screen overflow-y-auto space-y-6">
             <AssetSummary/>
             <Divider className="my-8"/>
             <Instructions />
-            <div className="grid grid-cols-2">
-                <Watchlist />
+            <div className="flex flex-row items-center lg:grid overflow-x-auto lg:grid-cols-2 gap-4 min-h-[220px]">
+                <AssetSection/>
+                <PnLSection/>
+                <TopMovers/>
+                <Watchlist/>
             </div>
-            <div className="flex flex-row items-center lg:grid overflow-x-auto lg:grid-cols-3 gap-4 min-h-[220px]">
-                <div
-                    className="flex items-start justify-start flex-col bg-dark-gray rounded-lg p-6 gap-4 min-h-[250px] min-w-[348px]">
-                    <AssetSection/>
-                </div>
-                <div
-                    className="flex items-start justify-start flex-col bg-dark-gray rounded-lg py-6 px-3 gap-4 min-h-[250px] min-w-[348px]">
-                    <PnLSection/>
-                </div>
-                <div
-                    className="flex items-center justify-start flex-col bg-dark-gray rounded-lg py-6 px-3 gap-4 h-full min-h-[250px] min-w-[348px]">
-                    <TopMovers/>
-                </div>
-            </div>
-            <div className="grid grid-cols-1 rounded-lg lg:py-6">
-                <CommunityBotList  />
-            </div>
-            <div className="grid grid-cols-1 rounded-lg mt-10 lg:mt-0 lg:py-6">
+            <CommunityBotList  />
+            <div className="pt-7 pb-12">
                 <TopCreators />
             </div>
-            <div className="grid grid-cols-1 bg-dark-gray mt-8 lg:mt-4 rounded-lg py-6 px-3">
-                <BotsList />
-            </div>
-            <div className="grid grid-cols-1 bg-dark-gray mt-4 rounded-lg py-6 px-3">
-                <RecentActivities/>
-            </div>
+            <BotsList listType="indicator" />
+            <RecentActivities/>
         </section>
     )
 }

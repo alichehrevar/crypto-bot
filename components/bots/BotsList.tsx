@@ -53,7 +53,7 @@ export default function BotsList({refreshList = false, title = "Active Bots", li
     const tableHeaderItems = listType === "indicator" ? indicatorBotListHeader : gridBotListHeader;
 
     return (
-        <>
+        <div className="ua-card p-4 py-6 px-3">
             <div className={`flex items-center ${showTitle ? 'justify-between' : 'justify-end'} w-full px-0 lg:px-4 h-[40px]`}>
                 {showTitle &&
                     <div className="flex items-center justify-between">
@@ -214,6 +214,6 @@ export default function BotsList({refreshList = false, title = "Active Bots", li
                     )}
                 </div>
             }
-        </>
+        </div>
     );
 }

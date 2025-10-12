@@ -67,7 +67,7 @@ export default function PnLSection() {
     }, [tab]);
 
     return (
-        <div className="space-y-4 w-full">
+        <div className="ua-card p-4">
             <div className="flex items-center justify-between w-full">
                 <h4 className="font-bold text-[16px]">PnL</h4>
 

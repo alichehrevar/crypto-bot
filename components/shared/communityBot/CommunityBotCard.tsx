@@ -48,7 +48,7 @@ export const CommunityBotCard: React.FC<CommunityBotCardProps> = ({
     };
 
     return (
-        <div className="bg-dark-gray rounded-xl px-6 py-3 w-full lg:w-[400px]">
+        <div className="ua-card px-6 py-3 w-full lg:w-[400px]">
             <div className="flex justify-between items-center mb-4">
                 <div className="flex items-center space-x-3">
                     <h3 className="text-white text-lg font-semibold">{name}</h3>

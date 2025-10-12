@@ -89,7 +89,7 @@ export const RecentActivities = ({ showTabs = true, visibleTab = 'open' }: { sho
     };
 
     return (
-        <div className="rounded-xl">
+        <div className="ua-card py-6 px-3">
             <div className="flex items-center justify-center w-full flex-col gap-2">
                 <div className="flex items-center justify-between mb-3 px-0 lg:px-4 w-full">
                     <h3 className="text-lg font-semibold text-white">Recent Trading Activities</h3>

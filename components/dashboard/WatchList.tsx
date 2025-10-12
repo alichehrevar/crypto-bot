@@ -287,8 +287,8 @@ const Watchlist: React.FC = () => {
     };
 
     return (
-        <div className="flex items-center justify-center mb-7 font-sans antialiased text-white">
-            <div className="w-full rounded-xl p-6 border border-gray-700 bg-dark-gray">
+        <div className="flex items-center justify-center font-sans antialiased text-white">
+            <div className="w-full p-6 ua-card">
                 <div className="flex justify-between items-center mb-6">
                     <h4 className="font-bold text-lg text-white">My Watchlist</h4>
                     <button className="text-gray-400 hover:text-white transition-colors" title="Add Symbol" onClick={() => setIsModalOpen(true)}>
