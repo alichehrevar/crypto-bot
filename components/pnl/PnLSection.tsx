@@ -12,7 +12,6 @@ import { Tabs, Tab, addToast } from '@heroui/react';
 
 import { getData } from '@/actions/get';
 import UnrealizedView from "@/components/pnl/UnrealizedView";
-import RealizedPnLChart from "@/components/pnl/RealizedPnLChart";
 import RealizedView from "@/components/pnl/RealizedView";
 
 
