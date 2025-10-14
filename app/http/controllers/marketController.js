@@ -59,55 +59,66 @@ exports.getTopMovers = async (req, res) => {
     }
 };
 
+/**
+ * Retrieves a paginated list of market data.
+ * Each document represents a unique symbol-broker pair.
+ *
+ * @query {number} [page=1] - The page number for pagination.
+ * @query {number} [limit=100] - The number of items per page.
+ */
 exports.getMarketList = async (req, res) => {
     try {
-        const userId = req.user.id;
+        const userId = req.user.id; // Assuming user is authenticated
 
-        // 1. Fetch data in parallel.
-        const [coinsFromDB, binanceSymbols, okxSymbols, userFavorites] = await Promise.all([
-            // Fetch all fields needed for the frontend.
-            MarketSnapshot.find({ type: 'coin', rank: { $ne: null } }).sort({ rank: 1 }).lean(),
-            getBinanceSymbols(),
-            getOkxSymbols(),
-            FavoriteSymbol.find({ userId }).select('symbol').lean()
+        // 1. Pagination parameters from query string
+        const page = parseInt(req.query.page, 10) || 1;
+        const limit = parseInt(req.query.limit, 10) || 100;
+        const skip = (page - 1) * limit;
+
+        // 2. Fetch data in parallel: paginated market data and user's favorites
+        const [coinsFromDB, userFavorites] = await Promise.all([
+            MarketSnapshot.find({ rank: { $ne: null } })
+                .sort({ rank: 1 })
+                .skip(skip)
+                .limit(limit)
+                .lean(),
+            FavoriteSymbol.find({ userId }).select('symbol -_id').lean()
         ]);
 
         const favoriteSymbolsSet = new Set(userFavorites.map(fav => fav.symbol));
 
-        // 2. Enrich and format the data.
+        // 3. Map the database documents to the required frontend format
         const marketListData = coinsFromDB.map(coin => {
-            let broker = 'Other';
-            let category = 'Spot';
-
-            // Uppercase the symbol for consistent matching.
-            const baseSymbol = coin.symbol.toUpperCase();
-
-            if (binanceSymbols.has(baseSymbol)) {
-                broker = 'Binance';
-                category = binanceSymbols.get(baseSymbol).category;
-            } else if (okxSymbols.has(baseSymbol)) {
-                broker = 'OKX';
-                category = okxSymbols.get(baseSymbol).category;
-            }
-
-            // Construct the full symbol for display and favorite checking.
-            const fullSymbol = `${baseSymbol}/${category === 'Spot' ? 'USDT' : 'PERP'}`;
+            // The broker name is now directly available in the document.
+            const category = coin.category;
+            const fullSymbol = `${coin.symbol.toUpperCase()}/${category === 'Spot' ? 'USDT' : 'PERP'}`;
             const isFavorite = favoriteSymbolsSet.has(fullSymbol);
 
-            // 3. Format the final object to EXACTLY match the frontend's `MarketListItem` type.
+            // Format the final object to match the frontend's `MarketListItem` type.
             return {
-                id: coin.id,
+                id: coin._id.toString(), // Use the unique MongoDB document ID
                 symbol: fullSymbol,
                 category: category,
-                broker: broker,
-                volume: coin.quotes.USD.total_volume,
-                lastPrice: coin.quotes.USD.price,
-                dailyChange: coin.quotes.USD.percent_change_24h,
+                broker: coin.name, // Direct from the document
+                volume: coin.volume24h, // Mapped from the new field
+                lastPrice: coin.price, // Mapped from the new field
+                dailyChange: coin.change24h, // Mapped from the new field
                 isFavorite: isFavorite,
             };
         });
 
-        res.status(200).json({ data: marketListData, success: true });
+        // 4. Optionally, get the total count for pagination metadata
+        const totalDocuments = await MarketSnapshot.countDocuments({ rank: { $ne: null } });
+
+        res.status(200).json({
+            success: true,
+            data: marketListData,
+            pagination: {
+                currentPage: page,
+                totalPages: Math.ceil(totalDocuments / limit),
+                totalItems: totalDocuments,
+            }
+        });
 
     } catch (error) {
         console.error('Market list error:', error);

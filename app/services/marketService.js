@@ -104,7 +104,7 @@ async function fetchWithRetries(url, maxRetries = 5) {
 
 // --- Main Cron Job Logic ---
 
-async function fetchAndStoreMarketData() {
+async function fetchAndStoreMarketDataUsingCoingecko() {
     const COINGECKO_API_BASE = process.env.COINGECKO_API_URL || 'https://api.coingecko.com/api/v3';
     const API_DELAY = 2000; // A short, 2-second polite delay between successful calls
     const perPage = 250;
@@ -284,6 +284,210 @@ const transformCoinData = (coin) => {
         sparkline: coin.sparkline_in_7d?.price || [], // Use the 7-day sparkline provided
     };
 };
+
+// Words to filter out from symbols (e.g., leveraged/wrapped tokens).
+const SYMBOL_DENY_LIST = ['UP', 'DOWN', 'BULL', 'BEAR', 'HALF', 'EDGE', 'WBTC', 'WETH'];
+
+// --- Broker API Configuration for both Spot and Perpetual markets ---
+const BROKER_APIS = {
+    Binance: {
+        Spot: 'https://api.binance.com/api/v3/ticker/24hr',
+        Perpetual: 'https://fapi.binance.com/fapi/v1/ticker/24hr'
+    },
+    OKX: {
+        Spot: 'https://www.okx.com/api/v5/market/tickers?instType=SPOT',
+        Perpetual: 'https://www.okx.com/api/v5/market/tickers?instType=SWAP' // SWAP is their term for Perps
+    },
+    BingX: {
+        Spot: 'https://open-api.bingx.com/openApi/spot/v1/ticker/24hr',
+        Perpetual: 'https://open-api.bingx.com/openApi/swap/v2/quote/ticker'
+    },
+};
+
+// --- Data Normalization Functions ---
+
+function normalizeData(brokerName, category, data) {
+    const isPerp = category === 'Perpetual';
+
+    const MAPPERS = {
+        Binance: t => ({
+            symbol: t.symbol.replace('USDT', ''),
+            price: parseFloat(t.lastPrice),
+            volume: parseFloat(t.quoteVolume),
+            change: parseFloat(t.priceChangePercent),
+        }),
+        OKX: t => {
+            // Parse numbers from string values provided by the API
+            const lastPrice = parseFloat(t.last);
+            const openPrice = parseFloat(t.open24h);
+
+            // Manually calculate the 24-hour change percentage
+            // Add a check to prevent division by zero if openPrice is 0
+            const change = (openPrice > 0) ? ((lastPrice - openPrice) / openPrice) * 100 : 0;
+
+            const symbol = isPerp
+                ? t.instId.replace('-USDT-SWAP', '')
+                : t.instId.replace('-USDT', '');
+
+            return {
+                symbol: symbol,
+                price: lastPrice,
+                volume: parseFloat(t.volCcy24h),
+                change: change, // Use the newly calculated change
+            };
+        },
+        BingX: t => {
+            const change = isPerp ? parseFloat(t.priceChangePercent) * 100 : parseFloat(t.priceChangePercent);
+            return {
+                symbol: t.symbol.replace('-USDT', ''),
+                price: parseFloat(t.lastPrice),
+                volume: parseFloat(t.quoteVolume),
+                change: change,
+            };
+        },
+    };
+
+    return data
+        .filter(t => {
+            // Determine the correct key and suffix for the given broker and category
+            const symbolKey = brokerName === 'OKX' ? t.instId : t.symbol;
+            let suffix = 'USDT';
+            if (brokerName === 'OKX') {
+                suffix = isPerp ? '-USDT-SWAP' : '-USDT';
+            }
+
+            // 1. Check for a valid symbol and correct suffix
+            if (!symbolKey || !symbolKey.endsWith(suffix)) {
+                return false;
+            }
+
+            // 2. Check against the deny list
+            const baseSymbol = symbolKey.replace(suffix, '');
+            if (SYMBOL_DENY_LIST.some(keyword => baseSymbol.includes(keyword))) {
+                return false;
+            }
+
+            // 3. Check for valid price and volume after mapping
+            const mapped = MAPPERS[brokerName](t);
+            if (!(mapped.price > 0 && mapped.volume > 0)) {
+                // Temporary log to debug filtered items. Can be removed later.
+                // logger.debug(`[Market Cron] Filtering ${brokerName} ${symbolKey}: Invalid price/volume (${mapped.price}/${mapped.volume})`);
+                return false;
+            }
+
+            return true;
+        })
+        .map(t => {
+            const mapped = MAPPERS[brokerName](t);
+            return {
+                symbol: mapped.symbol,
+                price: mapped.price,
+                volume24h: mapped.volume,
+                change24h: mapped.change,
+                name: brokerName,
+                category: category
+            };
+        });
+}
+
+
+async function fetchAndStoreMarketData() {
+    logger.info('[Market Cron] Starting market data sync...');
+
+    const fetchPromises = [];
+    for (const [brokerName, endpoints] of Object.entries(BROKER_APIS)) {
+        for (const [category, baseUrl] of Object.entries(endpoints)) {
+            let url = baseUrl;
+            if (brokerName === 'BingX') {
+                url = `${baseUrl}?timestamp=${Date.now()}`;
+            }
+
+            // **FIX:** Use native fetch with improved error handling to get detailed error messages.
+            const promise = fetch(url, { headers: { 'User-Agent': 'UnitedAlgos-Cron/1.0' }})
+                .then(async (res) => {
+                    if (!res.ok) {
+                        // If the response is not OK, we capture the status and the error body.
+                        const errorBody = await res.text().catch(() => 'Could not read error body.');
+                        throw new Error(`API returned status ${res.status} - ${errorBody}`);
+                    }
+                    return res.json();
+                })
+                .then(body => {
+                    let rawData = [];
+                    if (brokerName === 'Binance') {
+                        rawData = body;
+                    } else if (body && body.data) {
+                        rawData = body.data;
+                    }
+                    return { brokerName, category, status: 'fulfilled', data: rawData };
+                })
+                .catch(error => {
+                    // The error will now be much more descriptive.
+                    return { brokerName, category, status: 'rejected', reason: error.message };
+                });
+            fetchPromises.push(promise);
+        }
+    }
+
+    const results = await Promise.all(fetchPromises);
+    let allMarketPairs = [];
+
+    results.forEach(res => {
+        if (res.status === 'fulfilled') {
+            if (res.data.code && res.data.code !== 0 && res.data.code !== '0') {
+                logger.error(`[Market Cron] ❌ API error from ${res.brokerName} ${res.category}: ${res.data.msg}`);
+                return;
+            }
+            try {
+                const dataToNormalize = Array.isArray(res.data) ? res.data : [];
+                if (dataToNormalize.length === 0) {
+                    logger.warn(`[Market Cron] No data received from ${res.brokerName} ${res.category}.`);
+                }
+                const normalized = normalizeData(res.brokerName, res.category, dataToNormalize);
+                allMarketPairs = allMarketPairs.concat(normalized);
+            } catch (err) {
+                logger.error(`[Market Cron] ❌ Error normalizing data for ${res.brokerName} ${res.category}:`, err);
+            }
+        } else {
+            // This log will now contain the detailed error message from the API.
+            logger.error(`[Market Cron] ❌ Failed to fetch from ${res.brokerName} ${res.category}: ${res.reason}`);
+        }
+    });
+
+    logger.info(`[Market Cron] Total valid market pairs fetched and normalized: ${allMarketPairs.length}.`);
+
+    if (allMarketPairs.length === 0) {
+        logger.warn('[Market Cron] No valid market pairs to sync. Aborting.');
+        return;
+    }
+
+    // Rank based on volume across all fetched coins
+    allMarketPairs.sort((a, b) => b.volume24h - a.volume24h);
+    allMarketPairs.forEach((coin, index) => {
+        coin.rank = index + 1;
+    });
+
+    const bulkOps = allMarketPairs.map(coin => ({
+        updateOne: {
+            filter: { symbol: coin.symbol, name: coin.name, category: coin.category },
+            update: {
+                $set: { ...coin, last_updated: new Date() },
+            },
+            upsert: true,
+        },
+    }));
+
+    try {
+        logger.info(`[Market Cron] Performing bulk write for ${bulkOps.length} operations...`);
+        const result = await MarketSnapshot.bulkWrite(bulkOps, { ordered: false });
+        logger.info('[Market Cron] ✅ Sync complete.', {
+            upserted: result.upsertedCount,
+            modified: result.modifiedCount,
+        });
+    } catch (error) {
+        logger.error('[Market Cron] ❌ Error during bulk write operation:', error);
+    }
+}
 
 module.exports = {
     getTopMoversFromBinance,

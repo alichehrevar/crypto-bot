@@ -81,6 +81,7 @@ class BotService {
                 limit:    count
             }
         });
+
         return resp.data.map(k => ({
             timestamp: new Date(k[0]),
             open:      +k[1],
@@ -97,16 +98,18 @@ class BotService {
      * Serializes per-bot via a promise queue so no races on save().
      */
     async processCandle(symbol, timeframe, candle) {
+
+
         const key = `${symbol.toUpperCase()}-${timeframe.toLowerCase()}`;
         const bots = this.activeBots.get(key) || [];
         if (!bots.length) return;
 
         // update our in-memory candle store
         candleStore.updateCandle(symbol, timeframe, candle);
-
         for (const bot of bots) {
+
             const botId = bot._id.toString();
-            const prev  = this._locks.get(botId) || Promise.resolve();
+            const prev  = this._locks.get(botId) || await Promise.resolve();
 
             const next = prev
                 .catch(() => {})          // ignore prior errors

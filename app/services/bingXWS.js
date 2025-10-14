@@ -31,29 +31,17 @@ class BingXWS {
     connect() {
         if (this.ws) return;
 
-        // BingX Perpetual Swap WebSocket endpoint with authentication.
         const endpoint = `wss://open-api-swap.bingx.com/swap-market`;
-
         this.ws = new WebSocket(endpoint, {
-            perMessageDeflate: false // Disable compression if not needed.
+            perMessageDeflate: false
         });
-
-        // Set explicit binaryType.
         this.ws.binaryType = 'arraybuffer';
 
-        // Set up ping interval.
-        this.setupPingInterval();
+        // REMOVED: this.setupPingInterval();
 
         this.ws.on('open', () => {
             console.log('[BingXWS] Connected to BingX WebSocket');
             this.reconnectAttempts = 0;
-
-            // Authenticate the connection.
-            // Note: Remove default credentials; authentication should be done with user-provided values.
-            // Example (to be implemented later):
-            // this.authenticate(timestamp, signature, userProvidedApiKey);
-
-            // Resubscribe to all active subscriptions.
             this.subscriptions.forEach((sub) => {
                 this.sendSubscription(sub.symbol, sub.interval);
             });
@@ -62,25 +50,20 @@ class BingXWS {
         this.ws.on('message', async (data, isBinary) => {
             try {
                 let message;
-                // Handle binary messages.
                 if (isBinary) {
                     message = this.parseBinaryMessage(data);
                 } else {
                     message = JSON.parse(data.toString());
                 }
 
-                if (!message) {
-                    // parsing failed or empty payload
-                    return;
-                }
+                if (!message) return;
 
-                // Handle ping messages.
+                // This part is correct and is all you need for keep-alive
                 if (message.ping) {
                     this.handlePing(message.ping);
                     return;
                 }
 
-                // Handle authentication response.
                 if (message.event === 'login') {
                     this.handleAuthResponse(message);
                     return;

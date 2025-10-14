@@ -13,7 +13,7 @@ const runInitialMarketUpdate = async () => {
 };
 
 const scheduleMarketUpdate = () => {
-    // Run every 24 hours
+    // Run every hour at the beginning of the hour
     cron.schedule('0 * * * *', async () => {
         try {
             console.log('[Cron] Updating market data (scheduled)…');

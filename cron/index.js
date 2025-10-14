@@ -1,5 +1,15 @@
 // cron/index.js
 
+/**
+ * Schedules the market data update to run at the beginning of every hour.
+ * Cron schedule '0 * * * *' means:
+ * - 0: At minute 0
+ * - *: Every hour
+ * - *: Every day of the month
+ * - *: Every month
+ * - *: Every day of the week
+ */
+
 // Import job schedulers
 const { runInitialMarketUpdate, scheduleMarketUpdate } = require('./updateMarketData');
 const { scheduleSnapshots, runInitialSnapshot } = require('./snapshotJob');
@@ -47,8 +57,10 @@ const startScheduledJobs = async () => {
         schedulePriceUpdate();
         await delay(startupDelay);
 
-        // await runInitialMarketUpdate();
-        // scheduleMarketUpdate();
+        // 7. Run the initial market update
+        logger.info('Starting: Initial market update job.')
+        await runInitialMarketUpdate();
+        scheduleMarketUpdate();
 
         logger.info('✅ All scheduled jobs have been started successfully.');
     } catch (error) {

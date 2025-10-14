@@ -1,55 +1,44 @@
-// app/models/MarketSnapshot.js
-
 const mongoose = require('mongoose');
 const { Schema } = mongoose;
 
-// Sub-schema for the ROI data (can be null)
-const roiSchema = new Schema({
-    times: Number,
-    currency: String,
-    percentage: Number
-}, { _id: false });
-
-// Sub-schema for the quote data (USD, BTC, etc.)
-const quoteSchema = new Schema({
-    price: Number,
-    high_24h: Number,
-    low_24h: Number,
-    price_change_24h: Number,
-    market_cap: Number,
-    market_cap_change_24h: Number,
-    market_cap_change_percentage_24h: Number,
-    fully_diluted_valuation: Number,
-    total_volume: Number,
-    percent_change_1h: Number,
-    percent_change_24h: Number,
-    percent_change_7d: Number
-}, { _id: false });
-
 const MarketSnapshotSchema = new Schema({
-    id:                 { type: String, required: true, unique: true },
-    name:               { type: String, required: true },
-    symbol:             { type: String, required: true },
-    rank:               { type: Number, index: true },
-    type:               { type: String, enum: ['coin', 'token'] },
-    circulating_supply: { type: Number },
-    total_supply:       { type: Number },
-    max_supply:         { type: Number },
-    ath:                { type: Number }, // All-Time High price
-    ath_change_percentage: { type: Number },
-    ath_date:           { type: Date },
-    atl:                { type: Number }, // All-Time Low price
-    atl_change_percentage: { type: Number },
-    first_data_at:      { type: Date }, // This field will hold `atl_date` from the API
-    last_updated:       { type: Date },
-    roi:                roiSchema, // ROI sub-document
-    quotes: {
-        USD: quoteSchema,
-        BTC: quoteSchema
+    // The trading symbol (e.g., 'BTC', 'ETH').
+    symbol: {
+        type: String,
+        required: true,
+        uppercase: true,
+        index: true
     },
-    imageUrl:           { type: String },
+    // The name of the broker where the data originated.
+    name: {
+        type: String,
+        required: true,
+        enum: ['Binance', 'OKX', 'BingX'],
+        index: true
+    },
+    // The market category: Spot or Perpetual Futures.
+    category: {
+        type: String,
+        required: true,
+        enum: ['Spot', 'Perpetual'],
+        index: true
+    },
+    // The rank is calculated across all individual listings based on volume.
+    rank: {
+        type: Number,
+        index: true
+    },
+    price: { type: Number, required: true },
+    volume24h: { type: Number, required: true },
+    change24h: { type: Number, required: true },
+    last_updated: { type: Date, default: Date.now }
 }, {
-    timestamps: true
+    timestamps: true // Adds createdAt and updatedAt
 });
 
+// A compound unique index to ensure only one entry per symbol-broker-category pair.
+// This is the critical line that fixes the duplicate key error.
+MarketSnapshotSchema.index({ symbol: 1, name: 1, category: 1 }, { unique: true });
+
 module.exports = mongoose.model('MarketSnapshot', MarketSnapshotSchema);
+

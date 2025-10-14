@@ -9,6 +9,7 @@ const Candle         = require('../../models/Candle');
 const BinanceAccount = require('../../models/BinanceAccount');
 const OkxAccount     = require('../../models/OkxAccount');
 const BingxAccount   = require('../../models/BingxAccount');
+const MarketSnapshot   = require('../../models/MarketSnapshot');
 const BotService     = require('../../services/botService/BotService');
 const PnLService     = require('../../services/PnLService');
 const logger = require("../../../logs/logger");
@@ -161,6 +162,11 @@ exports.deployBot = async (req, res) => {
             share,
         } = req.body;
 
+        const marketSnapshot = MarketSnapshot.findOne({symbol})
+        if (!marketSnapshot) {
+            return res.status(400).json({ error: 'Wrong symbol is selected.' });
+        }
+
         // CHANGED: The top-level timeframe is no longer sent.
         // We derive it from the first indicator, as the BotBase model requires it.
         // Check if indicators is a string and parse it
@@ -231,7 +237,7 @@ exports.deployBot = async (req, res) => {
             bot = await IndicatorBot.create({
                 botType:       'indicator',
                 name,
-                symbol,
+                symbol: marketSnapshot.symbol,
                 timeframe:     normalizedTF, // ADDED: Pass the derived primary timeframe
                 userId:        user._id,
                 accountType,

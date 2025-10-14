@@ -24,11 +24,14 @@ class BinanceWS {
 
 
     connect() {
+
+        console.log('[BinanceWS] Attempting to connect to Binance WebSocket...')
+
         // Connect to Binance's miniTicker stream (all-symbol 1m updates).
         this.ws = new WebSocket('wss://stream.binance.com:9443/ws/!miniTicker@arr');
 
         this.ws.on('open', () => {
-            console.log('Connected to Binance WebSocket');
+            console.log('[BinanceWS] Connected to Binance WebSocket');
         });
 
         this.ws.on('message', async (data) => {
@@ -36,12 +39,12 @@ class BinanceWS {
                 const tickers = JSON.parse(data);
                 await this.processTickers(tickers);
             } catch (error) {
-                console.error('WS message processing error:', error);
+                console.error('[BinanceWS] WS message processing error:', error);
             }
         });
 
         this.ws.on('error', (err) => {
-            console.error('WebSocket error:', err);
+            console.error('[BinanceWS] WebSocket error:', err);
         });
     }
 
