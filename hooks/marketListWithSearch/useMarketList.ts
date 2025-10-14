@@ -77,7 +77,7 @@ export function useMarketList() {
         switch (activeMainTab) {
             case 'Favorites': filtered = filtered.filter(s => s.isFavorite); break;
             case 'Spot': filtered = filtered.filter(s => s.category === 'Spot'); break;
-            case 'Prep USDT-M': filtered = filtered.filter(s => ['USDT-M', 'New Listing'].includes(s.category)); break;
+            case 'Prep USDT-M': filtered = filtered.filter(s => ['Perpetual', 'New Listing'].includes(s.category)); break;
         }
         // Chip filtering
         if (activeFilter !== 'All') filtered = filtered.filter(s => s.category === activeFilter);

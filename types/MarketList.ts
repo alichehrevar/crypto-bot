@@ -2,7 +2,7 @@
 export type MarketListItem = {
     id: string;
     symbol: string;
-    category: 'Spot' | 'USDT-M' | 'New Listing';
+    category: 'Spot' | 'New Listing' | 'Perpetual';
     broker: 'Binance' | 'OKX' | 'Bybit' | 'BingX' | 'Other';
     volume: number;
     volume24h: number;

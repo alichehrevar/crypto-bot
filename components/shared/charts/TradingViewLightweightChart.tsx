@@ -5,13 +5,15 @@ import {
     IChartApi,
     ISeriesApi,
     CandlestickData,
-    UTCTimestamp,
     ColorType,
 } from 'lightweight-charts';
 import {addToast, Spinner} from '@heroui/react';
 
+import {MarketListItem} from "@/types/MarketList";
+import { getExchangeAdapter } from "@/utils/adapters/ExchangeAdapter";
+
 interface RealTimeCandlestickChartProps {
-    symbol?: 'BTCUSDT' | string;
+    symbol?: MarketListItem | null;
     interval?: '1m' | '5m' | '15m' | '30m';
     timeZone?: 'UTC' | 'local' | string;
     locale?: string;
@@ -38,7 +40,7 @@ const THEME = {
 } as const;
 
 export default function RealTimeCandlestickChart({
-                                                     symbol = 'BTCUSDT',
+                                                     symbol = null,
                                                      interval = '1m',
                                                      timeZone = 'UTC',
                                                      locale,
@@ -95,6 +97,7 @@ export default function RealTimeCandlestickChart({
 
             if (data) {
                 const candleColor = data.close >= data.open ? UP_COLOR : DOWN_COLOR;
+
                 setOhlc({ open: data.open, high: data.high, low: data.low, close: data.close, color: candleColor });
             } else {
                 setOhlc(null);
@@ -168,90 +171,76 @@ export default function RealTimeCandlestickChart({
 
     /* 3) Load history + live updates AFTER chart is ready, and on symbol/interval change */
     useEffect(() => {
-        if (!isReady || !seriesRef.current || !chartRef.current) return;
+        // Do nothing if the chart isn't ready or if no symbol is selected
+        if (!isReady || !seriesRef.current || !chartRef.current || !symbol) {
+            // Clear data if no symbol is selected
+            if (seriesRef.current) {
+                seriesRef.current.setData([]);
+            }
+
+            return;
+        }
 
         const series = seriesRef.current;
         const chart = chartRef.current;
+        let cleanupWebSocket: (() => void) | null = null;
         let active = true;
+
+        const adapter = getExchangeAdapter(symbol.broker);
 
         setIsDataLoading(true);
         setOhlc(null);
+
+        // Close any previous WebSocket connection
         wsRef.current?.close();
 
         (async () => {
             try {
-                const url = `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${currentInterval}&limit=1000`;
-                const resp = await fetch(url);
-
-                if (!resp.ok) {
-                    addToast({
-                        title: 'Failed to fetch historical data',
-                        color: 'danger'
-                    })
-
-                    return;
-                }
-                const raw = await resp.json();
+                // 2. Fetch historical data using the adapter
+                const initialData = await adapter.fetchHistoricalData(symbol, currentInterval);
 
                 if (!active) return;
 
-                const initial: CandlestickData[] = raw.map((d: any[]) => ({
-                    time: Math.floor(d[0] / 1000) as UTCTimestamp,
-                    open: +d[1],
-                    high: +d[2],
-                    low: +d[3],
-                    close: +d[4],
-                }));
+                series.setData(initialData);
 
-                series.setData(initial);
+                if (initialData.length > 0) {
+                    const dataSize = initialData.length;
 
-                // The total number of candles we just loaded
-                const dataSize = initial.length;
-
-                if (dataSize > 0) {
-                    // Set the visible logical range to show the last 100 bars
-                    // You can change 100 to any number you want for the zoom level
                     chart.timeScale().setVisibleLogicalRange({
-                        from: dataSize - 100, // Show from the 100th-to-last bar
-                        to: dataSize - 1,   // Show up to the last bar
+                        from: dataSize > 100 ? dataSize - 100 : 0,
+                        to: dataSize - 1,
                     });
                 } else {
-                    // If there's no data, fit the content (shows an empty chart)
                     chart.timeScale().fitContent();
                 }
-
-            } catch {
+            } catch (error) {
                 addToast({
-                    title: 'Error fetching klines',
+                    title: `Error fetching data from ${symbol.broker}`,
                     color: 'danger'
-                })
+                });
                 series.setData([]); // Clear data on error
             } finally {
                 if (active) setIsDataLoading(false);
             }
         })();
 
-        const ws = new WebSocket(`wss://stream.binance.com:9443/ws/${symbol.toLowerCase()}@kline_${currentInterval}`);
-
-        wsRef.current = ws;
-
-        ws.onmessage = (event) => {
-            if (!active) return;
-            const { k: tickData } = JSON.parse(event.data);
-            const tick: CandlestickData = {
-                time: (tickData.t / 1000) as UTCTimestamp,
-                open: +tickData.o,
-                high: +tickData.h,
-                low: +tickData.l,
-                close: +tickData.c,
-            };
-
-            series.update(tick);
-        };
+        // 3. Subscribe to the live stream using the adapter
+        cleanupWebSocket = adapter.subscribeToKlineStream(
+            symbol,
+            currentInterval,
+            (candle) => {
+                if (active && seriesRef.current) {
+                    seriesRef.current.update(candle);
+                }
+            }
+        );
 
         return () => {
             active = false;
-            ws.close();
+            // Use the cleanup function returned by the adapter
+            if (cleanupWebSocket) {
+                cleanupWebSocket();
+            }
         };
     }, [symbol, currentInterval, isReady]);
 
@@ -265,7 +254,7 @@ export default function RealTimeCandlestickChart({
         <div ref={containerRef} className="relative w-full flex-grow rounded-xl h-full">
             <div className="absolute top-0 right-0 left-0 z-10 bg-dark-gray rounded-t-xl shadow-lg p-2 flex flex-col-reverse gap-2 items-start">
                 <div className="flex-grow flex items-center gap-4 pl-2">
-                    {ohlc ? (
+                    {ohlc && (
                         <div
                             className="flex gap-3 text-xs font-mono"
                             style={{ color: ohlc.color }}
@@ -274,10 +263,6 @@ export default function RealTimeCandlestickChart({
                             <span><span className="text-white font-bold">H:</span> {formatPrice(ohlc.high)}</span>
                             <span><span className="text-white font-bold">L:</span> {formatPrice(ohlc.low)}</span>
                             <span><span className="text-white font-bold">C:</span> {formatPrice(ohlc.close)}</span>
-                        </div>
-                    ) : (
-                        <div className="text-sm font-bold text-white/90">
-                            {symbol}
                         </div>
                     )}
                 </div>
