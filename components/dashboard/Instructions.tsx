@@ -92,8 +92,8 @@ const Instructions: React.FC = () => {
         <div className="my-7 items-center justify-center font-sans bg-dark-gray" style={{ color: colors.textPrimary }}>
             <div className="w-full">
                 <div
-                    className="rounded-xl p-8 border"
-                    style={{ backgroundColor: colors.bgCard, borderColor: colors.accentLime }}
+                    className="rounded-xl p-8 ua-card"
+                    style={{ backgroundColor: colors.bgCard }}
                 >
                     <h2 className="text-2xl font-bold mb-4 text-white">Activate Your Trading Engine</h2>
                     <p className="mb-8" style={{ color: colors.textSecondary }}>
