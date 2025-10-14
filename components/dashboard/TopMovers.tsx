@@ -100,8 +100,8 @@ export default function TopMovers() {
                                     <div
                                         className={`w-full rounded-t shadow-lg ${
                                             isUp
-                                                ? 'bg-green-500 shadow-green-500/50'
-                                                : 'bg-red-500 shadow-red-500/50'
+                                                ? 'bg-green-gradient'
+                                                : 'bg-red-gradient'
                                         }`}
                                         style={{height: `${heightPct}%`}}
                                     />

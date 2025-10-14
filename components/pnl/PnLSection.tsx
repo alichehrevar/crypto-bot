@@ -13,6 +13,7 @@ import { Tabs, Tab, addToast } from '@heroui/react';
 import { getData } from '@/actions/get';
 import UnrealizedView from "@/components/pnl/UnrealizedView";
 import RealizedPnLChart from "@/components/pnl/RealizedPnLChart";
+import RealizedView from "@/components/pnl/RealizedView";
 
 
 /* ---------------- main component ---------------- */
@@ -87,11 +88,11 @@ export default function PnLSection() {
                 </Tabs>
             </div>
 
-            <div className={`w-full h-full transition-all duration-200 ${tab === 'unrealized-pnl' ? 'ml-[-35px] overflow-x-hidden' : ''}`}>
+            <div className={`w-full h-[230px] transition-all duration-200 ${tab === 'unrealized-pnl' ? 'ml-[-35px] overflow-x-hidden' : ''}`}>
                 {loading ? (
                     <div className="flex items-center justify-center h-full text-gray-500">Loading…</div>
                 ) : tab === 'realized-pnl' ? (
-                    <RealizedPnLChart data={realizedData} />
+                    <RealizedView data={realizedData} />
                 ) : (
                     <UnrealizedView data={unrealizedData} />
                 )}

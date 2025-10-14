@@ -131,8 +131,8 @@ export default function RealizedView({data}: { data: RealizedPoint[] }) {
             <RBarChart barGap={8} data={bars} margin={{top: 6, right: 6, left: 6, bottom: 0}}>
                 <defs>
                     <linearGradient id={gradId} x1="0" x2="0" y1="0" y2="1">
-                        <stop offset="5%" stopColor="#818cf8" stopOpacity={0.85}/>
-                        <stop offset="95%" stopColor="#4f46e5" stopOpacity={0.95}/>
+                        <stop offset="5%" stopColor="#9EF01A" stopOpacity={0.85}/>
+                        <stop offset="95%" stopColor="#4CAF50" stopOpacity={0.95}/>
                     </linearGradient>
                 </defs>
                 <XAxis

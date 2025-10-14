@@ -81,7 +81,11 @@ const config: Config = {
           300: "#81C7FF",
           400: "#66BBFF",
         }
-      }
+      },
+        backgroundImage: {
+            'green-gradient': 'linear-gradient(to bottom, #9EF01A, #4CAF50)',
+            'red-gradient': 'linear-gradient(to bottom, #F44336, #D32F2F)',
+        }
     },
   },
   darkMode: "class",
