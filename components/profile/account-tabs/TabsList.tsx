@@ -5,7 +5,6 @@ import {useSearchParams} from "next/navigation";
 import {Tab, Tabs} from "@heroui/react";
 
 import AccountSettingsTab from "@/components/profile/account-tabs/accountSettings/AccountSettings";
-import ConnectBrokerTab from "@/components/profile/account-tabs/broker/ConnectBroker";
 import Subscriptions from "@/components/profile/account-tabs/subscriptions/Subscriptions";
 import NotificationSection from "@/components/profile/account-tabs/NotificationSection";
 import BrokerSettingsPage from "@/components/profile/account-tabs/broker/BrokerSettings";
