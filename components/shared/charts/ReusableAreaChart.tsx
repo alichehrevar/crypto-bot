@@ -149,7 +149,7 @@ export default function ReusableAreaChart({ data }: { data: ChartData }) {
                         fillOpacity={1}
                         stroke="#4CAF50"
                         strokeWidth={1.5}
-                        type="natural"
+                        type="bump"
                     />
                 </AreaChart>
             </ResponsiveContainer>
