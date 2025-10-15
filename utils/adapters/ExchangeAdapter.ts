@@ -4,7 +4,7 @@ import { CandlestickData } from 'lightweight-charts';
 
 import { BinanceAdapter } from './binance-adapter';
 import { OkxAdapter } from './okx-adapter';
-import { BingXAdapter } from './bingx-adapter';
+// import { BingXAdapter } from './bingx-adapter';
 
 import { MarketListItem } from '@/types/MarketList';
 
