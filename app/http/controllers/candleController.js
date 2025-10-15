@@ -225,7 +225,7 @@ async function proxyKlines (req, res){
         const message = error.response ? error.response.data : 'Internal server error';
         return res.status(status).json({ message: 'Failed to fetch data from exchange', error: message });
     }
-};
+}
 
 module.exports = {
     fetchHistoricalData,
