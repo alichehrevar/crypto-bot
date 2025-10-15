@@ -1,5 +1,7 @@
 // app/services/coinService.js
 const axios = require('axios');
+const MarketSnapshot = require('../models/MarketSnapshot');
+const coinDataArray = require('../../db/seeds/market-data.json');
 const delay = require('../../utils/delay');
 
 const COINGECKO = process.env.COINGECKO_API_URL || 'https://api.coingecko.com/api/v3';
@@ -8,7 +10,6 @@ const COINGECKO = process.env.COINGECKO_API_URL || 'https://api.coingecko.com/ap
 const cache = new Map();
 
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
-const toCoingeckoId = (id) => id.toLowerCase(); // Placeholder for your ID mapping function
 
 // --- New Configuration for Retry Logic ---
 const MAX_RETRIES = 4; // The total attempts will be MAX_RETRIES + 1
@@ -16,20 +17,29 @@ const INITIAL_DELAY_MS = 1000; // Start with a 1-second delay
 
 /**
  * A simple helper function to wait for a specified duration.
- * @param coinIdOrSymbol
+ * @param marketSnapshotId
  */
-async function getCoinSummary(coinIdOrSymbol) {
-    const id = toCoingeckoId(coinIdOrSymbol);
+async function getCoinSummary(marketSnapshotId) {
+
     const now = Date.now();
 
     // 1. Check if a valid cache entry exists
-    if (cache.has(id)) {
-        const cached = cache.get(id);
+    if (cache.has(marketSnapshotId)) {
+        const cached = cache.get(marketSnapshotId);
         if (now - cached.timestamp < CACHE_TTL_MS) {
-            console.log(`Returning cached data for ${id}.`);
+            console.log(`Returning cached data for ${marketSnapshotId}.`);
             return cached.data;
         }
     }
+
+    // find the symbol of selected id
+    const marketSnapshot = await MarketSnapshot.findById(marketSnapshotId);
+    if (!marketSnapshot) {
+        console.error(`MarketSnapshot not found for ID: ${marketSnapshotId}`);
+        return null;
+    }
+
+    const id = findIdBySymbol(marketSnapshot.symbol);
 
     // 2. If no valid cache, fetch from API with retry logic
     let retries = MAX_RETRIES;
@@ -68,7 +78,7 @@ async function getCoinSummary(coinIdOrSymbol) {
                 // For any other error, or if we are out of retries, re-throw the error
                 // to be handled by the outer catch block.
                 const errorMessage = error.response ? JSON.stringify(error.response.data) : error.message;
-                console.error(`Error in getCoinSummary (CoinGecko) for ${coinIdOrSymbol}:`, errorMessage);
+                console.error(`Error in getCoinSummary (CoinGecko) for ${id}:`, errorMessage);
 
                 // If API fails, check for an expired cache entry and return it if it exists
                 if (cache.has(id)) {
@@ -95,7 +105,7 @@ async function getCoinSummary(coinIdOrSymbol) {
         const data = coinDetailsRes.data;
         const marketData = data.market_data;
 
-        console.log(`Coin ${coinIdOrSymbol} (${id}) summary processed successfully.`);
+        console.log(`Coin (${id}) summary processed successfully.`);
         const summaryData = {
             id: data.id,
             name: data.name,
@@ -126,6 +136,22 @@ async function getCoinSummary(coinIdOrSymbol) {
         console.error(`Failed to process data for ${id} after successful fetch:`, processingError.message);
         return null; // Or return stale cache if available
     }
+}
+
+/**
+ * Finds a coin's ID by its symbol, ignoring case.
+ * @param {string} symbol The symbol to search for (e.g., 'BTC', 'eth').
+ * @returns {string|null} The coin ID if found, otherwise null.
+ */
+function findIdBySymbol(symbol) {
+    // Ensure the input symbol is lowercase for comparison
+    const targetSymbol = symbol.toLowerCase();
+
+    // Use the .find() method to search the array
+    const foundCoin = coinDataArray.find(coin => coin.symbol.toLowerCase() === targetSymbol);
+
+    // If a coin was found, return its id. Otherwise, return null.
+    return foundCoin ? foundCoin.id : null;
 }
 
 module.exports = { getCoinSummary };

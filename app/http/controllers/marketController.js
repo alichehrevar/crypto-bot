@@ -73,14 +73,14 @@ exports.getMarketList = async (req, res) => {
         // 1. Pagination parameters from query string
         const page = parseInt(req.query.page, 10) || 1;
         const limit = parseInt(req.query.limit, 10) || 100;
-        const skip = (page - 1) * limit;
+        // const skip = (page - 1) * limit;
 
         // 2. Fetch data in parallel: paginated market data and user's favorites
         const [coinsFromDB, userFavorites] = await Promise.all([
             MarketSnapshot.find({ rank: { $ne: null } })
                 .sort({ rank: 1 })
-                .skip(skip)
-                .limit(limit)
+                // .skip(skip)
+                // .limit(limit)
                 .lean(),
             FavoriteSymbol.find({ userId }).select('symbol -_id').lean()
         ]);

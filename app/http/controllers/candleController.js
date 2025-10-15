@@ -159,8 +159,77 @@ async function getData(req, res) {
     }
 }
 
+/**
+ * Proxies K-line (candlestick) data requests to external exchanges.
+ * This resolves frontend CORS issues and centralizes API logic.
+ */
+async function proxyKlines (req, res){
+
+    // 1. Extract query parameters from the frontend request
+    const { exchange, symbol, interval, category } = req.query;
+
+    if (!exchange || !symbol || !interval || !category) {
+        return res.status(400).json({ message: 'Missing required parameters: exchange, symbol, interval, category' });
+    }
+
+    let externalApiUrl;
+    let apiSymbol = symbol;
+
+    try {
+        // 2. Build the correct API URL and format the symbol based on the exchange
+        switch (exchange) {
+            case 'Binance':
+                if (category === 'Perpetual' || category === 'USDT-M') {
+                    apiSymbol = symbol.toUpperCase().replace(/[\/]?PERP/, 'USDT');
+                    externalApiUrl = `https://fapi.binance.com/fapi/v1/klines?symbol=${apiSymbol}&interval=${interval}&limit=1000`;
+                } else {
+                    apiSymbol = symbol.replace('/', '');
+                    externalApiUrl = `https://api.binance.com/api/v3/klines?symbol=${apiSymbol}&interval=${interval}&limit=1000`;
+                }
+                break;
+
+            case 'BingX':
+                console.log(exchange)
+                if (category === 'Perpetual' || category === 'USDT-M') {
+                    apiSymbol = symbol.toUpperCase().replace(/[\/]?PERP/, '-USDT');
+                } else {
+                    apiSymbol = symbol.replace('/', '-'); // Assuming Spot might also need formatting
+                }
+                externalApiUrl = `https://open-api.bingx.com/openApi/swap/v3/quote/klines?symbol=${apiSymbol}&interval=${interval}&limit=1000`;
+                break;
+
+            case 'OKX':
+                // OKX uses 'bar' for interval and doesn't need symbol transformation
+                const intervalMap = { '1m': '1m', '5m': '5m', '15m': '15m', '30m': '30m', '1h': '1H', '4h': '4H', '1d': '1D' };
+                const bar = intervalMap[interval] || '1m';
+                externalApiUrl = `https://www.okx.com/api/v5/market/candles?instId=${symbol}&bar=${bar}&limit=300`;
+                break;
+
+            default:
+                return res.status(400).json({ message: 'Unsupported exchange' });
+        }
+
+        // 3. Call the external API and forward the response
+        const response = await axios.get(externalApiUrl);
+
+        // Special handling for OKX data which is newest first
+        if (exchange === 'OKX' && response.data.data) {
+            response.data.data.reverse();
+        }
+
+        return res.status(200).json(response.data);
+
+    } catch (error) {
+        console.error(`[PROXY ERROR for ${exchange}]:`, error.response ? error.response.data : error.message);
+        const status = error.response ? error.response.status : 500;
+        const message = error.response ? error.response.data : 'Internal server error';
+        return res.status(status).json({ message: 'Failed to fetch data from exchange', error: message });
+    }
+};
+
 module.exports = {
     fetchHistoricalData,
     updateCandlesIfNeeded,
+    proxyKlines,
     getData
 };
