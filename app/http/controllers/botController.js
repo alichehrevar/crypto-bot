@@ -162,14 +162,13 @@ exports.deployBot = async (req, res) => {
             share,
         } = req.body;
 
-        const marketSnapshot = MarketSnapshot.findOne({symbol})
+        const marketSnapshot = await MarketSnapshot.findById(symbol)
         if (!marketSnapshot) {
             return res.status(400).json({ error: 'Wrong symbol is selected.' });
         }
 
-        // CHANGED: The top-level timeframe is no longer sent.
         // We derive it from the first indicator, as the BotBase model requires it.
-        // Check if indicators is a string and parse it
+        // Check if the indicators is a string and parse it
         if (typeof indicators === 'string') {
             try {
                 indicators = JSON.parse(indicators);
