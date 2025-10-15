@@ -99,8 +99,7 @@ class BotService {
      */
     async processCandle(symbol, timeframe, candle) {
 
-
-        const key = `${symbol.toUpperCase()}-${timeframe.toLowerCase()}`;
+        const key = `${symbol.toUpperCase().replaceAll('/USDT', '')}-${timeframe.toLowerCase()}`;
         const bots = this.activeBots.get(key) || [];
         if (!bots.length) return;
 
@@ -109,7 +108,7 @@ class BotService {
         for (const bot of bots) {
 
             const botId = bot._id.toString();
-            const prev  = this._locks.get(botId) || await Promise.resolve();
+            const prev  = this._locks.get(botId) || Promise.resolve();
 
             const next = prev
                 .catch(() => {})          // ignore prior errors

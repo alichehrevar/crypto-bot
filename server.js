@@ -66,9 +66,6 @@ connectDB().then(async () => {
     await seedAdminUser();
     await seedSettings();
 
-    // Initialize and start all scheduled jobs
-    await startScheduledJobs();
-
     // Start WS services
     binanceWS.connect();
 
@@ -100,6 +97,9 @@ connectDB().then(async () => {
     await botService.initialize();
     // Initialize grid bot manager
     await botManagerService.initialize();
+
+    // Initialize and start all scheduled jobs
+    // await startScheduledJobs();
 });
 
 // Health check

@@ -49,6 +49,7 @@ class BinanceWS {
     }
 
     async processTickers(tickers) {
+
         try {
             // 1) Fetch all active bots from the database, grab their symbols (e.g. "BTC/USDT").
             const activeBots = await BotBase.find({ active: true }).select('symbol').lean();
@@ -89,7 +90,7 @@ class BinanceWS {
                         symbol = symbol.toUpperCase();
 
                         // If no active bot is watching this symbol, skip entirely
-                        if (!activeSymbolsSet.has(symbol)) {
+                        if (!activeSymbolsSet.has(symbol.replaceAll('/USDT', ''))) {
                             return;
                         }
 
