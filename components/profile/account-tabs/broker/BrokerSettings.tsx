@@ -3,6 +3,9 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronRight } from 'lucide-react';
+import Image from "next/image";
+
+import TokenForm from "@/components/profile/account-tabs/broker/TokenForm";
 
 // ============================================================================
 // 1. TYPE DEFINITIONS (TypeScript)
@@ -177,29 +180,6 @@ const AnimatedLogo: React.FC<AnimatedLogoProps> = ({ rotation, accentColor }) =>
     );
 }
 
-// Prop types for the InputField component.
-interface InputFieldProps {
-    label: string;
-    type?: string;
-}
-
-/**
- * InputField: A reusable styled input component for the API credentials form.
- */
-const InputField: React.FC<InputFieldProps> = ({ label, type = "password" }) => (
-    <div className='flex flex-col gap-2'>
-        <label className="block text-gray-300 text-sm font-medium ml-1">
-            {label}
-        </label>
-        <input
-            className="bg-black border border-gray-700/80 rounded-md w-full py-2 px-6 text-gray-200 leading-tight focus:outline-none focus:ring-1 focus:border-gray-600 transition duration-300 ease-in-out"
-            type={type}
-            // The invalid `ringColor` style property has been removed to fix the TypeScript error.
-            // The focus ring is still applied via the `focus:ring-1` Tailwind class.
-        />
-    </div>
-);
-
 // ============================================================================
 // 4. MAIN PAGE COMPONENT
 // ============================================================================
@@ -231,11 +211,11 @@ const BrokerSettingsPage: React.FC = () => {
     } as React.CSSProperties;
 
     return (
-        // Main container uses a strict black background and prevents overflow.
-        <div className="bg-black min-h-screen text-white font-sans flex overflow-hidden">
+        // The main container uses a strict black background and prevents overflow.
+        <div className="min-h-[80svh] w-full ua-card text-white flex overflow-hidden">
 
             {/* Page layout container with a max-width and centered horizontally. */}
-            <div className='flex flex-1 relative max-w-[1167px] mx-auto' style={pageStyle}>
+            <div className='flex flex-1 relative w-full mx-auto' style={pageStyle}>
 
                 {/* The AnimatedLogo is positioned absolutely. */}
                 <div className='absolute top-0 right-0 transform translate-x-1/2 -translate-y-1/2 pointer-events-none z-0 opacity-90'>
@@ -276,83 +256,69 @@ const BrokerSettingsPage: React.FC = () => {
                             <motion.div
                                 key={selectedBroker.id} // The key is crucial for AnimatePresence to detect changes.
                                 animate={{ opacity: 1, y: 0 }}
-                                className="flex flex-col h-full relative z-10"
+                                className="flex flex-col justify-between h-full relative z-10"
                                 exit={{ opacity: 0, y: -10 }}
                                 initial={{ opacity: 0, y: 10 }}
                                 transition={{ duration: 0.4 }}
                             >
-                                {/* Header displaying the broker's name and logo. */}
-                                <header className="flex items-center mb-10">
-                                    <h1 className="text-2xl font-light mr-4">{selectedBroker.name}</h1>
-                                    <img
-                                        alt={`${selectedBroker.name} logo`}
-                                        className="w-10 h-10 object-contain"
-                                        src={selectedBroker.logo}
-                                        // Handle image loading errors with a typed event.
-                                        onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-                                            e.currentTarget.src = `https://placehold.co/64x64/171717/FFFFFF?text=${selectedBroker.name.charAt(0)}`;
-                                        }}
-                                    />
-                                </header>
+                                <div>
+                                    {/* Header displaying the broker's name and logo. */}
+                                    <header className="flex items-center mb-10 backdrop-blur-[2px]">
+                                        <h1 className="text-2xl font-light mr-4">{selectedBroker.name}</h1>
+                                        <Image
+                                            alt={`${selectedBroker.name} logo`}
+                                            className="w-10 h-10 object-contain"
+                                            height={10}
+                                            src={selectedBroker.logo}
+                                            width={10}
+                                            // Handle image loading errors with a typed event.
+                                            onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+                                                e.currentTarget.src = `https://placehold.co/64x64/171717/FFFFFF?text=${selectedBroker.name.charAt(0)}`;
+                                            }}
+                                        />
+                                    </header>
 
-                                {/* Instructions Section */}
-                                <section className="w-full max-w-md">
-                                    <h2 className='text-lg mb-4 font-semibold text-gray-300'>Connection Steps</h2>
-                                    <div className="space-y-3">
-                                        {selectedBroker.instructions.map((step, index) => (
-                                            <div key={index}>
-                                                <div className="flex items-start text-sm">
-                                                    <span className="text-gray-400 font-medium mr-3">{index + 1}.</span>
-                                                    <p className='text-gray-400 leading-relaxed'>
-                                                        {/* This block handles rendering of rich text (links and plain text). */}
-                                                        {Array.isArray(step.content) ? (
-                                                            step.content.map((part, partIndex) =>
-                                                                part.type === 'link' ? (
-                                                                    <a key={partIndex} className="text-blue-400 hover:underline" href={part.url} rel="noopener noreferrer" target="_blank">
-                                                                        {part.content}
-                                                                    </a>
-                                                                ) : (
-                                                                    <span key={partIndex}>{part.content}</span>
+                                    {/* Instructions Section */}
+                                    <section className="w-full max-w-md  backdrop-blur-[2px]">
+                                        <h2 className='text-lg mb-4 font-semibold text-gray-300'>Connection Steps</h2>
+                                        <div className="space-y-3">
+                                            {selectedBroker.instructions.map((step, index) => (
+                                                <div key={index}>
+                                                    <div className="flex items-start text-sm">
+                                                        <span className="text-gray-400 font-medium mr-3">{index + 1}.</span>
+                                                        <p className='text-gray-400 leading-relaxed'>
+                                                            {/* This block handles rendering of rich text (links and plain text). */}
+                                                            {Array.isArray(step.content) ? (
+                                                                step.content.map((part, partIndex) =>
+                                                                    part.type === 'link' ? (
+                                                                        <a key={partIndex} className="text-blue-400 hover:underline" href={part.url} rel="noopener noreferrer" target="_blank">
+                                                                            {part.content}
+                                                                        </a>
+                                                                    ) : (
+                                                                        <span key={partIndex}>{part.content}</span>
+                                                                    )
                                                                 )
-                                                            )
-                                                        ) : (
-                                                            // Fallback for simple string instructions.
-                                                            step.content
-                                                        )}
-                                                    </p>
-                                                </div>
-                                                {/* Conditionally render the hint if it exists. */}
-                                                {step.hint && (
-                                                    <div className="flex items-start text-sm ml-8 mt-1 pl-1">
-                                                        <span className="text-gray-500 mr-2">•</span>
-                                                        <p className="text-gray-500 font-medium">{step.hint}</p>
+                                                            ) : (
+                                                                // Fallback for simple string instructions.
+                                                                step.content
+                                                            )}
+                                                        </p>
                                                     </div>
-                                                )}
-                                            </div>
-                                        ))}
-                                    </div>
-                                </section>
+                                                    {/* Conditionally render the hint if it exists. */}
+                                                    {step.hint && (
+                                                        <div className="flex items-start text-sm ml-8 mt-1 pl-1">
+                                                            <span className="text-gray-500 mr-2">•</span>
+                                                            <p className="text-gray-500 font-medium">{step.hint}</p>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </section>
+                                </div>
 
                                 {/* API Credentials Form Section */}
-                                <section className="mt-auto w-full pt-20 flex flex-col items-end">
-                                    <div className="grid grid-cols-2 gap-8 max-w-xl w-full">
-                                        <InputField label="API Key" type="text" />
-                                        {/* Conditionally render fields for OKX, which requires a passphrase. */}
-                                        {selectedBroker.id === 'okx' ? (
-                                            <div className="grid grid-cols-2 gap-4">
-                                                <InputField label="API Secret" />
-                                                <InputField label="Passphrase" />
-                                            </div>
-                                        ) : (
-                                            <InputField label="API Secret" />
-                                        )}
-                                    </div>
-                                    <div className='flex justify-end mt-12 max-w-xl w-full'>
-                                        <button className="bg-white text-black font-semibold py-2 px-8 rounded-md transition duration-300 ease-in-out hover:bg-gray-200">
-                                            Connect
-                                        </button>
-                                    </div>
-                                </section>
+                                <TokenForm type={selectedBroker.id} />
                             </motion.div>
                         )}
                     </AnimatePresence>
