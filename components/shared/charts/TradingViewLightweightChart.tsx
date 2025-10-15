@@ -213,7 +213,7 @@ export default function RealTimeCandlestickChart({
                 } else {
                     chart.timeScale().fitContent();
                 }
-            } catch (error) {
+            } catch {
                 addToast({
                     title: `Error fetching data from ${symbol.broker}`,
                     color: 'danger'

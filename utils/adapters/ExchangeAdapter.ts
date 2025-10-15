@@ -12,8 +12,8 @@ export function getExchangeAdapter(broker: MarketListItem['broker']): IExchangeA
     switch (broker) {
         case 'OKX':
             return OkxAdapter;
-        case 'BingX':
-            return BingXAdapter;
+        // case 'BingX':
+        //     return BingXAdapter;
         case 'Binance':
         default:
             return BinanceAdapter;

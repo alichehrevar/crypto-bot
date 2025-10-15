@@ -7,6 +7,7 @@ import { IExchangeAdapter, StandardizedCandle } from './ExchangeAdapter';
 import {MarketListItem} from "@/types/MarketList";
 
 export const BinanceAdapter: IExchangeAdapter = {
+
     async fetchHistoricalData(market: MarketListItem, interval) {
         const formattedSymbol = market.symbol.toUpperCase().replace(/[\/]?PERP/, 'USDT').replace('/', '');
         let baseUrl: string;
@@ -36,7 +37,6 @@ export const BinanceAdapter: IExchangeAdapter = {
     },
 
     subscribeToKlineStream(market: MarketListItem, interval: any, onMessage: (arg0: StandardizedCandle) => void) {
-        console.log(market.symbol)
         const formattedSymbol = market.symbol.toUpperCase().replace(/[\/]?PERP/, 'USDT').replace('/', '').toLowerCase();
         let baseUrl: string;
 

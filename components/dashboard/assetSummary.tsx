@@ -18,7 +18,6 @@ export default function AssetSummary({showExtraDetails = false}: { showExtraDeta
             .then((response: AssetSummaryResponse) => {
                 setAssetData(response.data.summary)
                 setChartData(response.data.history)
-                console.log(response)
                 setCurrency(response.data.currency as string === 'euro' ? 'euro' : 'dollar')
             })
             .catch((err) => {

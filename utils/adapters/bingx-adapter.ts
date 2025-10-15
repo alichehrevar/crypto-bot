@@ -6,33 +6,44 @@ import { v4 as uuidv4 } from 'uuid'; // Need to install uuid: npm i uuid @types/
 import { IExchangeAdapter, StandardizedCandle } from './ExchangeAdapter';
 
 import {MarketListItem} from "@/types/MarketList";
+import {getData} from "@/actions/get";
 
 export const BingXAdapter: IExchangeAdapter = {
-    async fetchHistoricalData(market: MarketListItem, interval) {
-        let url: string;
-        const formattedSymbol = market.symbol.toUpperCase().replace(/[\/]?PERP/, 'USDT').replaceAll('/', '-');
+    async fetchHistoricalData(market: MarketListItem, interval: string): Promise<StandardizedCandle[]> {
 
-        if (market.category === 'Perpetual') {
-            // Use the Perpetual Swap (Futures) endpoint
-            url = `https://open-api.bingx.com/openApi/swap/v2/quote/klines?symbol=${formattedSymbol}&interval=${interval}&limit=1000`;
-        } else {
-            // Default to the Spot endpoint
-            url = `https://open-api.bingx.com/openApi/spot/v3/market/klines?symbol=${formattedSymbol}&interval=${interval}&limit=1000`;
+        const responseData = await getData(`/candles/proxy?exchange=${market.broker}&symbol=${market.symbol}&interval=${interval}&category=${market.category}`);
+
+        // The raw data array might be nested under a 'data' key
+        const rawCandles = responseData.data || responseData;
+
+        if (!Array.isArray(rawCandles)) {
+            console.error("Unexpected data format from proxy:", responseData);
+
+            return [];
         }
-        const resp = await fetch(url);
 
-        if (!resp.ok) {
-            throw new Error('Failed to fetch BingX historical data');
-        }
-        const { data } = await resp.json();
+        // Map the raw data to the standardized format our chart expects
+        return rawCandles.map((d: any): StandardizedCandle => {
+            // Universal mapping for Binance and OKX array format
+            if (Array.isArray(d)) {
+                return {
+                    time: (parseInt(d[4]) / 1000) as UTCTimestamp,
+                    open: +d[3],
+                    high: +d[1],
+                    low: +d[2],
+                    close: +d[0],
+                };
+            }
 
-        return data.map((d: any): StandardizedCandle => ({
-            time: (d.time / 1000) as UTCTimestamp,
-            open: +d.open,
-            high: +d.high,
-            low: +d.low,
-            close: +d.close,
-        }));
+            // Mapping for BingX object format
+            return {
+                time: (d.time / 1000) as UTCTimestamp,
+                open: +d.open,
+                high: +d.high,
+                low: +d.low,
+                close: +d.close,
+            };
+        });
     },
 
     subscribeToKlineStream(market: MarketListItem, interval, onMessage) {
@@ -47,7 +58,7 @@ export const BingXAdapter: IExchangeAdapter = {
             // 🎯 DYNAMIC DATA TYPE LOGIC 🎯
             if (market.category === 'Perpetual') {
                 // Use the Perpetual Swap (Futures) subscription format
-                dataType = `linear-swap.kline.${formattedSymbol}.${interval}`;
+                dataType = `${formattedSymbol}@kline_${interval}`;
             } else {
                 // Default to the Spot subscription format
                 dataType = `${formattedSymbol}@kline_${interval}`;

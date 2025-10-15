@@ -13,6 +13,7 @@ export default function CoinSummarySection({ coinId }: { coinId: string }) {
     const [loading, setLoading] = useState<boolean>(true);
 
     useEffect(() => {
+
         // Reset state and show loader when coinId changes
         setLoading(true);
         setCoin(null);
