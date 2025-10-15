@@ -17,8 +17,6 @@ export const BingXAdapter: IExchangeAdapter = {
         const rawCandles = responseData.data || responseData;
 
         if (!Array.isArray(rawCandles)) {
-            console.error("Unexpected data format from proxy:", responseData);
-
             return [];
         }
 
