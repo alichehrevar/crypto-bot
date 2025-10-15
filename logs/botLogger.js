@@ -43,12 +43,12 @@ class BotLoggerService {
             ),
             transports: [
                 // Log to a daily rotated file specific to the bot ID
-                new transports.DailyRotateFile({
-                    filename: path.join(logDir, `bot-${botId}-%DATE%.log`),
-                    datePattern: 'YYYY-MM-DD',
+                new transports.File({
+                    filename: path.join(logDir, `bot-${botId}.log`),
+                    // datePattern: 'YYYY-MM-DD',
                     zippedArchive: true,
                     maxSize: '10m',  // Smaller size per bot file
-                    maxFiles: '7d',    // Keep logs for 7 days
+                    // maxFiles: '7d',    // Keep logs for 7 days
                 }),
             ],
         });
