@@ -99,7 +99,7 @@ connectDB().then(async () => {
     await botManagerService.initialize();
 
     // Initialize and start all scheduled jobs
-    // await startScheduledJobs();
+    await startScheduledJobs();
 });
 
 // Health check
