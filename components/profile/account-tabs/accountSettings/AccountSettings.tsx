@@ -173,7 +173,7 @@ const AccountSettingsTab = observer(() => {
                     </li>
                     <li className="flex items-center justify-center">
                         <span className="text-gray-400 w-[200px]">Appearance</span>
-                        <Select className="w-[300px]" classNames={{ trigger: 'border-[1.4px]' }} selectedKeys={['2']} placeholder="Select appearance" variant="bordered">
+                        <Select className="w-[300px]" classNames={{ trigger: 'border-[1.4px]' }} placeholder="Select appearance" selectedKeys={['2']} variant="bordered">
                             <SelectItem key="1" textValue={'System'}>System</SelectItem>
                             <SelectItem key="2" textValue={'Dark'}>Dark</SelectItem>
                             <SelectItem key="3" textValue={'Light'}>Light</SelectItem>
