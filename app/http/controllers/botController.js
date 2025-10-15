@@ -45,6 +45,11 @@ exports.createGridBot = async (req, res) => {
             baseFund,
         } = req.body;
 
+        const marketSnapshot = await MarketSnapshot.findById(symbol)
+        if (!marketSnapshot) {
+            return res.status(400).json({ error: 'Wrong symbol is selected.' });
+        }
+
         const marketInfo = {
             baseFund:  Number(baseFund) || 10000,
             tradeFund: Number(investment) || 50
@@ -57,7 +62,7 @@ exports.createGridBot = async (req, res) => {
             accountId,
             accountType,
             exchange,
-            symbol,
+            symbol: marketSnapshot.symbol,
             marketType,
             investment,
             takeProfitPrice,
