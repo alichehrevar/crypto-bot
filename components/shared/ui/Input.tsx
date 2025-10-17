@@ -24,6 +24,7 @@ export default function Input({ id, title, placeholder, type = 'text', onChange 
             <input
                 className="w-full bg-dark-semi-black border border-gray-700 text-white rounded-md px-3 py-2 text-sm focus:ring-1 focus:ring-blue-600 focus:outline-none"
                 id={id}
+                name={id}
                 placeholder={placeholder}
                 type={type}
                 onChange={handleChange}

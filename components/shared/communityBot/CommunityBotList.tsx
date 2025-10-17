@@ -22,7 +22,7 @@ interface BotData {
     followers: number;
 }
 
-export default function CommunityBotList() {
+export default function CommunityBotList({className}: {className?: string}) {
     const [bots, setBots] = useState<BotData[]>([]);
 
     const pagination = {
@@ -54,7 +54,7 @@ export default function CommunityBotList() {
     }, []);
 
     return (
-        <div className="shadow-xl backdrop-blur-sm mt-4 relative">
+        <div className={`shadow-xl backdrop-blur-sm mt-4 relative ${className}`}>
             <h3 className="text-xl font-semibold text-white mb-6">Community Bot</h3>
             <Swiper
                 centeredSlides={false}

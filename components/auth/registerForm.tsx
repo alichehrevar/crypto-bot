@@ -5,7 +5,6 @@ import Link from "next/link";
 import {useRouter} from "next/navigation";
 import {
     Button,
-    Input,
     Checkbox,
     addToast
 } from "@heroui/react";
@@ -17,6 +16,7 @@ import OTPConfirmationForm from "@/components/auth/OTPConfirmationForm";
 import {sendRequest} from "@/actions/post";
 import {AuthResponse, checkEmailExistenceResponse, OtpVerification} from "@/types/auth";
 import {siteConfig} from "@/config/site";
+import Input from "@/components/shared/ui/Input";
 
 const Register = () => {
 
@@ -209,45 +209,32 @@ const Register = () => {
                 {step === 1 ? (
                     <form className="space-y-6" onSubmit={handleFirstStep}>
                         <div className="space-y-2">
-                            <label className="text-white font-bold text-sm" htmlFor="email">Email</label>
                             <Input
-                                required
-                                className="border-gray-300 text-black placeholder:text-gray-500"
                                 id="email"
                                 placeholder="Enter your Email"
-                                size="md"
+                                title="Email"
                                 type="email"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
+                                onChange={setEmail}
                             />
                         </div>
 
                         <div className="space-y-2">
-                            <label className="text-white font-bold text-sm" htmlFor="password">Password</label>
                             <Input
-                                required
-                                className="rounded-lg text-black placeholder:text-gray-500"
                                 id="password"
                                 placeholder="Enter your Password"
-                                size="md"
+                                title="Password"
                                 type="password"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
+                                onChange={setPassword}
                             />
                         </div>
 
                         <div className="space-y-2">
-                            <label className="text-white font-bold text-sm" htmlFor="repeatPassword">Repeat
-                                Password</label>
                             <Input
-                                required
-                                className="border-gray-300 text-black placeholder:text-gray-500 text-sm"
-                                id="repeatPassword"
+                                id="Repeat Password"
                                 placeholder="Repeat your Password"
-                                size="md"
+                                title="Repeat Password"
                                 type="password"
-                                value={repeatPassword}
-                                onChange={(e) => setRepeatPassword(e.target.value)}
+                                onChange={setRepeatPassword}
                             />
                         </div>
 

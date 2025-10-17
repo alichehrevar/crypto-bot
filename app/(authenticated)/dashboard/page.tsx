@@ -13,11 +13,13 @@ import TopCreators from "@/components/shared/TopCreators";
 import Instructions from "@/components/dashboard/Instructions";
 import Watchlist from "@/components/dashboard/WatchList";
 import PnLSection from "@/components/pnl/PnLSection";
+import AssetsOverview from "@/components/dashboard/AssetsOverview";
+import {RecentBots} from "@/components/shared/RecentBots";
 
 export default function Dashboard() {
 
     return (
-        <section className="px-2 lg:px-8 pt-8 mx-auto w-full flex-1 h-screen overflow-y-auto space-y-6">
+        <section className="px-2 lg:px-8 pt-8 mx-auto w-full flex-1 h-screen overflow-y-auto space-y-10">
             <AssetSummary/>
             <Divider className="my-8"/>
             <Instructions />
@@ -27,10 +29,9 @@ export default function Dashboard() {
                 <TopMovers/>
                 <Watchlist/>
             </div>
+            <RecentBots/>
+            <TopCreators />
             <CommunityBotList  />
-            <div className="pt-7 pb-12">
-                <TopCreators />
-            </div>
             <BotsList listType="indicator" />
             <RecentActivities/>
         </section>

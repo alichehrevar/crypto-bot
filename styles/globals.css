@@ -75,6 +75,23 @@ input::-webkit-inner-spin-button {
     margin: 0;
 }
 
+input:is(:-webkit-autofill, :autofill) {
+    @apply bg-dark-semi-black;
+}
+
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 30px #191919 inset !important;
+}
+
+input:-webkit-autofill:focus {
+    /* Format: [ring-shadow], [background-shadow] */
+    /* This creates a 1px solid blue ring */
+    -webkit-box-shadow: 0 0 0 1px #3B82F6, 0 0 0 30px #191919 inset !important;
+}
+
 /* Firefox */
 input[type=number] {
     -moz-appearance: textfield;

@@ -118,7 +118,7 @@ export const RecentBots = () => {
             >
                 {todayBots.map((bot, index) => (
                     <SwiperSlide key={index}>
-                        <div className="flex items-center justify-between p-4 bg-dark-gray rounded-lg">
+                        <div className="flex items-center justify-between p-4 ua-card">
                             <div className="flex-1">
                                 <div className="flex items-center space-x-2 mb-2">
                                     <h4 className="text-white font-medium text-sm">{bot.name}</h4>

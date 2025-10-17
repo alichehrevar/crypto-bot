@@ -89,12 +89,9 @@ const Instructions: React.FC = () => {
     };
 
     return (
-        <div className="my-7 items-center justify-center font-sans bg-dark-gray" style={{ color: colors.textPrimary }}>
+        <div className="my-7 items-center justify-center" style={{ color: colors.textPrimary }}>
             <div className="w-full">
-                <div
-                    className="rounded-xl p-8 ua-card"
-                    style={{ backgroundColor: colors.bgCard }}
-                >
+                <div className="p-8 ua-card">
                     <h2 className="text-2xl font-bold mb-4 text-white">Activate Your Trading Engine</h2>
                     <p className="mb-8" style={{ color: colors.textSecondary }}>
                         Connect your exchange securely via API to deploy automated strategies and start trading.
