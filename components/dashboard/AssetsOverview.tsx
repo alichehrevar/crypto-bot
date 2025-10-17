@@ -298,6 +298,7 @@ const AssetsOverview: React.FC = () => {
 
     useEffect(() => {
         const data = view === 'broker' ? brokerAssetData : assetCentricData;
+
         return drawChart(data);
     }, [view, drawChart]);
 
