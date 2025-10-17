@@ -13,7 +13,7 @@ import TopCreators from "@/components/shared/TopCreators";
 import Instructions from "@/components/dashboard/Instructions";
 import Watchlist from "@/components/dashboard/WatchList";
 import PnLSection from "@/components/pnl/PnLSection";
-import AssetsOverview from "@/components/dashboard/AssetsOverview";
+// import AssetsOverview from "@/components/dashboard/AssetsOverview";
 import {RecentBots} from "@/components/shared/RecentBots";
 
 export default function Dashboard() {

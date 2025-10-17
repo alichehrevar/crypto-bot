@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, {useCallback, useEffect, useRef, useState} from 'react';
 
 // --- TYPE DEFINITIONS ---
 interface AssetNode {
@@ -298,9 +298,7 @@ const AssetsOverview: React.FC = () => {
 
     useEffect(() => {
         const data = view === 'broker' ? brokerAssetData : assetCentricData;
-        const cleanup = drawChart(data);
-
-        return cleanup;
+        return drawChart(data);
     }, [view, drawChart]);
 
     return (
