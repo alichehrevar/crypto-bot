@@ -1,11 +1,31 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback, DragEvent } from 'react';
-import Image from "next/image";
-import {addToast} from "@heroui/react";
 
-import {DataItem, WatchListApiResponse} from "@/types/WatchList";
-import {getData} from "@/actions/get";
+// --- TYPE DEFINITIONS ---
+interface Crypto {
+    symbol: string;
+    name: string;
+    price: number;
+    change: number;
+    icon: string;
+}
+
+// --- MOCK DATA ---
+const allCryptos: Crypto[] = [
+    { symbol: 'BTC', name: 'Bitcoin', price: 68450.12, change: 1.20, icon: 'https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/btc.png' },
+    { symbol: 'ETH', name: 'Ethereum', price: 3510.55, change: -0.50, icon: 'https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/eth.png' },
+    { symbol: 'SOL', name: 'Solana', price: 155.20, change: 5.10, icon: 'https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/sol.png' },
+    { symbol: 'BNB', name: 'BNB', price: 580.40, change: -1.15, icon: 'https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/bnb.png' },
+    { symbol: 'XRP', name: 'XRP', price: 0.52, change: 0.80, icon: 'https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/xrp.png' },
+    { symbol: 'ADA', name: 'Cardano', price: 0.45, change: 2.30, icon: 'https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/ada.png' },
+    { symbol: 'DOT', name: 'Polkadot', price: 7.15, change: 3.55, icon: 'https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/dot.png' },
+    { symbol: 'DOGE', name: 'Dogecoin', price: 0.15, change: -2.10, icon: 'https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/doge.png' },
+    { symbol: 'AVAX', name: 'Avalanche', price: 35.80, change: 4.20, icon: 'https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/avax.png' },
+    { symbol: 'LINK', name: 'Chainlink', price: 18.50, change: 1.80, icon: 'https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/link.png' },
+    { symbol: 'MATIC', name: 'Polygon', price: 0.72, change: -0.90, icon: 'https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/matic.png' },
+    { symbol: 'LTC', name: 'Litecoin', price: 85.30, change: 0.50, icon: 'https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/ltc.png' },
+];
 
 const MAX_WATCHLIST_ITEMS = 6;
 
@@ -26,9 +46,11 @@ const SearchIcon = () => (
 );
 
 
+// --- INDIVIDUAL COMPONENTS ---
+
 // WatchlistItem Component
 interface WatchlistItemProps {
-    crypto: DataItem;
+    crypto: Crypto;
     onDragStart: (e: DragEvent<HTMLDivElement>, symbol: string) => void;
     onDragEnter: (e: DragEvent<HTMLDivElement>, symbol: string) => void;
     onDragEnd: (e: DragEvent<HTMLDivElement>) => void;
@@ -44,14 +66,14 @@ const WatchlistItem: React.FC<WatchlistItemProps> = ({ crypto, onDragStart, onDr
         onDragOver={(e) => e.preventDefault()}
         onDragStart={(e) => onDragStart(e, crypto.symbol)}
     >
-        <div className="flex items-center gap-3 pointer-events-none space-x-8 w-6 h-6 relative">
-            <Image fill alt={crypto.symbol} className="w-6 h-6" src={`https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/${crypto.symbol.split('/')[0].toLowerCase()}.png`} />
+        <div className="flex items-center gap-3 pointer-events-none w-6 h-6 relative">
+            <img alt={crypto.symbol} className="w-6 h-6" src={crypto.icon} />
             <span className="text-white font-medium">{crypto.symbol}</span>
         </div>
         <div className="text-right pointer-events-none">
-            <div className="text-white">{formatCurrency(crypto.marketData.price)}</div>
-            <div className={`text-xs ${crypto.marketData.change24h >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                {crypto.marketData.change24h >= 0 ? '+' : ''}{crypto.marketData.change24h.toFixed(2)}%
+            <div className="text-white">{formatCurrency(crypto.price)}</div>
+            <div className={`text-xs ${crypto.change >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                {crypto.change >= 0 ? '+' : ''}{crypto.change.toFixed(2)}%
             </div>
         </div>
     </div>
@@ -62,7 +84,7 @@ const WatchlistItem: React.FC<WatchlistItemProps> = ({ crypto, onDragStart, onDr
 interface AddSymbolModalProps {
     isOpen: boolean;
     onClose: () => void;
-    watchlist: DataItem[];
+    watchlist: Crypto[];
     addToWatchlist: (symbol: string) => void;
     removeFromWatchlist: (symbol: string) => void;
 }
@@ -77,11 +99,11 @@ const AddSymbolModal: React.FC<AddSymbolModalProps> = ({ isOpen, onClose, watchl
     const watchlistSymbols = watchlist.map(c => c.symbol);
 
     const filteredCryptos = searchTerm
-        ? watchlist.filter(c =>
+        ? allCryptos.filter(c =>
             c.symbol.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            c.marketData.symbol.toLowerCase().includes(searchTerm.toLowerCase())
+            c.name.toLowerCase().includes(searchTerm.toLowerCase())
         )
-        : watchlist;
+        : allCryptos;
 
     const showMessage = useCallback((text: string, isAction: boolean) => {
         if (messageTimeoutRef.current) {
@@ -186,10 +208,10 @@ const AddSymbolModal: React.FC<AddSymbolModalProps> = ({ isOpen, onClose, watchl
                             return (
                                 <div key={crypto.symbol} className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-800 transition-colors">
                                     <div className="flex items-center gap-3 w-8 h-8 relative">
-                                        <Image fill alt={crypto.symbol} className="w-6 h-6" src={`https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/${crypto.symbol.split('/')[0].toLowerCase()}.png`} />
+                                        <img alt={crypto.symbol} className="w-8 h-8" src={crypto.icon} />
                                         <div>
                                             <div className="font-bold text-white text-start">{crypto.symbol}</div>
-                                            <div className="text-sm text-gray-400">{crypto.symbol}</div>
+                                            <div className="text-sm text-gray-400">{crypto.name}</div>
                                         </div>
                                     </div>
                                     {isInWatchlist ? (
@@ -216,37 +238,11 @@ const AddSymbolModal: React.FC<AddSymbolModalProps> = ({ isOpen, onClose, watchl
 
 // --- Main Watchlist Component ---
 const Watchlist: React.FC = () => {
-    const [watchlist, setWatchlist] = useState<DataItem[]>([]);
+    const [watchlist, setWatchlist] = useState<Crypto[]>(allCryptos.slice(0, 6));
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [isLoading, setIsLoading] = useState(true);
 
     // --- Drag and Drop State and Handlers ---
     const [draggedSymbol, setDraggedSymbol] = useState<string | null>(null);
-
-    useEffect(() => {
-        async function fetchWatchList() {
-            return await getData('/user/favorites/list')
-        }
-
-        fetchWatchList()
-            .then((response: WatchListApiResponse) => {
-                if (response.success) {
-                    setWatchlist(response.data)
-                } else {
-                    addToast({
-                        title: response.message,
-                        color: 'warning'
-                    })
-                }
-            })
-            .catch(() => {
-                addToast({
-                    title: 'Failed to load watchlist',
-                    color: 'danger'
-                })
-            })
-            .finally(() => setIsLoading(false))
-    }, []);
 
     const handleDragStart = (e: DragEvent<HTMLDivElement>, symbol: string) => {
         setDraggedSymbol(symbol);
@@ -277,7 +273,7 @@ const Watchlist: React.FC = () => {
 
     const addToWatchlist = (symbol: string) => {
         if (watchlist.length < MAX_WATCHLIST_ITEMS && !watchlist.some(c => c.symbol === symbol)) {
-            const cryptoToAdd = watchlist.find(c => c.symbol === symbol);
+            const cryptoToAdd = allCryptos.find(c => c.symbol === symbol);
 
             if (cryptoToAdd) {
                 setWatchlist(prev => [...prev, cryptoToAdd]);
@@ -290,32 +286,29 @@ const Watchlist: React.FC = () => {
     };
 
     return (
-        <div className="flex items-center justify-center font-sans antialiased h-full text-white">
-            <div className="w-full p-6 ua-card h-full">
+        <div className="flex items-center justify-center font-sans antialiased text-white">
+            <div className="w-full p-6 ua-card">
                 <div className="flex justify-between items-center mb-6">
                     <h4 className="font-bold text-lg text-white">My Watchlist</h4>
                     <button className="text-gray-400 hover:text-white transition-colors" title="Add Symbol" onClick={() => setIsModalOpen(true)}>
                         <PlusIcon />
                     </button>
                 </div>
-                {isLoading
-                    ? <div className="flex items-center justify-center min-h-[230px]">loading ...</div>
-                    : <div
-                        className="flex flex-col gap-2"
-                        onDragOver={(e) => e.preventDefault()} // Necessary to allow drop
-                    >
-                        {watchlist.map(crypto => (
-                            <WatchlistItem
-                                key={crypto.symbol}
-                                crypto={crypto}
-                                isDragging={draggedSymbol === crypto.symbol}
-                                onDragEnd={handleDragEnd}
-                                onDragEnter={handleDragEnter}
-                                onDragStart={handleDragStart}
-                            />
-                        ))}
-                    </div>
-                }
+                <div
+                    className="flex flex-col gap-2"
+                    onDragOver={(e) => e.preventDefault()} // Necessary to allow drop
+                >
+                    {watchlist.map(crypto => (
+                        <WatchlistItem
+                            key={crypto.symbol}
+                            crypto={crypto}
+                            isDragging={draggedSymbol === crypto.symbol}
+                            onDragEnd={handleDragEnd}
+                            onDragEnter={handleDragEnter}
+                            onDragStart={handleDragStart}
+                        />
+                    ))}
+                </div>
             </div>
 
             <AddSymbolModal
