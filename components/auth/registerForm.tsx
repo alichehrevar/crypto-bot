@@ -247,7 +247,7 @@ const Register = () => {
                                 onValueChange={setAgreeTerms}
                             >
                                 <label className="text-white text-sm" htmlFor="terms">
-                                    I agree to the{" "}
+                                    I agree to the
                                 </label>
                             </Checkbox>
                             <Link className="hover:underline font-medium text-sm" href="/terms" target="_blank">

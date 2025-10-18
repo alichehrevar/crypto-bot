@@ -1,13 +1,11 @@
-import React, {Key, useState} from "react";
+import React, {useState} from "react";
 import {
-    Button,
-    Autocomplete,
-    AutocompleteItem,
-    DateValue, DateInput
+    Button, DateInput,
 } from "@heroui/react";
 
 import {CountryCodes} from "@/utils/countryCodes";
 import Input from "@/components/shared/ui/Input";
+import Combobox from "@/components/shared/ui/Combobox";
 
 interface ProfileSetupFormProps {
     onSubmit: (data: any) => void;
@@ -17,22 +15,24 @@ interface ProfileSetupFormProps {
 const ProfileSetupForm = ({onSubmit}: ProfileSetupFormProps) => {
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
-    const [birthday, setBirthday] = React.useState<DateValue | null>(null);
+    const [birthday, setBirthday] = React.useState<Date | null>(new Date());
     const [phoneCountry, setPhoneCountry] = useState('+1');
     const [phoneNumber, setPhoneNumber] = useState('');
+    const [referral, setReferral] = useState('');
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        const formattedBirthday = birthday
-            ? `${String(birthday.month).padStart(2, '0')}/${String(birthday.day).padStart(2, '0')}/${birthday.year}`
-            : null;
+        // const formattedBirthday = birthday
+        //     ? `${String(birthday.month).padStart(2, '0')}/${String(birthday.day).padStart(2, '0')}/${birthday.year}`
+        //     : null;
 
         onSubmit({
             firstName,
             lastName,
-            birthday: formattedBirthday,
+            birthday,
             phoneCountry,
-            phoneNumber
+            phoneNumber,
+            referral
         });
     };
 
@@ -59,48 +59,47 @@ const ProfileSetupForm = ({onSubmit}: ProfileSetupFormProps) => {
             </div>
 
             <div className="space-y-2">
-                <label className="text-white text-sm" htmlFor="birthday">Birthday</label>
                 <DateInput
-                    color="default"
-                    defaultValue={birthday}
-                    id="birthday"
+                    classNames={{
+                        label: 'block text-sm font-light text-gray-300',
+                        inputWrapper: 'border border-gray-700 hover:border-gray-700 focus-within:border-none focus-within:ring-1 focus-within:ring-blue-600 focus-within:outline-none rounded-md'
+                    }}
+                    label="Birthday"
                     labelPlacement="outside"
-                    size="md"
                     variant="bordered"
-                    onChange={setBirthday}
+                    onChange={() => setBirthday}
                 />
             </div>
 
             <div className="space-y-2">
-                <label className="text-white text-sm" htmlFor="phone-number">Phone Number</label>
-                <div className="flex gap-2">
-                    <Autocomplete
-                        isRequired
-                        className="w-[90px]"
-                        errorMessage={!phoneCountry ? "" : "Country code is required"}
-                        id="phone-number"
-                        isClearable={false}
-                        items={CountryCodes}
-                        name="country-code"
-                        onSelectionChange={(k: Key | null) => setPhoneCountry(k as string)}
-                    >
-                        {CountryCodes.map((country) => (
-                            <AutocompleteItem key={country.code} textValue={country.code}>
-                  <span className="flex items-center gap-2">
-                    <span>{country.flag}</span>
-                    <span>{country.code}</span>
-                  </span>
-                            </AutocompleteItem>
-                        ))}
-                    </Autocomplete>
+                <div className="grid grid-cols-3 gap-2 items-end">
+                    <Combobox
+                        label="Phone Number"
+                        options={CountryCodes.map(country => ({
+                            id: country.code,
+                            name: `${country.flag}\u00A0${country.code}`,
+                        }))}
+                        selected={phoneCountry}
+                        setSelected={setPhoneCountry}
+                    />
                     <Input
+                        className="col-span-2"
                         id="phoneNumber"
                         placeholder="724-848-1225"
-                        title="Phone Number"
                         type="tel"
                         onChange={setPhoneNumber}
                     />
                 </div>
+            </div>
+
+            <div className="space-y-2">
+                <Input
+                    id="ReferralCode"
+                    placeholder="(Optional)"
+                    title="Referral Code"
+                    type="text"
+                    onChange={setReferral}
+                />
             </div>
 
             <Button

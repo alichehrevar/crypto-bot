@@ -32,7 +32,7 @@ const Combobox: React.FC<{
 
     return (
         <div ref={dropdownRef} className="relative w-full">
-            <label className="block text-sm font-medium text-gray-400 mb-2">{label}</label>
+            <label className="block text-sm font-medium text-gray-400 mb-2 text-nowrap">{label}</label>
 
             <button
                 className="w-full bg-dark-semi-black border border-gray-600 text-white rounded-md px-3 py-2 text-sm focus:ring-1 focus:ring-blue-500/50 focus:border-blue-500 focus:outline-none flex items-center justify-between"
@@ -77,7 +77,7 @@ const Combobox: React.FC<{
                         role="listbox"
                         transition={{ duration: 0.2 }}
                     >
-                        {options.map((option) => {
+                        {options.map((option, index) => {
                             const value = keyOf(option);
                             const isSelected = value === selected;
 
@@ -89,7 +89,7 @@ const Combobox: React.FC<{
                             if (option.name === '') return (<hr key={value} className="my-1 border-gray-600 mx-2" />);
 
                             return (
-                                <li key={value} className="rounded-sm" role="presentation">
+                                <li key={index} className="rounded-sm" role="presentation">
                                     <button
                                         aria-selected={isSelected}
                                         className="w-full px-3 py-1.5 capitalize text-sm text-white hover:bg-blue-500/75 rounded-sm transition-colors duration-150 flex items-center text-left"
