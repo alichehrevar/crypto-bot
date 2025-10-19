@@ -157,15 +157,20 @@ export default function IndicatorsSection(props: {
                                         onChange={(newValue) => handleIndicatorChange(indicator.id, newValue)}
                                     />
                                 </div>
-                                {index > 0 ? (
+                            </div>
+                            <div className="flex items-center justify-between mt-2">
+                                <p className="text-xs text-blue-400/80 hover:text-blue-400 cursor-pointer ps-1">
+                                    Advanced settings
+                                </p>
+                                {index > 0 && (
                                     <button
                                         aria-label="Remove indicator"
-                                        className="p-2 text-gray-500 hover:text-red-500 transition-colors mt-7"
+                                        className="text-red-500 hover:text-red-800 transition-colors flex items-center gap-x-0.5"
                                         type="button"
                                         onClick={() => removeIndicator(indicator.id)}
                                     >
                                         <svg
-                                            className="w-5 h-5"
+                                            className="w-4 h-4"
                                             fill="none"
                                             stroke="currentColor"
                                             viewBox="0 0 24 24"
@@ -178,14 +183,10 @@ export default function IndicatorsSection(props: {
                                                 strokeWidth="2"
                                             />
                                         </svg>
+                                        <small>Remove</small>
                                     </button>
-                                ) : (
-                                    <div className="w-9 flex-shrink-0" />
                                 )}
                             </div>
-                            <p className="text-xs text-blue-400/80 hover:text-blue-400 cursor-pointer mt-2 pl-1">
-                                Advanced settings
-                            </p>
                         </motion.div>
                     ))}
                 </AnimatePresence>
