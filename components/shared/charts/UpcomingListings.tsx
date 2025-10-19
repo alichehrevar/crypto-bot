@@ -143,7 +143,7 @@ export default function NewListingsPage() {
                         infoContent="This table tracks the performance of recently launched tokens since their debut. 'Velocity' is a qualitative measure of post-launch momentum and market appetite."
                         title="Launch Performance Tracker"
                     />
-                    <div className="overflow-x-auto">
+                    <div className="overflow-x-auto  h-[300px]">
                         <table className="mt-6 w-full min-w-[600px] border-collapse text-sm">
                             <thead>
                             <tr className="border-b border-white/10">
