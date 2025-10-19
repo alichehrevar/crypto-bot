@@ -6,7 +6,13 @@ import { useRouter } from "next/navigation"; // [FIX 3] Import useRouter
 import { addToast, Avatar, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger } from "@heroui/react";
 
 import { useUserStore } from '@/hooks/useUserStore';
-import { ArrowLeftStartOnRectangle, Cog8ToothIcon, MagnifyingGlass, SupportIcon } from "@/utils/icons";
+import {
+    ArrowLeftStartOnRectangle,
+    ClipboardDocumentList,
+    Cog8ToothIcon,
+    MagnifyingGlass,
+    SupportIcon
+} from "@/utils/icons";
 import { logoutAction } from "@/actions/post";
 import UserDropDownLoading from "@/components/loading/UserDropDownLoading";
 
@@ -87,6 +93,13 @@ const UserDropDown = observer(() => {
                     startContent={<SupportIcon className="w-5 h-5" stroke="#ffffff" />}
                 >
                     Help
+                </DropdownItem>
+                <DropdownItem
+                    key="terms"
+                    href="/terms"
+                    startContent={<ClipboardDocumentList className="w-5 h-5" />}
+                >
+                    Terms
                 </DropdownItem>
                 <DropdownItem
                     key="logout"
