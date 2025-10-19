@@ -5,7 +5,6 @@ import React, {useState} from "react";
 import BotsListTable from "@/components/bots/BotsListTable";
 import TechnicalDeployBotSection from "@/components/bots/deploy/TechnicalDeployBotSection";
 import CoinSummarySection from "@/components/shared/CoinSummarySection";
-import RealTimeCandlestickChart from "@/components/shared/charts/TradingViewLightweightChart";
 import AnalysisAndSymbolsList from "@/components/profile/manual-trading/AnalysisAndSymbolsList";
 import {MarketListItem} from "@/types/MarketList";
 import TradingViewLightweightChartGrid from "@/components/shared/charts/TradingViewLightweightChartGrid";
