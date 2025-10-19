@@ -120,7 +120,7 @@ export default function NewListingsPage() {
                                 {upcomingListingsData.map((item, index) => (
                                     <div key={index} className="relative border-l-2 border-white/20 pb-2 pl-8 last:mb-0 mb-8">
                                         <span className="absolute -left-[9px] top-0 h-4 w-4 rounded-full border-2 border-[#1a1a1a] bg-blue-500" />
-                                        <div className="mb-1 text-sm text-gray-400">{item.displayed_date} {new Date(item.date_event).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                                        <div className="mb-1 text-sm text-gray-400">{item.displayed_date}</div>
                                         <div className="text-base font-semibold">{item.coins[0].name}</div>
                                         <div className="text-sm text-gray-300">
                                             <strong>{item.title}</strong>

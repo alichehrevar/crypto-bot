@@ -236,8 +236,6 @@ const EventCalendar: React.FC = () => {
             .finally(() => setIsLoading(false));
     }, []);
 
-    // REMOVED: getImpactClass is no longer needed
-
     return (
         <div className="ua-card p-6 shadow-lg flex flex-col min-h-[400px]">
             <CardHeader
