@@ -23,7 +23,7 @@ import { SymbolFilter, SymbolFilterResponse } from '@/types/profile/CurrencyType
 import MarketListWithSearch from "@/components/market/marketListWithSearch/MarketListWithSearch";
 import RealTimeCandlestickChart from "@/components/shared/charts/TradingViewLightweightChart";
 import NumericInput from "@/components/shared/ui/NumericInput";
-import {MAIN_INDICATOR_OPTIONS, STANDARD_INDICATOR_OPTIONS} from "@/utils/strategyPanelData";
+import {STANDARD_INDICATOR_OPTIONS} from "@/utils/strategyPanelData";
 import IndicatorsSection, {IndicatorItem} from "@/components/shared/ui/IndicatorsSection";
 import Switcher from "@/components/shared/ui/Switcher";
 import RadioGroup from "@/components/shared/ui/RadioGroup";
