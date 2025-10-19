@@ -3,6 +3,7 @@
 import type { FC } from 'react';
 
 import React, { useState, useRef } from 'react';
+import Link from "next/link";
 
 // Note: The <Head> component from 'next/head' is part of the legacy pages router.
 // In the app router, metadata and head tags are typically handled in layout.tsx or page.tsx files.
@@ -45,7 +46,7 @@ const LegalPageComponent: FC = () => {
                         <nav className="text-sm space-x-6">
                             <button className={getTabClassName('tos')} onClick={(e) => handleTabSwitch(e, 'tos')}>Terms of Service</button>
                             <button className={getTabClassName('privacy')} onClick={(e) => handleTabSwitch(e, 'privacy')}>Privacy Policy</button>
-                            <button className="hover:text-gray-500 transition-colors" style={{ color: 'var(--color-text-secondary)' }}>Help Center</button>
+                            <Link className="hover:text-gray-500 transition-colors" href="/help-center" style={{ color: 'var(--color-text-secondary)' }}>Help Center</Link>
                         </nav>
                     </header>
 

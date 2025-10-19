@@ -89,7 +89,7 @@ const UserDropDown = observer(() => {
                 </DropdownItem>
                 <DropdownItem
                     key="help"
-                    href="/profile/settings"
+                    href="/help-center"
                     startContent={<SupportIcon className="w-5 h-5" stroke="#ffffff" />}
                 >
                     Help
