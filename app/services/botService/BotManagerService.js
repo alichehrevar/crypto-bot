@@ -1,6 +1,4 @@
 const EventEmitter = require('events');
-const DcaBot = require('../../models/DcaBot');
-const GridBotModel = require('../../models/GridBotModel');
 const BotBase = require('../../models/BotBase'); // We'll use a base model for polymorphism
 const DcaOrder = require('../../models/DcaOrder');
 const GridStrategyService = require('./GridStrategyService');

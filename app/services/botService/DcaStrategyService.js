@@ -125,8 +125,7 @@ class DcaStrategyService {
 
         // Use ccxt helper functions for precision formatting
         if (price) { // Limit Order
-            const cost = volume;
-            qty = this.exchange.amountToPrecision(this.bot.symbol, cost / price);
+            qty = this.exchange.amountToPrecision(this.bot.symbol, volume / price);
             price = this.exchange.priceToPrecision(this.bot.symbol, price);
         } else { // Market Order
             const currentPrice = (await this.exchange.fetchTicker(this.bot.symbol)).last;
