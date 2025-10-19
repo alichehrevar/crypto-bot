@@ -1,36 +1,23 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback, DragEvent } from 'react';
+import React, { useState, useEffect, useRef, useCallback, DragEvent, useMemo } from 'react';
+// --- IMPORT HOOKS & TYPES ---
+import Image from "next/image";
 
-// --- TYPE DEFINITIONS ---
-interface Crypto {
-    symbol: string;
-    name: string;
-    price: number;
-    change: number;
-    icon: string;
-}
+import { useMarketList } from '@/hooks/marketListWithSearch/useMarketList';
+import { MarketListItem } from '@/types/MarketList';
 
-// --- MOCK DATA ---
-const allCryptos: Crypto[] = [
-    { symbol: 'BTC', name: 'Bitcoin', price: 68450.12, change: 1.20, icon: 'https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/btc.png' },
-    { symbol: 'ETH', name: 'Ethereum', price: 3510.55, change: -0.50, icon: 'https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/eth.png' },
-    { symbol: 'SOL', name: 'Solana', price: 155.20, change: 5.10, icon: 'https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/sol.png' },
-    { symbol: 'BNB', name: 'BNB', price: 580.40, change: -1.15, icon: 'https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/bnb.png' },
-    { symbol: 'XRP', name: 'XRP', price: 0.52, change: 0.80, icon: 'https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/xrp.png' },
-    { symbol: 'ADA', name: 'Cardano', price: 0.45, change: 2.30, icon: 'https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/ada.png' },
-    { symbol: 'DOT', name: 'Polkadot', price: 7.15, change: 3.55, icon: 'https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/dot.png' },
-    { symbol: 'DOGE', name: 'Dogecoin', price: 0.15, change: -2.10, icon: 'https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/doge.png' },
-    { symbol: 'AVAX', name: 'Avalanche', price: 35.80, change: 4.20, icon: 'https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/avax.png' },
-    { symbol: 'LINK', name: 'Chainlink', price: 18.50, change: 1.80, icon: 'https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/link.png' },
-    { symbol: 'MATIC', name: 'Polygon', price: 0.72, change: -0.90, icon: 'https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/matic.png' },
-    { symbol: 'LTC', name: 'Litecoin', price: 85.30, change: 0.50, icon: 'https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/ltc.png' },
-];
-
+// --- CONSTANTS ---
 const MAX_WATCHLIST_ITEMS = 6;
 
 // --- HELPER FUNCTIONS ---
-const formatCurrency = (value: number) => value.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+const formatCurrency = (value: number) => {
+    if (typeof value !== 'number' || isNaN(value)) {
+        return '$0.00';
+    }
+
+    return value.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+};
 
 // --- SVG ICONS ---
 const PlusIcon = () => (
@@ -45,65 +32,96 @@ const SearchIcon = () => (
     <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" strokeLinecap="round" strokeLinejoin="round" /></svg>
 );
 
+// --- LOADING SKELETON ---
+const WatchlistSkeleton: React.FC = () => (
+    <div className="flex items-center justify-between gap-2 rounded-lg h-[44px]">
+        <div className="flex items-center gap-3">
+            <div className="w-6 h-6 rounded-full bg-gray-700 animate-pulse" />
+            <div className="w-12 h-4 rounded bg-gray-700 animate-pulse" />
+        </div>
+        <div className="text-right">
+            <div className="w-20 h-4 rounded bg-gray-700 animate-pulse mb-1" />
+            <div className="w-12 h-3 rounded bg-gray-700 animate-pulse ml-auto" />
+        </div>
+    </div>
+);
+
 
 // --- INDIVIDUAL COMPONENTS ---
 
 // WatchlistItem Component
 interface WatchlistItemProps {
-    crypto: Crypto;
-    onDragStart: (e: DragEvent<HTMLDivElement>, symbol: string) => void;
-    onDragEnter: (e: DragEvent<HTMLDivElement>, symbol: string) => void;
+    crypto: MarketListItem;
+    onDragStart: (e: DragEvent<HTMLDivElement>, id: string) => void;
+    onDragEnter: (e: DragEvent<HTMLDivElement>, id: string) => void;
     onDragEnd: (e: DragEvent<HTMLDivElement>) => void;
     isDragging: boolean;
 }
 
-const WatchlistItem: React.FC<WatchlistItemProps> = ({ crypto, onDragStart, onDragEnter, onDragEnd, isDragging }) => (
-    <div
-        draggable
-        className={`flex items-center justify-between gap-2 rounded-lg cursor-grab transition-opacity ${isDragging ? 'opacity-50 bg-gray-700' : 'bg-transparent'}`}
-        onDragEnd={onDragEnd}
-        onDragEnter={(e) => onDragEnter(e, crypto.symbol)}
-        onDragOver={(e) => e.preventDefault()}
-        onDragStart={(e) => onDragStart(e, crypto.symbol)}
-    >
-        <div className="flex items-center gap-3 pointer-events-none w-6 h-6 relative">
-            <img alt={crypto.symbol} className="w-6 h-6" src={crypto.icon} />
-            <span className="text-white font-medium">{crypto.symbol}</span>
-        </div>
-        <div className="text-right pointer-events-none">
-            <div className="text-white">{formatCurrency(crypto.price)}</div>
-            <div className={`text-xs ${crypto.change >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                {crypto.change >= 0 ? '+' : ''}{crypto.change.toFixed(2)}%
+const WatchlistItem: React.FC<WatchlistItemProps> = ({ crypto, onDragStart, onDragEnter, onDragEnd, isDragging }) => {
+    // Dynamically generate icon URL from symbol
+    const iconUrl = `https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/${crypto.symbol.split('/')[0].toLowerCase()}.png`;
+
+    return (
+        <div
+            draggable
+            className={`flex items-center justify-between gap-2 rounded-lg cursor-grab transition-opacity ${isDragging ? 'opacity-50 bg-gray-700' : 'bg-transparent'}`}
+            onDragEnd={onDragEnd}
+            onDragEnter={(e) => onDragEnter(e, crypto.id)}
+            onDragOver={(e) => e.preventDefault()}
+            onDragStart={(e) => onDragStart(e, crypto.id)}
+        >
+            <div className="flex items-center gap-3 pointer-events-none w-6 h-6 relative space-x-8">
+                <Image fill alt={crypto.symbol} className="w-6 h-6" src={iconUrl || '/images/icons/default.svg'} onError={(e) => {
+                    e.currentTarget.src = '/images/icons/default.svg';
+                }} />
+                <span className="text-white font-medium">{crypto.symbol}</span>
+            </div>
+            <div className="text-right pointer-events-none">
+                <div className="text-white">{formatCurrency(crypto.lastPrice)}</div>
+                <div className={`text-xs ${crypto.dailyChange >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                    {crypto.dailyChange >= 0 ? '+' : ''}{crypto.dailyChange?.toFixed(2)}%
+                </div>
             </div>
         </div>
-    </div>
-);
+    );
+};
 
 
 // AddSymbolModal Component
 interface AddSymbolModalProps {
     isOpen: boolean;
     onClose: () => void;
-    watchlist: Crypto[];
-    addToWatchlist: (symbol: string) => void;
-    removeFromWatchlist: (symbol: string) => void;
+    watchlist: MarketListItem[]; // Current favorites
+    allSymbols: MarketListItem[]; // All symbols (merged)
+    handleToggleFavorite: (symbol: MarketListItem) => void;
+    loading: boolean;
 }
 
-const AddSymbolModal: React.FC<AddSymbolModalProps> = ({ isOpen, onClose, watchlist, addToWatchlist, removeFromWatchlist }) => {
+const AddSymbolModal: React.FC<AddSymbolModalProps> = ({ isOpen, onClose, watchlist, allSymbols, handleToggleFavorite, loading }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [message, setMessage] = useState('');
     const [isActionMessage, setIsActionMessage] = useState(false);
     const messageTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const modalPanelRef = useRef<HTMLButtonElement>(null);
 
-    const watchlistSymbols = watchlist.map(c => c.symbol);
+    // Use a Set for efficient lookup
+    const watchlistSymbolIds = useMemo(() => new Set(watchlist.map(c => c.id)), [watchlist]);
 
-    const filteredCryptos = searchTerm
-        ? allCryptos.filter(c =>
-            c.symbol.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            c.name.toLowerCase().includes(searchTerm.toLowerCase())
-        )
-        : allCryptos;
+    // --- FIX: Added optional chaining (?.) to prevent error if symbol or name is null/undefined ---
+    const filteredCryptos = useMemo(() => {
+        if (!searchTerm) {
+            return allSymbols;
+        }
+        const term = searchTerm.toLowerCase();
+
+        return allSymbols.filter(c => {
+            const symbolMatch = c.symbol?.toLowerCase().includes(term);
+            const nameMatch = c.broker?.toLowerCase().includes(term);
+
+            return symbolMatch || nameMatch;
+        });
+    }, [allSymbols, searchTerm]);
 
     const showMessage = useCallback((text: string, isAction: boolean) => {
         if (messageTimeoutRef.current) {
@@ -131,19 +149,19 @@ const AddSymbolModal: React.FC<AddSymbolModalProps> = ({ isOpen, onClose, watchl
         }
     }, [watchlist.length, isActionMessage, showMessage]);
 
-    const handleAdd = (symbol: string) => {
+    const handleAdd = (crypto: MarketListItem) => {
         if (watchlist.length >= MAX_WATCHLIST_ITEMS) {
             showMessage('Watchlist is full. Cannot add more symbols.', true);
 
             return;
         }
-        addToWatchlist(symbol);
-        showMessage(`${symbol} added to watchlist`, true);
+        handleToggleFavorite(crypto);
+        showMessage(`${crypto.symbol} added to watchlist`, true);
     };
 
-    const handleRemove = (symbol: string) => {
-        removeFromWatchlist(symbol);
-        showMessage(`${symbol} removed from watchlist`, true);
+    const handleRemove = (crypto: MarketListItem) => {
+        handleToggleFavorite(crypto);
+        showMessage(`${crypto.symbol} removed from watchlist`, true);
     };
 
     useEffect(() => {
@@ -201,25 +219,30 @@ const AddSymbolModal: React.FC<AddSymbolModalProps> = ({ isOpen, onClose, watchl
                 </div>
 
                 <div className="max-h-60 overflow-y-auto pr-2" style={{ scrollbarWidth: 'thin', scrollbarColor: '#333333 transparent' }}>
-                    {filteredCryptos.length > 0 ? (
+                    {loading ? (
+                        <div className="text-center py-4 text-gray-400">Loading symbols...</div>
+                    ) : filteredCryptos.length > 0 ? (
                         filteredCryptos.map(crypto => {
-                            const isInWatchlist = watchlistSymbols.includes(crypto.symbol);
+                            const isInWatchlist = watchlistSymbolIds.has(crypto.id);
+                            const iconUrl = `https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/${crypto.symbol.split('/')[0].toLowerCase()}.png`;
 
                             return (
-                                <div key={crypto.symbol} className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-800 transition-colors">
-                                    <div className="flex items-center gap-3 w-8 h-8 relative">
-                                        <img alt={crypto.symbol} className="w-8 h-8" src={crypto.icon} />
+                                <div key={crypto.id} className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-800 transition-colors">
+                                    <div className="flex items-center gap-3 w-8 h-8 relative space-x-10">
+                                        <Image fill alt={crypto.symbol} className="w-8 h-8" src={iconUrl || '/images/icons/default.svg'} onError={(e) => {
+                                            e.currentTarget.src = '/images/icons/default.svg';
+                                        }} />
                                         <div>
                                             <div className="font-bold text-white text-start">{crypto.symbol}</div>
-                                            <div className="text-sm text-gray-400">{crypto.name}</div>
+                                            <div className="text-sm text-gray-400 text-start">{crypto.symbol}</div>
                                         </div>
                                     </div>
                                     {isInWatchlist ? (
-                                        <button className="text-xs font-bold text-center w-20 py-1 px-3 rounded-md transition-colors text-gray-400 bg-gray-700 hover:bg-gray-600" onClick={() => handleRemove(crypto.symbol)}>
+                                        <button className="text-xs font-bold text-center w-20 py-1 px-3 rounded-md transition-colors text-gray-400 bg-gray-700 hover:bg-gray-600" onClick={() => handleRemove(crypto)}>
                                             Remove
                                         </button>
                                     ) : (
-                                        <button className="text-xs font-bold text-center w-20 py-1 px-3 rounded-md transition-colors text-black bg-white hover:bg-gray-200" onClick={() => handleAdd(crypto.symbol)}>
+                                        <button className="text-xs font-bold text-center w-20 py-1 px-3 rounded-md transition-colors text-black bg-white hover:bg-gray-200" onClick={() => handleAdd(crypto)}>
                                             Add
                                         </button>
                                     )}
@@ -238,56 +261,107 @@ const AddSymbolModal: React.FC<AddSymbolModalProps> = ({ isOpen, onClose, watchl
 
 // --- Main Watchlist Component ---
 const Watchlist: React.FC = () => {
-    const [watchlist, setWatchlist] = useState<Crypto[]>(allCryptos.slice(0, 6));
     const [isModalOpen, setIsModalOpen] = useState(false);
 
-    // --- Drag and Drop State and Handlers ---
-    const [draggedSymbol, setDraggedSymbol] = useState<string | null>(null);
+    // --- HOOK INTEGRATION ---
+    // NOTE: This assumes `useMarketList` is modified to return the raw `symbols` array.
+    const {
+        loading,
+        symbols: allSymbols, // This is the raw, unfiltered list from the hook
+        handleToggleFavorite,
+    } = useMarketList();
 
-    const handleDragStart = (e: DragEvent<HTMLDivElement>, symbol: string) => {
-        setDraggedSymbol(symbol);
-        // This makes the drag image more transparent
+    // This state holds the re-orderable list for D&D
+    const [displayedWatchlist, setDisplayedWatchlist] = useState<MarketListItem[]>([]);
+
+    // This memo creates the merged/sorted list for the modal
+    const allSymbolsForModal = useMemo(() => {
+        const uniqueSymbols = new Map<string, MarketListItem>();
+
+        // Create a unique list of symbols
+        // This prioritizes a favorited entry if multiple exist
+        for (const item of allSymbols) {
+            const existing = uniqueSymbols.get(item.symbol);
+
+            if (!existing || (!existing.isFavorite && item.isFavorite)) {
+                uniqueSymbols.set(item.symbol, item);
+            }
+        }
+
+        const allUniqueItems = Array.from(uniqueSymbols.values());
+
+        // Per requirement: "favorites should be first"
+        allUniqueItems.sort((a, b) => {
+            if (a.isFavorite && !b.isFavorite) return -1;
+            if (!a.isFavorite && b.isFavorite) return 1;
+
+            // Optional: sort alphabetically as a fallback
+            return a.symbol.localeCompare(b.symbol);
+        });
+
+        return allUniqueItems;
+    }, [allSymbols]);
+
+    // Update the displayed watchlist when the source data (favorites) changes
+    useEffect(() => {
+        const allFavoriteItems = allSymbols.filter(s => s.isFavorite);
+
+        // De-duplicate based on symbol. This ensures we only show one "BTC", "ETH", etc.
+        const uniqueFavoritesMap = new Map<string, MarketListItem>();
+
+        for (const item of allFavoriteItems) {
+            if (!uniqueFavoritesMap.has(item.symbol)) {
+                uniqueFavoritesMap.set(item.symbol, item);
+            }
+        }
+
+        const uniqueFavoriteItems = Array.from(uniqueFavoritesMap.values())
+            .slice(0, MAX_WATCHLIST_ITEMS);
+
+        // Only update if the list is different, to preserve D&D reordering
+        const currentIds = displayedWatchlist.map(item => item.id).join(',');
+        const newIds = uniqueFavoriteItems.map(item => item.id).join(',');
+
+        if (currentIds !== newIds) {
+            setDisplayedWatchlist(uniqueFavoriteItems);
+        }
+        // Add displayedWatchlist to dependency array to prevent stale comparisons
+    }, [allSymbols, displayedWatchlist]);
+
+
+    // --- Drag and Drop State and Handlers (Unchanged) ---
+    const [draggedId, setDraggedId] = useState<string | null>(null);
+
+    const handleDragStart = (e: DragEvent<HTMLDivElement>, id: string) => {
+        setDraggedId(id);
         if (e.dataTransfer) {
             e.dataTransfer.effectAllowed = 'move';
         }
     };
 
-    const handleDragEnter = (e: DragEvent<HTMLDivElement>, targetSymbol: string) => {
+    const handleDragEnter = (e: DragEvent<HTMLDivElement>, targetId: string) => {
         e.preventDefault();
-        if (draggedSymbol === null || draggedSymbol === targetSymbol) return;
+        if (draggedId === null || draggedId === targetId) return;
 
-        const draggedIndex = watchlist.findIndex(c => c.symbol === draggedSymbol);
-        const targetIndex = watchlist.findIndex(c => c.symbol === targetSymbol);
+        const draggedIndex = displayedWatchlist.findIndex(c => c.id === draggedId);
+        const targetIndex = displayedWatchlist.findIndex(c => c.id === targetId);
 
-        const newWatchlist = [...watchlist];
+        const newWatchlist = [...displayedWatchlist];
         const [removed] = newWatchlist.splice(draggedIndex, 1);
 
         newWatchlist.splice(targetIndex, 0, removed);
 
-        setWatchlist(newWatchlist);
+        setDisplayedWatchlist(newWatchlist);
     };
 
     const handleDragEnd = () => {
-        setDraggedSymbol(null);
-    };
-
-    const addToWatchlist = (symbol: string) => {
-        if (watchlist.length < MAX_WATCHLIST_ITEMS && !watchlist.some(c => c.symbol === symbol)) {
-            const cryptoToAdd = allCryptos.find(c => c.symbol === symbol);
-
-            if (cryptoToAdd) {
-                setWatchlist(prev => [...prev, cryptoToAdd]);
-            }
-        }
-    };
-
-    const removeFromWatchlist = (symbol: string) => {
-        setWatchlist(prev => prev.filter(c => c.symbol !== symbol));
+        setDraggedId(null);
+        // Here you could optionally save the new order to an API
     };
 
     return (
-        <div className="flex items-center justify-center font-sans antialiased text-white">
-            <div className="w-full p-6 ua-card">
+        <div className="flex items-center justify-center h-full font-sans antialiased text-white">
+            <div className="w-full p-6 ua-card h-full">
                 <div className="flex justify-between items-center mb-6">
                     <h4 className="font-bold text-lg text-white">My Watchlist</h4>
                     <button className="text-gray-400 hover:text-white transition-colors" title="Add Symbol" onClick={() => setIsModalOpen(true)}>
@@ -298,24 +372,31 @@ const Watchlist: React.FC = () => {
                     className="flex flex-col gap-2"
                     onDragOver={(e) => e.preventDefault()} // Necessary to allow drop
                 >
-                    {watchlist.map(crypto => (
-                        <WatchlistItem
-                            key={crypto.symbol}
-                            crypto={crypto}
-                            isDragging={draggedSymbol === crypto.symbol}
-                            onDragEnd={handleDragEnd}
-                            onDragEnter={handleDragEnter}
-                            onDragStart={handleDragStart}
-                        />
-                    ))}
+                    {loading ? (
+                        Array.from({ length: 3 }).map((_, i) => <WatchlistSkeleton key={i} />)
+                    ) : displayedWatchlist.length > 0 ? (
+                        displayedWatchlist.map(crypto => (
+                            <WatchlistItem
+                                key={crypto.id}
+                                crypto={crypto}
+                                isDragging={draggedId === crypto.id}
+                                onDragEnd={handleDragEnd}
+                                onDragEnter={handleDragEnter}
+                                onDragStart={handleDragStart}
+                            />
+                        ))
+                    ) : (
+                        <div className="text-center py-5 min-h-[220px] flex items-center justify-center text-zinc-500 text-sm">Your watchlist is empty.</div>
+                    )}
                 </div>
             </div>
 
             <AddSymbolModal
-                addToWatchlist={addToWatchlist}
+                allSymbols={allSymbolsForModal}
+                handleToggleFavorite={handleToggleFavorite}
                 isOpen={isModalOpen}
-                removeFromWatchlist={removeFromWatchlist}
-                watchlist={watchlist}
+                loading={loading}
+                watchlist={displayedWatchlist}
                 onClose={() => setIsModalOpen(false)}
             />
         </div>

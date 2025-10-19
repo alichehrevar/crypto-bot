@@ -111,6 +111,7 @@ export function useMarketList() {
     return {
         loading,
         filteredAndSortedSymbols,
+        symbols,
         searchQuery,
         setSearchQuery,
         activeMainTab,

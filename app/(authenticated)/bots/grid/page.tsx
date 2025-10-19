@@ -8,6 +8,7 @@ import RealTimeCandlestickChart, { ChartGridConfig }  from "@/components/shared/
 import MarketListWithSearch from "@/components/market/marketListWithSearch/MarketListWithSearch";
 import CoinSummarySection from "@/components/shared/CoinSummarySection";
 import {MarketListItem} from "@/types/MarketList";
+import TradingViewLightweightChartGrid from "@/components/shared/charts/TradingViewLightweightChartGrid";
 
 export default function TechnicalBotsPage() {
     const [refreshBotsList, setRefreshBotsList] = useState<boolean>(false)
@@ -47,11 +48,9 @@ export default function TechnicalBotsPage() {
                         <div className="flex w-1/3 h-full ua-card">
                             <MarketListWithSearch onSymbolClickAction={(symbol: MarketListItem) => setSelectedSymbol(symbol)} />
                         </div>
-                        <div className="w-2/3 h-full ua-card">
-                            <RealTimeCandlestickChart
-                                gridConfig={gridConfig}
+                        <div className="w-2/3 h-full ua-card relative">
+                            <TradingViewLightweightChartGrid
                                 symbol={selectedSymbol?.symbol.replaceAll('/', '')}
-                                onGridConfigChange={handleGridConfigChange}
                             />
                         </div>
                     </div>

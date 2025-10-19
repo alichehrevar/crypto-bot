@@ -182,7 +182,7 @@ const BotCard = ({ bot, onTogglePause, onDelete, onToggleExpand }: { bot: Bot, o
                     </div>
 
                     {/* Stats */}
-                    <div className="hidden sm:flex items-center justify-center gap-x-6">
+                    <div className="hidden sm:flex items-center justify-center gap-x-6 me-8">
                         <BotStat icon={Clock} tooltip="Operation time" value={bot.runtime} />
                         <BotStat icon={ChevronsUpDown} tooltip="Executed trades" value={bot.transactions} />
                         <BotStat icon={CheckCircle} tooltip="Profitable trades" value={`${bot.successRate}%`} />
