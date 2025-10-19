@@ -25,7 +25,7 @@ exports.getSentiment = async (req, res) => {
  */
 exports.getEvents = async (req, res) => {
     try {
-        const events = await sentimentService.getEconomicEvents();
+        const events = await sentimentService.fetchEvents();
         res.status(200).json({ data: events, success: true });
     } catch (error) {
         res.status(500).json({ error: 'An error occurred while fetching events.', success: false });
