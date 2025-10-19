@@ -82,11 +82,10 @@ export default function MarketListWithSearch({ onSymbolClickAction }: MarketList
         [filteredAndSortedSymbols, visibleRange]
     );
     const paddingTop = visibleRange.start * ROW_HEIGHT;
-    const totalHeight = filteredAndSortedSymbols.length * ROW_HEIGHT;
 
     // --- RENDER ---
     return (
-        <div className="bg-dark-gray text-white w-full h-full rounded-xl pb-2 shadow-2xl pt-4 flex flex-col overflow-y-hidden">
+        <div className="text-white w-full h-full pb-2 flex flex-col overflow-y-hidden">
             <div className="px-4 mb-4">
                 <SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
             </div>
@@ -94,9 +93,9 @@ export default function MarketListWithSearch({ onSymbolClickAction }: MarketList
             <FilterChips activeFilter={activeFilter} setActiveFilter={setActiveFilter} />
             <MarketListHeader handleSort={handleSort} isSortActive={isSortActive} sortConfig={sortConfig} />
 
-            <div ref={scrollContainerRef} className="overflow-y-auto scrollbar-hide flex-grow">
-                <div style={{ height: `${totalHeight}px`, position: 'relative' }}>
-                    <div style={{ position: 'absolute', top: `${paddingTop}px`, width: '100%' }}>
+            <div ref={scrollContainerRef} className="overflow-y-auto scrollbar-hide flex-grow h-full">
+                <div style={{ height: `100%`, position: 'relative' }}>
+                    <div className="absolute w-full h-full" style={{ top: `${paddingTop}px` }}>
                         {loading ? (
                             Array.from({ length: 10 }).map((_, i) => <SkeletonRow key={i} style={{ height: `${ROW_HEIGHT}px` }} />)
                         ) : visibleItems.length > 0 ? (

@@ -169,7 +169,7 @@ export const OrderBook = () => {
               </div>
             </div>
 
-            <div className="flex items-start justify-center flex-col lg:flex-row w-full gap-2.5">
+            <div className="flex items-start justify-center flex-col lg:flex-row w-full gap-2.5 overflow-y-auto h-full">
               <div className="flex items-center justify-start flex-col gap-3 w-full">
                 {/* Headers */}
                 <div className="grid grid-cols-3 gap-2 text-xs text-gray-400 mb-2 font-medium w-full">
@@ -178,7 +178,7 @@ export const OrderBook = () => {
                   <span className="text-right">Total(BTC)</span>
                 </div>
                 {/* Sell Orders */}
-                <div className="space-y-1 mb-3 w-full">
+                <div className="space-y-1 mb-3 w-full overflow-y-auto max-h-[300px]">
                   {sellOrders.slice(0, 5).reverse().map((order) => (
                     <OrderRow key={order.id} order={order} type="sell" />
                   ))}

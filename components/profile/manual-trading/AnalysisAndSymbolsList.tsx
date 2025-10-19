@@ -11,14 +11,15 @@ interface AnalysisAndSymbolsListProps {
 
 export default function AnalysisAndSymbolsList({ onSymbolClickAction }: AnalysisAndSymbolsListProps) {
     return (
-        <div className="flex flex-col bg-dark-gray rounded-xl py-3 w-full h-full">
+        <div className="py-3 w-full h-full">
             <Tabs
                 aria-label="AnalysisAndSymbolsList"
                 classNames={{
-                    tabList: 'w-full px-2',
+                    base: 'w-full',
+                    tabList: 'w-full px-2 ',
                     tab: 'pb-4 font-bold text-[14px] mb-1',
                     cursor: 'w-full',
-                    panel: 'h-[93%]'
+                    panel: 'h-[96%]'
                 }}
                 variant="underlined"
             >

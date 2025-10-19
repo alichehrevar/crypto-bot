@@ -251,7 +251,7 @@ export default function RealTimeCandlestickChart({
     }
 
     return (
-        <div ref={containerRef} className="relative w-full flex-grow rounded-xl h-full">
+        <div ref={containerRef} className="relative w-full flex-grow ua-card h-full">
             <div className="absolute top-0 right-0 left-0 z-10 bg-dark-gray rounded-t-xl shadow-lg p-2 flex flex-col-reverse gap-2 items-start">
                 <div className="flex-grow flex items-center gap-4 pl-2">
                     {ohlc && (
@@ -274,7 +274,7 @@ export default function RealTimeCandlestickChart({
                         return (
                             <button
                                 key={iv}
-                                className={`px-3 py-1.5 text-xs font-medium transition ${active ? 'text-white border-b-2 border-white' : 'text-white/60 hover:text-white/80'}`}
+                                className={`px-3 py-1.5 text-xs font-medium rounded-t-xl transition ${active ? 'text-white border-b-2 border-white' : 'text-white/60 hover:text-white/80'}`}
                                 type="button"
                                 onClick={() => setCurrentInterval(iv)}
                             >
