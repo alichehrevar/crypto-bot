@@ -2,9 +2,9 @@
 
 const express = require('express');
 const router = express.Router();
-const { validateBotParams } = require('../app/http/middleware/validation');
-const botController = require('../app/http/controllers/botController');
-const authenticate = require('../app/http/middleware/auth');
+const { validateBotParams } = require('../../app/http/middleware/validation');
+const botController = require('../../app/http/controllers/botController');
+const authenticate = require('../../app/http/middleware/auth');
 
 // --- ADVANCED GRID BOT ROUTES ---
 router.post('/grid/create', authenticate, botController.createGridBot);

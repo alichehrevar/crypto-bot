@@ -1,19 +1,21 @@
+const EventEmitter = require('events');
+const DcaBot = require('../../models/DcaBot');
 const GridBotModel = require('../../models/GridBotModel');
+const BotBase = require('../../models/BotBase'); // We'll use a base model for polymorphism
+const DcaOrder = require('../../models/DcaOrder');
 const GridStrategyService = require('./GridStrategyService');
-// const ExchangeService = require('./ExchangeService'); // Assumed to exist
+const DcaStrategyService = require('./DcaStrategyService');
+const logger = require('../../../logs/logger');
 
 /**
  * BotManagerService
- * A singleton service that manages the lifecycle of all active grid bot instances.
+ * A singleton service that manages the lifecycle of all active bot instances (Grid, DCA, etc.).
  * It initializes them on startup and routes exchange events to the correct instance.
  */
 class BotManagerService {
     constructor() {
-        // In-memory map to hold active bot strategy instances.
-        // Key: botId (string), Value: GridStrategyService instance
         this.activeBots = new Map();
-        // this.exchangeService = new ExchangeService(); // Initialize your exchange connection here
-        this.exchangeService = this.getMockExchangeService(); // Using a mock for development
+        this.exchangeService = this.getMockExchangeService(); // Using a mock for now
     }
 
     /**
@@ -21,112 +23,128 @@ class BotManagerService {
      * and subscribes to necessary exchange data streams.
      */
     async initialize() {
-        console.log('BotManagerService initializing...');
+        logger.info('BotManagerService initializing...');
 
-        // Subscribe to a centralized stream of user trade updates (fills)
         this.exchangeService.on('fill', (fillData) => {
             this.routeFillEvent(fillData);
         });
 
-        const runningBots = await GridBotModel.find({ status: 'RUNNING' });
-        console.log(`Found ${runningBots.length} bots to restart.`);
+        const runningBots = await BotBase.find({ status: 'RUNNING' });
+        logger.info(`Found ${runningBots.length} running bots to restart.`);
 
         for (const bot of runningBots) {
             await this.startBotInstance(bot._id.toString());
         }
-        console.log('BotManagerService initialized successfully.');
+        logger.info('BotManagerService initialized successfully.');
     }
 
     /**
-     * Creates a new bot in the database and starts its trading instance.
-     * @param {object} botConfig - The configuration for the new bot.
-     * @returns {GridStrategyService} The running instance.
-     */
-    async createAndStartBot(botConfig) {
-        console.log(botConfig)
-        const newBot = new GridBotModel(botConfig);
-        await newBot.save();
-        console.log(`New bot created with ID: ${newBot._id}`);
-
-        return this.startBotInstance(newBot._id.toString());
-    }
-
-    /**
-     * Stops a bot instance and updates its status in the database.
+     * Stops a bot instance, cleans up, and updates its status in the database.
      * @param {string} botId - The ID of the bot to stop.
      */
-    async stopBot(botId) {
+    async stopBotInstance(botId) {
         const botInstance = this.activeBots.get(botId);
         if (!botInstance) {
-            console.warn(`Attempted to stop a bot that is not active: ${botId}`);
-            // Ensure status is updated even if instance isn't in memory
-            await GridBotModel.updateOne({ _id: botId }, { status: 'STOPPED' });
+            logger.warn(`Attempted to stop a bot that is not active: ${botId}`);
+            await BotBase.updateOne({ _id: botId }, { status: 'DISABLED' });
             return;
         }
 
-        await botInstance.stop();
+        // Assuming strategy services have a stop() method for cleanup
+        if (typeof botInstance.stop === 'function') {
+            await botInstance.stop();
+        }
+
         this.activeBots.delete(botId);
-        console.log(`Bot instance ${botId} stopped and removed from manager.`);
+        await BotBase.updateOne({ _id: botId }, { status: 'DISABLED' });
+
+        logger.info(`Bot instance ${botId} stopped and removed from manager.`);
     }
 
     /**
      * Routes a fill event from the exchange to the correct bot instance.
      * @param {object} fillData - The fill data from the exchange.
      */
-    routeFillEvent(fillData) {
-        // In a real system, we'd map the orderId or a clientOrderId prefix
-        // to a botId. Here, we'll need to look it up. This is inefficient
-        // and should be optimized in a production environment.
-        const botId = this.findBotIdForOrder(fillData.orderId);
+    async routeFillEvent(fillData) {
+        // Efficiently find the botId associated with the filled order
+        const botId = await this.findBotIdForOrder(fillData.orderId);
+
         if (botId && this.activeBots.has(botId)) {
             const botInstance = this.activeBots.get(botId);
-            console.log(`Routing fill for order ${fillData.orderId} to bot ${botId}`);
-            botInstance.processFill(fillData);
+            logger.info(`Routing fill for order ${fillData.orderId} to bot ${botId}`);
+
+            // Assuming strategy services have a processFill() method
+            if(typeof botInstance.processFill === 'function') {
+                botInstance.processFill(fillData);
+            }
+        } else {
+            logger.warn({ orderId: fillData.orderId }, 'Could not route fill event to an active bot.');
         }
     }
 
     /**
-     * Starts a managed instance of a GridStrategyService for a given botId.
+     * Starts a managed instance of the correct StrategyService based on botType.
      * @param {string} botId
      */
     async startBotInstance(botId) {
         if (this.activeBots.has(botId)) {
-            console.warn(`Bot instance ${botId} is already running.`);
-            return;
+            logger.warn(`Bot instance ${botId} is already running.`);
+            return this.activeBots.get(botId);
         }
 
         try {
-            const botInstance = new GridStrategyService(botId, this.exchangeService);
+            const bot = await BotBase.findById(botId);
+            if (!bot) throw new Error('Bot not found');
+
+            let botInstance;
+
+            // Strategy Factory: Instantiate the correct service based on the bot's type
+            switch (bot.botType) {
+                case 'DcaBot':
+                    botInstance = new DcaStrategyService(botId);
+                    break;
+                case 'GridBot':
+                    botInstance = new GridStrategyService(botId, this.exchangeService);
+                    break;
+                default:
+                    throw new Error(`Unknown bot type: ${bot.botType}`);
+            }
+
             await botInstance.initialize();
-            await botInstance.start();
+
+            // Assuming strategy services have a start() method
+            if (typeof botInstance.start === 'function') {
+                await botInstance.start();
+            } else if (bot.botType === 'DcaBot' && !bot.activeDeal) {
+                // For DCA, starting a new deal is the "start" action
+                await botInstance.startNewDeal();
+            }
+
+            await BotBase.updateOne({ _id: botId }, { status: 'RUNNING' });
             this.activeBots.set(botId, botInstance);
-            console.log(`Successfully started and managing bot instance: ${botId}`);
+            logger.info(`Successfully started and managing bot instance: ${botId} of type ${bot.botType}`);
             return botInstance;
+
         } catch (error) {
-            console.error(`Failed to start bot instance ${botId}:`, error);
-            await GridBotModel.updateOne({ _id: botId }, { status: 'ERROR' });
+            logger.error({ botId, error: error.message, stack: error.stack }, `Failed to start bot instance`);
+            await BotBase.updateOne({ _id: botId }, { status: 'ERROR' });
         }
     }
 
     // --- MOCK AND HELPER FUNCTIONS ---
 
-    /**
-     * Simulates an exchange service for development purposes.
-     */
     getMockExchangeService() {
-        const EventEmitter = require('events');
         class MockExchangeService extends EventEmitter {}
         const mockService = new MockExchangeService();
 
-        // Simulate a fill event every 15 seconds
         setInterval(() => {
             const mockFill = {
                 tradeId: `trade-${Date.now()}`,
-                orderId: 'mock-order-id-123', // In reality, this would be a dynamic exchange ID
+                orderId: 'mock-dca-order-id-456', // A dynamic exchange ID
                 symbol: 'BTC/USDT',
-                price: 65100,
-                quantity: 0.01,
-                fee: 0.0651,
+                price: 65150,
+                quantity: 0.005,
+                fee: 0.0325,
                 feeCurrency: 'USDT',
                 side: 'buy',
                 timestamp: Date.now(),
@@ -138,20 +156,28 @@ class BotManagerService {
     }
 
     /**
-     * Helper to find which bot an order belongs to.
-     * NOTE: This is a placeholder. A production system should use a more
-     * efficient mapping, like a Redis cache of `exchangeOrderId -> botId`.
+     * Finds which bot an order belongs to by checking our order collections.
      */
-    findBotIdForOrder(exchangeOrderId) {
-        // This is where you would query a mapping. For now, we hardcode it
-        // to respond to the mock service's fill event.
-        if (exchangeOrderId === 'mock-order-id-123' && this.activeBots.size > 0) {
-            // Return the first active bot's ID for the demo
+    async findBotIdForOrder(exchangeOrderId) {
+        // Check DCA orders first
+        let order = await DcaOrder.findOne({ exchangeOrderId }).select('botId');
+
+        // If not found, check Grid orders (assuming a GridOrder model exists)
+        // if (!order) {
+        //     order = await GridOrder.findOne({ exchangeOrderId }).select('botId');
+        // }
+
+        if (order) {
+            return order.botId.toString();
+        }
+
+        // Fallback for mock testing
+        if (exchangeOrderId === 'mock-dca-order-id-456' && this.activeBots.size > 0) {
             return this.activeBots.keys().next().value;
         }
+
         return null;
     }
 }
 
-// Export a singleton instance of the manager
 module.exports = new BotManagerService();
