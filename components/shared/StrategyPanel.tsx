@@ -40,7 +40,7 @@ export default function StrategyPanel() {
     const [accuracyInterval, setAccuracyInterval] = useState(ACCURACY_INTERVAL_OPTIONS[1].name);
 
     return (
-        <div className="bg-dark-gray text-white p-8 pb-4 rounded-xl shadow-2xl flex flex-col w-xl">
+        <div className="text-white p-8 pb-4 shadow-2xl flex flex-col w-xl ua-card">
             <motion.div layout className="mb-6">
                 <Tabs activeTab={activeStrategy} setActiveTab={setActiveStrategy} tabs={STRATEGY_TABS}/>
             </motion.div>

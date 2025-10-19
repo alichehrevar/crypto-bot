@@ -63,17 +63,17 @@ const Spinner: React.FC<{ className?: string }> = ({ className = "h-5 w-5" }) =>
 );
 
 const SkeletonLoader = () => (
-    <div className="animate-pulse pt-3">
+    <div className="animate-pulse pt-3 mt-4 space-y-4">
         <div className="flex space-x-6 mb-4">
             <div className="h-4 w-32 bg-gray-700/50 rounded" />
             <div className="h-4 w-32 bg-gray-700/50 rounded" />
         </div>
-        <div className="space-y-3 p-4 bg-dark-gray rounded-md border border-gray-600 h-[400px]">
+        <div className="space-y-3 p-4 bg-dark-gray rounded-md border border-gray-600 h-[250px]">
             <div className="h-3 bg-gray-700/50 rounded w-3/4" />
             <div className="h-3 bg-gray-700/50 rounded" />
             <div className="h-3 bg-gray-700/50 rounded w-1/2" />
         </div>
-        <div className="flex justify-between items-start pt-4 mt-[-15px]">
+        <div className="flex justify-between items-start pt-4">
             <div className="h-10 w-20 bg-gray-700/50 rounded-full" />
             <div className="flex space-x-4">
                 <div className="h-10 w-32 bg-gray-700/50 rounded-full" />
@@ -144,7 +144,7 @@ const WinRatioGauge: React.FC<{ ratio: number }> = ({ ratio }) => {
 };
 
 const ConditionsReportView: React.FC<{ report: StrategyReport }> = ({ report }) => (
-    <div className="bg-dark-semi-black p-5 rounded-md border border-gray-600 overflow-y-auto h-[400px]">
+    <div className="bg-dark-semi-black p-5 rounded-md border border-gray-600 overflow-y-auto h-[250px]">
         <h3 className="text-lg font-semibold text-white mb-3">Market Analysis Overview</h3>
         <p className="text-sm text-gray-300 leading-relaxed mb-6">{report.overview}</p>
         <h3 className="text-lg font-semibold text-white mb-3">Recommended Technical Strategy</h3>
@@ -225,7 +225,7 @@ export default function AIStrategyGenerator() {
     };
 
     return (
-        <div className="bg-dark-gray text-white px-8 pt-8 pb-3 rounded-xl shadow-2xl w-full max-w-5xl mx-auto h-full">
+        <div className="text-white px-8 pt-8 pb-3 shadow-2xl w-full mx-auto h-full ua-card">
             <div className="flex justify-between items-center mb-6">
                 <h2 className="text-2xl font-semibold text-gray-100">AI Strategy Generator</h2>
             </div>
@@ -285,7 +285,7 @@ export default function AIStrategyGenerator() {
                                     <motion.div key="code" animate={{ opacity: 1 }} exit={{ opacity: 0 }} initial={{ opacity: 0 }} transition={{ duration: 0.2 }}>
                                         <textarea
                                             className="custom-code-editor w-full"
-                                            rows={17}
+                                            rows={10}
                                             value={generatedStrategy.code}
                                             onChange={(e) => handleCodeChange(e.target.value)}
                                         />

@@ -31,7 +31,7 @@ export default function RiskManagementPanel() {
     const [riskStrategy, setRiskStrategy] = useState(STRATEGIES[0].name);
 
     return (
-        <div className="bg-dark-gray text-white p-8 rounded-xl shadow-2xl flex flex-col justify-center w-full h-[360px]">
+        <div className="text-white p-8 shadow-2xl flex flex-col justify-center w-full h-[360px] ua-card">
             <div className="grid grid-cols-2 gap-x-4 gap-y-5">
                 <NumericInput label="Investment" max={1000000} min={100} placeholder="e.g., 1000" step={0.1} unit="USDT" usePercentageStep={true} value={investment} onChange={setInvestment} />
                 <NumericInput label="Investment Per Trade" max={100} min={0.1} placeholder="e.g., 1" step={0.1} unit="%" value={investmentPerTrade} onChange={setInvestmentPerTrade} />

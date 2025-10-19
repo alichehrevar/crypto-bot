@@ -45,7 +45,7 @@ export default function CreatorsHubPanel() {
     const isDualLeverage = showLongLeverage && showShortLeverage;
 
     return (
-        <div className="bg-dark-gray text-white p-6 rounded-lg shadow-2xl flex flex-col justify-between w-full h-[390px]">
+        <div className="text-white p-6 shadow-2xl flex flex-col justify-between w-full ua-card h-[390px]">
             <Input id="bot-name" placeholder="e.g., ETH Momentum Scalper" title="Bot Name" />
             <div className="grid grid-cols-2 gap-4">
                 <Combobox
