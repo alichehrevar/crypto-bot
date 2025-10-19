@@ -226,7 +226,7 @@ export default function StrategyTesterPage() {
                                 />
                             ) : (
                                 <div className="h-full">
-                                    <RealTimeCandlestickChart interval="1m" symbol="BTCUSDT" timeZone="local" />
+                                    <RealTimeCandlestickChart interval="1m" symbol={selectedSymbol} timeZone="local" />
                                 </div>
                             )}
                         </div>
