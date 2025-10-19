@@ -51,6 +51,13 @@ router.put('/info/security/update',
  * @desc    Toggle a symbol as favorite for the authenticated user
  * @access  Private
  */
+router.get('/favorites/list', authenticate, userController.favoriteSymbolsList);
+
+/**
+ * @route   POST /api/user/favorites/toggle
+ * @desc    Toggle a symbol as favorite for the authenticated user
+ * @access  Private
+ */
 router.post('/favorites/toggle', authenticate, userController.toggleFavoriteSymbol);
 
 router.post('/2fa/toggle', authenticate, userController.toggle2FA);

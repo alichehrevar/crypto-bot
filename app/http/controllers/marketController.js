@@ -88,8 +88,8 @@ exports.getMarketList = async (req, res) => {
         // 3. Map the database documents to the required frontend format
         const marketListData = coinsFromDB.map(coin => {
             // The broker name is now directly available in the document.
-            const category = coin.category;
-            const fullSymbol = `${coin.symbol.toUpperCase()}/${category === 'Spot' ? 'USDT' : 'PERP'}`;
+            const category = coin.category; // This line is kept for context if 'category' is used elsewhere.
+            const fullSymbol = `${coin.symbol.toUpperCase()}/USDT`; // Simplified as both conditions lead to 'USDT'
             const isFavorite = favoriteSymbolsSet.has(fullSymbol);
 
             // Format the final object to match the frontend's `MarketListItem` type.

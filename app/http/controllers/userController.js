@@ -6,6 +6,8 @@ const bcrypt = require("bcryptjs");
 const User = require('../../models/User');
 const UserInfo = require('../../models/UserInfo');
 const FavoriteSymbol = require('../../models/FavoriteSymbol');
+const MarketService = require('../../services/marketService');
+const MarketSnapshot = require('../../models/MarketSnapshot');
 const { sendOtpAndHandleFailure } = require('../../services/user/otpService');
 
 exports.userInfo = async (req, res) => {
@@ -283,6 +285,76 @@ exports.updateUserSecurityInfo = async (req, res) => {
         if (error.name === 'ValidationError') {
             return res.status(400).json({ success: false, message: error.message });
         }
+        res.status(500).json({ success: false, message: 'Internal server error.' });
+    }
+};
+
+/**
+ * Get the user's list of favorite symbols, augmented with
+ * LIVE market data (price, 24h change) fetched from APIs.
+ */
+exports.favoriteSymbolsList = async (req, res) => {
+    try {
+        const userId = req.user.id;
+
+        // Use .lean() for faster, plain JavaScript objects
+        const favorites = await FavoriteSymbol.find({ userId }).sort({ timestamp: -1 }).lean();
+
+        if (!favorites.length) {
+            return res.status(200).json({ data: [], success: true });
+        }
+
+        await MarketService.fetchAndStoreMarketData();
+
+        // 2. Define the category mapping
+        const categoryMap = {
+            "USDT-M": "Perpetual",
+            "Spot": "Spot"
+            // Add other mappings as needed
+        };
+
+        // 3. Build a complex $or query for MarketSnapshot
+        const conditions = favorites.map(fav => {
+            // Parse "BTC/USDT" -> "BTC"
+            const baseSymbol = fav.symbol.split('/')[0];
+
+            // Map "USDT-M" -> "Perpetual"
+            const mappedCategory = categoryMap[fav.category] || fav.category;
+
+            return {
+                name: fav.broker,        // Match broker
+                category: mappedCategory, // Match mapped category
+                symbol: baseSymbol        // Match parsed symbol
+            };
+        });
+
+        // 4. Find all matching market snapshots in a single query
+        const marketData = await MarketSnapshot.find({ $or: conditions }).lean();
+
+        // 5. (Optional but recommended) Combine the data in your application
+        // Create a map for efficient lookup
+        const marketDataMap = new Map();
+        marketData.forEach(data => {
+            const key = `${data.name}_${data.category}_${data.symbol}`;
+            marketDataMap.set(key, data);
+        });
+
+        // Attach market data to each favorite
+        const combinedResults = favorites.map(fav => {
+            const baseSymbol = fav.symbol.split('/')[0];
+            const mappedCategory = categoryMap[fav.category] || fav.category;
+            const key = `${fav.broker}_${mappedCategory}_${baseSymbol}`;
+
+            return {
+                ...fav,
+                marketData: marketDataMap.get(key) || null // Attach snapshot or null
+            };
+        });
+
+        return res.status(200).json({ data: combinedResults, success: true });
+
+    } catch (error) {
+        console.error('Error in favoriteSymbolsList (live):', error);
         res.status(500).json({ success: false, message: 'Internal server error.' });
     }
 };
