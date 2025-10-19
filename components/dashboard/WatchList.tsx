@@ -11,7 +11,7 @@ import { MarketListItem } from '@/types/MarketList';
 const MAX_WATCHLIST_ITEMS = 6;
 
 // --- HELPER FUNCTIONS ---
-const formatCurrency = (value: number) => {
+const formatCurrency = (value: number | string) => {
     if (typeof value !== 'number' || isNaN(value)) {
         return '$0.00';
     }
