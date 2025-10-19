@@ -10,6 +10,7 @@ type Interval = '1m' | '5m' | '15m' | '30m' | '1h' |
 interface RealTimeCandlestickChartProps {
     symbol?: string; // e.g., 'BTCUSDT'
     initialInterval?: Interval;
+    isGrid?: boolean;
 // The default timeframe to load.
 }
 
@@ -43,6 +44,7 @@ const VISIBLE_BARS_ON_LOAD = 120;
 export default function TradingViewLightweightChartGrid({
     symbol = 'BTCUSDT',
     initialInterval = '5m', // Default timeframe is now 5m.
+    isGrid = true,
 }: RealTimeCandlestickChartProps): JSX.Element {
     // --- Refs for DOM elements and chart instances ---
     const containerRef = useRef<HTMLDivElement>(null);
@@ -237,14 +239,17 @@ export default function TradingViewLightweightChartGrid({
     // Re-run this effect if the library, symbol, or interval changes.
     // --- Effect for Drawing the Grid Lines ---
     useEffect(() => {
-        // Exit if there's no price to base the grid on, or if the chart isn't ready.
-        if (!initialPrice || !seriesRef.current || !(window as any).LightweightCharts) return;
         const series = seriesRef.current;
+        const LightweightCharts = (window as any).LightweightCharts;
 
-        // Clear any existing grid lines before drawing new ones.
-        gridLinesRef.current.forEach(line => series.removePriceLine(line));
-        gridLinesRef.current =
-            [];
+        // 1. Always clear existing lines first. This handles toggling isGrid from true to false.
+        gridLinesRef.current.forEach(line => series?.removePriceLine(line));
+        gridLinesRef.current = [];
+
+        // 2. Exit if grid is disabled, or if dependencies aren't ready.
+        if (!isGrid || !initialPrice || !series || !LightweightCharts) {
+            return;
+        }
 
         const levels: number[] = [];
         const STEP = 0.002; // 0.2% interval between lines.
@@ -268,7 +273,7 @@ export default function TradingViewLightweightChartGrid({
                 axisLabelVisible: false, title: '',
             })
         );
-    }, [initialPrice]); // Re-run this effect only when the initial price is set.
+    }, [initialPrice, isGrid]); // Re-run this effect only when the initial price is set.
     const intervals: Interval[] = ['1m', '5m', '15m', '30m', '1h', '4h', '1d'];
 
     // --- JSX Rendering ---

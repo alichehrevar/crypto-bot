@@ -8,6 +8,7 @@ import CoinSummarySection from "@/components/shared/CoinSummarySection";
 import RealTimeCandlestickChart from "@/components/shared/charts/TradingViewLightweightChart";
 import AnalysisAndSymbolsList from "@/components/profile/manual-trading/AnalysisAndSymbolsList";
 import {MarketListItem} from "@/types/MarketList";
+import TradingViewLightweightChartGrid from "@/components/shared/charts/TradingViewLightweightChartGrid";
 
 export default function TechnicalBotsPage() {
 
@@ -16,7 +17,7 @@ export default function TechnicalBotsPage() {
 
     return (
         <div className="w-full h-screen overflow-y-auto pt-8 relative px-5 space-y-2">
-            <CoinSummarySection coinId={selectedSymbol?.id || "bitcoin"} />
+            <CoinSummarySection coinId={selectedSymbol?.id || "68edf9f3ae9ad504e3c7f799"} />
             <div className=" w-full flex items-start justify-center gap-2 mt-2 lg:h-[900px]">
                 <div className="w-full lg:w-[76%] self-stretch">
                     <div className="flex items-start justify-center gap-2 h-[65%]">
@@ -24,8 +25,11 @@ export default function TechnicalBotsPage() {
                             {/* MarketList */}
                             <AnalysisAndSymbolsList onSymbolClickAction={(symbol: MarketListItem) => setSelectedSymbol(symbol)} />
                         </div>
-                        <div className="w-2/3 h-full ua-card">
-                            <RealTimeCandlestickChart interval="1m" symbol={selectedSymbol} timeZone="local"/>
+                        <div className="w-2/3 h-full ua-card relative">
+                            <TradingViewLightweightChartGrid
+                                isGrid={false}
+                                symbol={selectedSymbol?.symbol.replaceAll('/', '')}
+                            />
                         </div>
                     </div>
 

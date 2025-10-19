@@ -17,7 +17,7 @@ export default function ManualTradingPage() {
 
     return (
         <div className="w-full h-screen overflow-y-auto pt-8 relative px-5 space-y-2">
-            <CoinSummarySection coinId={selectedSymbol?.id || "bitcoin"} />
+            <CoinSummarySection coinId={selectedSymbol?.id || "68edf9f3ae9ad504e3c7f799"} />
             <div className="w-full grid grid-cols-4 gap-2">
                 <div className="ua-card">
                     <AnalysisAndSymbolsList onSymbolClickAction={(symbol: MarketListItem) => setSelectedSymbol(symbol)} />

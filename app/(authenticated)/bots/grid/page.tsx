@@ -15,7 +15,7 @@ export default function TechnicalBotsPage() {
 
     return (
         <div className="w-full h-screen overflow-y-auto pt-8 relative px-5">
-            <CoinSummarySection coinId={selectedSymbol?.id || "bitcoin"}/>
+            <CoinSummarySection coinId={selectedSymbol?.id || "68edf9f3ae9ad504e3c7f799"}/>
             <div className="w-full flex justify-center gap-2 mt-2">
                 {/* --- Left Column --- */}
                 <div className="w-full lg:w-[76%] self-stretch flex flex-col gap-2">
