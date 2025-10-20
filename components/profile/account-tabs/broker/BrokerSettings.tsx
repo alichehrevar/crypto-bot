@@ -40,7 +40,7 @@ const BROKERS: Broker[] = [
     {
         id: 'binance',
         name: 'Binance',
-        logo: 'https://s2.coinmarketcap.com/static/img/coins/64x64/1839.png',
+        logo: '/images/logos/market/binance-logo.png',
         accentColor: '#F0B90B',
         instructions: [
             { content: [
@@ -56,7 +56,7 @@ const BROKERS: Broker[] = [
     {
         id: 'okx',
         name: 'OKX',
-        logo: 'https://s2.coinmarketcap.com/static/img/coins/64x64/825.png',
+        logo: '/images/logos/market/okx-logo.svg',
         accentColor: '#FFFFFF',
         instructions: [
             { content: [
@@ -72,7 +72,7 @@ const BROKERS: Broker[] = [
     {
         id: 'bingx',
         name: 'BingX',
-        logo: 'https://bingx.com/en-us/global-navigation/bingx-logo.svg',
+        logo: '/images/logos/market/bingx-logo.png',
         accentColor: '#4A90E2', // Corrected hex color
         instructions: [
             { content: [
@@ -88,7 +88,7 @@ const BROKERS: Broker[] = [
     {
         id: 'bybit',
         name: 'Bybit',
-        logo: 'https://s2.coinmarketcap.com/static/img/coins/64x64/11414.png',
+        logo: '/images/logos/market/bybit-logo.png',
         accentColor: '#F7A600',
         instructions: [
             { content: [
@@ -107,7 +107,7 @@ const BROKERS: Broker[] = [
     {
         id: 'coinbase',
         name: 'Coinbase',
-        logo: 'https://cryptologos.cc/logos/coinbase-coin-logo.svg?v=023',
+        logo: '/images/logos/market/coinbase-logo.png',
         accentColor: '#0052FF',
         instructions: [
             { content: [
@@ -123,7 +123,7 @@ const BROKERS: Broker[] = [
     {
         id: 'kraken',
         name: 'Kraken',
-        logo: 'https://cryptologos.cc/logos/kraken-krl-logo.svg?v=023',
+        logo: '/images/logos/market/kraken-logo.png',
         accentColor: '#5841D8',
         instructions: [
             { content: [
@@ -153,7 +153,7 @@ interface AnimatedLogoProps {
  * AnimatedLogo: A decorative background element using framer-motion.
  */
 const AnimatedLogo: React.FC<AnimatedLogoProps> = ({ rotation, accentColor }) => {
-    const sizeClasses = "w-[800px] h-[800px]";
+    const sizeClasses = "w-[1000px] h-[1000px]";
 
     return (
         <motion.svg
@@ -218,7 +218,7 @@ const BrokerSettingsPage: React.FC = () => {
             <div className='flex flex-1 relative w-full mx-auto' style={pageStyle}>
 
                 {/* The AnimatedLogo is positioned absolutely. */}
-                <div className='absolute top-0 right-0 transform translate-x-1/2 -translate-y-1/2 pointer-events-none z-0 opacity-90'>
+                <div className='absolute top-7 right-7 transform translate-x-1/2 -translate-y-1/2 pointer-events-none z-0 opacity-90'>
                     {selectedBroker && (
                         <AnimatedLogo
                             accentColor={selectedBroker.accentColor}
@@ -263,19 +263,20 @@ const BrokerSettingsPage: React.FC = () => {
                             >
                                 <div>
                                     {/* Header displaying the broker's name and logo. */}
-                                    <header className="flex items-center mb-10 backdrop-blur-[2px]">
+                                    <header className="inline-flex items-center mb-10 backdrop-blur-[2px]">
                                         <h1 className="text-2xl font-light mr-4">{selectedBroker.name}</h1>
-                                        <Image
-                                            alt={`${selectedBroker.name} logo`}
-                                            className="w-10 h-10 object-contain"
-                                            height={10}
-                                            src={selectedBroker.logo}
-                                            width={10}
-                                            // Handle image loading errors with a typed event.
-                                            onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-                                                e.currentTarget.src = `https://placehold.co/64x64/171717/FFFFFF?text=${selectedBroker.name.charAt(0)}`;
-                                            }}
-                                        />
+                                        <div className={`relative ${selectedBroker.name === 'bybit' ? 'h-6 aspect-[44/17]' : 'w-6 h-6'}`}>
+                                            <Image
+                                                fill
+                                                alt={`${selectedBroker.name} logo`}
+                                                className="object-contain"
+                                                src={selectedBroker.logo}
+                                                // Handle image loading errors with a typed event.
+                                                onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+                                                    e.currentTarget.src = `https://placehold.co/64x64/171717/FFFFFF?text=${selectedBroker.name.charAt(0)}`;
+                                                }}
+                                            />
+                                        </div>
                                     </header>
 
                                     {/* Instructions Section */}
