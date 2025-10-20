@@ -116,7 +116,7 @@ export default function AvatarInput({userStore}: { userStore: any }) {
                     name={userStore.userData.info?.firstName + ' ' + userStore.userData.info?.lastName}
                     size="lg" // Made it larger
                     // Show preview, then existing avatar, then default
-                    src={imagePreview || process.env.API_URL + userStore.userData.info?.avatar || '/images/icons/default.svg'}
+                    src={imagePreview || process.env.CDN_URL + userStore.userData.info?.avatar || '/images/icons/default.svg'}
                 />
             </div>
             {isUploading &&

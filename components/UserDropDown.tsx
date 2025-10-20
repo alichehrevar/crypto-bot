@@ -58,7 +58,7 @@ const UserDropDown = observer(() => {
                     color="primary"
                     name={userStore.userData.info?.firstName + ' ' + userStore.userData.info?.lastName}
                     size="sm"
-                    src={process.env.API_URL! + userStore.userData.info?.avatar || '/images/icons/default.svg'}
+                    src={process.env.CDN_URL! + userStore.userData.info?.avatar || '/images/icons/default.svg'}
                 />
             </DropdownTrigger>
             <DropdownMenu aria-label="Profile Actions" variant="flat" onAction={(key) => {
