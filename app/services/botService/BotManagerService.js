@@ -98,7 +98,7 @@ class BotManagerService {
 
             // Strategy Factory: Instantiate the correct service based on the bot's type
             switch (bot.botType) {
-                case 'DcaBot':
+                case 'dca':
                     botInstance = new DcaStrategyService(botId);
                     break;
                 case 'GridBot':
@@ -113,7 +113,7 @@ class BotManagerService {
             // Assuming strategy services have a start() method
             if (typeof botInstance.start === 'function') {
                 await botInstance.start();
-            } else if (bot.botType === 'DcaBot' && !bot.activeDeal) {
+            } else if (bot.botType === 'dca' && !bot.activeDeal) {
                 // For DCA, starting a new deal is the "start" action
                 await botInstance.startNewDeal();
             }

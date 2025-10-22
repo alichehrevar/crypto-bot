@@ -7,6 +7,7 @@ const authRoutes = require('./auth');
 const accountRoutes = require('./accounts');
 const candleRoutes = require('./candles');
 const botRoutes = require('./bots/bots');
+const dcaRoutes = require('./bots/dca');
 const backtestRoutes = require('./backtest');
 const visualizationRoutes = require('./visualization');
 const currencyRoutes = require('./currencies');
@@ -29,6 +30,7 @@ const routes = {
     '/accounts': accountRoutes,
     '/candles': candleRoutes,
     '/bots': botRoutes,
+    '/bots/dca': dcaRoutes,
     '/backtest': backtestRoutes,
     '/visualize': visualizationRoutes,
     '/currencies': currencyRoutes,

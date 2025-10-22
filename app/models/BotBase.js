@@ -108,8 +108,8 @@ const baseBotSchema = new Schema({
     // Who owns this bot?
     userId:    { type: Schema.Types.ObjectId, ref: 'User' },
 
-    // Will be set to 'indicator' or 'grid'
-    botType:   { type: String, required: true, enum: ['indicator','grid'] },
+    // Will be set to 'indicator' or 'grid' or 'dca'
+    botType:   { type: String, required: true, enum: ['indicator','grid','dca'] },
 
     // Shared fields for both Indicator and Grid:
     riskStrategy: { type: String, required: true },
@@ -134,7 +134,7 @@ const baseBotSchema = new Schema({
     accountId:  {
         type: Schema.Types.ObjectId,
         required: true,
-        refPath: 'accountType'
+        ref: 'Account'
     }
 
 }, {

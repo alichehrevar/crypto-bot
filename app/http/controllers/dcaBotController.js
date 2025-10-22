@@ -1,19 +1,59 @@
 const DcaBot = require('../../models/DcaBot');
+const MarketSnapshot = require('../../models/MarketSnapshot')
 const BotManagerService = require('../../services/botService/BotManagerService');
 
 // POST /api/dcabots
 exports.createDcaBot = async (req, res) => {
+
+    const { symbol } = req.body;
+
+    if (!symbol) {
+        return res.status(400).json({ message: 'Symbol is required', success: false });
+    }
+
+    const marketSnapshot = await MarketSnapshot.findById(symbol)
+    if (!marketSnapshot) {
+        return res.status(404).json({ message: 'Symbol not found', success: false });
+    }
+
     try {
-        const botData = { ...req.body, userId: req.user.id };
+        const botData = {
+            ...req.body,
+            name: 'DcaBot ' + marketSnapshot.symbol + ' ' + marketSnapshot.name,
+            symbol: marketSnapshot.symbol,
+            accountType: marketSnapshot.name.toLowerCase(),
+            userId: req.user.id,
+            active: true,
+            direction: 'NEUTRAL',
+            marketType: 'SPOT',
+            timeframe: '1m',
+            riskStrategy: 'SimpleStrategy'
+        };
         const dcaBot = new DcaBot(botData);
         await dcaBot.save();
 
         // Optional: Add to a manager service that starts/stops bots
-        BotManagerService.addBot(dcaBot.id);
+        await BotManagerService.startBotInstance(dcaBot.id);
 
-        res.status(201).json(dcaBot);
+        res.status(201).json({data: dcaBot, success: true});
     } catch (error) {
-        res.status(400).json({ message: error.message });
+        // THIS IS THE MOST IMPORTANT PART
+        console.error("--- FULL ERROR ---");
+        console.error(error); // This will print the full object
+
+        if (error.name === 'ValidationError') {
+            // Send the detailed validation errors back
+            return res.status(400).json({
+                message: "Validation failed. See 'errors' for details.",
+                errors: error.errors // 'error.errors' has the good stuff
+            });
+        }
+
+        // For any other kind of error
+        return res.status(500).json({
+            message: "An internal server error occurred.",
+            error: error.message
+        });
     }
 };
 
