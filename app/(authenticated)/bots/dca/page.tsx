@@ -3,11 +3,11 @@
 import React, {useState} from "react";
 
 import BotsListTable from "@/components/bots/BotsListTable";
-import GridDeployBotSection from "@/components/bots/deploy/GridDeployBotSection";
 import MarketListWithSearch from "@/components/market/marketListWithSearch/MarketListWithSearch";
 import CoinSummarySection from "@/components/shared/CoinSummarySection";
 import {MarketListItem} from "@/types/MarketList";
 import TradingViewLightweightChartGrid from "@/components/shared/charts/TradingViewLightweightChartGrid";
+import DcaConfigForm from "@/components/bots/deploy/dca";
 
 export default function TechnicalBotsPage() {
     const [refreshBotsList, setRefreshBotsList] = useState<boolean>(false)
@@ -37,13 +37,16 @@ export default function TechnicalBotsPage() {
                     {/* Bottom part of Left Column */}
                     {/* This part remains the same. It will grow to fill the available space. */}
                     <div className="grid grid-cols-1 flex-grow">
-                        <BotsListTable listType="grid" refreshList={refreshBotsList}/>
+                        <BotsListTable listType="dca" refreshList={refreshBotsList}/>
                     </div>
                 </div>
 
                 {/* --- Right Column --- */}
                 <div className="w-full lg:w-[24%] ua-card">
-                    <GridDeployBotSection selectedSymbol={selectedSymbol} onSuccessAction={() => setRefreshBotsList(true)}/>
+                    <DcaConfigForm
+                        selectedSymbol={selectedSymbol}
+                        onCloseAction={() => setRefreshBotsList(true)}
+                    />
                 </div>
             </div>
         </div>

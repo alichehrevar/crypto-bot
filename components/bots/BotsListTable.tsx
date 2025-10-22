@@ -74,7 +74,7 @@ export default function BotsListTable({refreshList = false, title = "Active Bots
 
             {/* ========== No Data ========== */}
             {!isLoading && deployedBots.length === 0 &&
-                <div className={`flex items-center justify-center flex-col w-full ${showDeployButton ? 'gap-2' : ''}`}>
+                <div className={`flex items-center justify-center flex-col w-full h-full ${showDeployButton ? 'gap-2' : ''}`}>
                     <OrderIcon className="w-[120px] h-[120px]" />
                     <span className="text-gray-600 text-sm">No Data</span>
                 </div>

@@ -2,7 +2,7 @@ import React from "react";
 
 const NumericInput: React.FC<{
     label?: string;
-    value: string | number;
+    value: string | number | undefined;
     onChange: (value: string) => void;
     placeholder?: string;
     unit?: string;
@@ -72,9 +72,11 @@ const NumericInput: React.FC<{
                     max={max}
                     min={min}
                     placeholder={placeholder}
+                    step={step}
                     style={{ paddingRight: unit ? '4.5rem' : '3rem' }}
                     type="number"
-                    value={value}
+                    // Default undefined/null to '' to keep the input controlled
+                    value={value ?? ''}
                     onBlur={handleBlur}
                     onChange={handleInputChange}
                     onWheel={handleWheel}
