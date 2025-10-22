@@ -23,6 +23,7 @@
     "cors": "^2.8.5",
     "crypto-js": "^4.2.0",
     "csv-parse": "^6.1.0",
+    "decimal.js": "^10.6.0",
     "deep-email-validator": "^0.1.21",
     "dotenv": "^16.6.1",
     "express": "^4.21.2",

@@ -1,5 +1,6 @@
 const EventEmitter = require('events');
 const BotBase = require('../../models/BotBase'); // We'll use a base model for polymorphism
+const DcaBot  = require('../../models/DcaBot');
 const DcaOrder = require('../../models/DcaOrder');
 const GridStrategyService = require('./GridStrategyService');
 const DcaStrategyService = require('./DcaStrategyService');
@@ -91,8 +92,13 @@ class BotManagerService {
         }
 
         try {
-            const bot = await BotBase.findById(botId);
+            let bot = await BotBase.findById(botId);
+            if (!bot) {
+                bot = await DcaBot.findById(botId); // fallback if DCA bots are stored separately
+            }
             if (!bot) throw new Error('Bot not found');
+
+            const StatusModel = bot.constructor.modelName === 'DcaBot' ? DcaBot : BotBase;
 
             let botInstance;
 
@@ -118,7 +124,7 @@ class BotManagerService {
                 await botInstance.startNewDeal();
             }
 
-            await BotBase.updateOne({ _id: botId }, { status: 'RUNNING' });
+            await StatusModel.updateOne({ _id: botId }, { status: 'RUNNING' });
             this.activeBots.set(botId, botInstance);
             logger.info(`Successfully started and managing bot instance: ${botId} of type ${bot.botType}`);
             return botInstance;

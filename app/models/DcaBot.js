@@ -25,6 +25,18 @@ const DcaBotSchema = new Schema({
     useMarketForEntry: { type: Boolean, default: false },
     activeDeal: { type: Boolean, default: false },
 
+    // --- Exit config (add these) ---
+    enableTakeProfit: { type: Boolean, default: true },
+    enableStopLoss: { type: Boolean, default: false },
+
+    // Percent targets, expressed as e.g. 1.2 = +1.2%; -0.8 = -0.8%
+    // Always interpreted relative to AEP (Average Entry Price)
+    takeProfitPercent: { type: Number, default: 1.0 }, // +1.0% over AEP for LONG; -1.0% under AEP for SHORT
+    stopLossPercent:   { type: Number, default: 3.0 }, // -3.0% under AEP for LONG; +3.0% over AEP for SHORT
+
+    // Whether TP should "track" AEP after every DCA fill (cancel/replace TP)
+    trackTpWithAep: { type: Boolean, default: true },
+
     lowerPrice: {
         type: Number,
     },
