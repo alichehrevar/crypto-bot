@@ -1,9 +1,9 @@
 "use client";
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import {addToast} from "@heroui/react";
 
 import {getData} from "@/actions/get";
-import {addToast} from "@heroui/react";
 
 type ViewMode = "broker" | "asset";
 
@@ -142,6 +142,7 @@ const AssetsOverview: React.FC = () => {
                             title: 'No drawable data after normalization.',
                             color: 'warning'
                         })
+
                         return;
                     }
 
