@@ -151,15 +151,17 @@ export default function HelpCenterPage() {
                 .dark .custom-select { background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%239CA3AF' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e"); }
                 `}
             </style>
-            <main className="flex items-center justify-center min-h-screen p-4 sm:p-6 lg:p-8" style={{fontFamily: "'Inter', sans-serif"}}>
-                <Notification message={notification} />
-                <div className="backdrop-blur-sm bg-[var(--color-container-bg)] border-2 border-[var(--color-border-primary)] dark:border rounded-[2.5rem] shadow-2xl w-full max-w-5xl h-[95vh] md:h-[90vh] relative overflow-hidden">
-                    <HelpMainView isVisible={currentView === 'main'} onNavigate={navigate} />
-                    <FaqView isVisible={currentView === 'faq'} onBack={goBack} />
-                    <ContactView isVisible={currentView === 'contact'} onBack={goBack} onSubmit={(e) => handleFormSubmit(e, 'Thank you! Your message has been sent.')} />
-                    <TicketsView isVisible={currentView === 'tickets'} onBack={goBack} onNavigate={navigate} onOpenTicket={handleOpenTicket} />
-                    <NewTicketView isVisible={currentView === 'new-ticket'} onCancel={navigate} onSubmit={(e) => handleFormSubmit(e, 'Success! Your support ticket has been created.', 'tickets')} />
-                    <TicketDetailView isVisible={currentView === 'ticket-detail'} ticket={selectedTicket} onBack={navigate} onSubmitReply={(e) => handleFormSubmit(e, 'Your reply has been submitted.')} />
+            <main className="container mx-auto">
+                <div className="flex items-center justify-center min-h-screen p-4 sm:p-6 lg:p-8" style={{fontFamily: "'Inter', sans-serif"}}>
+                    <Notification message={notification} />
+                    <div className="backdrop-blur-sm bg-[var(--color-container-bg)] border-2 border-[var(--color-border-primary)] dark:border rounded-[2.5rem] shadow-2xl w-full h-[95vh] md:h-[90vh] relative overflow-hidden">
+                        <HelpMainView isVisible={currentView === 'main'} onNavigate={navigate} />
+                        <FaqView isVisible={currentView === 'faq'} onBack={goBack} />
+                        <ContactView isVisible={currentView === 'contact'} onBack={goBack} onSubmit={(e) => handleFormSubmit(e, 'Thank you! Your message has been sent.')} />
+                        <TicketsView isVisible={currentView === 'tickets'} onBack={goBack} onNavigate={navigate} onOpenTicket={handleOpenTicket} />
+                        <NewTicketView isVisible={currentView === 'new-ticket'} onCancel={navigate} onSubmit={(e) => handleFormSubmit(e, 'Success! Your support ticket has been created.', 'tickets')} />
+                        <TicketDetailView isVisible={currentView === 'ticket-detail'} ticket={selectedTicket} onBack={navigate} onSubmitReply={(e) => handleFormSubmit(e, 'Your reply has been submitted.')} />
+                    </div>
                 </div>
             </main>
         </>

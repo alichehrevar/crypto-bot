@@ -66,7 +66,7 @@ const plans: Plan[] = [
 
 export default function PricingPlansSection() {
   return (
-    <section className="mt-16 px-4 lg:px-16">
+    <section className="mt-16 px-4">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         {plans.map((plan) => (
           <div

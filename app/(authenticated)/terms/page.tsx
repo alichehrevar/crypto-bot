@@ -35,10 +35,9 @@ const LegalPageComponent: FC = () => {
     };
 
     return (
-        <>
-
+        <div className="container mx-auto">
             <div className="flex items-center justify-center min-h-screen p-4 sm:p-6 lg:p-8">
-                <div className="main-container backdrop-blur-sm border-2 rounded-[2.5rem] shadow-2xl w-full max-w-6xl h-[95vh] md:h-[90vh] relative overflow-hidden flex flex-col pb-3">
+                <div className="main-container backdrop-blur-sm border-2 rounded-[2.5rem] shadow-2xl w-full h-[95vh] md:h-[90vh] relative overflow-hidden flex flex-col pb-3">
                     <header className="p-6 sm:p-8 border-b flex justify-between items-center flex-shrink-0" style={{ borderColor: 'var(--color-border-secondary)' }}>
                         <div className="text-xl sm:text-2xl font-bold" style={{ color: 'var(--color-text-primary)' }}>
                             United Algos Legal
@@ -313,7 +312,7 @@ const LegalPageComponent: FC = () => {
                     </div>
                 </div>
             </div>
-        </>
+        </div>
     );
 };
 

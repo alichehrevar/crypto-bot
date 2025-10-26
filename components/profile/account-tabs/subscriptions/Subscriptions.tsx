@@ -7,7 +7,7 @@ export default function PricingPage() {
   const [period, setPeriod] = useState<'monthly'|'annually'>('monthly')
 
   return (
-    <div className="space-y-16 dark:bg-[#0D0D0D] text-white p-8">
+    <div className="space-y-16 text-white py-8 max-w-4xl">
       {/* Header & Toggle */}
       <div className="text-center space-y-4">
         <h1 className="text-3xl font-bold mb-3">Get membership right now</h1>

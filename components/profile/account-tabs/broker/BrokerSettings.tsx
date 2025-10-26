@@ -212,7 +212,7 @@ const BrokerSettingsPage: React.FC = () => {
 
     return (
         // The main container uses a strict black background and prevents overflow.
-        <div className="min-h-[80svh] w-full ua-card text-white flex overflow-hidden">
+        <div className="min-h-[80svh] w-full max-w-4xl ua-card text-white flex overflow-hidden">
 
             {/* Page layout container with a max-width and centered horizontally. */}
             <div className='flex flex-1 relative w-fit mx-auto' style={pageStyle}>
