@@ -199,7 +199,7 @@ export default function StrategyTesterPage() {
     };
 
     return (
-        <div className="w-full pt-4 relative px-5 backtester-page overflow-y-auto h-screen">
+        <div className="container no-scrollbar mx-auto w-full pt-4 relative px-5 backtester-page overflow-y-auto h-screen">
             <div className="w-full flex flex-col gap-2">
                 {/*<MarketStats symbolId={selectedSymbol ?? undefined} />*/}
                 <CoinSummarySection coinId={selectedSymbol?.id || "68edf9f3ae9ad504e3c7f799"} />

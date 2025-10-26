@@ -14,7 +14,7 @@ import SentimentEventsTab from "@/components/market/SentimentEventsTab";
 
 export default function Page() {
     return (
-        <div className="flex-1 overflow-y-auto w-full mx-auto px-2 lg:px-4">
+        <div className="container no-scrollbar flex-1 overflow-y-auto w-full mx-auto px-2 lg:px-4">
             <Tabs
                 aria-label="Tabs variants"
                 classNames={{

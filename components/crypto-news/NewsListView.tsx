@@ -51,7 +51,7 @@ const NewsListView: React.FC<NewsListViewProps> = ({ isLoading, onArticleSelect 
     }, []);
 
     return (
-        <div className="p-6 pt-0 flex flex-col h-[calc(100%-40px)]">
+        <div className="flex flex-col h-[calc(100%-40px)]">
             <h1 className="text-3xl font-bold mb-4 flex-shrink-0 text-center text-black dark:text-white">
                 Crypto Market News
             </h1>

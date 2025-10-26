@@ -12,7 +12,7 @@ import AssetSummary from "@/components/dashboard/assetSummary";
 export default function HoldingDetailsPage() {
 
     return (
-        <section className="w-full px-2 lg:px-8 h-screen overflow-y-auto mx-auto space-y-4">
+        <section className="container no-scrollbar w-full px-2 lg:px-4 pt-8 h-screen overflow-y-auto mx-auto space-y-4">
             <AssetSummary showExtraDetails={true} />
             <div className="relative">
                 <Tabs

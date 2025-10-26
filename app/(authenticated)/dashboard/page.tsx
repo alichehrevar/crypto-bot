@@ -18,7 +18,7 @@ import {RecentBots} from "@/components/shared/RecentBots";
 export default function Dashboard() {
 
     return (
-        <section className="px-2 lg:px-8 pt-8 mx-auto w-full flex-1 h-screen overflow-y-auto space-y-10">
+        <section className="container px-2 lg:px-4 pt-8 mx-auto w-full flex-1 h-screen overflow-y-auto space-y-10 no-scrollbar">
             <AssetSummary/>
             <Divider className="my-8"/>
             <Instructions />

@@ -22,7 +22,7 @@ const NewsFilterBar: React.FC<NewsFilterBarProps> = ({ searchTerm, onSearchChang
         <div className="mb-8 flex-shrink-0 w-full flex justify-center">
             <div className="relative w-full sm:w-2/3 lg:w-5/12">
                 <input
-                    className="w-full p-3 pl-5 pr-24 border-2 border-gray-200 dark:border-gray-700 rounded-full focus:ring-0 focus:border-black dark:focus:border-white transition-all duration-300 bg-white dark:bg-black text-black dark:text-white"
+                    className="w-full p-3 pl-5 pr-24 bg-dark-semi-black border border-gray-600 rounded-full focus:ring-1 focus:ring-blue-500/50 focus:border-blue-500 focus:outline-none transition-colors duration-200 bg-white dark:bg-black text-black dark:text-white"
                     placeholder="Search news..."
                     type="text"
                     value={searchTerm}

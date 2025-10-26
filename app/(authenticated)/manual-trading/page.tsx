@@ -16,7 +16,7 @@ export default function ManualTradingPage() {
     const [selectedSymbol, setSelectedSymbol] = useState<MarketListItem | null>(null);
 
     return (
-        <div className="w-full h-screen overflow-y-auto pt-8 relative px-5 space-y-2">
+        <div className="container no-scrollbar mx-auto w-full h-screen overflow-y-auto pt-8 relative px-5 space-y-2">
             <CoinSummarySection coinId={selectedSymbol?.id || "68edf9f3ae9ad504e3c7f799"} />
             <div className="w-full grid grid-cols-4 gap-2">
                 <div className="ua-card">
