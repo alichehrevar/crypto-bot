@@ -11,7 +11,7 @@ import {DropdownOption} from "@/types/ui/DropdownOption";
 // =====================================================================
 
 const STRATEGIES: DropdownOption[] = [
-    {name: 'Fixed Fractional (Standard)'},
+    {name: 'Fixed Fractional'},
     {name: 'Kelly Criterion'},
     {name: 'Volatility-Based'}
 ];

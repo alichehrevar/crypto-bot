@@ -225,7 +225,7 @@ export default function AIStrategyGenerator() {
     };
 
     return (
-        <div className="text-white px-8 pt-8 pb-3 shadow-2xl w-full mx-auto h-full ua-card">
+        <div className="text-white px-8 pt-8 pb-3 shadow-2xl w-full mx-auto h-[700px] ua-card">
             <div className="flex justify-between items-center mb-6">
                 <h2 className="text-2xl font-semibold text-gray-100">AI Strategy Generator</h2>
             </div>
