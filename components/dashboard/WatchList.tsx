@@ -103,10 +103,17 @@ const AddSymbolModal: React.FC<AddSymbolModalProps> = ({ isOpen, onClose, watchl
     const [message, setMessage] = useState('');
     const [isActionMessage, setIsActionMessage] = useState(false);
     const messageTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-    const modalPanelRef = useRef<HTMLButtonElement>(null);
+    const modalPanelRef = useRef<HTMLDivElement>(null);
 
     // Use a Set for efficient lookup
     const watchlistSymbolIds = useMemo(() => new Set(watchlist.map(c => c.id)), [watchlist]);
+
+    const handleBackdropKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+        // 'Enter' or 'Space' on the backdrop should close it, matching button behavior
+        if (e.key === 'Enter' || e.key === ' ') {
+            onClose();
+        }
+    };
 
     // --- FIX: Added optional chaining (?.) to prevent error if symbol or name is null/undefined ---
     const filteredCryptos = useMemo(() => {
@@ -187,14 +194,24 @@ const AddSymbolModal: React.FC<AddSymbolModalProps> = ({ isOpen, onClose, watchl
     if (!isOpen) return null;
 
     return (
-        <button
+        <div
+            aria-label="Close modal"
             className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+            role="button"
+            tabIndex={-1}
             onClick={onClose}
+            onKeyDown={handleBackdropKeyDown}
         >
-            <button
+            {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions */}
+            <div
                 ref={modalPanelRef}
+                aria-labelledby="modal-title"
+                aria-modal="true"
                 className="w-full max-w-md rounded-2xl p-6 border border-gray-700 bg-[#1A1918] transition-all duration-300 ease-out"
+                role="dialog"
+                tabIndex={-1}
                 onClick={(e) => e.stopPropagation()}
+                onKeyDown={(e) => e.stopPropagation()}
             >
                 <div className="flex items-center justify-between mb-6">
                     <h3 className="text-xl font-bold text-white">Add to Watchlist</h3>
@@ -253,8 +270,8 @@ const AddSymbolModal: React.FC<AddSymbolModalProps> = ({ isOpen, onClose, watchl
                         <div className="text-center py-4 text-gray-400">No results found.</div>
                     )}
                 </div>
-            </button>
-        </button>
+            </div>
+        </div>
     );
 };
 
