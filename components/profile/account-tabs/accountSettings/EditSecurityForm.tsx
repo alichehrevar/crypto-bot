@@ -1,18 +1,21 @@
-import React, {FormEvent} from "react";
+import React, {FormEvent, useState} from "react";
 import {
-    addToast, Autocomplete, AutocompleteItem,
+    addToast,
     Button,
     Form,
-    Input,
 } from "@heroui/react";
 
 import {CountryCodes} from "@/utils/countryCodes";
 import LabelTag from "@/components/shared/ui/Label";
 import {User, UserResponse} from "@/types/UserType";
 import {updateRequest} from "@/actions/put";
+import Combobox from "@/components/shared/ui/Combobox";
+import Input from "@/components/shared/ui/Input";
 
 export default function EditSecurityForm(props: { userData: User | null, onClose: () => void }) {
 
+    const [phoneCountry, setPhoneCountry] = useState('+1');
+    const [phoneNumber, setPhoneNumber] = useState('');
     const [formLoading, setFormLoading] = React.useState(false);
 
     async function handleSubmission(event: FormEvent<HTMLFormElement>) {
@@ -57,75 +60,48 @@ export default function EditSecurityForm(props: { userData: User | null, onClose
     return (
         <Form className="w-full space-y-2" onSubmit={handleSubmission}>
             <div className="space-y-2 w-full">
-                <LabelTag id="phone-number" title="Phone Number"/>
-                <div className="flex gap-2">
-                    <Autocomplete
-                        isRequired
-                        className="w-[90px]"
-                        defaultSelectedKey={props.userData?.info?.phoneCountry}
-                        id="country-code"
-                        isClearable={false}
-                        items={CountryCodes}
-                        name="phoneCountry"
-                    >
-                        {CountryCodes.map((country) => (
-                            <AutocompleteItem key={country.code} textValue={country.code}>
-                                <span className="flex items-center gap-2">
-                                    <span>{country.flag}</span>
-                                    <span>{country.code}</span>
-                                </span>
-                            </AutocompleteItem>
-                        ))}
-                    </Autocomplete>
+                <div className="grid grid-cols-3 gap-2 items-end">
+                    <Combobox
+                        label="Phone Number"
+                        options={CountryCodes.map(country => ({
+                            id: country.code,
+                            name: `${country.flag}\u00A0${country.code}`,
+                        }))}
+                        selected={phoneCountry}
+                        setSelected={setPhoneCountry}
+                    />
                     <Input
-                        required
-                        className="flex-1 border-gray-300 text-black"
-                        defaultValue={props.userData?.info?.phoneNumber}
-                        id="phone-number"
-                        name="phoneNumber"
+                        className="col-span-2"
+                        id="phoneNumber"
                         placeholder="724-848-1225"
                         type="tel"
+                        onChange={setPhoneNumber}
                     />
                 </div>
             </div>
             <div className="space-y-2 w-full">
-                <LabelTag id="password" title="Current Password"/>
-                <div className="flex gap-2">
-                    <Input
-                        isRequired
-                        id="password"
-                        minLength={8}
-                        name="password"
-                        placeholder="********"
-                        type="password"
-                    />
-                </div>
+                <Input
+                    id="password"
+                    placeholder="Enter your Password"
+                    title="Password"
+                    type="password"
+                />
             </div>
             <div className="space-y-2 w-full">
-                <LabelTag id="newPassword" title="New Password"/>
-                <div className="flex gap-2">
-                    <Input
-                        isRequired
-                        id="newPassword"
-                        minLength={8}
-                        name="newPassword"
-                        placeholder="********"
-                        type="password"
-                    />
-                </div>
+                <Input
+                    id="newpassword"
+                    placeholder="Enter your New Password"
+                    title="New Password"
+                    type="password"
+                />
             </div>
             <div className="space-y-2 w-full">
-                <LabelTag id="confirmPassword" title="Confirm Password"/>
-                <div className="flex gap-2">
-                    <Input
-                        isRequired
-                        id="confirmPassword"
-                        minLength={8}
-                        name="confirmPassword"
-                        placeholder="********"
-                        type="password"
-                    />
-                </div>
+                <Input
+                    id="confirmPassword"
+                    placeholder="Enter your Password"
+                    title="Confirm Password"
+                    type="password"
+                />
             </div>
             <div className="flex items-center justify-end w-full gap-2">
                 <Button
@@ -138,7 +114,7 @@ export default function EditSecurityForm(props: { userData: User | null, onClose
                     Cancel
                 </Button>
                 <Button
-                    className="border-1 border-[var(--chart-green)] text-[var(--text-green)]"
+                    className="border-1 border-green text-green"
                     isLoading={formLoading}
                     size="sm"
                     type="submit"

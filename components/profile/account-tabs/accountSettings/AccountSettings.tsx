@@ -167,8 +167,8 @@ const AccountSettingsTab = observer(() => {
                             variant="bordered"
                             onSelectionChange={setCurrency}
                         >
-                            <AutocompleteItem key="dollar" textValue={'Dollar'}>Dollar</AutocompleteItem>
-                            <SelectItem key="euro" textValue={'Euro'}>Euro</SelectItem>
+                            <AutocompleteItem key="dollar" textValue={'$ Dollar'}>$ Dollar</AutocompleteItem>
+                            <SelectItem key="euro" textValue={'€ Euro'}>€ Euro</SelectItem>
                         </Autocomplete>
                     </li>
                     <li className="flex items-center justify-center">

@@ -29,11 +29,12 @@ const OTPConfirmationForm = ({onSubmit, buttonText, isLoading}: OTPConfirmationF
                     <div className="flex justify-center gap-16">
                         <InputOtp
                             classNames={{
-                                segment: 'mx-1'
+                                segment: 'mx-1 border-1',
                             }}
                             length={6}
                             size="lg"
                             value={otp}
+                            variant="bordered"
                             onValueChange={(value) => setOtp(value)}
                         />
                     </div>
