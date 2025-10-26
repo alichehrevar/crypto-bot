@@ -41,7 +41,7 @@ const features: { label: string; values: (string | boolean)[] }[] = [
 
 export default function CompareFeatures() {
   return (
-    <section className="mt-16 px-4">
+    <section className="mt-16 px-4 relative z-20">
       <h2 className="text-white text-2xl font-semibold mb-6">Compare Features</h2>
 
       <div className="bg-white/10 backdrop-blur-md rounded-xl border border-gray-800 overflow-hidden">
