@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 
 import {getData} from "@/actions/get";
+import {addToast} from "@heroui/react";
 
 type ViewMode = "broker" | "asset";
 
@@ -29,10 +30,6 @@ interface SnapshotTodayFull {
     success: boolean,
     message: string,
 }
-
-/* ---------- CONFIG ---------- */
-const API_BASE =
-    process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "") || "";
 
 /* ---------- HELPERS ---------- */
 function sanitizeNumber(n: any): number {
@@ -141,7 +138,11 @@ const AssetsOverview: React.FC = () => {
                     const safeAsset = applyBrokerColorsToAssetTree(safeAssetRaw, brokerColorMap);
 
                     if (!safeBroker && !safeAsset) {
-                        throw new Error("No drawable data after normalization.");
+                        addToast({
+                            title: 'No drawable data after normalization.',
+                            color: 'warning'
+                        })
+                        return;
                     }
 
                     if (!cancelled) {

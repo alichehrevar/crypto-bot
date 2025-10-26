@@ -7,7 +7,6 @@ import MarketListWithSearch from "@/components/market/marketListWithSearch/Marke
 import CoinSummarySection from "@/components/shared/CoinSummarySection";
 import {MarketListItem} from "@/types/MarketList";
 import TradingViewLightweightChartGrid from "@/components/shared/charts/TradingViewLightweightChartGrid";
-import DcaConfigForm from "@/components/bots/deploy/dca";
 import DcaTabsList from "@/components/bots/deploy/dca/DcaTabsList";
 
 export default function TechnicalBotsPage() {
