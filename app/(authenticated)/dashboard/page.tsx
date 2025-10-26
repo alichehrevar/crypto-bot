@@ -3,7 +3,6 @@
 import React from "react";
 import {Divider} from "@heroui/react";
 
-import AssetSection from "@/components/dashboard/AssetSection";
 import TopMovers from "@/components/dashboard/TopMovers";
 import BotsList from "@/components/bots/BotsList";
 import AssetSummary from "@/components/dashboard/assetSummary";
@@ -13,7 +12,7 @@ import TopCreators from "@/components/shared/TopCreators";
 import Instructions from "@/components/dashboard/Instructions";
 import Watchlist from "@/components/dashboard/WatchList";
 import PnLSection from "@/components/pnl/PnLSection";
-// import AssetsOverview from "@/components/dashboard/AssetsOverview";
+import AssetsOverview from "@/components/dashboard/AssetsOverview";
 import {RecentBots} from "@/components/shared/RecentBots";
 
 export default function Dashboard() {
@@ -24,7 +23,7 @@ export default function Dashboard() {
             <Divider className="my-8"/>
             <Instructions />
             <div className="flex flex-row items-center lg:grid overflow-x-auto lg:grid-cols-2 gap-4 min-h-[220px]">
-                <AssetSection/>
+                <AssetsOverview/>
                 <PnLSection/>
                 <TopMovers/>
                 <Watchlist/>

@@ -8,6 +8,7 @@ import CoinSummarySection from "@/components/shared/CoinSummarySection";
 import {MarketListItem} from "@/types/MarketList";
 import TradingViewLightweightChartGrid from "@/components/shared/charts/TradingViewLightweightChartGrid";
 import DcaConfigForm from "@/components/bots/deploy/dca";
+import DcaTabsList from "@/components/bots/deploy/dca/DcaTabsList";
 
 export default function TechnicalBotsPage() {
     const [refreshBotsList, setRefreshBotsList] = useState<boolean>(false)
@@ -43,9 +44,9 @@ export default function TechnicalBotsPage() {
 
                 {/* --- Right Column --- */}
                 <div className="w-full lg:w-[24%] ua-card">
-                    <DcaConfigForm
+                    <DcaTabsList
                         selectedSymbol={selectedSymbol}
-                        onCloseAction={() => setRefreshBotsList(true)}
+                        onSuccessAction={() => setRefreshBotsList(true)}
                     />
                 </div>
             </div>

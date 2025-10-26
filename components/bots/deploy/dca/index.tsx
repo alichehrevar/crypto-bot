@@ -1,9 +1,9 @@
 "use client";
 
-import React, { FormEvent, Key, useEffect, useState } from "react";
+import React, {FormEvent, Key, useEffect, useState} from "react";
 import {addToast, Button, Checkbox, Spinner} from "@heroui/react";
 
-import { MarketListItem } from "@/types/MarketList";
+import {MarketListItem} from "@/types/MarketList";
 import {AccountsResponse, ExchangeAccount} from "@/types/profile/AccountType";
 import {RawBalanceResponse} from "@/types/profile/WalletBalanceType";
 import {getData} from "@/actions/get";
@@ -11,21 +11,25 @@ import {sendRequest} from "@/actions/post";
 import Combobox from "@/components/shared/ui/Combobox";
 import NumericInput from "@/components/shared/ui/NumericInput";
 import AccordionItem from "@/components/shared/ui/AccordionItem";
+import Input from "@/components/shared/ui/Input";
 
 export interface DcaConfigFormProps {
-    onCloseAction: () => void;
-    selectedSymbol?: MarketListItem | null;
+    onCloseAction: () => void,
+    selectedSymbol?: MarketListItem | null,
+    selectedTab: string
 }
 
 export default function DcaConfigForm({
-       onCloseAction,
-       selectedSymbol
-   }: DcaConfigFormProps) {
+      onCloseAction,
+      selectedSymbol,
+      selectedTab
+}: DcaConfigFormProps) {
     //
     // ─── STATE MANAGEMENT (Remains in the parent container) ──────────────────
     //
     const [isOpen, setIsOpen] = useState(false)
 
+    const [botName, setBotName] = useState<string>('');
     const [accounts, setAccounts] = useState<ExchangeAccount[]>([]);
     const [balanceLoading, setBalanceLoading] = useState<boolean>(false);
     const [selectedAccountId, setSelectedAccountId] = useState<string>();
@@ -98,7 +102,7 @@ export default function DcaConfigForm({
             // Optionally auto-fill a percentage of balance
             // setInvestment((free * 0.5).toFixed(2));
         } catch {
-            addToast({ title: "Failed to load balance", color: "danger" });
+            addToast({title: "Failed to load balance", color: "danger"});
             setAvailableBalance(0);
         } finally {
             setBalanceLoading(false);
@@ -117,7 +121,7 @@ export default function DcaConfigForm({
         const selectedAccount = accounts.find(acc => acc._id === selectedAccountId);
 
         if (!selectedAccount) {
-            addToast({ title: "Please select an account.", color: "danger" });
+            addToast({title: "Please select an account.", color: "danger"});
             setLoading(false);
 
             return;
@@ -125,6 +129,8 @@ export default function DcaConfigForm({
 
 
         const payload: any = {
+            selectedTab,
+            name: botName,
             accountId: selectedAccountId,
             accountType: selectedAccount.name, // e.g., 'bingx'
             symbol: selectedSymbol?.id,
@@ -148,13 +154,13 @@ export default function DcaConfigForm({
             const res = await sendRequest(payload, "/bots/dca");
 
             if (res.success) {
-                addToast({ title: "DCA Bot deployed!", color: "success" });
+                addToast({title: "DCA Bot deployed!", color: "success"});
                 onCloseAction();
             } else {
-                addToast({ title: res.error || "Deploy failed", color: "danger" });
+                addToast({title: res.error || "Deploy failed", color: "danger"});
             }
         } catch {
-            addToast({ title: "Error deploying dca bot!", color: "danger" });
+            addToast({title: "Error deploying dca bot!", color: "danger"});
         } finally {
             setLoading(false);
         }
@@ -166,6 +172,13 @@ export default function DcaConfigForm({
     return (
         <div className="py-4">
             <form className="space-y-4 overflow-x-hidden px-2" onSubmit={handleDeploy}>
+
+                <Input
+                    id="bot-name"
+                    placeholder="e.g., ETH Momentum Scalper"
+                    title="DCA Bot Name"
+                    onChange={setBotName}
+                />
 
                 <Combobox
                     label="Account"
@@ -182,7 +195,7 @@ export default function DcaConfigForm({
                     Available balance:
                     {balanceLoading
                         ? <span className="inline h-3 -mt-10 ms-3">
-                            <Spinner color="primary" size="sm" variant="wave" />
+                            <Spinner color="primary" size="sm" variant="wave"/>
                         </span>
                         : <span className="ms-1">{availableBalance.toFixed(2)} USDT</span>
                     }

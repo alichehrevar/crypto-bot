@@ -294,8 +294,8 @@ section[role="dialog"] .overflow-y-auto::-webkit-scrollbar-track {
 }
 .risk-disclosure h2 { color: var(--color-risk-accent); font-weight: 800; }
 
-@media (min-width: 1400px) {
+@media (min-width: 1200px) {
     .container {
-        max-width: 1400px;
+        max-width: 1200px;
     }
 }

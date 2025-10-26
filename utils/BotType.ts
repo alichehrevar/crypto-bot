@@ -3,6 +3,11 @@ export const parentTabs = [
     { key: "futures", title: 'Futures' }
 ] as const;
 
+export const dcaParentTabs = [
+    { key: "buy", title: 'Buy' },
+    { key: "sell", title: 'Sell' }
+] as const;
+
 export const indicatorBotListHeader = [
     "Bot",
     "Strategy",

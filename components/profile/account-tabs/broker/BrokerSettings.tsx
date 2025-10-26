@@ -215,7 +215,7 @@ const BrokerSettingsPage: React.FC = () => {
         <div className="min-h-[80svh] w-full ua-card text-white flex overflow-hidden">
 
             {/* Page layout container with a max-width and centered horizontally. */}
-            <div className='flex flex-1 relative w-full mx-auto' style={pageStyle}>
+            <div className='flex flex-1 relative w-fit mx-auto' style={pageStyle}>
 
                 {/* The AnimatedLogo is positioned absolutely. */}
                 <div className='absolute top-7 right-7 transform translate-x-1/2 -translate-y-1/2 pointer-events-none z-0 opacity-90'>
