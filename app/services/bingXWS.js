@@ -684,97 +684,132 @@ class BingXWS {
         }
     }
 
-    /**
-     * @description Fetches a detailed breakdown of assets for Spot and Futures accounts.
-     * @param {object} account The user's BingX account credentials.
-     * @returns {Promise<Array<object>>} A promise resolving to an array of account types with their assets.
-     */
     async getDetailedBalance(account) {
         const { apiKey, secretKey } = account;
 
+        // signed GET helper
         const sendRequest = async (path, params = {}) => {
             const timestamp = Date.now();
-            const queryParams = new URLSearchParams({ ...params, timestamp });
-            const signature = crypto.createHmac('sha256', secretKey).update(queryParams.toString()).digest('hex');
-            queryParams.append('signature', signature);
-            const url = `https://open-api.bingx.com${path}?${queryParams.toString()}`;
-
-            try {
-                const resp = await axios.get(url, { headers: { "X-BX-APIKEY": apiKey } });
-                if (resp.data.code !== 0) {
-                    throw new Error(`BingX API Error (${path}): ${resp.data.msg}`);
-                }
-                return resp.data.data;
-            } catch (err) {
-                const errorMessage = err.response?.data?.msg || err.message;
-                console.error(`[BingXWS] Request failed for ${path}:`, errorMessage);
-                throw err;
+            const qs = new URLSearchParams({ ...params, timestamp }).toString();
+            const sig = crypto.createHmac('sha256', secretKey).update(qs).digest('hex');
+            const url = `https://open-api.bingx.com${path}?${qs}&signature=${sig}`;
+            const resp = await axios.get(url, { headers: { 'X-BX-APIKEY': apiKey } });
+            if (resp.data?.code !== 0) {
+                throw new Error(`BingX API error (${path}): ${resp.data?.msg || 'unknown'}`);
             }
+            return resp.data.data;
         };
 
         try {
-            // 1. Fetch all ticker prices for value conversion
-            const priceData = await axios.get('https://open-api.bingx.com/openApi/spot/v1/ticker/24hr');
-            const priceMap = new Map(priceData.ticker.map(t => [t.symbol.replace('-', ''), parseFloat(t.lastPrice)]));
+            // ---------- prices (public) ----------
+            const pxRes = await axios.get('https://open-api.bingx.com/openApi/spot/v1/ticker/24hr');
+            const raw = pxRes.data?.data || [];
+            const priceMap = new Map(
+                (Array.isArray(raw) ? raw : []).map(t => [
+                    String((t.symbol || t.s || '').replace('-', '')).toUpperCase(),  // e.g. BTCUSDT
+                    parseFloat(t.lastPrice || t.c || '0')
+                ])
+            );
             const getUsdtValue = (asset, amount) => {
-                if (asset.toUpperCase() === 'USDT') return amount;
-                const price = priceMap.get(`${asset.toUpperCase()}USDT`);
-                return price ? amount * price : 0;
+                const a = String(asset || '').toUpperCase();
+                if (a === 'USDT') return amount;
+                const p = priceMap.get(`${a}USDT`);
+                return p ? amount * p : 0;
             };
 
             const result = [];
 
-            // 2. Fetch Spot Balance (Fund Account)
-            const spotData = await axios.get('https://open-api.bingx.com/openApi/spot/v1/account/balance');
-            const spotAssets = spotData.balances
-                .map(b => ({
-                    name: b.asset,
-                    amount: parseFloat(b.free),
-                }))
-                .filter(b => b.amount > 0.000001)
-                .map(b => ({ ...b, value: getUsdtValue(b.name, b.amount) }))
-                .filter(b => b.value > 0.01);
+            // ---------- Spot balance ----------
+            // NOTE: must be signed; response is { code, data: { balances: [...] } }
+            const spotData = await sendRequest('/openApi/spot/v1/account/balance');
+            const spotBalances = Array.isArray(spotData?.balances) ? spotData.balances : [];
 
-            const spotTotal = spotAssets.reduce((sum, asset) => sum + asset.value, 0);
+            const spotAssets = spotBalances
+                .map(b => {
+                    const asset  = b.asset?.toUpperCase() || '';
+                    const free   = parseFloat(b.free || 0);
+                    const locked = parseFloat(b.locked || 0);
+                    const amount = free + locked;
+                    return { name: asset, amount };
+                })
+                .filter(x => x.amount > 1e-8)
+                .map(x => ({ ...x, value: getUsdtValue(x.name, x.amount) }))
+                .filter(x => x.value > 0.01);
 
+            const spotTotal = spotAssets.reduce((s, a) => s + a.value, 0);
             if (spotTotal > 0.01) {
                 result.push({
                     accountType: 'Spot',
                     value: spotTotal,
-                    children: spotAssets.map(a => ({ name: a.name, value: a.value })).sort((a,b) => b.value - a.value)
+                    balances: spotBalances.map(b => ({
+                        asset: b.asset?.toUpperCase() || '',
+                        free: parseFloat(b.free || 0),
+                        locked: parseFloat(b.locked || 0),
+                        amount: parseFloat(b.free || 0) + parseFloat(b.locked || 0),
+                    })), // optional: helpful for persistence
+                    children: spotAssets
+                        .map(a => ({ name: a.name, value: a.value }))
+                        .sort((a, b) => b.value - a.value)
                 });
+            } else {
+                // still return the bucket to keep structure consistent (value 0)
+                result.push({ accountType: 'Spot', value: 0, balances: [], children: [] });
             }
 
-            // 3. Fetch Futures Balance (Perpetual Swap Account)
-            const [futBalanceData, futPositionsData] = await Promise.all([
-                await axios.get('https://open-api.bingx.com/openApi/swap/v2/user/balance'),
-                await axios.get('https://open-api.bingx.com/openApi/swap/v2/user/positions')
-            ]);
+            // ---------- Futures: wallet + positions ----------
+            const futBal = await sendRequest('/openApi/swap/v2/user/balance');
+            const futPos = await sendRequest('/openApi/swap/v2/user/positions');
 
-            const futureTotal = parseFloat(futBalanceData.balance.balance);
+            // balance shape: { balance: { balance: "1.2345", ... } }
+            const walletBalance = parseFloat(futBal?.balance?.balance || 0);
 
-            if (futureTotal > 0.01) {
-                const futPositions = futPositionsData
-                    .map(p => ({
-                        name: p.symbol,
-                        value: parseFloat(p.positionValue),
-                    }))
-                    .filter(p => p.value > 0.01);
+            // positions: array under data
+            const futPositions = (Array.isArray(futPos) ? futPos : [])
+                .map(p => ({
+                    symbol: p.symbol,
+                    side: String(p.positionSide || p.side || 'BOTH').toUpperCase(),
+                    size: parseFloat(p.positionAmt || p.qty || 0),
+                    leverage: parseFloat(p.leverage || 0),
+                    marginType: String(p.marginType || 'UNKNOWN').toUpperCase(),
+                    entryPrice: parseFloat(p.entryPrice || 0),
+                    markPrice: parseFloat(p.markPrice || 0),
+                    liqPrice: parseFloat(p.liquidationPrice || 0),
+                    notional: parseFloat(p.positionValue || p.notional || 0),
+                    unrealizedPnl: parseFloat(p.unrealizedPnl || p.uPnl || 0),
+                }))
+                // keep only meaningful lines
+                .filter(p => Math.abs(p.notional) > 0.01 || Math.abs(p.unrealizedPnl) > 0.01);
 
-                result.push({
-                    accountType: 'Future',
-                    value: futureTotal,
-                    children: futPositions.sort((a,b) => b.value - a.value)
-                });
+            const totalUnrealizedPnl = futPositions.reduce((s, p) => s + (p.unrealizedPnl || 0), 0);
+            const futuresValue = walletBalance + totalUnrealizedPnl; // canonical rule used by aggregator
+
+            const futChildren = [];
+            if (walletBalance > 0.0001) {
+                // USDT-M wallet → treat as USDT line in the tree or “Wallet”
+                futChildren.push({ name: 'Wallet', value: walletBalance, amount: 0 });
+            }
+            if (futPositions.length) {
+                futChildren.push(
+                    ...futPositions
+                        .map(p => ({ name: p.symbol, value: Math.abs(p.notional || 0) }))
+                        .filter(x => x.value > 0.01)
+                        .sort((a, b) => b.value - a.value)
+                );
             }
 
-            // BingX doesn't have a simple summary endpoint for Earn products,
-            // so we will stick to Spot and Futures.
+            result.push({
+                accountType: 'Futures',
+                subType: 'USDT-M',
+                walletBalance,
+                totalUnrealizedPnl,
+                positions: futPositions,
+                value: futuresValue,
+                children: futChildren
+            });
 
             return result;
-
         } catch (err) {
-            console.error('BingXWS getDetailedBalance error:', err.message);
+            console.error('[BingXWS] getDetailedBalance error:', err.message);
             return [];
         }
     }

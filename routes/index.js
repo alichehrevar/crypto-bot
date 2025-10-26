@@ -16,6 +16,7 @@ const logsRouter = require('./logs');
 const marketRoutes = require('./market');
 const pnlRoutes = require('./pnl');
 const ordersRouter = require("./orders");
+const assetSnapshotRouter = require("./assetSnapshot");
 const coinRoutes = require('./coin');
 const userRoutes = require('./user');
 const sentimentRoutes = require('./market/sentiment');
@@ -38,7 +39,7 @@ const routes = {
     '/market': marketRoutes,
     '/pnl': pnlRoutes,
     '/orders': ordersRouter,
-    '/asset': ordersRouter,
+    '/asset': assetSnapshotRouter,
     '/coins': coinRoutes,
     '/user': userRoutes,
     '/logs': logsRouter,

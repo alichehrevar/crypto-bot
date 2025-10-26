@@ -121,6 +121,9 @@ class BotService {
     /** per-bot handler called by processCandle queue */
     async _handleBot(bot, candle, symbol, timeframe) {
 
+        // dca tracks symbol price directly, no need to store candles
+        if (bot.botType === 'dca') return;
+
         const logger = botLogger.getLogger(bot._id.toString());
 
         // ——— A) MarketInfo update ———

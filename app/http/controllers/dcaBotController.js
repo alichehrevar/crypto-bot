@@ -5,7 +5,7 @@ const BotManagerService = require('../../services/botService/BotManagerService')
 // POST /api/dcabots
 exports.createDcaBot = async (req, res) => {
 
-    const { symbol } = req.body;
+    const { symbol, selectedTab } = req.body;
 
     if (!symbol) {
         return res.status(400).json({ message: 'Symbol is required', success: false });
@@ -19,15 +19,14 @@ exports.createDcaBot = async (req, res) => {
     try {
         const botData = {
             ...req.body,
-            name: 'DcaBot ' + marketSnapshot.symbol + ' ' + marketSnapshot.name,
             symbol: marketSnapshot.symbol,
             accountType: marketSnapshot.name.toLowerCase(),
             userId: req.user.id,
             active: true,
-            direction: 'NEUTRAL',
+            direction: req.body,
             marketType: 'SPOT',
             timeframe: '1m',
-            riskStrategy: 'SimpleStrategy'
+            riskStrategy: 'SimpleStrategy',
         };
         const dcaBot = new DcaBot(botData);
         await dcaBot.save();
