@@ -81,11 +81,11 @@ exports.getAssetsTodayFull = async (req, res) => {
             .select('balances total brokerTree assetTree details meta')
             .lean();
 
-        if (!snap) return res.status(404).json({ error: 'No snapshot for today yet.' });
+        if (!snap) return res.status(404).json({ message: 'No snapshot for today yet.', success: false });
 
-        res.json(snap);
+        res.json({data: snap, success: true});
     } catch (e) {
         console.error('[getAssetsTodayFull]', e);
-        res.status(500).json({ error: 'Failed to load full assets snapshot' });
+        res.status(500).json({ message: 'Failed to load full assets snapshot', success: false });
     }
 };
