@@ -21,7 +21,7 @@ export const SymbolRow = React.memo<Props>(({ symbol, onToggleFavorite, onSymbol
     const categoryTagMap: Record<string, string> = { 'Spot': 'Spot', 'USDT-M': 'USDT-M', 'New Listing': 'USDT-M' };
 
     return (
-        <div className="flex items-center px-4 border-b border-zinc-800" style={style}>
+        <div className="flex items-center px-2 border-b border-zinc-800" style={style}>
             <button className="mr-3" onClick={() => onToggleFavorite(symbol)}>
                 <StarIcon className={`${symbol.isFavorite ? 'text-yellow-400 fill-yellow-400' : 'text-zinc-600'} hover:text-yellow-400`} />
             </button>

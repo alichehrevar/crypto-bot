@@ -56,7 +56,7 @@ export default function MarketPulse({className}: {className?: string}) {
     return (
         <div className={`space-y-4 ${className}`}>
             <div className="grid grid-cols-2 gap-4">
-                <div className="bg-stone-900/30 rounded-lg p-3">
+                <div className="ua-card p-3">
                     <div className="flex items-center justify-between mb-1">
                         <span className="text-xs text-gray-400">RSI (14)</span>
                         <div className={`w-2 h-2 rounded-full ${indicators.rsi > 70 ? 'bg-red-400' : indicators.rsi < 30 ? 'bg-green-400' : 'bg-yellow-400'} animate-pulse`} />
@@ -69,7 +69,7 @@ export default function MarketPulse({className}: {className?: string}) {
                     </div>
                 </div>
 
-                <div className="bg-stone-900/30 rounded-lg p-3">
+                <div className="ua-card p-3">
                     <div className="flex items-center justify-between mb-1">
                         <span className="text-xs text-gray-400">MACD</span>
                     </div>
@@ -83,7 +83,7 @@ export default function MarketPulse({className}: {className?: string}) {
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-                <div className="bg-stone-900/30 rounded-lg p-3">
+                <div className="ua-card p-3">
                     <div className="flex items-center justify-between mb-1">
                         <span className="text-xs text-gray-400">Stochastic</span>
                     </div>
@@ -95,7 +95,7 @@ export default function MarketPulse({className}: {className?: string}) {
                     </div>
                 </div>
 
-                <div className="bg-stone-900/30 rounded-lg p-3">
+                <div className="ua-card p-3">
                     <span className="text-xs text-gray-400 block mb-1">Bollinger</span>
                     <div className={`text-lg font-bold transition-colors duration-300 ${
                         indicators.bollinger === 'Upper' ? 'text-red-400' :
@@ -107,7 +107,7 @@ export default function MarketPulse({className}: {className?: string}) {
                 </div>
             </div>
 
-            <div className="bg-stone-900/30 rounded-lg p-3 pb-0">
+            <div className="ua-card p-3">
                 <div className="flex items-center justify-between mb-2">
                     <span className="text-xs text-gray-400">Volume Analysis</span>
                     <span className={`text-xs font-medium ${indicators.momentum === 'Bullish' ? 'text-green-400' : indicators.momentum === 'Bearish' ? 'text-red-400' : 'text-gray-400'}`}>

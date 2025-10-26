@@ -11,7 +11,7 @@ interface Props {
 }
 
 export const MarketListHeader: React.FC<Props> = ({ sortConfig, handleSort, isSortActive }) => (
-    <div className="flex justify-between items-center px-4 pb-2 border-b border-zinc-800">
+    <div className="flex justify-between items-center px-2.5 pb-2 border-b border-zinc-800">
         <div className="text-xs text-zinc-400">Symbol</div>
         <div className="flex items-center space-x-4">
             <SortableHeader isSortActive={isSortActive} sortConfig={sortConfig} sortKey="volume" onSort={handleSort}>Vol</SortableHeader>

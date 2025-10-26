@@ -9,7 +9,7 @@ const TechnicalAnalysis: FC = () => {
 
     // --- RENDER ---
     return (
-        <div className="bg-dark-gray rounded-lg p-6 w-full h-full overflow-y-auto relative">
+        <div className="p-2 pt-0 w-full h-[96%] overflow-y-auto relative no-scrollbar">
             <FearAndGreedGauge />
 
             <MarketPulse className="mt-6" />

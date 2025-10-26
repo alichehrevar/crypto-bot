@@ -271,7 +271,7 @@ function TechnicalAnalysisModal({
             className="fixed inset-0 z-[1000] bg-black/85 flex items-center justify-center p-5"
             role="dialog"
         >
-            <div className="bg-zinc-950 border border-white/10 shadow-2xl text-white w-full max-w-[680px] max-h-[90vh] rounded-2xl p-8">
+            <div className="bg-zinc-950 border border-white/10 shadow-2xl text-white w-full max-w-[680px] max-h-[90vh] rounded-2xl p-8 flex flex-col">
                 <div className="flex items-center justify-between mb-6 pb-4 border-b border-white/10">
                     <h2 className="text-xl font-bold">Technical Indicators - {timeframe}</h2>
                     <button
@@ -310,7 +310,7 @@ function TechnicalAnalysisModal({
                     </button>
                 </div>
 
-                <div className="min-h-[540px] overflow-auto pr-1">
+                <div className="flex-1 overflow-auto pr-1 no-scrollbar">
                     {activeTab === "oscillators" && renderTable(data.oscillators)}
                     {activeTab === "movingAverages" && renderTable(data.movingAverages)}
                     {activeTab === "sentiment" && renderSentiment(data.sentiment)}
@@ -411,9 +411,9 @@ export default function FearAndGreedMeter() {
         );
 
     return (
-        <div className="font-sans text-white w-full max-w-full rounded-3xl py-3 shadow-2xl">
+        <div className="font-sans text-white w-full ua-card py-3 shadow-2xl">
             {/* Timeframe selector */}
-            <div className="relative grid grid-cols-[1fr_1fr_1fr_auto] gap-2 items-center mb-8 min-h-[38px]">
+            <div className="relative grid grid-cols-[1fr_1fr_1fr_auto] gap-2 items-center mb-8 min-h-[38px] mx-2">
                 {visibleTimeframeIndices.map((index) => {
                     const tf = timeframesConfig[index];
                     const active = index === activeTimeframeIndex;
@@ -469,7 +469,7 @@ export default function FearAndGreedMeter() {
 
             {/* Meter */}
             <div className="relative w-full h-[100px] flex items-center justify-center mb-4">
-                <div className="relative w-[80%] pt-[40%]">
+                <div className="relative w-[73%] pt-[40%]">
                     <svg className="absolute inset-0 w-full h-full overflow-visible" viewBox="0 0 200 100">
                         <defs>
                             <linearGradient id="valueGradient" x1="0%" x2="100%" y1="0%" y2="0%">
@@ -494,13 +494,13 @@ export default function FearAndGreedMeter() {
 
                         {/* labels */}
                         {(() => {
-                            const cx = 100, cy = 100, r = 85; // arc radius (75) + label offset
-                            const defs: Array<{ text: SummaryLabel; angle: number }> = [
-                                { text: "Strong sell", angle: 180 },
-                                { text: "Sell", angle: 135 },
-                                { text: "Neutral", angle: 90 },
-                                { text: "Buy", angle: 45 },
-                                { text: "Strong buy", angle: 0 },
+                            const cx = 100, cy = 100, r = 96; // arc radius (75) + label offset
+                            const defs: Array<{ id: number, text: SummaryLabel; angle: number }> = [
+                                { id: 1, text: "Strong sell", angle: 172 },
+                                { id: 2, text: "Sell", angle: 135 },
+                                { id: 3, text: "Neutral", angle: 90 },
+                                { id: 4, text: "Buy", angle: 45 },
+                                { id: 5, text: "Strong buy", angle: 8 },
                             ];
                             const toXY = (ang: number) => {
                                 const rad = (ang * Math.PI) / 180;
@@ -512,9 +512,13 @@ export default function FearAndGreedMeter() {
 
                             return (
                                 <g>
-                                    {defs.map(({ text, angle }) => {
-                                        const { x, y } = toXY(angle);
+                                    {defs.map(({ id, text, angle }) => {
+                                        let { x, y } = toXY(angle);
                                         const fill = meterValues.summary === text ? meterValues.activeColor : "#888";
+
+                                        if (id === 1) x -= 14;
+                                        else if (id === 5) x += 14;
+                                        else if (id === 3) y += 3;
 
                                         return (
                                             <text key={text} className="text-[8px] font-semibold" style={{ fill }} textAnchor="middle" x={x} y={y}>
@@ -540,7 +544,7 @@ export default function FearAndGreedMeter() {
             </div>
 
             {/* Current summary */}
-            <div className="text-center relative z-10 h-8">
+            <div className="text-center relative z-10 h-8 pt-2">
                 <div className="text-[1.1rem] font-semibold" style={{ color: meterValues.activeColor }}>
                     {meterValues.summary}
                 </div>
@@ -548,7 +552,7 @@ export default function FearAndGreedMeter() {
 
             {/* Summary stats */}
             {currentData && (
-                <div className="flex justify-around text-center mt-6 pt-6 border-t border-white/10">
+                <div className="grid grid-cols-3 text-center mt-6 pt-6 border-t border-white/10 mx-2">
                     <button
                         aria-label="View details"
                         className="px-2 py-1 rounded-lg transition hover:scale-[1.05] hover:bg-white/5"

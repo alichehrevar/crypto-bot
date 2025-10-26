@@ -16,10 +16,10 @@ export default function AnalysisAndSymbolsList({ onSymbolClickAction }: Analysis
                 aria-label="AnalysisAndSymbolsList"
                 classNames={{
                     base: 'w-full',
-                    tabList: 'w-full px-2 ',
-                    tab: 'pb-4 font-bold text-[14px] mb-1',
+                    tabList: 'w-[calc(100%-8px)] px-2 border-b border-gray-800 mx-auto',
+                    tab: 'pb-4 font-bold text-[14px] -mb-1',
                     cursor: 'w-full',
-                    panel: 'h-[96%]'
+                    panel: 'h-[96%] mt-2'
                 }}
                 variant="underlined"
             >
