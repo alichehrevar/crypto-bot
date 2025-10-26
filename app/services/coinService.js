@@ -33,10 +33,14 @@ async function getCoinSummary(marketSnapshotId) {
     }
 
     // find the symbol of selected id
-    const marketSnapshot = await MarketSnapshot.findById(marketSnapshotId);
+    let marketSnapshot = await MarketSnapshot.findById(marketSnapshotId);
     if (!marketSnapshot) {
         console.error(`MarketSnapshot not found for ID: ${marketSnapshotId}`);
-        return null;
+        marketSnapshot = await MarketSnapshot.findOne({name: 'Binance', symbol: 'BTC', category: 'Spot'})
+        if (!marketSnapshot) {
+            console.error('MarketSnapshot not found for BTC');
+            return null;
+        }
     }
 
     const id = findIdBySymbol(marketSnapshot.symbol);
