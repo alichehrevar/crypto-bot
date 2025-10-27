@@ -627,7 +627,7 @@ const AssetsOverview: React.FC = () => {
     }, [view, brokerData, assetData, drawChart]);
 
     return (
-        <div ref={componentContainerRef} className="ua-card p-6 w-full text-white">
+        <div ref={componentContainerRef} className="ua-card p-6 w-full text-white h-full">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between w-full mb-4 gap-4 sm:gap-0">
                 <h4 className="font-bold text-lg">Assets</h4>
 
@@ -653,7 +653,7 @@ const AssetsOverview: React.FC = () => {
                 </div>
             </div>
 
-            {loading && <div className="mt-6 text-sm text-gray-400">Loading assets…</div>}
+            {loading && <div className="mt-6 text-sm text-gray-400 flex items-center justify-center w-full">Loading assets…</div>}
             {error && <div className="mt-6 text-sm text-red-400">Error: {error}</div>}
 
             <div
