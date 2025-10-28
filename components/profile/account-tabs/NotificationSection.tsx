@@ -35,7 +35,7 @@ const notificationEvents = [
 export default function NotificationSettings() {
 
   return (
-      <section className="flex flex-col items-start justify-center w-full mx-4 py-10 px-10 gap-10 max-w-4xl ua-card">
+      <section className="flex flex-col items-start justify-center w-full mx-4 py-10 px-10 gap-10 max-w-5xl ua-card">
           <div className="flex items-start justify-center flex-col gap-4 w-full">
               <h2 className="text-left font-bold">How to Communicate</h2>
               <ul className="flex items-start justify-center flex-col text-[13px] mt-4 w-full">

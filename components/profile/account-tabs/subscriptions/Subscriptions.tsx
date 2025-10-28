@@ -1,5 +1,4 @@
 import React, {useState} from 'react'
-import Image from "next/image";
 
 import PricingPlansSection from "@/components/profile/account-tabs/subscriptions/PricingPlansSection";
 import CompareFeatures from "@/components/profile/account-tabs/subscriptions/CompareFeatures";
@@ -9,7 +8,7 @@ export default function PricingPage() {
     const [period, setPeriod] = useState<'monthly' | 'annually'>('monthly')
 
     return (
-        <div className="space-y-16 text-white py-8 max-w-4xl">
+        <div className="space-y-16 text-white py-8 max-w-5xl">
             {/* Header & Toggle */}
             <div className="text-center space-y-4">
                 <div className="inline-flex gap-2 border border-gray-600 rounded-xl p-1 mb-10">

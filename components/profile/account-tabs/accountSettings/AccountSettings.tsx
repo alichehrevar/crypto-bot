@@ -63,7 +63,7 @@ const AccountSettingsTab = observer(() => {
 
     return (
         <section
-            className="flex flex-col items-start justify-center w-full mx-4 py-10 px-10 gap-10 max-w-4xl ua-card">
+            className="flex flex-col items-start justify-center w-full mx-4 py-10 px-10 gap-10 max-w-5xl ua-card">
 
             {/* Account Details Section */}
             {isLoading ? (

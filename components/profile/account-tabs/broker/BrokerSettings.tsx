@@ -212,7 +212,7 @@ const BrokerSettingsPage: React.FC = () => {
 
     return (
         // The main container uses a strict black background and prevents overflow.
-        <div className="min-h-[80svh] w-full max-w-4xl ua-card text-white flex overflow-hidden">
+        <div className="min-h-[80svh] w-full max-w-5xl ua-card text-white flex overflow-hidden">
 
             {/* Page layout container with a max-width and centered horizontally. */}
             <div className='flex flex-1 relative w-fit mx-auto' style={pageStyle}>
@@ -280,14 +280,14 @@ const BrokerSettingsPage: React.FC = () => {
                                     </header>
 
                                     {/* Instructions Section */}
-                                    <section className="w-full max-w-md  backdrop-blur-[2px]">
+                                    <section className="w-full max-w-md">
                                         <h2 className='text-lg mb-4 font-semibold text-gray-300'>Connection Steps</h2>
                                         <div className="space-y-3">
                                             {selectedBroker.instructions.map((step, index) => (
                                                 <div key={index}>
                                                     <div className="flex items-start text-sm">
                                                         <span className="text-gray-400 font-medium mr-3">{index + 1}.</span>
-                                                        <p className='text-gray-400 leading-relaxed'>
+                                                        <p className='text-gray-400 leading-relaxed backdrop-blur-[2px]'>
                                                             {/* This block handles rendering of rich text (links and plain text). */}
                                                             {Array.isArray(step.content) ? (
                                                                 step.content.map((part, partIndex) =>
