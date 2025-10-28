@@ -6,7 +6,6 @@ import {
 } from "@heroui/react";
 
 import {CountryCodes} from "@/utils/countryCodes";
-import LabelTag from "@/components/shared/ui/Label";
 import {User, UserResponse} from "@/types/UserType";
 import {updateRequest} from "@/actions/put";
 import Combobox from "@/components/shared/ui/Combobox";
