@@ -65,7 +65,7 @@ const NumericInput: React.FC<{
 
     return (
         <div>
-            {label && <label className="block text-sm font-medium text-gray-300 mb-2">{label}</label>}
+            {label && <label className="block text-sm text-nowrap font-medium text-gray-300 mb-2">{label}</label>}
             <div className="relative group">
                 <input
                     className="w-full bg-dark-semi-black border border-gray-600 text-white rounded-md px-3 py-2 text-sm focus:ring-1 focus:ring-blue-500/50 focus:border-blue-500 focus:outline-none transition-colors duration-200 hide-number-spinners"

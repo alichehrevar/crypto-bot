@@ -30,3 +30,16 @@ export const gridBotListHeader = [
     'PnL',
     ''
 ]
+
+export const dcaBotListHeader = [
+    'Bot name',
+    'Symbol',
+    'Account',
+    'Price Deviation',
+    'Base Order Size',
+    'DCA Order Size',
+    'Max DCa Orders',
+    'TP / SL',
+    'PnL',
+    ''
+]
