@@ -4,6 +4,7 @@ import React from "react";
 import { observer } from "mobx-react";
 import { useRouter } from "next/navigation";
 import { addToast, Avatar, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger } from "@heroui/react";
+import {LayoutDashboard} from "lucide-react";
 
 import { useUserStore } from '@/hooks/useUserStore';
 import {
@@ -15,7 +16,6 @@ import {
 } from "@/utils/icons";
 import { logoutAction } from "@/actions/post";
 import UserDropDownLoading from "@/components/loading/UserDropDownLoading";
-import {LayoutDashboard} from "lucide-react";
 
 const UserDropDown = observer(() => {
     // Initialize the Next.js router
