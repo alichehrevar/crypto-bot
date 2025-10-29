@@ -26,7 +26,6 @@ export default function TopMenu() {
     return (
         <Navbar
             isBordered
-            shouldHideOnScroll
             maxWidth="full"
         >
             <NavbarContent className="flex flex-1" justify="start">

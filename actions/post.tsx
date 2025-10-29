@@ -21,8 +21,9 @@ export async function sendRequest(body: { [p: string]: File | string } | FormDat
             const cookieStore = await cookies()
 
             cookieStore.set('token', responseJson.data.token, {
-                httpOnly: false,
+                httpOnly: true,
                 secure: process.env.NODE_ENV === 'production',
+                sameSite: 'lax',
                 maxAge: 60 * 60 * 24, // 1 month
                 path: '/'
             })

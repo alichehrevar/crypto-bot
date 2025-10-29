@@ -1,6 +1,7 @@
 import React from "react";
 
 import TopMenu from "@/components/profile/TopMenu";
+import SessionHydrator from '@/components/SessionHydrator';
 
 export default function ProfileLayout({
   children,
@@ -8,15 +9,16 @@ export default function ProfileLayout({
     children: React.ReactNode;
 }) {
     return (
-        <section className="w-screen overflow-x-hidden">
-            <div className="flex items-center justify-center flex-col w-full">
-                <div className="hidden lg:flex lg:w-full relative">
-                    <TopMenu/>
-                </div>
-                <div className="flex items-end justify-start h-screen lg:h-[calc(100vh-65px)] pb-3 w-full flex-col gap-4 relative">
+        <>
+            <SessionHydrator />
+            <section className="w-screen overflow-x-hidden">
+                <div className="flex items-center justify-center flex-col w-full">
+                    <div className="hidden lg:flex lg:w-full relative">
+                        <TopMenu/>
+                    </div>
                     {children}
                 </div>
-            </div>
-        </section>
+            </section>
+        </>
     )
 }

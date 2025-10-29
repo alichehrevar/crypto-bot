@@ -36,12 +36,12 @@ export default function RootLayout({
     <html suppressHydrationWarning lang="en">
       <body
         className={clsx(
-          "bg-background font-sans antialiased overflow-y-hidden relative h-screen",
+          "bg-background font-sans antialiased relative",
           fontSans.variable,
         )}
       >
         <Providers themeProps={{ attribute: "class", defaultTheme: "dark" }}>
-          <div className="flex flex-col overflow-hidden">
+          <div className="flex flex-col overflow-x-hidden relative">
               {children}
           </div>
         </Providers>

@@ -2,7 +2,7 @@
 
 import React from "react";
 import { observer } from "mobx-react";
-import { useRouter } from "next/navigation"; // [FIX 3] Import useRouter
+import { useRouter } from "next/navigation";
 import { addToast, Avatar, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger } from "@heroui/react";
 
 import { useUserStore } from '@/hooks/useUserStore';
@@ -15,6 +15,7 @@ import {
 } from "@/utils/icons";
 import { logoutAction } from "@/actions/post";
 import UserDropDownLoading from "@/components/loading/UserDropDownLoading";
+import {LayoutDashboard} from "lucide-react";
 
 const UserDropDown = observer(() => {
     // Initialize the Next.js router
@@ -74,6 +75,17 @@ const UserDropDown = observer(() => {
                     <p className="font-semibold">Signed in as</p>
                     <p className="font-semibold">{userStore.userData.email}</p>
                 </DropdownItem>
+                {userStore.isAdmin ? (
+                    <DropdownItem
+                        key="admin"
+                        href="/admin"
+                        startContent={<LayoutDashboard className="w-5 h-5"/>}
+                    >
+                        Admin Dashboard
+                    </DropdownItem>
+                ) : (
+                    <></>
+                )}
                 <DropdownItem
                     key="search"
                     startContent={<MagnifyingGlass className="w-5 h-5"/>}
