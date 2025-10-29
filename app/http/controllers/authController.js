@@ -221,6 +221,7 @@ async function generateToken(user, req){
     await AuthToken.create({
         token: tokenString,
         userId: user._id,
+        role: user.role,
         expiresAt,
         userAgent: req.headers['user-agent'],
         ipAddress: req.ip,

@@ -11,9 +11,7 @@ const clientAccess = [authenticate, authorize(['client'])];
 // Any route not listed here is considered public.
 const protectedRoutes = {
     // Routes only accessible by admin users.
-    adminOnly: [
-        'logs',
-    ],
+    adminOnly: [], // empty to guard all admin via /admin
     // Routes accessible by clients (and automatically by admins).
     client: [
         'accounts',

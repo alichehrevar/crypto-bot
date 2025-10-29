@@ -24,8 +24,9 @@ const anomalyRoutes = require('./market/anomalies');
 const sectorRoutes = require('./market/sectors');
 const netFlowsRoutes = require('./market/netFlows');
 const listingsRoutes = require('./listings');
+const SessionRoutes = require('./session');
 
-// --- Route Definitions ---
+/***************** Client Routes *****************/
 const routes = {
     '/auth': authRoutes,
     '/accounts': accountRoutes,
@@ -42,26 +43,35 @@ const routes = {
     '/asset': assetSnapshotRouter,
     '/coins': coinRoutes,
     '/user': userRoutes,
-    '/logs': logsRouter,
     '/sentiment': sentimentRoutes,
     '/anomalies': anomalyRoutes,
     '/sectors': sectorRoutes,
     '/market/net-flows': netFlowsRoutes,
     '/listings': listingsRoutes,
+    '/session': SessionRoutes,
 };
 
 // --- Mount Routers with Middleware ---
 for (const path in routes) {
-    const routeKey = path.substring(1); // remove leading slash
-    if (protectedRoutes.adminOnly.includes(routeKey)) {
-        router.use(path, ...adminOnlyAccess, routes[path]);
-    } else if (protectedRoutes.client.includes(routeKey)) {
+    const routeKey = path.substring(1); // remove the leading slash
+    if (protectedRoutes.client.includes(routeKey)) {
         router.use(path, ...clientAccess, routes[path]);
+    } else if (protectedRoutes.adminOnly.includes(routeKey)) {
+        router.use(path, ...adminOnlyAccess, routes[path]);
     } else {
-        // Public routes or routes not explicitly protected
-        router.use(path, routes[path]);
+        router.use(path, routes[path]); // public
     }
 }
+
+const admin = express.Router();
+// Attach auth + admin-role guard to *all* /admin/* endpoints
+admin.use(...adminOnlyAccess);
+
+/***************** Admin Routes *****************/
+admin.use('/logs', logsRouter);
+
+// Mount the admin namespace
+router.use('/admin', admin);
 
 module.exports = router;
 
