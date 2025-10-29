@@ -81,6 +81,25 @@ const config: Config = {
                     300: "#81C7FF",
                     400: "#66BBFF",
                 },
+                bg: {
+                    DEFAULT: "#0A0F14",
+                    soft: "#0D131A",
+                    glass: "#111826"
+                },
+                brand: {
+                    400: "#11DBC6",
+                    500: "#00E0D5",
+                    600: "#00C0B7"
+                }
+            },
+            boxShadow: {
+                glass: "0 10px 30px rgba(0,0,0,.35) inset, 0 1px 0 rgba(255,255,255,.04)"
+            },
+            borderRadius: {
+                xl2: "1rem"
+            },
+            backdropBlur: {
+                xs: "2px"
             },
             backgroundImage: {
                 'green-gradient': 'linear-gradient(to bottom, #9EF01A, #4CAF50)',

@@ -1,3 +1,5 @@
+@import "./admin.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -299,3 +301,5 @@ section[role="dialog"] .overflow-y-auto::-webkit-scrollbar-track {
 /*        max-width: 1200px;*/
 /*    }*/
 /*}*/
+
+
