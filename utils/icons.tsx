@@ -873,11 +873,11 @@ export const TrashIcon = ({className = "size-5"}) => (
 )
 
 export const BotIcon = ({className = "size-5"}) => (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-         strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round"
-         className={`lucide lucide-bot-icon lucide-bot ${className}`}>
+    <svg className={`lucide lucide-bot-icon lucide-bot ${className}`} fill="none" stroke="currentColor" strokeLinecap="round"
+         strokeLinejoin="round" strokeWidth="1.25" viewBox="0 0 24 24"
+         xmlns="http://www.w3.org/2000/svg">
         <path d="M12 8V4H8"/>
-        <rect width="16" height="12" x="4" y="8" rx="2"/>
+        <rect height="12" rx="2" width="16" x="4" y="8"/>
         <path d="M2 14h2"/>
         <path d="M20 14h2"/>
         <path d="M15 13v2"/>
