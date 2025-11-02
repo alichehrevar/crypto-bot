@@ -12,7 +12,6 @@ const backtestRoutes = require('./backtest');
 const visualizationRoutes = require('./visualization');
 const currencyRoutes = require('./currencies');
 const indicatorsRoutes = require('./indicators');
-const logsRouter = require('./logs');
 const marketRoutes = require('./market');
 const pnlRoutes = require('./pnl');
 const ordersRouter = require("./orders");
@@ -25,6 +24,8 @@ const sectorRoutes = require('./market/sectors');
 const netFlowsRoutes = require('./market/netFlows');
 const listingsRoutes = require('./listings');
 const SessionRoutes = require('./session');
+
+const adminRoutes = require('./admin/index')
 
 /***************** Client Routes *****************/
 const routes = {
@@ -63,15 +64,8 @@ for (const path in routes) {
     }
 }
 
-const admin = express.Router();
-// Attach auth + admin-role guard to *all* /admin/* endpoints
-admin.use(...adminOnlyAccess);
-
-/***************** Admin Routes *****************/
-admin.use('/logs', logsRouter);
-
 // Mount the admin namespace
-router.use('/admin', admin);
+router.use('/admin', adminRoutes);
 
 module.exports = router;
 

@@ -1,47 +1,65 @@
-// controllers/logController.js
-const fs = require('fs');
-const path = require('path');
-
-// 1) Directory where Winston writes daily log files:
-const LOG_DIR = path.join(__dirname, '../../../logs/reports');
-
-// Helper: only return filenames that match `app-YYYY-MM-DD.log`
-function listLogFiles() {
-    try {
-        const all = fs.readdirSync(LOG_DIR);
-        return all
-            .filter(f => /^(?:app|exceptions)-\d{4}-\d{2}-\d{2}\.log(?:\.gz)?$/.test(f))
-            .sort()
-            .reverse(); // newest first
-    } catch (err) {
-        return [];
-    }
-}
+const BotLog = require('../../models/BotLog');
+const mongoose = require('mongoose');
 
 /**
- * Controller function to retrieve all logs.
- *
- * @param {Object} req - Express request object.
- * @param {Object} res - Express response object.
+ * Controller for handling log retrieval.
  */
-exports.getLogsFiles = (req, res) => {
-    const files = listLogFiles();
-    return res.json({ success: true, files });
-};
+class LogController {
 
-exports.getLogFile = (req, res) => {
-    const { filename } = req.params;
-    // Validate against our list:
-    const files = listLogFiles();
-    if (!files.includes(filename)) {
-        return res.status(404).json({ success: false, error: 'Log file not found' });
+    /**
+     * Get paginated logs for a specific bot.
+     * @param {import('express').Request} req
+     * @param {import('express').Response} res
+     */
+    async getBotLogs(req, res) {
+        try {
+            const { botId } = req.params;
+
+            // --- Validation ---
+            if (!mongoose.Types.ObjectId.isValid(botId)) {
+                return res.status(400).json({ message: 'Invalid botId format.' });
+            }
+
+            // --- Pagination ---
+            const page = parseInt(req.query.page, 10) || 1;
+            const limit = parseInt(req.query.limit, 10) || 100; // Default 100 logs per page
+            const skip = (page - 1) * limit;
+
+            // --- Query ---
+            // We'll create the query for the botId
+            const query = { 'meta.botId': botId };
+
+            // 1. Get the total count of logs for this bot for pagination
+            const totalLogs = await BotLog.countDocuments(query);
+
+            // 2. Get the paginated data, sorted newest first
+            const logs = await BotLog.find(query)
+                .sort({ timestamp: -1 }) // Newest logs first
+                .skip(skip)
+                .limit(limit)
+                .lean(); // Use .lean() for faster read-only queries
+
+            // --- Response ---
+            res.status(200).json({
+                message: 'Logs retrieved successfully',
+                data: logs,
+                pagination: {
+                    totalLogs,
+                    totalPages: Math.ceil(totalLogs / limit),
+                    currentPage: page,
+                    limit: limit,
+                },
+            });
+
+        } catch (error) {
+            console.error('Error fetching bot logs:', error);
+            res.status(500).json({ message: 'Internal server error while fetching logs.' });
+        }
     }
-    const fullPath = path.join(LOG_DIR, filename);
-    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-    // Stream the file back (so large logs don’t blow memory)
-    const stream = fs.createReadStream(fullPath);
-    stream.on('error', _ => {
-        return res.status(500).end('Could not read log file');
-    });
-    stream.pipe(res);
+
+    // ... other methods in your logController might be here ...
+
 }
+
+// Export a singleton instance
+module.exports = new LogController();

@@ -462,3 +462,33 @@ const updateUserInformation = async (userId, updateData) => {
         {new: true, upsert: true, runValidators: true}
     );
 }
+
+exports.usersList = async (req, res) => {
+    try {
+        const users = await User.find().select('email role').lean({ virtuals: true })
+            .populate({ path: 'info', select: 'firstName lastName avatar' });
+
+        res.json({ success: true, data: users });
+    } catch (error) {
+        console.error('Error getting users list');
+        res.status(500).json({ success: false, message: 'Internal server error.' });
+    }
+}
+
+exports.changeUserRole = async (req, res) => {
+    const user = await User.findById(req.user?.id).populate('info');
+    if (!user) {
+        return res.status(401).json({ message: 'User not found.', success: false });
+    }
+
+    try {
+        await User.findByIdAndUpdate(req.user?.id, {
+            $set: { role: req.body.role }
+        });
+
+        return res.json({message: 'User role changed successfully !', success: true})
+    } catch (error) {
+        console.error('Error updating user role');
+        res.status(500).json({ success: false, message: 'Internal server error.' });
+    }
+}
