@@ -116,7 +116,7 @@ const Instructions: React.FC = () => {
                                 </div>
                                 <div>
                                     <h3 className="text-white text-start font-semibold">{step.title}</h3>
-                                    <p className="text-sm" style={{ color: colors.textSecondary }}>{step.description}</p>
+                                    <p className="text-sm text-start" style={{ color: colors.textSecondary }}>{step.description}</p>
                                 </div>
                             </button>
                         ))}

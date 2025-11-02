@@ -1,13 +1,45 @@
+'use client'
+
+import React, {useEffect, useState} from "react";
+import {addToast} from "@heroui/react";
+
 import DataTable from "@/components/admin/DataTable";
-import { getUsers } from "@/lib/users";
+import {User, UsersListApiResponse} from "@/types/admin/Users";
+import {getData} from "@/actions/get";
 
 export default function UsersListPage() {
-    const data = getUsers();
+
+    const [isLoading, setIsLoading] = useState<boolean>(true)
+    const [usersList, setUsersList] = useState<User[]>([])
+
+    async function getUsersList () {
+        return await getData('/admin/users/list')
+    }
+
+    useEffect(() => {
+        getUsersList()
+            .then((response: UsersListApiResponse) => {
+                if (response.success) {
+                    setUsersList(response.data)
+                } else {
+                    addToast({
+                        title: response.message,
+                        color: 'warning'
+                    })
+                }
+            })
+            .catch(() => {
+                addToast({
+                    title: 'Something went wrong',
+                    color: 'danger'
+                })
+            })
+            .finally(() => {
+                setIsLoading(false)
+            })
+    }, [])
 
     return (
-        <div>
-            <h1 className="text-2xl font-semibold mb-4">Users</h1>
-            <DataTable rows={data} />
-        </div>
+        <DataTable isLoading={isLoading} rows={usersList} />
     );
 }

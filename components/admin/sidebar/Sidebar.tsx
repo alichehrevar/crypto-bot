@@ -2,18 +2,9 @@
 import Link from "next/link";
 import Image from "next/image";
 
-import SidebarItem, { NavItem } from "./SidebarItem";
+import SidebarItem from "./SidebarItem";
 
-const nav: NavItem[] = [
-    { label: "Dashboard", href: "/admin" },
-    {
-        label: "Users",
-        children: [
-            { label: "List", href: "/admin/users" },
-            { label: "Role", href: "/admin/users/role" }
-        ]
-    }
-];
+import {menuItemsList} from "@/utils/admin/MenuItemsList";
 
 export default function Sidebar() {
     return (
@@ -32,7 +23,7 @@ export default function Sidebar() {
             </Link>
             <div className="text-xs uppercase tracking-wider text-white/40 px-3">Overview</div>
             <div className="space-y-1">
-                {nav.map((item) => (
+                {menuItemsList.map((item) => (
                     <SidebarItem key={item.label} item={item} />
                 ))}
             </div>

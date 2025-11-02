@@ -5,12 +5,7 @@ import { usePathname } from "next/navigation";
 import { useState, useMemo } from "react";
 
 import { ChevronRightIcon } from "@/utils/icons";
-
-export type NavItem = {
-    label: string;
-    href?: string;
-    children?: Array<{ label: string; href: string }>;
-};
+import {NavItem} from "@/types/admin/SidebarItems";
 
 function normalize(path: string) {
     if (!path) return path;
