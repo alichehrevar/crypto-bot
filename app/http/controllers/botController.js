@@ -689,3 +689,15 @@ exports.botProps = async (_, res) => {
     };
     return res.json({ success: true, props });
 };
+
+exports.botsList = async (req, res) => {
+    const bots = await BotBase.find().lean();
+
+    return res.json({ success: true, data: bots });
+}
+
+exports.userBotsList = async (req, res) => {
+    const bots = await BotBase.find({ userId: req.params.userId }).lean();
+
+    return res.json({ success: true, data: bots });
+}

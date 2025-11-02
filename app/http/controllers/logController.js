@@ -41,24 +41,23 @@ class LogController {
 
             // --- Response ---
             res.status(200).json({
-                message: 'Logs retrieved successfully',
-                data: logs,
-                pagination: {
-                    totalLogs,
-                    totalPages: Math.ceil(totalLogs / limit),
-                    currentPage: page,
-                    limit: limit,
+                data: {
+                    logs: logs,
+                    pagination: {
+                        totalLogs,
+                        totalPages: Math.ceil(totalLogs / limit),
+                        currentPage: page,
+                        limit: limit,
+                    },
                 },
+                success: true,
             });
 
         } catch (error) {
             console.error('Error fetching bot logs:', error);
-            res.status(500).json({ message: 'Internal server error while fetching logs.' });
+            res.status(500).json({ message: 'Internal server error while fetching logs.', success: false });
         }
     }
-
-    // ... other methods in your logController might be here ...
-
 }
 
 // Export a singleton instance
