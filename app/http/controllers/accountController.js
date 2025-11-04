@@ -538,6 +538,7 @@ exports.getSummary = async (req, res) => {
  * @description Fetches a detailed, hierarchical summary of all assets across all exchanges.
  * The data is structured to match the frontend's AssetNode tree component.
  */
+// Controller
 exports.getDetailedSummary = async (req, res) => {
     try {
         const userId = req.user.id;
@@ -548,49 +549,100 @@ exports.getDetailedSummary = async (req, res) => {
             BingxAccount.find({ userId }).lean(),
         ]);
 
-        const fetchDetails = async (accounts, Service) => {
+        // Helper: call service for each account (supports multi-account gracefully)
+        const fetchAllAccountDetails = async (accounts, Service) => {
             if (!accounts || accounts.length === 0) return [];
-            // This assumes one account per exchange. If a user can have multiple,
-            // you'll need to loop through `accounts` and merge the results.
-            if (accounts.length > 0) {
-                console.log(accounts[0])
-                return await Service.getDetailedBalance(accounts[0]);
-            }
-            return [];
+            const results = await Promise.allSettled(
+                accounts.map(async (acct, idx) => {
+                    const details = await Service.getDetailedBalance(acct);
+                    return {
+                        accountId: String(acct._id || idx),
+                        label: acct.name || acct.alias || acct.nick || `Account #${idx + 1}`,
+                        details: Array.isArray(details) ? details : [],
+                    };
+                })
+            );
+            return results
+                .filter(r => r.status === 'fulfilled')
+                .map(r => r.value);
         };
 
-        const [binanceDetails, okxDetails, bingxDetails] = await Promise.all([
-            fetchDetails(binanceAccts, BinanceService),
-            fetchDetails(okxAccts, OkxService),
-            fetchDetails(bingxAccts, BingxService),
+        const [binanceList, okxList, bingxList] = await Promise.all([
+            fetchAllAccountDetails(binanceAccts, BinanceService),
+            fetchAllAccountDetails(okxAccts, OkxService),
+            fetchAllAccountDetails(bingxAccts, BingxService),
         ]);
+
+        // Nodes we should NOT include in broker totals (meta/info-only)
+        const EXCLUDE_FROM_TOTAL = new Set(['Overview', 'Trading-Equity']);
 
         const assetTreeChildren = [];
         let totalValue = 0;
 
-        const processExchangeData = (name, details, color) => {
-            if (!details || details.length === 0) return;
+        // Build a broker node; if multiple accounts exist, group by account -> details
+        const processBroker = (brokerName, brokerColor, accountBundles) => {
+            if (!accountBundles || accountBundles.length === 0) return;
 
-            const exchangeTotal = details.reduce((sum, accType) => sum + accType.value, 0);
-            if (exchangeTotal <= 0.01) return;
+            const brokerChildren = [];
+            let brokerTotal = 0;
 
-            totalValue += exchangeTotal;
+            for (const bundle of accountBundles) {
+                const accChildren = [];
+                let accTotal = 0;
 
-            assetTreeChildren.push({
-                name: name,
-                value: exchangeTotal,
-                color: color,
-                children: details.map(accType => ({
-                    name: accType.accountType,
-                    value: accType.value,
-                    children: accType.children,
-                })),
-            });
+                for (const node of bundle.details) {
+                    const name = String(node.accountType || node.name || 'Unknown');
+                    const val = Number(node.value ?? 0);
+                    const children = Array.isArray(node.children) ? node.children : [];
+
+                    // Count into totals only if numeric and not a meta-node
+                    if (Number.isFinite(val) && val > 0 && !EXCLUDE_FROM_TOTAL.has(name)) {
+                        accTotal += val;
+                    }
+
+                    // Preserve the raw node so frontend can use broker-specific fields (subType, walletBalance, etc.)
+                    accChildren.push({
+                        name,
+                        value: Number.isFinite(val) ? val : 0,
+                        // keep original structure for UI drill-downs without forcing a common schema
+                        data: node,
+                        // standard 'children' for charts that read name/value pairs
+                        children: children?.map(c => ({
+                            name: c.name ?? c.asset ?? c.symbol ?? 'Item',
+                            value: Number(c.value ?? 0),
+                            data: c,
+                        })) || [],
+                    });
+                }
+
+                if (accTotal > 0.01) {
+                    brokerTotal += accTotal;
+                }
+
+                // Group by account (even if only one)
+                brokerChildren.push({
+                    name: bundle.label,
+                    value: accTotal,
+                    color: brokerColor,
+                    children: accChildren,
+                    meta: { accountId: bundle.accountId },
+                });
+            }
+
+            if (brokerTotal > 0.01) {
+                totalValue += brokerTotal;
+                assetTreeChildren.push({
+                    name: brokerName,
+                    value: brokerTotal,
+                    color: brokerColor,
+                    children: brokerChildren,
+                });
+            }
         };
 
-        processExchangeData('Binance', binanceDetails, '#30B5D3');
-        processExchangeData('OKX', okxDetails, '#DDE000');
-        processExchangeData('BingX', bingxDetails, '#87D30D');
+        processBroker('Binance', '#30B5D3', binanceList);
+        processBroker('OKX',     '#DDE000', okxList);
+        processBroker('BingX',   '#87D30D', bingxList);
 
         const assetTree = {
             name: 'Assets',
@@ -598,19 +650,15 @@ exports.getDetailedSummary = async (req, res) => {
             children: assetTreeChildren,
         };
 
-        // Note: Currency conversion is not applied in this endpoint, returning raw USDT values.
-        // The frontend can handle conversion using the user's currency preference if needed.
-
-        return res.json({
-            success: true,
-            data: assetTree,
-        });
-
+        return res.json({ success: true, data: assetTree });
     } catch (err) {
         console.error('getDetailedSummary controller error:', err.message);
-        return res.status(500).json({ success: false, error: 'Internal server error while fetching detailed summary' });
+        return res
+            .status(500)
+            .json({ success: false, error: 'Internal server error while fetching detailed summary' });
     }
 };
+
 
 async function fetchExchangeRate () {
     const response = await axios.get('https://api.exchangerate-api.com/v4/latest/USD');

@@ -361,37 +361,15 @@ exports.deployBot = async (req, res) => {
 exports.getBots = async (req, res) => {
 
     const { active } = req.query;
-    console.log('getBots active:', active)
+    console.log('getBots active:', active);
 
     try {
-        const filter = {active: active, userId: req.user?.id};
+        const filter = { active: active, userId: req.user?.id };
+
         const botType = req.query.botType;
-        console.log('getBots type:', botType);
         const bots = await BotBase.find(botType && botType !== 'undefined' ? {...filter, botType} : filter).lean();
 
-        const enriched = await Promise.all(bots.map(async bot => {
-            const price = bot.marketInfo?.currentCandle?.price;
-            let pnl = {realized: 0, unrealized: 0, total: 0};
-            if (typeof price === 'number') {
-                pnl = await PnLService.getBotPnL(bot._id, price);
-            }
-            const base = bot.marketInfo?.baseFund || 1;
-            const pct = base > 0 ? (pnl.total / base * 100) : 0;
-
-            const trades = await Trade
-                .find({bot: bot._id})
-                .sort({timestamp: -1})
-                .lean();
-
-            return {
-                ...bot,
-                pnl: {
-                    ...pnl,
-                    pct: Number(pct.toFixed(2))
-                },
-                trades
-            };
-        }));
+        const enriched = await calculateRelatedDataToBots(bots);
 
         return res.json({ success: true, bots: enriched });
     }
@@ -401,6 +379,32 @@ exports.getBots = async (req, res) => {
         return res.status(500).json({ success: false, error: err.message });
     }
 };
+
+async function calculateRelatedDataToBots (bots) {
+    return await Promise.all(bots.map(async bot => {
+        const price = bot.marketInfo?.currentCandle?.price;
+        let pnl = {realized: 0, unrealized: 0, total: 0};
+        if (typeof price === 'number') {
+            pnl = await PnLService.getBotPnL(bot._id, price);
+        }
+        const base = bot.marketInfo?.baseFund || 1;
+        const pct = base > 0 ? (pnl.total / base * 100) : 0;
+
+        const trades = await Trade
+            .find({bot: bot._id})
+            .sort({timestamp: -1})
+            .lean();
+
+        return {
+            ...bot,
+            pnl: {
+                ...pnl,
+                pct: Number(pct.toFixed(2))
+            },
+            trades
+        };
+    }));
+}
 
 /**
  * Retrieve one bot by ID (could be indicator or grid).
@@ -699,5 +703,17 @@ exports.botsList = async (req, res) => {
 exports.userBotsList = async (req, res) => {
     const bots = await BotBase.find({ userId: req.params.userId }).lean();
 
-    return res.json({ success: true, data: bots });
+    const enriched = await calculateRelatedDataToBots(bots);
+
+    // Group bots by botType
+    const groupedBots = enriched.reduce((acc, bot) => {
+        const type = bot.botType;
+        if (!acc[type]) {
+            acc[type] = [];
+        }
+        acc[type].push(bot);
+        return acc;
+    }, {});
+
+    return res.json({ success: true, bots: groupedBots });
 }

@@ -1,4 +1,4 @@
-const BotLog = require('../../models/BotLog');
+const BotLog = require('../../../models/BotLog');
 const mongoose = require('mongoose');
 
 /**

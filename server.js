@@ -76,6 +76,7 @@ connectDB().then(async () => {
             if (acc) {
                 console.log('[Server] Found BingX credentials');
                 bingXWS.connect(acc);
+                bingXWS.connectCoinMPrivate({ apiKey: acc.apiKey, secretKey: acc.secretKey });
             } else {
                 console.warn('[Server] No BingX account – connecting unauthenticated');
                 bingXWS.connect();

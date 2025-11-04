@@ -1,272 +1,310 @@
-// app/services/AssetAggregationService.js
-// Normalizes & values ALL balances from Binance / OKX / BingX into one canonical shape.
+// services/snapshots/helpers.js
+const BinanceService = require('../services/BinanceWS');
+const OkxService     = require('../services/okxWS');
+const BingxService   = require('../services/bingxWS');
 
-const BinanceAccount = require('../models/BinanceAccount');
-const OkxAccount     = require('../models/OkxAccount');
-const BingxAccount   = require('../models/BingxAccount');
+const BROKER_COLORS = {
+    Binance: '#30B5D3',
+    OKX:     '#DDE000',
+    BingX:   '#87D30D',
+};
 
-const BinanceWS = require('./binanceWS');
-const OkxWS     = require('./okxWS');
-const BingxWS   = require('./bingXWS');
+// Meta nodes that shouldn't count toward totals
+const EXCLUDE_FROM_TOTAL = new Set(['Overview', 'Trading-Equity']);
 
-const CoinGecko = require('./api/coinGeckoService'); // must export getPriceInUSDT(symbol)
+// ---- Map a broker node (from your WS services) to AccountBucketSchema ----
+function nodeToAccountBucket(broker, node) {
+    const name = String(node.accountType || node.name || '').toUpperCase();
 
-// ---------- utils ----------
-const BROKER_COLORS = { Binance: '#30B5D3', OKX: '#DDE000', BingX: '#00E0D5' };
-const STABLES = new Set(['USDT','USDC','BUSD','DAI','FDUSD','TUSD','EURS']);
+    // Decide canonical type + subType for your model
+    let type = 'Other';
+    let subType = String(node.subType || '');
 
-const fix2 = (n) => Math.round((Number(n || 0) + Number.EPSILON) * 100) / 100;
-const sum  = (arr) => arr.reduce((a, b) => a + b, 0);
-
-// in-run price cache (key: 'BTC' -> price in USDT)
-const priceCache = new Map();
-
-function normalizeSymbol(sym) {
-    return String(sym || '').trim().toUpperCase();
-}
-
-async function getPriceUSDT(symbol) {
-    const s = normalizeSymbol(symbol);
-    if (!s) return 0;
-    if (priceCache.has(s)) return priceCache.get(s);
-    if (STABLES.has(s)) { priceCache.set(s, 1); return 1; }
-    // CoinGecko adapter should internally map tickers to ids
-    let p = 0;
-    try { p = Number(await CoinGecko.getPriceInUSDT(s)) || 0; } catch (_) { p = 0; }
-    priceCache.set(s, p);
-    return p;
-}
-
-function mapBalancesToRows(balances) {
-    // balances: [{ asset, free, locked, amount? }, ...]
-    if (!Array.isArray(balances)) return [];
-    return balances.map((b) => {
-        const asset  = normalizeSymbol(b.asset);
-        const free   = Number(b.free || 0);
-        const locked = Number(b.locked || 0);
-        const amount = b.amount != null ? Number(b.amount) : (free + locked);
-        return { asset, free, locked, amount };
-    });
-}
-
-async function valuateBalances(rows) {
-    const out = [];
-    for (const r of rows) {
-        const price = await getPriceUSDT(r.asset);
-        out.push({ ...r, value: fix2(r.amount * price) });
-    }
-    return out;
-}
-
-function normalizeAccountType(rawType) {
-    const t = String(rawType || '').toLowerCase();
-    if (t.includes('spot'))    return 'Spot';
-    if (t.includes('funding')) return 'Funding';
-    if (t.includes('margin'))  return 'Margin';
-    if (t.includes('future') || t.includes('swap') || t.includes('perp')) return 'Futures';
-    if (t.includes('saving'))  return 'Savings';
-    if (t.includes('stake'))   return 'Staking';
-    if (t.includes('earn') || t.includes('vault') || t.includes('pool'))  return 'Earn';
-    return 'Other';
-}
-
-function safeNum(v) { return Number.isFinite(Number(v)) ? Number(v) : 0; }
-
-// ---------- core: normalize one broker ----------
-
-/**
- * Expected service shape (per account) from your WS services:
- * [
- *   {
- *     accountType: 'Spot'|'Future'|'Fund'|...,
- *     subType?:    'USDT-M'|'COIN-M'|'Cross'|'Isolated'|...,
- *     mode?:       string,
- *     balances?:   [{ asset, free, locked, amount? }],
- *     products?:   [{ product, asset, amount, value?, apy?, lockType? }],
- *     liabilities?:[{ asset, amount, value?, type? }],
- *     positions?:  [{ symbol, side, size, leverage, marginType, entryPrice, markPrice, liqPrice, notional, unrealizedPnl }],
- *     walletBalance?: number,
- *     availableBalance?: number,
- *     totalUnrealizedPnl?: number,
- *   },
- *   ...
- * ]
- */
-async function collectBrokerDetails(label, color, accounts, svc) {
-    if (!accounts || !accounts.length) return null;
-
-    // fetch sections across all accounts
-    const sections = (await Promise.all(accounts.map((a) => svc.getDetailedBalance(a)))).flat();
-
-    // bucket by (type, subType)
-    const keyed = {};
-    for (const sec of sections) {
-        const type    = normalizeAccountType(sec.accountType || sec.type);
-        const subType = String(sec.subType || sec.marginType || sec.mode || '').trim();
-        const key     = `${type}::${subType}`;
-
-        if (!keyed[key]) {
-            keyed[key] = {
-                type,
-                subType,
-                mode: sec.mode || '',
-                balances: [],
-                products: [],
-                liabilities: [],
-                positions: [],
-                walletBalance: 0,
-                availableBalance: 0,
-                totalUnrealizedPnl: 0,
-            };
+    if (name.startsWith('SPOT')) type = 'Spot';
+    else if (name === 'FUNDING') type = 'Funding';
+    else if (name.startsWith('MARGIN')) {
+        type = 'Margin';
+        if (!subType) {
+            subType = name.includes('ISOLATED') ? 'Isolated' : (name.includes('CROSS') ? 'Cross' : '');
         }
-        const b = keyed[key];
-
-        if (Array.isArray(sec.balances))    b.balances.push(...mapBalancesToRows(sec.balances));
-        if (Array.isArray(sec.products))    b.products.push(...sec.products);
-        if (Array.isArray(sec.liabilities)) b.liabilities.push(...sec.liabilities);
-        if (Array.isArray(sec.positions))   b.positions.push(...sec.positions.map((p) => ({
-            symbol:        String(p.symbol || '').toUpperCase(),
-            side:          String(p.side || 'UNKNOWN').toUpperCase(),
-            size:          safeNum(p.size || p.qty),
-            leverage:      safeNum(p.leverage),
-            marginType:    String(p.marginType || 'UNKNOWN').toUpperCase(),
-            entryPrice:    safeNum(p.entryPrice),
-            markPrice:     safeNum(p.markPrice),
-            liqPrice:      safeNum(p.liqPrice),
-            notional:      safeNum(p.notional),
-            unrealizedPnl: safeNum(p.unrealizedPnl || p.uPnl),
-        })));
-
-        b.walletBalance      += safeNum(sec.walletBalance);
-        b.availableBalance   += safeNum(sec.availableBalance);
-        b.totalUnrealizedPnl += safeNum(sec.totalUnrealizedPnl);
+    }
+    else if (name.startsWith('FUTURES') || name === 'FUTURES' || name === 'FUTURE') {
+        type = 'Futures';
+        // normalize common subTypes
+        if (!subType) {
+            if (name.includes('USDTM')) subType = 'USDT-M';
+            else if (name.includes('COINM')) subType = 'COIN-M';
+            else if (name.includes('SWAP')) subType = 'SWAP';
+        }
+    }
+    else if (name === 'FINANCIAL' || name === 'FUND' || name === 'EARN' || name === 'SAVINGS' || name === 'STAKING') {
+        type = 'Earn';
     }
 
-    // value/price each bucket
-    const accountsOut = [];
-    for (const k of Object.keys(keyed)) {
-        const b = keyed[k];
+    // positions (if provided by service)
+    const positions = Array.isArray(node.positions) ? node.positions.map(p => ({
+        symbol:        String(p.symbol || p.instId || ''),
+        side:          String(p.side || 'UNKNOWN'),
+        size:          Number(p.size || p.positionAmt || p.qty || 0),
+        leverage:      Number(p.leverage || 0),
+        marginType:    String(p.marginType || '').toUpperCase() || 'UNKNOWN',
+        entryPrice:    Number(p.entryPrice || 0),
+        markPrice:     Number(p.markPrice || 0),
+        liqPrice:      Number(p.liqPrice || p.liquidationPrice || 0),
+        notional:      Number(p.notional || p.positionValue || p.notionalUsd || 0),
+        unrealizedPnl: Number(p.unrealizedPnl || p.uPnl || p.upl || p.unRealizedProfit || 0),
+    })) : [];
 
-        // value balances
-        const valuedBalances = await valuateBalances(b.balances);
-
-        // value products (earn/staking/savings)
-        const valuedProducts = [];
-        for (const p of b.products) {
-            const asset  = normalizeSymbol(p.asset);
-            const amount = safeNum(p.amount);
-            const price  = await getPriceUSDT(asset);
-            const v      = p.value != null ? safeNum(p.value) : amount * price;
-            valuedProducts.push({
-                product:  p.product || b.type,
-                asset,
-                amount,
-                value: fix2(v),
-                apy: safeNum(p.apy),
-                lockType: p.lockType || ''
-            });
-        }
-
-        // value liabilities (e.g., margin loans)
-        const valuedLiabs = [];
-        for (const L of b.liabilities) {
-            const asset  = normalizeSymbol(L.asset);
-            const amount = safeNum(L.amount);
-            const price  = await getPriceUSDT(asset);
-            const v      = L.value != null ? safeNum(L.value) : amount * price;
-            valuedLiabs.push({
-                asset,
-                amount,
-                value: fix2(v),
-                type: L.type || 'MarginLoan'
-            });
-        }
-
-        // compute bucket value:
-        // - Futures: walletBalance + totalUnrealizedPnl (do not double-count notional)
-        // - Others:  sum(balances) + sum(products) − sum(liabilities)
-        const balancesValue    = sum(valuedBalances.map((x) => x.value));
-        const productsValue    = sum(valuedProducts.map((x) => x.value));
-        const liabilitiesValue = sum(valuedLiabs.map((x) => x.value));
-
-        const bucketValue = (b.type === 'Futures')
-            ? fix2(b.walletBalance + b.totalUnrealizedPnl)
-            : fix2(balancesValue + productsValue - liabilitiesValue);
-
-        accountsOut.push({
-            type: b.type,
-            subType: b.subType,
-            mode: b.mode,
-            balances: valuedBalances,
-            products: valuedProducts,
-            liabilities: valuedLiabs,
-            positions: b.positions,
-            walletBalance: fix2(b.walletBalance),
-            availableBalance: fix2(b.availableBalance),
-            totalUnrealizedPnl: fix2(b.totalUnrealizedPnl),
-            value: bucketValue
-        });
-    }
-
-    // per-broker totals
-    const totals = {
-        spot:    fix2(sum(accountsOut.filter((a) => a.type === 'Spot')   .map((a) => a.value))),
-        margin:  fix2(sum(accountsOut.filter((a) => a.type === 'Margin') .map((a) => a.value))),
-        funding: fix2(sum(accountsOut.filter((a) => a.type === 'Funding').map((a) => a.value))),
-        futures: fix2(sum(accountsOut.filter((a) => a.type === 'Futures').map((a) => a.value))),
-        earn:    fix2(sum(accountsOut.filter((a) => ['Earn','Savings','Staking'].includes(a.type)).map((a) => a.value))),
+    // balances/products/liabilities are not emitted by all brokers; keep arrays empty if unknown
+    const bucket = {
+        type,
+        subType,
+        mode: '',
+        balances: [],
+        products: [],
+        liabilities: [],
+        positions,
+        walletBalance:      Number(node.walletBalance || node.walletValueUSDT || 0),
+        availableBalance:   Number(node.availableBalance || 0),
+        totalUnrealizedPnl: Number(node.totalUnrealizedPnl || 0),
+        value:              Number(node.value || 0),
     };
-    totals.overall = fix2(totals.spot + totals.margin + totals.funding + totals.futures + totals.earn);
 
-    if (totals.overall <= 0) return null;
+    // If the node exposes detailed “balances” shape, copy to model
+    if (Array.isArray(node.balances)) {
+        bucket.balances = node.balances.map(b => ({
+            asset:  String(b.asset || b.name || ''),
+            free:   Number(b.free || 0),
+            locked: Number(b.locked || 0),
+            amount: Number(b.amount != null ? b.amount : (Number(b.free || 0) + Number(b.locked || 0))),
+            value:  Number(b.value || 0),
+        }));
+    }
 
-    return {
-        broker: label,
-        color,
-        accounts: accountsOut.sort((a, b) => b.value - a.value),
-        totals
-    };
+    // If “children” are leaf assets with {name,value}, keep them as balances (value only)
+    // NOTE: We do not put these into balances by default (keeps model semantic);
+    // they will be used to build brokerTree & assetTree later.
+
+    // Earn products (if available in any broker)
+    if (Array.isArray(node.products)) {
+        bucket.products = node.products.map(p => ({
+            product:  String(p.product || 'Earn'),
+            asset:    String(p.asset || ''),
+            amount:   Number(p.amount || 0),
+            value:    Number(p.value || 0),
+            apy:      Number(p.apy || 0),
+            lockType: String(p.lockType || ''),
+        }));
+    } else if ((node.accountType || '').toLowerCase().includes('financial') && node.value) {
+        // Fallback: a single Earn line when broker only gives total
+        bucket.products = [{ product: 'Earn', asset: 'USDT', amount: 0, value: Number(node.value) }];
+    }
+
+    return bucket;
 }
 
-// ---------- public: collect all brokers for a user ----------
-
-async function collectAllDetailsForUser(userId) {
-    // reset per-call price cache
-    priceCache.clear();
-
+// ---- Collect full details for a user across brokers (normalized for AssetSnapshot.details) ----
+async function collectAllDetailsForUser(userId, { BinanceAccount, OkxAccount, BingxAccount }) {
     const [binanceAccts, okxAccts, bingxAccts] = await Promise.all([
         BinanceAccount.find({ userId }).lean(),
         OkxAccount.find({ userId }).lean(),
-        BingxAccount.find({ userId }).lean()
+        BingxAccount.find({ userId }).lean(),
     ]);
 
-    const [binance, okx, bingx] = await Promise.all([
-        collectBrokerDetails('Binance', BROKER_COLORS.Binance, binanceAccts, BinanceWS),
-        collectBrokerDetails('OKX',     BROKER_COLORS.OKX,     okxAccts,     OkxWS),
-        collectBrokerDetails('BingX',   BROKER_COLORS.BingX,   bingxAccts,   BingxWS),
+    // helper to call service per-account
+    const load = async (accounts, Service) => {
+        if (!accounts?.length) return [];
+        const out = [];
+        for (const acc of accounts) {
+            try {
+                const raw = await Service.getDetailedBalance(acc);
+                out.push({ account: acc, raw: Array.isArray(raw) ? raw : [] });
+            } catch (e) {
+                console.error(`[collectAllDetailsForUser] ${Service.constructor?.name || 'Svc'} failed:`, e.message);
+            }
+        }
+        return out;
+    };
+
+    const [binanceRaw, okxRaw, bingxRaw] = await Promise.all([
+        load(binanceAccts, BinanceService),
+        load(okxAccts,     OkxService),
+        load(bingxAccts,   BingxService),
     ]);
 
-    const details = [binance, okx, bingx].filter(Boolean);
+    // Build BrokerDetailsSchema for each broker
+    const buildBrokerDetails = (brokerName, color, rawList) => {
+        const accounts = [];
+        let totals = { spot:0, margin:0, funding:0, futures:0, earn:0, overall:0 };
 
+        for (const entry of rawList) {
+            const accountBuckets = [];
+
+            for (const node of entry.raw) {
+                const label = String(node.accountType || node.name || '');
+                if (EXCLUDE_FROM_TOTAL.has(label)) continue;
+                const bucket = nodeToAccountBucket(brokerName, node);
+                accountBuckets.push(bucket);
+
+                // accumulate broker totals by bucket type
+                if (bucket.value > 0) {
+                    switch (bucket.type) {
+                        case 'Spot':    totals.spot    += bucket.value; break;
+                        case 'Margin':  totals.margin  += bucket.value; break;
+                        case 'Funding': totals.funding += bucket.value; break;
+                        case 'Futures': totals.futures += bucket.value; break;
+                        case 'Earn':    totals.earn    += bucket.value; break;
+                        default: break;
+                    }
+                    totals.overall += bucket.value;
+                }
+            }
+
+            // one entry per account
+            accounts.push(...accountBuckets);
+        }
+
+        return {
+            broker: brokerName,
+            color,
+            accounts,  // flattened; schema allows a list of account buckets
+            totals,
+        };
+    };
+
+    const binanceDetails = buildBrokerDetails('Binance', BROKER_COLORS.Binance, binanceRaw);
+    const okxDetails     = buildBrokerDetails('OKX',     BROKER_COLORS.OKX,     okxRaw);
+    const bingxDetails   = buildBrokerDetails('BingX',   BROKER_COLORS.BingX,   bingxRaw);
+
+    // Totals per broker + grand total
     const totals = {
-        binance: details.find((d) => d?.broker === 'Binance')?.totals.overall || 0,
-        okx:     details.find((d) => d?.broker === 'OKX')?.totals.overall || 0,
-        bingx:   details.find((d) => d?.broker === 'BingX')?.totals.overall || 0,
+        binance: Number(binanceDetails.totals.overall.toFixed(8)),
+        okx:     Number(okxDetails.totals.overall.toFixed(8)),
+        bingx:   Number(bingxDetails.totals.overall.toFixed(8)),
     };
-    const total = fix2((totals.binance || 0) + (totals.okx || 0) + (totals.bingx || 0));
+    const total = Number((totals.binance + totals.okx + totals.bingx).toFixed(8));
 
-    const missing = Array.from(priceCache.entries())
-        .filter(([, v]) => !v)
-        .map(([k]) => k);
+    const details = [binanceDetails, okxDetails, bingxDetails];
 
-    return {
-        details,
-        totals,
-        total,
-        priceInfo: { missing, source: 'coingecko' }
-    };
+    // We priced in-house (via each exchange tickers). Expose a neutral meta.
+    const priceInfo = { missing: [], source: 'exchange-tickers' };
+
+    return { details, totals, total, priceInfo };
 }
+
+// ---- Build UI Trees for snapshot from normalized details ----
+// Build Broker/Asset trees from normalized details (AssetSnapshot.details)
+function buildTreesFromDetails(details) {
+    let brokerTotal = 0;
+    const brokerChildren = [];
+
+    // asset aggregator: { BTC: { name:'BTC', value, children:[{name:'BingX', value, color}] } }
+    const assetMap = new Map();
+    const pushAsset = (asset, brokerName, color, value) => {
+        if (!asset || !Number.isFinite(value) || value <= 0) return;
+        if (!assetMap.has(asset)) {
+            assetMap.set(asset, { name: asset, color: undefined, value: 0, children: [] });
+        }
+        const node = assetMap.get(asset);
+        node.value += value;
+        const existing = node.children.find(c => c.name === brokerName);
+        if (existing) existing.value += value;
+        else node.children.push({ name: brokerName, value, color });
+    };
+
+    for (const broker of details) {
+        const bName = broker.broker;
+        const color = broker.color || BROKER_COLORS[bName] || '#999';
+
+        const accountsByLabel = {};
+        let perBrokerTotal = 0;
+
+        for (const acc of broker.accounts) {
+            const label = acc.type; // 'Spot','Futures','Funding','Margin','Earn','Other'
+            if (!accountsByLabel[label]) accountsByLabel[label] = { name: label, value: 0, children: [] };
+
+            if (Number.isFinite(acc.value) && acc.value > 0) {
+                accountsByLabel[label].value += acc.value;
+                perBrokerTotal += acc.value;
+            }
+
+            // 1) Balances -> both trees
+            if (Array.isArray(acc.balances) && acc.balances.length) {
+                for (const b of acc.balances) {
+                    const v = Number(b.value || 0);
+                    const amt = Number(b.amount || 0);
+                    if (v > 0) {
+                        accountsByLabel[label].children.push({ name: b.asset, value: v, amount: amt });
+                        pushAsset(b.asset, bName, color, v);
+                    }
+                }
+            }
+
+            // 2) Futures handling
+            if (acc.type === 'Futures') {
+                // broker tree: show wallet & positions
+                if (acc.walletBalance > 0) {
+                    accountsByLabel[label].children.push({ name: 'Wallet', value: Number(acc.walletBalance) });
+                    // asset tree: count futures wallet as USDT collateral
+                    pushAsset('USDT', bName, color, Number(acc.walletBalance));
+                }
+                if (Array.isArray(acc.positions) && acc.positions.length) {
+                    for (const p of acc.positions) {
+                        const v = Math.abs(Number(p.notional || 0));
+                        if (v > 0.01) {
+                            accountsByLabel[label].children.push({ name: p.symbol, value: v });
+                            // DO NOT push to assetMap for positions to avoid double counting
+                        }
+                    }
+                }
+            }
+
+            // 3) Earn products -> both trees (usually USDT)
+            if (acc.type === 'Earn' && Array.isArray(acc.products) && acc.products.length) {
+                for (const p of acc.products) {
+                    const v = Number(p.value || 0);
+                    if (v > 0) {
+                        accountsByLabel[label].children.push({ name: p.product || p.asset || 'Earn', value: v });
+                        pushAsset(p.asset || 'USDT', bName, color, v);
+                    }
+                }
+            }
+        }
+
+        if (perBrokerTotal > 0.01) {
+            brokerTotal += perBrokerTotal;
+            brokerChildren.push({
+                name: bName,
+                color,
+                value: perBrokerTotal,
+                children: Object.values(accountsByLabel).sort((a,b) => b.value - a.value),
+            });
+        }
+    }
+
+    const brokerTree = {
+        name: 'Total Holdings',
+        value: brokerTotal,
+        children: brokerChildren.sort((a,b) => b.value - a.value),
+    };
+
+    const assetChildren = Array.from(assetMap.values())
+        .filter(n => n.value > 0.0001)
+        .sort((a,b) => b.value - a.value);
+
+    const assetTree = {
+        name: 'Total Assets',
+        value: assetChildren.reduce((s, n) => s + n.value, 0),
+        children: assetChildren
+    };
+
+    return { brokerTree, assetTree };
+}
+
+const toFixed2 = (n) => Number(Number(n || 0).toFixed(2));
 
 module.exports = {
     collectAllDetailsForUser,
+    buildTreesFromDetails,
+    toFixed2,
 };

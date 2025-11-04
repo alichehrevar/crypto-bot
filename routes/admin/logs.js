@@ -1,7 +1,7 @@
 // routes/logs.js
 const express = require('express');
 const router = express.Router();
-const logController = require('../../app/http/controllers/logController');
+const logController = require('../../app/http/controllers/admin/logController');
 const authenticate = require('../../app/http/middleware/auth');
 
 /**

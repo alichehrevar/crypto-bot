@@ -7,11 +7,13 @@ const { adminOnlyAccess } = require('../route-protector');
 adminRouter.use(...adminOnlyAccess);
 
 // ---- Admin subroutes ----
+const dashboardRoutes = require('./dashboard')
 const botsRoutes = require('./bots')
 const usersRoutes = require('./users')
 const logsRouter = require('./logs');
 
 // ---- Mount them ----
+adminRouter.use('/dashboard', dashboardRoutes);
 adminRouter.use('/bots', botsRoutes);
 adminRouter.use('/users', usersRoutes);
 adminRouter.use('/logs', logsRouter);

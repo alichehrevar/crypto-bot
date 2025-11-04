@@ -166,75 +166,6 @@ class BinanceWS {
         }
     }
 
-    /**
-     * Get the USDT balance for a Binance account via REST.
-     *
-     * @param {Object} account  - Must contain { apiKey, secretKey }.
-     * @param all
-     * @returns {Promise<number>} - Free USDT balance.
-     */
-    async getBalance(account, { all = false } = {}) {
-        const { apiKey, secretKey } = account;
-        const timestamp = Date.now();
-
-        // Helper to sign any query-string
-        const sign = qs =>
-            crypto.createHmac('sha256', secretKey).update(qs).digest('hex');
-
-        // 1) Spot-only
-        if (!all) {
-            const spotQs = `timestamp=${timestamp}`;
-            const spotSig = sign(spotQs);
-            const spotUrl = `https://api.binance.com/api/v3/account?${spotQs}&signature=${spotSig}`;
-            try {
-                const res = await axios.get(spotUrl, {
-                    headers: { 'X-MBX-APIKEY': apiKey }
-                });
-                const usdt = res.data.balances.find(b => b.asset === 'USDT');
-                return usdt ? parseFloat(usdt.free) : 0;
-            } catch (err) {
-                console.error('BinanceWS getBalance error (spot):', err.response?.data || err.message);
-                throw err;
-            }
-        }
-
-        // 2) Spot + futures
-        // 2a) Spot
-        const spotQs = `timestamp=${timestamp}`;
-        const spotSig = sign(spotQs);
-        const spotUrl = `https://api.binance.com/api/v3/account?${spotQs}&signature=${spotSig}`;
-
-        // 2b) USDT-M futures
-        const futQs = `timestamp=${timestamp}`;
-        const futSig = sign(futQs);
-        const futUrl = `https://fapi.binance.com/fapi/v2/balance?${futQs}&signature=${futSig}`;
-
-        try {
-            const [spotRes, futRes] = await Promise.all([
-                axios.get(spotUrl, { headers: { 'X-MBX-APIKEY': apiKey } }),
-                axios.get(futUrl, { headers: { 'X-MBX-APIKEY': apiKey } })
-            ]);
-
-            // spot part
-            const spotUsdt = spotRes.data.balances.find(b => b.asset === 'USDT');
-            const spotBalance = spotUsdt ? parseFloat(spotUsdt.free) : 0;
-
-            // futures part
-            const futUsdt = futRes.data.find(b => b.asset === 'USDT');
-            // on futures endpoint, `balance` is total; `availableBalance` if you want free
-            const futBalance = futUsdt ? parseFloat(futUsdt.balance) : 0;
-
-            return [
-                { accountType: 'spot',    usdtBalance: spotBalance.toString()   },
-                { accountType: 'futures', usdtBalance: futBalance.toString()    }
-            ];
-        } catch (err) {
-            console.error('BinanceWS getBalance error (all):', err.response?.data || err.message);
-            throw err;
-        }
-    }
-
-
     disconnect() {
         if (this.ws) {
             this.ws.close();
@@ -367,105 +298,355 @@ class BinanceWS {
     }
 
     /**
-     * @description Fetches a detailed breakdown of assets for Spot, Futures, and Earn accounts.
-     * @param {object} account The user's Binance account credentials.
-     * @returns {Promise<Array<object>>} A promise resolving to an array of account types with their assets.
+     * @description Fetches a detailed breakdown of assets across Spot, Funding, Margin (cross & isolated),
+     * USDⓈ-M Futures, COIN-M Futures, and Earn/Simple. Returns a valued tree in USDT.
+     * Node shapes are consistent with your other exchanges: { accountType, value, children? , ... }
      */
     async getDetailedBalance(account) {
         const { apiKey, secretKey } = account;
 
+        // ---------- 0) Price map for USDT valuation ----------
+        let priceMap = new Map();
+        const toUSDT = (asset, amount) => {
+            const a = String(asset || '').toUpperCase();
+            const amt = Number(amount || 0);
+            if (!Number.isFinite(amt) || amt <= 0) return 0;
+            if (a === 'USDT') return amt;
+            const px = priceMap.get(`${a}USDT`);
+            return px ? amt * px : 0;
+        };
+
         try {
-            // 1. Fetch all ticker prices for converting asset amounts to USDT value
-            const priceRes = await axios.get('https://api.binance.com/api/v3/ticker/price');
-            const priceMap = new Map(priceRes.data.map(t => [t.symbol, parseFloat(t.price)]));
-            const getUsdtValue = (asset, amount) => {
-                if (asset.toUpperCase() === 'USDT') return amount;
-                const price = priceMap.get(`${asset.toUpperCase()}USDT`);
-                return price ? amount * price : 0;
-            };
+            const pxRes = await axios.get('https://api.binance.com/api/v3/ticker/price');
+            // Map like "BTCUSDT" -> lastPrice
+            priceMap = new Map((Array.isArray(pxRes.data) ? pxRes.data : []).map(t => [t.symbol, parseFloat(t.price)]));
+        } catch (e) {
+            console.warn('[BinanceWS] price feed failed; non-USDT valuations may be 0:', e?.message);
+        }
 
-            const result = [];
+        const result = [];
 
-            // 2. Fetch Spot Balance
-            const spotParams = { timestamp: Date.now() };
-            const spotQuery = this._sign(spotParams, secretKey);
-            const spotUrl = `https://api.binance.com/api/v3/account?${spotQuery}`;
-            const spotRes = await axios.get(spotUrl, { headers: { 'X-MBX-APIKEY': apiKey } });
+        // Helper: signs a params object for SAPI/FAPI/DAPI
+        const signParams = (params, key = secretKey) =>
+            new URLSearchParams(params).toString() + '&signature=' +
+            crypto.createHmac('sha256', key).update(new URLSearchParams(params).toString()).digest('hex');
 
-            const spotAssets = spotRes.data.balances
-                .map(b => ({ name: b.asset, amount: parseFloat(b.free) + parseFloat(b.locked) }))
-                .filter(b => b.amount > 0.000001) // Avoid processing dust assets
-                .map(b => ({ ...b, value: getUsdtValue(b.name, b.amount) }))
-                .filter(b => b.value > 0.01); // Only include assets worth more than 1 cent
+        const authHeader = { headers: { 'X-MBX-APIKEY': apiKey } };
 
-            const spotTotal = spotAssets.reduce((sum, asset) => sum + asset.value, 0);
-            if (spotTotal > 0.01) {
-                result.push({
-                    accountType: 'Spot',
-                    value: spotTotal,
-                    children: spotAssets.map(a => ({ name: a.name, value: a.value })).sort((a,b) => b.value - a.value)
-                });
+        // ---------- 1) SPOT ----------
+        try {
+            const qs = signParams({ timestamp: Date.now() });
+            const url = `https://api.binance.com/api/v3/account?${qs}`;
+            const res = await axios.get(url, authHeader);
+            const balances = Array.isArray(res.data?.balances) ? res.data.balances : [];
+
+            const items = balances
+                .map(b => {
+                    const asset = b.asset;
+                    const amt = Number(b.free || 0) + Number(b.locked || 0);
+                    return { asset, amount: amt, value: toUSDT(asset, amt) };
+                })
+                .filter(x => x.amount > 1e-10)
+                .sort((a, b) => b.value - a.value);
+
+            const spotValue = items.reduce((s, x) => s + (x.value || 0), 0);
+            result.push({
+                accountType: 'Spot',
+                value: Number(spotValue.toFixed(8)),
+                children: items
+                    .filter(x => x.value > 0.0001)
+                    .map(x => ({ name: x.asset, value: Number(x.value.toFixed(8)) }))
+            });
+        } catch (e) {
+            console.error('[BinanceWS] Spot fetch failed:', e?.response?.data || e?.message);
+            result.push({ accountType: 'Spot', value: 0, children: [] });
+        }
+
+        // ---------- 2) FUNDING WALLET (Funding) ----------
+        // User Asset — requires "Enable Spot & Margin Trading" and "Enable Reading" on API key
+        try {
+            const qs = signParams({ timestamp: Date.now() });
+            // v3 endpoint is current; v1 also works on many tenants
+            const url = `https://api.binance.com/sapi/v3/asset/getUserAsset?${qs}`;
+            const res = await axios.post(url, null, authHeader); // NOTE: POST with empty body per Binance spec
+            const rows = Array.isArray(res.data) ? res.data : [];
+
+            const items = rows
+                .map(r => {
+                    const asset = r.asset;
+                    const amt = Number(r.free || 0) + Number(r.locked || 0);
+                    return { asset, amount: amt, value: toUSDT(asset, amt) };
+                })
+                .filter(x => x.amount > 1e-10)
+                .sort((a, b) => b.value - a.value);
+
+            const total = items.reduce((s, x) => s + (x.value || 0), 0);
+
+            result.push({
+                accountType: 'Funding',
+                value: Number(total.toFixed(8)),
+                children: items
+                    .filter(x => x.value > 0.0001)
+                    .map(x => ({ name: x.asset, value: Number(x.value.toFixed(8)) }))
+            });
+        } catch (e) {
+            // Many users have zero Funding or lack permission; keep node but zero.
+            console.warn('[BinanceWS] Funding fetch skipped/failed:', e?.response?.data || e?.message);
+            result.push({ accountType: 'Funding', value: 0, children: [] });
+        }
+
+        // ---------- 3) MARGIN (Cross) ----------
+        try {
+            const qs = signParams({ timestamp: Date.now() });
+            const url = `https://api.binance.com/sapi/v1/margin/account?${qs}`;
+            const res = await axios.get(url, authHeader);
+
+            const userAssets = Array.isArray(res.data?.userAssets) ? res.data.userAssets : [];
+            const items = userAssets
+                .map(a => {
+                    const asset = a.asset;
+                    // Use netAsset = totalAsset - (borrowed - interest repaid), safest is to sum netAsset if provided
+                    const amt = Number(a.netAsset || 0); // netAsset present on margin endpoint
+                    return { asset, amount: amt, value: toUSDT(asset, amt) };
+                })
+                .filter(x => x.amount > 1e-10)
+                .sort((a, b) => b.value - a.value);
+
+            const total = items.reduce((s, x) => s + (x.value || 0), 0);
+            result.push({
+                accountType: 'Margin-Cross',
+                value: Number(total.toFixed(8)),
+                children: items
+                    .filter(x => x.value > 0.0001)
+                    .map(x => ({ name: x.asset, value: Number(x.value.toFixed(8)) }))
+            });
+        } catch (e) {
+            console.warn('[BinanceWS] Margin-Cross fetch skipped/failed:', e?.response?.data || e?.message);
+            result.push({ accountType: 'Margin-Cross', value: 0, children: [] });
+        }
+
+        // ---------- 4) MARGIN (Isolated) ----------
+        try {
+            const qs = signParams({ timestamp: Date.now() });
+            const url = `https://api.binance.com/sapi/v1/margin/isolated/account?${qs}`;
+            const res = await axios.get(url, authHeader);
+
+            const assets = Array.isArray(res.data?.assets) ? res.data.assets : [];
+            // Each asset has baseAsset/quoteAsset with netAsset
+            const items = [];
+            for (const pair of assets) {
+                const b = pair.baseAsset || {};
+                const q = pair.quoteAsset || {};
+                const bAmt = Number(b.netAsset || 0);
+                const qAmt = Number(q.netAsset || 0);
+                if (bAmt > 1e-10) items.push({ asset: b.asset, amount: bAmt, value: toUSDT(b.asset, bAmt) });
+                if (qAmt > 1e-10) items.push({ asset: q.asset, amount: qAmt, value: toUSDT(q.asset, qAmt) });
             }
+            items.sort((a, b) => b.value - a.value);
+            const total = items.reduce((s, x) => s + (x.value || 0), 0);
 
-            // 3. Fetch Futures Balance (collateral + open positions)
-            const futParams = { timestamp: Date.now() };
-            const futQuery = this._sign(futParams, secretKey);
-            const futBalanceUrl = `https://fapi.binance.com/fapi/v2/balance?${futQuery}`;
-            const futPositionUrl = `https://fapi.binance.com/fapi/v2/positionRisk?${futQuery}`;
+            result.push({
+                accountType: 'Margin-Isolated',
+                value: Number(total.toFixed(8)),
+                children: items
+                    .filter(x => x.value > 0.0001)
+                    .map(x => ({ name: x.asset, value: Number(x.value.toFixed(8)) }))
+            });
+        } catch (e) {
+            console.warn('[BinanceWS] Margin-Isolated fetch skipped/failed:', e?.response?.data || e?.message);
+            result.push({ accountType: 'Margin-Isolated', value: 0, children: [] });
+        }
 
-            const [futBalanceRes, futPositionRes] = await Promise.all([
-                axios.get(futBalanceUrl, { headers: { 'X-MBX-APIKEY': apiKey } }),
-                axios.get(futPositionUrl, { headers: { 'X-MBX-APIKEY': apiKey } })
+        // ---------- 5) USDⓈ-M Futures (USDT-M) ----------
+        try {
+            const baseQs = { timestamp: Date.now() };
+            const futQs = signParams(baseQs);
+            const balUrl = `https://fapi.binance.com/fapi/v2/balance?${futQs}`;
+            const posUrl = `https://fapi.binance.com/fapi/v2/positionRisk?${futQs}`;
+
+            const [balRes, posRes] = await Promise.all([
+                axios.get(balUrl, authHeader),
+                axios.get(posUrl, authHeader)
             ]);
 
-            const totalFuturesBalance = futBalanceRes.data.reduce((sum, b) => sum + parseFloat(b.balance), 0);
+            const walletUSDT = (Array.isArray(balRes.data) ? balRes.data : [])
+                .reduce((s, b) => s + (b.asset === 'USDT' ? Number(b.balance || 0) : 0), 0);
 
-            if (totalFuturesBalance > 0.01) {
-                const futPositions = futPositionRes.data
-                    .filter(p => parseFloat(p.notional) !== 0)
-                    .map(p => ({ name: p.symbol, value: Math.abs(parseFloat(p.notional)) }));
+            const positions = Array.isArray(posRes.data) ? posRes.data : [];
+            let totalUPnL = 0;
+            const children = [];
 
-                const futWalletAssets = futBalanceRes.data
-                    .map(b => ({ name: b.asset, amount: parseFloat(b.balance) }))
-                    .filter(b => b.amount > 0.01)
-                    .map(b => ({ ...b, value: getUsdtValue(b.name, b.amount) }));
-
-                const futureChildren = [...futWalletAssets, ...futPositions].filter(a => a.value > 0.01);
-
-                result.push({
-                    accountType: 'Future',
-                    value: totalFuturesBalance,
-                    children: futureChildren.sort((a,b) => b.value - a.value)
-                });
-            }
-
-            // 4. Fetch Fund/Earn Balance
-            const earnParams = { timestamp: Date.now() };
-            const earnQuery = this._sign(earnParams, secretKey);
-            const earnUrl = `https://api.binance.com/sapi/v1/simple-account?${earnQuery}`;
-            try {
-                const earnRes = await axios.get(earnUrl, { headers: { 'X-MBX-APIKEY': apiKey }});
-                const earnTotal = parseFloat(earnRes.data?.totalAmountInUSDT || '0');
-                if (earnTotal > 0.01) {
-                    // API doesn't give asset breakdown, so we create a single child
-                    result.push({
-                        accountType: 'Fund',
-                        value: earnTotal,
-                        children: [{ name: 'Earn Products', value: earnTotal }]
-                    });
+            for (const p of positions) {
+                const u = Number(p.unRealizedProfit || p.unrealizedProfit || 0);
+                totalUPnL += u;
+                const notional = Math.abs(Number(p.notional || 0));
+                if (notional > 0.01) {
+                    children.push({ name: String(p.symbol), value: notional });
                 }
-            } catch (err) {
-                // This can fail if user has no Earn account, which is normal.
-                console.log(`[BinanceWS] Could not fetch Earn balance for account. Error: ${err.message}`);
             }
 
-            return result;
+            const futuresValue = walletUSDT + totalUPnL;
 
+            result.push({
+                accountType: 'Futures-USDTM',
+                walletBalance: Number(walletUSDT.toFixed(8)),
+                totalUnrealizedPnl: Number(totalUPnL.toFixed(8)),
+                value: Number(futuresValue.toFixed(8)),
+                children: children.sort((a, b) => b.value - a.value)
+            });
+        } catch (e) {
+            console.error('[BinanceWS] Futures-USDTM fetch failed:', e?.response?.data || e?.message);
+            result.push({
+                accountType: 'Futures-USDTM',
+                walletBalance: 0,
+                totalUnrealizedPnl: 0,
+                value: 0,
+                children: []
+            });
+        }
+
+        // ---------- 6) COIN-M Futures (Delivery) ----------
+        try {
+            const baseQs = { timestamp: Date.now() };
+            const dqs = signParams(baseQs);
+            const balUrl = `https://dapi.binance.com/dapi/v1/balance?${dqs}`;
+            const posUrl = `https://dapi.binance.com/dapi/v1/positionRisk?${dqs}`;
+
+            const [balRes, posRes] = await Promise.all([
+                axios.get(balUrl, authHeader),
+                axios.get(posUrl, authHeader)
+            ]);
+
+            // Balance is in coin terms; try to value to USDT using coin/USDT where possible
+            const balances = Array.isArray(balRes.data) ? balRes.data : [];
+            const balItems = [];
+            let walletValueUSDT = 0;
+            for (const b of balances) {
+                const asset = b.asset;
+                const amt = Number(b.balance || 0);
+                const v = toUSDT(asset, amt);
+                walletValueUSDT += v;
+                if (v > 0.0001) balItems.push({ name: asset, value: v });
+            }
+
+            const positions = Array.isArray(posRes.data) ? posRes.data : [];
+            let totalUPnL = 0;
+            const posItems = [];
+            for (const p of positions) {
+                const u = Number(p.unRealizedProfit || p.unrealizedProfit || 0);
+                totalUPnL += u;
+                const notional = Math.abs(Number(p.notionalValue || 0)); // COIN-M often reports notionalValue in USD
+                if (notional > 0.01) posItems.push({ name: String(p.symbol), value: notional });
+            }
+
+            const children = [...balItems, ...posItems].sort((a, b) => b.value - a.value);
+            const totalValue = walletValueUSDT + totalUPnL;
+
+            result.push({
+                accountType: 'Futures-COINM',
+                walletValueUSDT: Number(walletValueUSDT.toFixed(8)),
+                totalUnrealizedPnl: Number(totalUPnL.toFixed(8)),
+                value: Number(totalValue.toFixed(8)),
+                children
+            });
+        } catch (e) {
+            console.warn('[BinanceWS] Futures-COINM fetch skipped/failed:', e?.response?.data || e?.message);
+            result.push({
+                accountType: 'Futures-COINM',
+                walletValueUSDT: 0,
+                totalUnrealizedPnl: 0,
+                value: 0,
+                children: []
+            });
+        }
+
+        // ---------- 7) EARN / SIMPLE ----------
+        try {
+            const qs = signParams({ timestamp: Date.now() });
+            const url = `https://api.binance.com/sapi/v1/simple-account?${qs}`;
+            const res = await axios.get(url, authHeader);
+            const earnTotal = Number(res.data?.totalAmountInUSDT || 0);
+
+            result.push({
+                accountType: 'Financial',
+                value: Number(earnTotal.toFixed(8)),
+                children: earnTotal > 0 ? [{ name: 'Earn/Simple', value: Number(earnTotal.toFixed(8)) }] : []
+            });
+        } catch (e) {
+            console.log('[BinanceWS] Earn/Simple not available:', e?.response?.data || e?.message);
+            result.push({ accountType: 'Financial', value: 0, children: [] });
+        }
+
+        return result;
+    }
+
+    /**
+     * Get the USDT balance for a Binance account via REST.
+     * Keeps EXACT same return shape as your current implementation:
+     *  - all=false  -> returns a NUMBER (spot free USDT)
+     *  - all=true   -> returns an ARRAY [{accountType:'spot',...},{accountType:'futures',...}]
+     * Internally, we still fetch the detailed tree (for consistency and cache/warmup),
+     * but we compute outputs to preserve semantics.
+     */
+    async getBalance(account, { all = false } = {}) {
+        const { apiKey, secretKey } = account;
+
+        // Warm up detailed (doesn't affect return shape, helps cache/telemetry)
+        // Ignore errors here — we still must return the legacy shape.
+        try { this.getDetailedBalance(account).catch(() => {}); } catch (_) {}
+
+        const signParams = (params) =>
+            new URLSearchParams(params).toString() + '&signature=' +
+            crypto.createHmac('sha256', secretKey).update(new URLSearchParams(params).toString()).digest('hex');
+
+        const authHeader = { headers: { 'X-MBX-APIKEY': apiKey } };
+
+        // Legacy semantics:
+        // - spot-only = SPOT FREE USDT (not total valued spot)
+        if (!all) {
+            try {
+                const qs = signParams({ timestamp: Date.now() });
+                const url = `https://api.binance.com/api/v3/account?${qs}`;
+                const res = await axios.get(url, authHeader);
+                const usdt = (res.data?.balances || []).find(b => b.asset === 'USDT');
+                return usdt ? Number(usdt.free || 0) : 0;
+            } catch (err) {
+                console.error('BinanceWS getBalance error (spot):', err.response?.data || err.message);
+                throw err;
+            }
+        }
+
+        // all=true → array: spot free USDT + futures wallet USDT (total)
+        try {
+            // Spot
+            const spotQs = signParams({ timestamp: Date.now() });
+            const spotUrl = `https://api.binance.com/api/v3/account?${spotQs}`;
+
+            // USDⓈ-M futures
+            const futQs = signParams({ timestamp: Date.now() });
+            const futUrl = `https://fapi.binance.com/fapi/v2/balance?${futQs}`;
+
+            const [spotRes, futRes] = await Promise.all([
+                axios.get(spotUrl, authHeader),
+                axios.get(futUrl, authHeader)
+            ]);
+
+            const spotUsdt = (spotRes.data?.balances || []).find(b => b.asset === 'USDT');
+            const spotBalance = spotUsdt ? Number(spotUsdt.free || 0) : 0;
+
+            const futUsdtRow = (Array.isArray(futRes.data) ? futRes.data : []).find(b => b.asset === 'USDT');
+            const futBalance  = futUsdtRow ? Number(futUsdtRow.balance || 0) : 0; // total wallet
+
+            return [
+                { accountType: 'spot',    usdtBalance: spotBalance.toString() },
+                { accountType: 'futures', usdtBalance: futBalance.toString()  }
+            ];
         } catch (err) {
-            console.error('BinanceWS getDetailedBalance error:', err.response?.data || err.message);
-            return []; // Return empty on error to not break the entire summary
+            console.error('BinanceWS getBalance error (all):', err.response?.data || err.message);
+            throw err;
         }
     }
+
 }
 
 module.exports = new BinanceWS();

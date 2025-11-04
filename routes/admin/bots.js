@@ -2,7 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const botController = require('../../app/http/controllers/botController');
-const logController = require('../../app/http/controllers/logController');
+const logController = require('../../app/http/controllers/admin/logController');
 const authenticate = require('../../app/http/middleware/auth');
 
 /**
