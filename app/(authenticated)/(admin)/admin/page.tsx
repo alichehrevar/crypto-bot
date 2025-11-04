@@ -1,10 +1,10 @@
 'use client'
 
 import React, {useEffect} from "react";
+import {addToast} from "@heroui/react";
 
 import {DashboardData, DashboardResponse} from "@/types/admin/Dashboard";
 import {getData} from "@/actions/get";
-import {addToast} from "@heroui/react";
 
 export default function AdminHome() {
 
