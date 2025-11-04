@@ -1,5 +1,10 @@
-export default function UserBotsListPage () {
+import UserBotsList from "@/components/admin/users/BotsList";
+
+export default async function UserBotsListPage ({ params }: { params: { id: string } }) {
+
+    const { id } = params;
+
     return (
-        <div>user bots list</div>
+        <UserBotsList userId={id} />
     )
 }

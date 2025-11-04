@@ -4,16 +4,9 @@ import React from "react";
 import { observer } from "mobx-react";
 import { useRouter } from "next/navigation";
 import { addToast, Avatar, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger } from "@heroui/react";
-import {LayoutDashboard} from "lucide-react";
+import { Headset, LayoutDashboard, LogOut, ReceiptText, Search, Settings, UserIcon } from "lucide-react";
 
 import { useUserStore } from '@/hooks/useUserStore';
-import {
-    ArrowLeftStartOnRectangle,
-    ClipboardDocumentList,
-    Cog8ToothIcon,
-    MagnifyingGlass,
-    SupportIcon
-} from "@/utils/icons";
 import { logoutAction } from "@/actions/post";
 import UserDropDownLoading from "@/components/loading/UserDropDownLoading";
 
@@ -86,36 +79,47 @@ const UserDropDown = observer(() => {
                 ) : (
                     <></>
                 )}
+                {userStore.isAdmin ? (
+                    <DropdownItem
+                        key="dashboard"
+                        href="/dashboard"
+                        startContent={<UserIcon className="w-5 h-5"/>}
+                    >
+                        Profile
+                    </DropdownItem>
+                ) : (
+                    <></>
+                )}
                 <DropdownItem
                     key="search"
-                    startContent={<MagnifyingGlass className="w-5 h-5"/>}
+                    startContent={<Search className="w-5 h-5"/>}
                 >
                     Search
                 </DropdownItem>
                 <DropdownItem
                     key="settings"
                     href="/profile/settings"
-                    startContent={<Cog8ToothIcon className="w-5 h-5"/>}
+                    startContent={<Settings className="w-5 h-5"/>}
                 >
                     Settings
                 </DropdownItem>
                 <DropdownItem
                     key="help"
                     href="/help-center"
-                    startContent={<SupportIcon className="w-5 h-5" stroke="#ffffff" />}
+                    startContent={<Headset className="w-5 h-5" stroke="#ffffff" />}
                 >
                     Help
                 </DropdownItem>
                 <DropdownItem
                     key="terms"
                     href="/terms"
-                    startContent={<ClipboardDocumentList className="w-5 h-5" />}
+                    startContent={<ReceiptText className="w-5 h-5" />}
                 >
                     Terms
                 </DropdownItem>
                 <DropdownItem
                     key="logout"
-                    startContent={<ArrowLeftStartOnRectangle className="w-5 h-5"/>}
+                    startContent={<LogOut className="w-5 h-5"/>}
                 >
                     Log Out
                 </DropdownItem>

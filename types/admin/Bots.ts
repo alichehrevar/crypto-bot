@@ -1,6 +1,13 @@
-// Represents the "lastCandle" object
-interface Candle {
-    timestamp: string;
+export interface RiskParams {
+    positionSizingMethod: string;
+}
+
+export interface CurrentCandle {
+    price: number;
+}
+
+export interface LastCandle {
+    timestamp: string; // ISO Date string
     open: number;
     high: number;
     low: number;
@@ -8,28 +15,16 @@ interface Candle {
     volume: number;
 }
 
-// Represents the "currentCandle" object
-interface CurrentCandle {
-    price: number;
-}
-
-// Represents the "riskParams" object
-interface RiskParams {
-    positionSizingMethod: string;
-}
-
-// Represents the "marketInfo" object
-interface MarketInfo {
+export interface MarketInfo {
     state: string;
     baseFund: number;
     tradeFund: number;
     lastSignal: string;
     currentCandle: CurrentCandle;
-    lastCandle: Candle;
+    lastCandle: LastCandle;
 }
 
-// Represents the "tradeInfo" object
-interface TradeInfo {
+export interface TradeInfo {
     takeProfit: number;
     stopLoss: number;
     leverageLong: number;
@@ -37,14 +32,30 @@ interface TradeInfo {
     positionSide: string;
 }
 
-// Represents an object in the "indicators" array
-interface Indicator {
+export interface BotIndicator {
     name: string;
     timeframe: string;
 }
 
-// Represents the main object in the "data" array (a Bot)
-interface Bot {
+export interface Pnl {
+    realized: number;
+    unrealized: number;
+    total: number;
+    pct: number;
+}
+
+export interface Trade {
+    _id: string;
+    bot: string;
+    symbol: string;
+    type: string;
+    entryPrice: number;
+    quantity: number;
+    timestamp: string; // ISO Date string
+    __v: number;
+}
+
+export interface Bot {
     _id: string;
     name: string;
     symbol: string;
@@ -67,15 +78,21 @@ interface Bot {
     share: boolean;
     accountType: string;
     accountId: string;
-    indicators: Indicator[];
+    indicators: BotIndicator[];
     strategy: string;
-    createdAt: string;
-    updatedAt: string;
+    createdAt: string; // ISO Date string
+    updatedAt: string; // ISO Date string
     __v: number;
+    pnl: Pnl;
+    trades: Trade[];
 }
 
-// Represents the top-level API response
-interface AdminBotApiResponse {
+export interface Bots {
+    indicator: Bot[];
+    grid: Bot[];
+}
+
+export interface BotApiResponse {
     success: boolean;
-    data: Bot[];
+    bots: Bots;
 }

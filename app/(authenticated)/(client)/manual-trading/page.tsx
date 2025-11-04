@@ -6,9 +6,9 @@ import BotsListTable from "@/components/bots/BotsListTable";
 import ManualTradeSection from "@/components/bots/deploy/ManualTradeSection";
 import {OrderBook} from "@/components/shared/OrderBook";
 import CoinSummarySection from "@/components/shared/CoinSummarySection";
-import RealTimeCandlestickChart from "@/components/shared/charts/TradingViewLightweightChart";
 import AnalysisAndSymbolsList from "@/components/profile/manual-trading/AnalysisAndSymbolsList";
 import {MarketListItem} from "@/types/MarketList";
+import TradingViewLightweightChartGrid from "@/components/shared/charts/TradingViewLightweightChartGrid";
 
 export default function ManualTradingPage() {
 
@@ -24,7 +24,10 @@ export default function ManualTradingPage() {
                 </div>
                 <div className="col-span-2 space-y-2">
                     <div className="h-[400px]">
-                        <RealTimeCandlestickChart interval="1m" symbol={selectedSymbol} timeZone="local"/>
+                        <TradingViewLightweightChartGrid
+                            isGrid={false}
+                            symbol={selectedSymbol?.symbol.replaceAll('/', '')}
+                        />
                     </div>
                     <div className="h-[300px] ua-card">
                         <OrderBook/>
