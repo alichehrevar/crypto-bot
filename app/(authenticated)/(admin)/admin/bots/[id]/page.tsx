@@ -1,9 +1,13 @@
 import BotDetails from "@/components/admin/users/bots/details/BotDetails";
 import RecentBotLogs from "@/components/admin/users/bots/details/RecentBotLogs";
 
-export default async function BotDetailsPage ({ params }: { params: { id: string } }) {
+type PageProps = {
+    params: Promise<{ id: string }>;
+};
 
-    const { id } = params;
+export default async function BotDetailsPage ({ params }: PageProps) {
+
+    const { id } = await params;
 
     return (
         <section className="space-y-4">

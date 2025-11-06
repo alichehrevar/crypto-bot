@@ -1,12 +1,15 @@
 import UserBotsList from "@/components/admin/users/bots/BotsList";
 
-export default async function UserBotsListPage ({ params }: { params: { id: string } }) {
+type PageProps = {
+    params: Promise<{ id: string }>;
+};
 
-    const { id } = params;
+export default async function UserBotsListPage({ params }: PageProps) {
+    const { id } = await params;
 
     return (
         <section className="glass-card">
             <UserBotsList userId={id} />
         </section>
-    )
+    );
 }
