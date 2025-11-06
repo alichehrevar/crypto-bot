@@ -9,18 +9,18 @@ const DetailItem = ({ label, value }: { label: string, value: React.ReactNode })
 
 const TradeRow = ({ trade }: { trade: Trade }) => (
     <tr>
-        <td className={`capitalize font-medium ${trade.type === 'buy' ? 'text-green-400' : 'text-red-400'}`}>
+        <td className={`capitalize px-2 font-medium ${trade.type === 'buy' ? 'text-green-400' : 'text-red-400'}`}>
             {trade.type}
         </td>
-        <td>${trade.price.toFixed(2)}</td>
-        <td className={trade.pnl >= 0 ? 'text-green-400' : 'text-red-400'}>
+        <td className="px-2">${trade.price.toFixed(2)}</td>
+        <td className={`px-2 ${trade.pnl >= 0 ? 'text-green-400' : 'text-red-400'}`}>
             {trade.pnl >= 0 ? '+' : ''}{trade.pnl.toFixed(2)}
         </td>
-        <td>{trade.time}</td>
+        <td className="px-2">{trade.time}</td>
     </tr>
 );
 
-export const BotDetails = ({ bot }: { bot: Bot }) => {
+export const BotDetailsCard = ({ bot }: { bot: Bot }) => {
     const formattedDate = bot.deploymentDate.replace(/-/g, '.').slice(0, 16);
     const tpHtml = bot.tp ? <span className="font-medium text-green-400">{bot.tp}%</span> : '-';
     const slHtml = bot.sl ? <span className="font-medium text-red-400">{bot.sl}%</span> : '-';
@@ -54,12 +54,12 @@ export const BotDetails = ({ bot }: { bot: Bot }) => {
                                 <tr>
                                     <th className="py-1 px-2 text-left text-text-secondary font-medium">Type</th>
                                     <th className="py-1 px-2 text-left text-text-secondary font-medium">Price</th>
-                                    <th className="py-1 px-2 text-left text-text-secondary font-medium">PNL ($)</th>
+                                    <th className="py-1 px-2 text-left text-text-secondary font-medium">PnL ($)</th>
                                     <th className="py-1 px-2 text-left text-text-secondary font-medium">Time</th>
                                 </tr>
                                 </thead>
                                 <tbody>
-                                {bot.trades.map((trade, index) => <TradeRow key={index} trade={trade} />)}
+                                    {bot.trades.map((trade, index) => <TradeRow key={index} trade={trade} />)}
                                 </tbody>
                             </table>
                         ) : (

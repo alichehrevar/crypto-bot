@@ -40,6 +40,8 @@ export default function UsersListPage() {
     }, [])
 
     return (
-        <DataTable isLoading={isLoading} rows={usersList} />
+        <section className="glass-card">
+            <DataTable isLoading={isLoading} rows={usersList} />
+        </section>
     );
 }

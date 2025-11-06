@@ -29,6 +29,10 @@ export const pageTitles = [
         url: '/admin/users/[id]/bots'
     },
     {
+        title: 'bot details',
+        url: '/admin/bots/[id]'
+    },
+    {
         title: 'bot logs',
         url: '/admin/bots/[id]/logs'
     }

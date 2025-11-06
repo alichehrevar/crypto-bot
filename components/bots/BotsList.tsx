@@ -68,7 +68,7 @@ interface Trade {
     time: string;
 }
 
-interface Bot {
+export interface Bot {
     id: string;
     name: string;
     pair: string;
