@@ -1,6 +1,6 @@
 'use client'
 
-import React, {Suspense, useEffect, useState} from "react";
+import React, {useEffect, useState} from "react";
 import {addToast, Spinner} from "@heroui/react";
 
 import {DashboardData, DashboardResponse} from "@/types/admin/Dashboard";
