@@ -10,12 +10,13 @@ adminRouter.use(...adminOnlyAccess);
 const dashboardRoutes = require('./dashboard')
 const botsRoutes = require('./bots')
 const usersRoutes = require('./users')
-const logsRouter = require('./logs');
+const n8nRoutes = require('./n8n');
 
 // ---- Mount them ----
 adminRouter.use('/dashboard', dashboardRoutes);
 adminRouter.use('/bots', botsRoutes);
 adminRouter.use('/users', usersRoutes);
-adminRouter.use('/logs', logsRouter);
+adminRouter.use('/users', usersRoutes);
+adminRouter.use('/n8n', n8nRoutes);
 
 module.exports = adminRouter;
