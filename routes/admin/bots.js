@@ -20,9 +20,15 @@ router.get('/', authenticate, botController.botsList);
 router.get('/:userId', authenticate, botController.userBotsList);
 
 /**
+ * GET /api/bots/:botId/logs
+ * Retrieves selected bot logs
+ */
+router.get('/:botId/logs', authenticate, logController.getBotLogs);
+
+/**
  * GET /api/bots/:botId/details
  * Retrieves selected bot details
  */
-router.get('/:botId/details', authenticate, logController.getBotLogs);
+router.get('/:botId/details', authenticate, botController.getBotDetails);
 
 module.exports = router;

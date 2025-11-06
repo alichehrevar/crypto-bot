@@ -17,6 +17,7 @@ const BotManagerService = require('../../services/botService/BotManagerService')
 
 // Default indicator parameters
 const defaultStrategyParams = require('../../../config/defaultStrategyParams');
+const mongoose = require("mongoose");
 
 
 // NEW: Controller to create an advanced grid bot using the new service structure
@@ -382,28 +383,32 @@ exports.getBots = async (req, res) => {
 
 async function calculateRelatedDataToBots (bots) {
     return await Promise.all(bots.map(async bot => {
-        const price = bot.marketInfo?.currentCandle?.price;
-        let pnl = {realized: 0, unrealized: 0, total: 0};
-        if (typeof price === 'number') {
-            pnl = await PnLService.getBotPnL(bot._id, price);
-        }
-        const base = bot.marketInfo?.baseFund || 1;
-        const pct = base > 0 ? (pnl.total / base * 100) : 0;
-
-        const trades = await Trade
-            .find({bot: bot._id})
-            .sort({timestamp: -1})
-            .lean();
-
-        return {
-            ...bot,
-            pnl: {
-                ...pnl,
-                pct: Number(pct.toFixed(2))
-            },
-            trades
-        };
+        return calculateRelatedDataToBot(bot)
     }));
+}
+
+async function calculateRelatedDataToBot (bot) {
+    const price = bot.marketInfo?.currentCandle?.price;
+    let pnl = {realized: 0, unrealized: 0, total: 0};
+    if (typeof price === 'number') {
+        pnl = await PnLService.getBotPnL(bot._id, price);
+    }
+    const base = bot.marketInfo?.baseFund || 1;
+    const pct = base > 0 ? (pnl.total / base * 100) : 0;
+
+    const trades = await Trade
+        .find({bot: bot._id})
+        .sort({timestamp: -1})
+        .lean();
+
+    return {
+        ...bot,
+        pnl: {
+            ...pnl,
+            pct: Number(pct.toFixed(2))
+        },
+        trades
+    };
 }
 
 /**
@@ -716,4 +721,27 @@ exports.userBotsList = async (req, res) => {
     }, {});
 
     return res.json({ success: true, bots: groupedBots });
+}
+
+exports.getBotDetails = async (req, res) => {
+    try {
+        const { botId } = req.params;
+
+        if (!mongoose.Types.ObjectId.isValid(botId)) {
+            return res.status(400).json({ message: 'Invalid botId format.' });
+        }
+
+        const botBase = await BotBase.findById(botId).lean();
+
+        if (!botBase) {
+            return res.status(404).json({ message: 'Bot not found.', success: false });
+        }
+
+        const enriched = await calculateRelatedDataToBot(botBase);
+
+        res.status(200).json({ data: enriched, success: true });
+    } catch (error) {
+        console.error('Error fetching bot details:', error);
+        res.status(500).json({ message: 'Internal server error while fetching bot details.', success: false });
+    }
 }

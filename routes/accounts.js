@@ -7,6 +7,8 @@ const authenticate = require('../app/http/middleware/auth'); // Authentication m
 // Protect these routes with auth middleware.
 router.get('/', authenticate, accountController.getAllAccountsData);
 
+router.get('/connection', authenticate, accountController.getConnectionStatus);
+
 router.get('/binance', authenticate, accountController.getBinanceAccount);
 router.post('/binance', authenticate, accountController.linkBinanceAccount);
 

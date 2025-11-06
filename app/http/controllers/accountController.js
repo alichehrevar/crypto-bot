@@ -16,6 +16,33 @@ const BingxService = require('../../services/bingXWS');
 
 const logger = require('../../../logs/logger')
 
+exports.getConnectionStatus = async (req, res) => {
+    try {
+        const userId = req.user.id;
+
+        const binanceAccount = await BinanceAccount.findOne({ userId });
+        const okxAccount = await OkxAccount.findOne({ userId });
+        const bingxAccount = await BingxAccount.findOne({ userId });
+
+        res.status(200).json({
+            status: true,
+            data: {
+                binance: !!binanceAccount,
+                okx: !!okxAccount,
+                bingx: !!bingxAccount,
+                bybit: false,
+                coinbase: false,
+                kraken: false,
+            }
+        })
+
+    } catch (error) {
+        console.error("Error fetching account statuses:", error);
+        logger.error(`Error fetching account statuses: ${error.message}`, { stack: error.stack });
+        res.status(500).json({ error: error.message });
+    }
+}
+
 /**
  * Get all accounts.
  */
@@ -664,7 +691,3 @@ async function fetchExchangeRate () {
     const response = await axios.get('https://api.exchangerate-api.com/v4/latest/USD');
     return response.data.rates.EUR;
 }
-
-
-
-
