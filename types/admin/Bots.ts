@@ -1,5 +1,4 @@
 import {Bot} from "@/types/bots/DeployedBots";
-import {Bot as BotDetails} from "@/types/bot";
 import {ApiBot} from "@/components/bots/BotsList";
 
 export interface Trade {
