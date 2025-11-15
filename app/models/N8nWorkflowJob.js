@@ -1,5 +1,7 @@
 const mongoose = require('mongoose');
 
+const customAiDbConnection = require('../../config/customAiDb');
+
 const N8nWorkflowJobSchema = new mongoose.Schema(
     {
         /**
@@ -8,6 +10,14 @@ const N8nWorkflowJobSchema = new mongoose.Schema(
         userId: {
             type: mongoose.Schema.Types.ObjectId,
             ref: 'User',
+            required: true,
+        },
+        /**
+         * The type of the workflow job.
+         */
+        type: {
+            type: String,
+            enum: ['ai-model', 'prompt'],
             required: true,
         },
         /**
@@ -40,6 +50,15 @@ const N8nWorkflowJobSchema = new mongoose.Schema(
             default: null,
         },
         /**
+         * A reference to the document holding the full response.
+         * This keeps the main job document small and fast.
+         */
+        response: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'N8nJobResponse', // <-- Links to the n8nJobResponse model
+            default: null,
+        },
+        /**
          * Any error message if the workflow failed.
          */
         error: {
@@ -52,4 +71,11 @@ const N8nWorkflowJobSchema = new mongoose.Schema(
     }
 );
 
-module.exports = mongoose.model('N8nWorkflowJob', N8nWorkflowJobSchema);
+const N8nWorkflowJob_DefaultDB = mongoose.model('N8nWorkflowJob', N8nWorkflowJobSchema);
+
+const N8nWorkflowJob_CustomAiDB = customAiDbConnection.model('N8nWorkflowJob', N8nWorkflowJobSchema);
+
+module.exports = {
+    N8nWorkflowJob_DefaultDB,
+    N8nWorkflowJob_CustomAiDB,
+};

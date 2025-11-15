@@ -2,17 +2,17 @@ require('dotenv').config();
 const mongoose = require('mongoose');
 
 // Get the URI from environment variables
-const logDbUri = process.env.MONGO_LOG_URI;
+const customAiDbUri = process.env.MONGO_AI_URI;
 
-if (!logDbUri) {
-    console.error('MONGO_LOG_URI is not defined. Logging database will not connect.');
+if (!customAiDbUri) {
+    console.error('MONGO_AI_URI is not defined. Logging database will not connect.');
     // Export a mock object or handle this error as you see fit
     // For now, we'll throw an error to make it obvious during development.
-    throw new Error('MONGO_LOG_URI environment variable is not set.');
+    throw new Error('MONGO_AI_URI environment variable is not set.');
 }
 
 // Create a new connection
-const logDbConnection = mongoose.createConnection(logDbUri, {
+const customAiDbConnection = mongoose.createConnection(customAiDbUri, {
     // You might want to tune these for a high-volume log database
     // autoIndex: false, // Indexing can be managed manually or at deploy time
     // bufferCommands: false, // Disable buffering if connection is down
@@ -20,24 +20,24 @@ const logDbConnection = mongoose.createConnection(logDbUri, {
 
 // --- Connection Event Listeners ---
 
-logDbConnection.on('connected', () => {
-    console.log(`[Mongoose] Connected to logging database: ${logDbUri}`);
+customAiDbConnection.on('connected', () => {
+    console.log(`[Mongoose] Connected to logging database: ${customAiDbUri}`);
 });
 
-logDbConnection.on('error', (err) => {
+customAiDbConnection.on('error', (err) => {
     console.error(`[Mongoose] Logging database connection error: ${err}`);
 });
 
-logDbConnection.on('disconnected', () => {
+customAiDbConnection.on('disconnected', () => {
     console.log('[Mongoose] Logging database disconnected');
 });
 
 // Graceful shutdown
 process.on('SIGINT', async () => {
-    await logDbConnection.close();
+    await customAiDbConnection.close();
     process.exit(0);
 });
 
 // Export the connection
-module.exports = logDbConnection;
+module.exports = customAiDbConnection;
 

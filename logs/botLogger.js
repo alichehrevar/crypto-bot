@@ -61,9 +61,6 @@ class BotLoggerService {
                     collection: 'botlogs',
                     // We use a capped collection, as defined in the model
                     capped: true,
-                    options: {
-                        useUnifiedTopology: true,
-                    },
                     // This ensures meta data (like our botId) is properly stored
                     format: format.combine(format.metadata()),
                 }),

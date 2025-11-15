@@ -21,10 +21,7 @@ describe('Bot Model Test', function () {
     before(async () => {
         mongoServer = await MongoMemoryServer.create();
         const uri = mongoServer.getUri();
-        await mongoose.connect(uri, {
-            useNewUrlParser: true,
-            useUnifiedTopology: true,
-        });
+        await mongoose.connect(uri);
     });
 
     // Disconnect and stop in-memory MongoDB after tests complete
