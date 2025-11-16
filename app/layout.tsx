@@ -1,51 +1,55 @@
 import "@/styles/globals.css";
-import { Metadata, Viewport } from "next";
+import {Metadata, Viewport} from "next";
 import clsx from "clsx";
 import React from "react";
 
-import { Providers } from "./providers";
+import {Providers} from "./providers";
 
-import { siteConfig } from "@/config/site";
-import { fontSans } from "@/config/fonts";
+import {siteConfig} from "@/config/site";
+import {fontSans} from "@/config/fonts";
+import PreLaunchHeader from "@/components/pre-launch/layouts/PreLaunchHeader";
+import PreLaunchFooter from "@/components/pre-launch/layouts/PreLaunchFooter";
 
 export const metadata: Metadata = {
-  title: {
-    default: siteConfig.name,
-    template: `%s - ${siteConfig.name}`,
-  },
-  description: siteConfig.description,
-  keywords: siteConfig.keywords,
-  icons: {
-    icon: "/images/logos/white/favicon.ico",
-  },
+    title: {
+        default: siteConfig.name,
+        template: `%s - ${siteConfig.name}`,
+    },
+    description: siteConfig.description,
+    keywords: siteConfig.keywords,
+    icons: {
+        icon: "/images/logos/white/favicon.ico",
+    },
 };
 
 export const viewport: Viewport = {
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "white" },
-    { media: "(prefers-color-scheme: dark)", color: "black" },
-  ],
+    themeColor: [
+        {media: "(prefers-color-scheme: light)", color: "white"},
+        {media: "(prefers-color-scheme: dark)", color: "black"},
+    ],
 };
 
 export default function RootLayout({
-  children,
+   children,
 }: {
-  children: React.ReactNode;
+    children: React.ReactNode;
 }) {
-  return (
-    <html suppressHydrationWarning lang="en">
-      <body
-        className={clsx(
-          "bg-background font-sans antialiased relative",
-          fontSans.variable,
-        )}
-      >
-        <Providers themeProps={{ attribute: "class", defaultTheme: "dark" }}>
-          <div className="flex flex-col overflow-x-hidden relative">
-              {children}
-          </div>
+    return (
+        <html suppressHydrationWarning lang="en">
+        <body
+            className={clsx(
+                "bg-background font-sans antialiased relative",
+                fontSans.variable,
+            )}
+        >
+        <Providers themeProps={{attribute: "class", defaultTheme: "dark"}}>
+            <PreLaunchHeader />
+            <div className="flex flex-col overflow-x-hidden relative">
+                {children}
+            </div>
+            <PreLaunchFooter />
         </Providers>
-      </body>
-    </html>
-  );
+        </body>
+        </html>
+    );
 }
