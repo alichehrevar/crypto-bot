@@ -1,4 +1,4 @@
-export const PrelaunchFooterMenus: { title: string, link: string }[] = [
+export const PrelaunchItems: { title: string, link: string }[] = [
     {
         title: 'About us',
         link: '/'
@@ -35,3 +35,18 @@ export const PrelaunchFooterSocials: { icon: string, link: string, title: string
         title: 'LinkedIn'
     }
 ];
+
+export const PrelaunchHeaderMenus: { title: string, link: string }[] = [
+    {
+        title: 'Leaderboard',
+        link: '/leaderboard'
+    },
+    {
+        title: 'AI models',
+        link: '/ai-models'
+    },
+    {
+        title: 'About us',
+        link: '/about'
+    }
+]

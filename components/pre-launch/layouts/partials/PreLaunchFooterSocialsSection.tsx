@@ -1,6 +1,6 @@
 import Image from "next/image";
 
-import {PrelaunchFooterSocials} from "@/utils/prelaunch/prelaunchFooterMenus";
+import {PrelaunchFooterSocials} from "@/utils/prelaunch/prelaunchItems";
 
 export default function PreLaunchFooterSocialsSection() {
     return (

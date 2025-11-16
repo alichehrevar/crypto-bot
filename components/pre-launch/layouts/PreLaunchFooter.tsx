@@ -9,7 +9,7 @@ export default function PreLaunchFooter() {
         <section className="flex items-center justify-center flex-col gap-4 w-full">
             <JoinCommunity />
             <footer className="flex items-center justify-center flex-col gap-5 w-full my-12">
-                <PreLaunchLogoSection />
+                <PreLaunchLogoSection responsive={false} />
                 <PreLaunchFooterMenus />
                 <PreLaunchFooterSocialsSection />
             </footer>
