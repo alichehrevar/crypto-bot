@@ -1,7 +1,5 @@
 import React from "react";
 
-import PreLaunchHeader from "@/components/pre-launch/layouts/PreLaunchHeader";
-
 export default function PreLunchLayout({ children }: { children: React.ReactNode }) {
     return (
         <>
