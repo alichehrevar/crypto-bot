@@ -7,8 +7,6 @@ import {Providers} from "./providers";
 
 import {siteConfig} from "@/config/site";
 import {fontSans} from "@/config/fonts";
-import PreLaunchHeader from "@/components/pre-launch/layouts/PreLaunchHeader";
-import PreLaunchFooter from "@/components/pre-launch/layouts/PreLaunchFooter";
 
 export const metadata: Metadata = {
     title: {
