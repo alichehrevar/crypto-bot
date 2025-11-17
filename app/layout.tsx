@@ -38,16 +38,12 @@ export default function RootLayout({
         <html suppressHydrationWarning lang="en">
         <body
             className={clsx(
-                "bg-background font-sans antialiased relative",
+                "bg-background font-sans antialiased relative overflow-x-hidden",
                 fontSans.variable,
             )}
         >
         <Providers themeProps={{attribute: "class", defaultTheme: "dark"}}>
-            <PreLaunchHeader />
-            <div className="flex flex-col overflow-x-hidden relative">
-                {children}
-            </div>
-            <PreLaunchFooter />
+            {children}
         </Providers>
         </body>
         </html>
