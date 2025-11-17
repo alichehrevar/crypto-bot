@@ -1,13 +1,6 @@
 import type { NextPage } from 'next';
-import Image from "next/image";
-// Removed 'next/image' as it's not available in this environment.
-// We will use a standard <img> tag instead.
 
-/*
-  Icon Components
-  You can place these in a separate file (e.g., './icons.tsx')
-  and import them as shown above.
-*/
+import Image from "next/image";
 
 const BtcIcon = () => (
     <svg
