@@ -1,5 +1,9 @@
+import PreLaunchHeroSection from "@/components/pre-launch/shared/PreLaunchHeroSection";
+
 export default function PreLunchPage () {
     return  (
-        <div>prelunch page</div>
+        <>
+            <PreLaunchHeroSection />
+        </>
     )
 }

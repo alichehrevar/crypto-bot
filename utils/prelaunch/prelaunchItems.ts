@@ -39,7 +39,7 @@ export const PrelaunchFooterSocials: { icon: string, link: string, title: string
 export const PrelaunchHeaderMenus: { title: string, link: string }[] = [
     {
         title: 'Leaderboard',
-        link: '/leaderboard'
+        link: '/'
     },
     {
         title: 'AI models',

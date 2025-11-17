@@ -8,7 +8,7 @@ export default function PreLunchLayout({ children }: { children: React.ReactNode
         <>
             <PreLaunchHeader />
             <div className="flex flex-col overflow-hidden relative">
-                <div className="flex flex-col items-center justify-center min-h-screen">
+                <div className="flex flex-col items-center justify-start min-h-screen pt-10">
                     {children}
                 </div>
             </div>
