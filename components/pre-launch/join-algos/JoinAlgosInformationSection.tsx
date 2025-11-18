@@ -5,6 +5,7 @@ import LabeledInput from "@/components/pre-launch/shared/ui/LabeledInput";
 import {ArrowRight} from "@/utils/icons";
 import CustomCheckbox from "@/components/pre-launch/shared/ui/CustomCheckbox";
 import UploadAvatar from "@/components/pre-launch/shared/ui/UploadAvatar";
+import {addToast} from "@heroui/react";
 
 export default function JoinAlgosInformationSection ({onProcess, backToPrev}: {onProcess: () => void, backToPrev: () => void}) {
 
@@ -23,8 +24,11 @@ export default function JoinAlgosInformationSection ({onProcess, backToPrev}: {o
     }
 
     const handleImageSelect = (file: File) => {
-        console.log("Selected file:", file.name);
         setAvatar(file.name)
+        addToast({
+            title: avatar,
+            color: "success",
+        })
     };
 
     return (
