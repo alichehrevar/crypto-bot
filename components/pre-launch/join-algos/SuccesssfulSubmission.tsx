@@ -1,5 +1,4 @@
 import React from "react";
-import {ArrowRight} from "@/utils/icons";
 import Link from "next/link";
 
 export default function SuccessfulSubmission ({backToFirst}: {backToFirst: () => void}) {
