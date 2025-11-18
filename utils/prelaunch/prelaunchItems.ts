@@ -50,3 +50,5 @@ export const PrelaunchHeaderMenus: { title: string, link: string }[] = [
         link: '/about'
     }
 ]
+
+export const daysOptions: string[] = ["7 days", "30 days", "90 days", "180 days"]
