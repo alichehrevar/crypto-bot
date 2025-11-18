@@ -2,62 +2,6 @@ import type { NextPage } from 'next';
 
 import Image from "next/image";
 
-const BtcIcon = () => (
-    <svg
-        className="h-6 w-6"
-        fill="none"
-        height="24"
-        viewBox="0 0 24 24"
-        width="24"
-        xmlns="http://www.w3.org/2000/svg"
-    >
-        <circle cx="12" cy="12" fill="#F7931A" r="12" />
-        <path
-            d="M17.18 13.9161C16.66 14.3261 15.93 14.6161 15.11 14.7361V17.0061H13.88V15.0161C13.3 14.9361 12.75 14.8161 12.24 14.6561L12.01 14.5861L11.5 14.7861L10.59 15.1461L10.57 15.1561L10.05 15.3461L10.04 15.3561V17.0061H8.81V14.8961L8.25 14.7161L7.18 14.3561L6.91 14.2661L7.54 13.9361L7.56 13.9261L8.33 13.5661C8.61 13.4361 8.87 13.3161 9.1 13.2061C9.07 13.1761 9.04 13.1461 9.01 13.1161C8.1 12.4261 7.6 11.3661 7.6 10.1661C7.6 8.0461 9.21 6.3161 11.2 6.1361V6.0061H12.43V6.1161C12.98 6.1661 13.5 6.2761 13.97 6.4461L14.2 6.5261L14.71 6.3261L15.62 5.9661L15.64 5.9561L16.16 5.7661L16.17 5.7561V5.7061L16.18 4.0061L17.41 4.0061V5.9161L17.97 6.0961L19.04 6.4561L19.31 6.5461L18.68 6.8761L18.66 6.8861L17.89 7.2461C17.61 7.3761 17.35 7.4961 17.12 7.6061C17.15 7.6361 17.18 7.6661 17.21 7.6961C18.12 8.3861 18.62 9.4461 18.62 10.6461C18.62 12.6361 17.2 13.7961 15.49 13.9461V13.9561C16.16 13.7861 16.76 13.6261 17.18 13.9161ZM15.11 12.8061C15.91 12.3561 16.34 11.5861 16.34 10.6461C16.34 9.5461 15.82 8.6361 14.9 8.1661V13.1461C14.96 13.1361 15.03 13.1261 15.11 13.1061V12.8061ZM11.2 7.9961V12.0361C10.37 11.6661 9.88 10.9661 9.88 10.1661C9.88 9.2261 10.43 8.3861 11.2 7.9961Z"
-            fill="white"
-        />
-    </svg>
-);
-
-const EthIcon = () => (
-    <svg
-        className="h-6 w-6"
-        fill="none"
-        height="24"
-        viewBox="0 0 24 24"
-        width="24"
-        xmlns="http://www.w3.org/2000/svg"
-    >
-        <circle cx="12" cy="12" fill="#627EEA" r="12" />
-        <path d="M12 1.45453L11.9045 3.7018L12 3.82907L12.0955 3.7018L12 1.45453Z" fill="#23292B" />
-        <path d="M12 6.32726L7.90906 11.92L12 15.3636L16.0909 11.92L12 6.32726Z" fill="white" fillOpacity="0.6" />
-        <path d="M12 16.4364L7.90906 12.9927L12 22.5454L16.0909 12.9927L12 16.4364Z" fill="white" />
-        <path d="M12 6.32726V15.3636L16.0909 11.92L12 6.32726Z" fill="white" fillOpacity="0.6" />
-        <path d="M12 16.4364V22.5454L16.0909 12.9927L12 16.4364Z" fill="white" fillOpacity="0.2" />
-    </svg>
-);
-
-const UsdtIcon = () => (
-    <svg
-        className="h-6 w-6"
-        fill="none"
-        height="24"
-        viewBox="0 0 24 24"
-        width="24"
-        xmlns="http://www.w3.org/2000/svg"
-    >
-        <circle cx="12" cy="12" fill="#26A17B" r="12" />
-        <path
-            d="M12.0013 16.875C14.693 16.875 16.8763 14.6917 16.8763 12C16.8763 9.30833 14.693 7.125 12.0013 7.125C9.30962 7.125 7.12628 9.30833 7.12628 12C7.12628 14.6917 9.30962 16.875 12.0013 16.875Z"
-            fill="white"
-        />
-        <path
-            d="M12.5188 13.9114H14.12V12.7538H12.5188V10.875H9.4762V12.7538H8.05127V10.0238C8.05127 9.6915 8.12752 9.4215 8.28002 9.21375C8.43252 9.006 8.65002 8.87925 8.93252 8.8335V8H13.0625V8.8335C13.345 8.87925 13.5625 9.006 13.715 9.21375C13.8675 9.4215 13.9438 9.6915 13.9438 10.0238V11.8388H14.12V10.0238C14.12 9.46875 13.9638 8.9955 13.6513 8.604C13.3388 8.2125 12.9125 7.9425 12.3725 7.80375V7H9.62252V7.80375C9.08252 7.9425 8.65627 8.2125 8.34377 8.604C8.03127 8.9955 7.87502 9.46875 7.87502 10.0238V12.9225H9.4762V15H12.5188V13.9114Z"
-            fill="#26A1TBD"
-        />
-    </svg>
-);
-
 /**
  * Chart SVG Component
  * This is a close representation of the chart in the image.
@@ -159,9 +103,15 @@ const QuantumLeadCard: NextPage = () => {
                     {/* Using inline SVGs for the icons as requested.
                       These components are defined at the top of the file.
                     */}
-                    <BtcIcon />
-                    <EthIcon />
-                    <UsdtIcon />
+                    <div className="relative w-[24px] border-1 border-black rounded-full aspect-square">
+                        <Image fill alt="coin" className="object-cover" src="/images/pre-launch/demo/btc.svg" />
+                    </div>
+                    <div className="relative w-[24px] border-1 border-black rounded-full aspect-square">
+                        <Image fill alt="coin" className="object-cover" src="/images/pre-launch/demo/dgb.svg" />
+                    </div>
+                    <div className="relative w-[24px] border-1 border-black rounded-full aspect-square">
+                        <Image fill alt="coin" className="object-cover" src="/images/pre-launch/demo/usdt.svg" />
+                    </div>
                 </div>
             </div>
 

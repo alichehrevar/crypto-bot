@@ -8,7 +8,7 @@ interface SearchBoxProps {
     placeholder?: string;
 }
 
-const LeaderBoardSearchBox: React.FC<SearchBoxProps> = ({
+const LeaderboardSearchBox: React.FC<SearchBoxProps> = ({
      placeholder = "Search trader"
 }) => {
     const [searchTerm, setSearchTerm] = useState('');
@@ -55,4 +55,4 @@ const LeaderBoardSearchBox: React.FC<SearchBoxProps> = ({
     );
 };
 
-export default LeaderBoardSearchBox;
+export default LeaderboardSearchBox;
