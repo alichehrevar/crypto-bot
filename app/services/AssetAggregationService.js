@@ -1,7 +1,7 @@
 // services/snapshots/helpers.js
 const BinanceService = require('./binanceWS');
 const OkxService     = require('./okxWS');
-const BingxService   = require('./bingxWS');
+const BingxService   = require('./bingXWS');
 
 const BROKER_COLORS = {
     Binance: '#30B5D3',
