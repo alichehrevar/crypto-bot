@@ -2,7 +2,7 @@ import React from "react";
 
 import DarkSelect from "@/components/pre-launch/shared/DarkSelect";
 import LeaderboardSearchBox from "@/components/pre-launch/leaderboard/tabs/algos/LeaderboardSearchBox";
-import QuantumLeadCard from "@/components/pre-launch/leaderboard/tabs/algos/QuantumLeadCard";
+import QuantumLeadCardsList from "@/components/pre-launch/leaderboard/tabs/algos/QuantumLeadCartsList";
 
 export default function LeaderboardAlgosTab () {
     return (
@@ -12,9 +12,7 @@ export default function LeaderboardAlgosTab () {
                 <LeaderboardSearchBox />
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6 mt-8">
-                {[...Array(21)].map((_, index) => (
-                    <QuantumLeadCard key={index} />
-                ))}
+                <QuantumLeadCardsList />
             </div>
         </>
     )

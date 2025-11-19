@@ -1,5 +1,6 @@
 import React from 'react';
 import Image from 'next/image';
+import Link from "next/link";
 
 /**
  * A hero section component replicating the provided design.
@@ -63,13 +64,14 @@ const PreLaunchHeroSection: React.FC = () => {
                 </div>
 
                 {/* Call to Action (CTA) Button */}
-                <button
+                <Link
                     className="bg-white text-black font-semibold py-3 px-8 rounded-full transition-all duration-300
                      hover:bg-gray-200 hover:scale-105 focus:outline-none focus:ring-2
                      focus:ring-white focus:ring-opacity-50"
+                    href="/join-algos"
                 >
                     Submit your algorithm
-                </button>
+                </Link>
             </div>
         </section>
     );

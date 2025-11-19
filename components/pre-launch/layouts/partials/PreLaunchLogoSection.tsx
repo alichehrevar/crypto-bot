@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 
-export default function PreLaunchLogoSection({className = 'w-[190px]', responsive, displayBlackLogo = false}: {className?: string, responsive: boolean, displayBlackLogo?: boolean}) {
+export default function PreLaunchLogoSection({className = 'w-[40px] lg:w-[190px]', responsive, displayBlackLogo = false}: {className?: string, responsive: boolean, displayBlackLogo?: boolean}) {
     return (
         <Link className={`relative ${responsive ? 'aspect-[101/115]' : 'aspect-[191/40]'} lg:aspect-[191/40] ${className}`} href="/">
             <Image
@@ -14,7 +14,7 @@ export default function PreLaunchLogoSection({className = 'w-[190px]', responsiv
                 <Image
                     fill
                     alt={process.env.NAME || 'United Algos'}
-                    className="aspect-[101/115] object-contain block lg:hidden"
+                    className="aspect-[101/115] h-[64px] object-contain block lg:hidden"
                     src="/images/logos/logo-white.png"
                 />
             }

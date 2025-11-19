@@ -15,7 +15,7 @@ const formVariants = {
 };
 
 export default function JoinAlgosForm() {
-    const [step, setStep] = useState(3);
+    const [step, setStep] = useState(1);
 
     return (
         <form className="w-full max-w-[500px] space-y-5 pb-10">

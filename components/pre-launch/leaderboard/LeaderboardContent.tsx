@@ -1,9 +1,15 @@
 'use client'
 
 import React, {useState} from "react";
-import {motion} from "framer-motion";
+import {AnimatePresence, motion} from "framer-motion";
 
 import LeaderboardAlgosTab from "@/components/pre-launch/leaderboard/tabs/algos/LeaderboardAlgosTab";
+
+const formVariants = {
+    hidden: { opacity: 0, y: 10 },
+    visible: { opacity: 1, y: 0 },
+    exit: { opacity: 0, y: -10 }
+};
 
 export default function LeaderboardContent () {
 
@@ -40,7 +46,22 @@ export default function LeaderboardContent () {
                         ))}
                     </div>
                 </div>
-                {type === 'Algos' && <LeaderboardAlgosTab />}
+                {/*{type === 'Algos' && <LeaderboardAlgosTab />}*/}
+                {type === 'Algos' && (
+                    <AnimatePresence mode="wait">
+                        <motion.div
+                            key="step1"
+                            animate="visible"
+                            className="space-y-5"
+                            exit="exit"
+                            initial="hidden"
+                            transition={{ duration: 0.25, ease: "easeInOut" }}
+                            variants={formVariants}
+                        >
+                            <LeaderboardAlgosTab />
+                        </motion.div>
+                    </AnimatePresence>
+                )}
             </div>
         </div>
     )
