@@ -1,5 +1,5 @@
 // services/snapshots/helpers.js
-const BinanceService = require('./BinanceWS');
+const BinanceService = require('./binanceWS');
 const OkxService     = require('./okxWS');
 const BingxService   = require('./bingxWS');
 
