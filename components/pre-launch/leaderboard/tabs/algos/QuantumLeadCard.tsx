@@ -4,7 +4,6 @@ import React, { useState } from "react";
 import DynamicModal from "@/components/pre-launch/shared/ui/DynamicModal";
 import AvatarCard from "@/components/pre-launch/shared/ui/AvatarCard";
 import QuantumLeadDetails from "@/components/pre-launch/leaderboard/tabs/algos/CardDetails/QuantumLeadDetails";
-
 import { ApiJob } from "@/types/preLaunch/TopROI";
 
 /**
@@ -14,8 +13,8 @@ import { ApiJob } from "@/types/preLaunch/TopROI";
 const DynamicSketch = ({ svg }: { svg: string }) => {
     return (
         <div
-            className="w-[150px] h-[50px] overflow-hidden"
             dangerouslySetInnerHTML={{ __html: svg }}
+            className="w-[150px] h-[50px] overflow-hidden"
         />
     );
 };
