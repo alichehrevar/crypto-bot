@@ -33,6 +33,8 @@ const N8nJobResponseSchema = new mongoose.Schema(
         backtestInterval: { type: String },
     },
 
+    modelUsed: { type: String, trim: true },
+
     // --- Generated Code & Summary ---
     generatedCode: {
         summary: {
@@ -48,7 +50,8 @@ const N8nJobResponseSchema = new mongoose.Schema(
         generatedCodeFileId: {
             type: mongoose.Schema.Types.ObjectId,
                 required: true,
-        }
+        },
+        fullCode: { type: String },
     },
 
     // --- Backtest Results ---
@@ -79,8 +82,10 @@ const N8nJobResponseSchema = new mongoose.Schema(
         balanceSketchFileId: {
             type: mongoose.Schema.Types.ObjectId,
                 required: true,
-        }
-    }
+        },
+        fullBalanceSketch: { type: String },
+    },
+    feedback: { type: String },
 },
 {
     timestamps: true, // Adds createdAt and updatedAt

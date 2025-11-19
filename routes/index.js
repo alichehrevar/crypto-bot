@@ -25,6 +25,7 @@ const netFlowsRoutes = require('./market/netFlows');
 const listingsRoutes = require('./listings');
 const SessionRoutes = require('./session');
 const n8nRoutes = require('./n8n/index');
+const preLaunchRoutes = require('./pre-launch/index');
 
 const adminRoutes = require('./admin/index')
 
@@ -52,6 +53,7 @@ const routes = {
     '/listings': listingsRoutes,
     '/session': SessionRoutes,
     '/ai': n8nRoutes,
+    '/leaderboard': preLaunchRoutes,
 };
 
 // --- Mount Routers with Middleware ---

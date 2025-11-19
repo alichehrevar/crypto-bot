@@ -14,6 +14,13 @@ const algorithmPromptSchema = new mongoose.Schema({
         index: true // Good to index this for fast lookups
     },
     /**
+     * The 'Algorithm title' text itself.
+     */
+    promptTitle: {
+        type: String,
+        required: [true, 'Algorithm prompt title is required']
+    },
+    /**
      * The 'Algorithm Prompt' text itself.
      */
     promptText: {
