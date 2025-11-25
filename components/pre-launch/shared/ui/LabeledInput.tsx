@@ -13,7 +13,7 @@ type BaseProps = {
 
 // 2. Wrap in forwardRef
 const LabeledInput = forwardRef<HTMLInputElement | HTMLTextAreaElement, BaseProps>(
-    ({ id, title, name, placeholder, type = 'text', error, className, ...props }, ref) => {
+    ({ id, title, name, placeholder, type = 'text', error, ...props }, ref) => {
 
         // Shared classes for both inputs
         const baseStyles = `
