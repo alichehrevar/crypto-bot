@@ -55,7 +55,6 @@ export default function JoinAlgosForm() {
         setFormLoading(true);
         try {
             const response: LeaderboardJoin = await sendRequest(data, '/leaderboard/join');
-            console.log(response)
 
             if (response.success) {
                 setStep(3)
