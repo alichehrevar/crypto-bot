@@ -7,9 +7,9 @@ const { Schema } = mongoose;
  * A single User can have MANY of these prompts.
  */
 const algorithmPromptSchema = new mongoose.Schema({
-    userId: {
+    AlgoTraderProfileId: {
         type: Schema.Types.ObjectId,
-        ref: 'User',
+        ref: 'AlgoTraderProfile',
         required: true,
         index: true // Good to index this for fast lookups
     },

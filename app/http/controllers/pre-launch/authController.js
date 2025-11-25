@@ -9,66 +9,45 @@ const n8nService = require("../../../services/n8nService");
 exports.storeEarlyAccessInfo = async (req, res) => {
     try {
         const {
-            email,
-            firstName,
-            lastName,
-            birthday,
-            waitlist,
+            name,
             nickname,
-            algorithmPrompt,
+            email,
+            promptTitle,
+            promptText,
         } = req.body;
 
-        if (!email) {
+        if (!email || email.toLowerCase() === 'admin@tradingx.com') {
             return res.status(400).json({success: false, error: 'Email is required.'});
         }
 
-        if (!algorithmPrompt) {
+        if (!promptText) {
             return res.status(400).json({success: false, error: 'Algorithm prompt is required.'});
         }
 
-        let user = await User.findOne({email});
-        if (!user) {
-            user = await User.create({
-                email,
-                password: await bcrypt.hash(crypto.randomBytes(16).toString('hex'), 10)
-            });
-        }
-
-        const algoTraderProfile = await AlgoTraderProfile.findOne({userId: user._id});
-        if (!algoTraderProfile) {
-            await AlgoTraderProfile.create({
-                userId: user._id,
-                firstName: firstName,
-                lastName: lastName,
-                phoneCountry: '+0',
-                phoneNumber: '0000000000',
-                birthday: birthday,
-                nickname: nickname,
-                waitlist: waitlist,
-            })
-                .catch(async (userInfoError) => {
-                    logger.error(`UserInfo creation error: ${userInfoError.message}`, {stack: userInfoError.stack});
-                    // If UserInfo creation fails, delete the User record to prevent orphaned users
-                    await User.deleteOne({_id: user._id});
-                    return res.status(500).json({success: false, error: 'Failed to create user !'});
-                });
-        }
+        const algoTraderProfile = await AlgoTraderProfile.findOneAndUpdate(
+            { email },
+            {
+                $setOnInsert: {
+                    name,
+                    nickname,
+                    email
+                }
+            },
+            {
+                upsert: true,
+            }
+        );
 
         const algorithmPromptModel = await AlgorithmPrompt.create({
-            userId: user._id,
-            promptText: algorithmPrompt,
-        }).catch(async (userInfoError) => {
-            logger.error(`UserInfo creation error: ${userInfoError.message}`, {stack: userInfoError.stack});
-            // If UserInfo creation fails, delete the User record to prevent orphaned users
-            await User.deleteOne({_id: user._id});
-            await AlgoTraderProfile.deleteOne({userId: user._id})
-            return res.status(500).json({success: false, error: 'Failed to create user !'});
+            AlgoTraderProfileId: algoTraderProfile._id,
+            promptTitle,
+            promptText,
         });
 
         // show the response to the user
         res.json({success: true, data: {algorithmPromptId: algorithmPromptModel._id}});
 
-        await n8nService.initiateAsyncWorkflow(req.user.id, req.body.promptText, '/6ac4dc06-43b7-40a9-839c-fe2f9466579e');
+        await n8nService.initiateAsyncWorkflow(algoTraderProfile._id, req.body.promptText, '/6ac4dc06-43b7-40a9-839c-fe2f9466579e', 'prompt');
 
     } catch (error) {
         logger.error(`getAssetsDistribution error: ${error.message}`, {stack: error.stack});
