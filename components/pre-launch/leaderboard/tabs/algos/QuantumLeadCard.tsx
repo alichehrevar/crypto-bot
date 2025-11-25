@@ -130,8 +130,9 @@ const QuantumLeadCard = ({ data }: QuantumLeadCardProps) => {
             {/* Dynamic Modal */}
             <DynamicModal
                 actionLabel="Save Changes"
-                direction="down"
+                direction="right"
                 isOpen={isOpen}
+                position="fixed"
                 showFooter={false}
                 size="lg"
                 onAction={() => setTimeout(() => setIsOpen(false), 200)}
