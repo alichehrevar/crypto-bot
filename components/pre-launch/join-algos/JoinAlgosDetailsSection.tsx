@@ -1,50 +1,72 @@
-import {useState} from "react";
+import React from "react";
+import { UseFormRegister, FieldErrors } from "react-hook-form";
 
 import LabeledInput from "@/components/pre-launch/shared/ui/LabeledInput";
-import {ArrowRight} from "@/utils/icons";
+import { ArrowRight } from "@/utils/icons";
 
-export default function JoinAlgosDetailsSection ({onProcess}: {onProcess: () => void}) {
+// Ideally, import this type from a shared types file
+type FormValues = {
+    promptTitle: string;
+    promptText: string;
+    name: string;
+    nickname: string;
+    email: string;
+    avatar: string;
+    agreement: boolean;
+};
 
-    const [algorithmName, setAlgorithmName] = useState<string>('');
-    const [algorithmPrompt, setAlgorithmPrompt] = useState<string>('');
+interface JoinAlgosDetailsSectionProps {
+    onProcess: () => void;
+    register: UseFormRegister<FormValues>;
+    errors: FieldErrors<FormValues>;
+    isValid: boolean;
+}
 
-    const isButtonDisabled = !algorithmName || !algorithmPrompt;
-
-    const handleProcess = () => {
-        if (!isButtonDisabled) {
-            onProcess()
-        }
-    }
+export default function JoinAlgosDetailsSection({
+    onProcess,
+    register,
+    errors,
+    isValid
+}: JoinAlgosDetailsSectionProps) {
 
     return (
         <>
-            <h3 className="block text-[#030303] font-semibold text-2xl text-center pb-6">Enter your algorithm information</h3>
+            <h3 className="block text-[#030303] font-semibold text-2xl text-center pb-6">
+                Enter your algorithm information
+            </h3>
+
             <LabeledInput
                 id="name"
-                name="prompt-title"
+                {...register("promptTitle", { required: "Algorithm name is required" })}
+                error={errors.promptTitle?.message}
                 placeholder="Enter your algorithm name"
                 title="Algorithm name"
-                value={algorithmName}
-                onChange={(e) => setAlgorithmName(e.target.value)}
             />
+
             <LabeledInput
-                id="propmt"
-                name="propmt-text"
+                id="prompt"
+                type="textarea"
+                {...register("promptText", {
+                    required: "Prompt is required",
+                    minLength: {
+                        value: 20,
+                        message: "Prompt must be at least 20 characters"
+                    }
+                })}
+                error={errors.promptText?.message}
                 placeholder="Write your algorithm..."
                 title="Algorithm prompt"
-                type="textarea"
-                value={algorithmPrompt}
-                onChange={(e) => setAlgorithmPrompt(e.target.value)}
             />
+
             <button
-                className={`flex items-center justify-center gap-2 ${isButtonDisabled ? 'text-[#98979A] bg-[#E3E3E4]' : 'bg-[#030303] text-white'} rounded-3xl w-full h-[48px] text-sm`}
-                disabled={isButtonDisabled}
+                className={`flex items-center justify-center gap-2 ${!isValid ? 'text-[#98979A] bg-[#E3E3E4]' : 'bg-[#030303] text-white'} rounded-3xl w-full h-[48px] text-sm transition-colors`}
+                disabled={!isValid}
                 type="button"
-                onClick={handleProcess}
+                onClick={onProcess}
             >
                 <span>Continue</span>
                 <ArrowRight className="size-4 stroke-2" />
             </button>
         </>
-    )
+    );
 }

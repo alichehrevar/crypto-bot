@@ -1,49 +1,63 @@
-import React from "react";
+import React, { forwardRef, InputHTMLAttributes } from "react";
 
-interface CustomCheckboxProps {
-    id: string;
-    checked: boolean;
-    onChange: (checked: boolean) => void;
+// 1. We remove 'onChange' from the native types, then re-add it manually
+// so we can control exactly what it looks like (standard React event).
+interface CustomCheckboxProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'onChange'> {
     label?: string;
-    disabled?: boolean;
-    className?: string;
+    onCheckedChange?: (checked: boolean) => void;
+    // Fix: Explicitly allow the standard onChange event
+    onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
-// --- Component ---
+const CustomCheckbox = forwardRef<HTMLInputElement, CustomCheckboxProps>(({
+  id,
+  checked = false,
+  onCheckedChange,
+  label,
+  disabled = false,
+  className = '',
+  onChange,
+  ...props
+}, ref) => {
 
-const CustomCheckbox: React.FC<CustomCheckboxProps> = ({
-   id,
-   checked,
-   onChange,
-   label,
-   disabled = false,
-   className = '',
-}) => {
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        // 1. Handle our custom boolean logic (for RHF Controller)
+        if (onCheckedChange) {
+            onCheckedChange(e.target.checked);
+        }
+
+        // 2. Handle the standard event (if passed)
+        // This line is now valid because we added it to the Interface above
+        if (onChange) {
+            onChange(e);
+        }
+    };
+
     return (
         <label className={`group flex items-center gap-3 cursor-pointer select-none w-fit ${disabled ? 'opacity-50 cursor-not-allowed' : ''} ${className}`}>
             <div className="relative">
-                {/* Hidden Native Checkbox for Accessibility */}
                 <input
+                    ref={ref}
                     checked={checked}
                     className="sr-only"
                     disabled={disabled}
                     id={id}
                     type="checkbox"
-                    onChange={(e) => onChange(e.target.checked)}
+                    onChange={handleChange}
+                    {...props}
                 />
 
-                {/* Custom Checkbox Visual */}
+                {/* Visual Representation */}
                 <div
                     className={`
                         w-5 h-5 rounded-md flex items-center justify-center transition-all duration-200 ease-out
                         border-1.5 
                         ${checked
-                            ? 'bg-zinc-900 border-zinc-900'
-                            : 'bg-transparent border-zinc-800 hover:border-zinc-600'
-                        }
+                        ? 'bg-zinc-900 border-zinc-900'
+                        : 'bg-transparent border-zinc-800 hover:border-zinc-600'
+                    }
                     `}
                 >
-                    {/* Checkmark Icon */}
                     <svg
                         className={`
                             w-4 h-4 text-white stroke-[4] transition-all duration-200
@@ -60,7 +74,6 @@ const CustomCheckbox: React.FC<CustomCheckboxProps> = ({
                 </div>
             </div>
 
-            {/* Label Text */}
             {label && (
                 <span className={`text-zinc-800 font-medium ${checked ? '' : 'text-zinc-600'}`}>
                     {label}
@@ -68,6 +81,8 @@ const CustomCheckbox: React.FC<CustomCheckboxProps> = ({
             )}
         </label>
     );
-};
+});
+
+CustomCheckbox.displayName = "CustomCheckbox";
 
 export default CustomCheckbox;

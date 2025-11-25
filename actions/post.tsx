@@ -1,7 +1,7 @@
 'use server';
 import { cookies } from "next/headers";
 
-export async function sendRequest(body: { [p: string]: File | string } | FormData, url: string) {
+export async function sendRequest(body: { [p: string]: File | string | boolean | number | null } | FormData, url: string) {
     const nextCookies = await cookies();
 
     try {

@@ -1,11 +1,15 @@
 'use client'
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useForm, SubmitHandler } from "react-hook-form";
+import {addToast} from "@heroui/react";
 
 import JoinAlgosDetailsSection from "@/components/pre-launch/join-algos/JoinAlgosDetailsSection";
 import JoinAlgosInformationSection from "@/components/pre-launch/join-algos/JoinAlgosInformationSection";
 import SuccessfulSubmission from "@/components/pre-launch/join-algos/SuccesssfulSubmission";
+import {sendRequest} from "@/actions/post";
+import {LeaderboardJoin} from "@/types/preLaunch/Leaderboard";
 
 // Animation configuration
 const formVariants = {
@@ -14,11 +18,65 @@ const formVariants = {
     exit: { opacity: 0, x: -10 }
 };
 
+type FormValues = {
+    promptTitle: string;
+    promptText: string;
+    name: string;
+    nickname: string;
+    email: string;
+    avatar: string;
+    agreement: boolean;
+};
+
 export default function JoinAlgosForm() {
+
     const [step, setStep] = useState(1);
+    const [formLoading, setFormLoading] = useState<boolean>(false)
+
+    const {
+        register,
+        handleSubmit,
+        setValue,
+        control,
+        formState: { errors, isValid }
+    } = useForm<FormValues>({
+        mode: "onChange",
+        defaultValues: {
+            promptTitle: '',
+            promptText: '',
+            name: '',
+            nickname: '',
+            email: '',
+            agreement: false
+        }
+    });
+
+    const onSubmit: SubmitHandler<FormValues> = async (data) => {
+        setFormLoading(true);
+        try {
+            const response: LeaderboardJoin = await sendRequest(data, '/leaderboard/join');
+            console.log(response)
+
+            if (response.success) {
+                setStep(3)
+            } else {
+                addToast({
+                    title: response.error,
+                    color: 'danger'
+                })
+            }
+        } catch {
+            addToast({
+                title: 'Something went wrong',
+                color: 'danger'
+            })
+        } finally {
+            setFormLoading(false);
+        }
+    };
 
     return (
-        <form className="w-full max-w-[500px] space-y-5 pb-10">
+        <form className="w-full max-w-[500px] space-y-5 pb-10" onSubmit={handleSubmit(onSubmit)}>
             {/* --- Stepper Header --- */}
             {step !== 3 &&
                 <div className="flex items-center justify-center mb-6">
@@ -57,7 +115,12 @@ export default function JoinAlgosForm() {
                         transition={{ duration: 0.25, ease: "easeInOut" }}
                         variants={formVariants}
                     >
-                        <JoinAlgosDetailsSection onProcess={() => setStep(2)} />
+                        <JoinAlgosDetailsSection
+                            errors={errors}
+                            isValid={isValid}
+                            register={register}
+                            onProcess={() => setStep(2)}
+                        />
                     </motion.div>
                 )}
 
@@ -73,7 +136,12 @@ export default function JoinAlgosForm() {
                     >
                         <JoinAlgosInformationSection
                             backToPrev={() => setStep(1)}
-                            onProcess={() => setStep(3)}
+                            control={control}
+                            errors={errors}
+                            isLoading={formLoading}
+                            isValid={isValid}
+                            register={register}
+                            setValue={setValue}
                         />
                     </motion.div>
                 )}
