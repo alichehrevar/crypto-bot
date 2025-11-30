@@ -187,17 +187,6 @@ export default function CryptoChart() {
 
     // Select Logic
     const traderOptions = ["All", ...TRADERS.map(t => t.name)];
-    const currentSelectValue = selectedTrader ? selectedTrader.name : "All";
-
-    const handleSelectChange = (val: string) => {
-        if (val === "All") {
-            setSelectedTraderId(null);
-        } else {
-            const t = TRADERS.find(tr => tr.name === val);
-
-            if (t) setSelectedTraderId(t.id);
-        }
-    };
 
     return (
         <div className="text-gray-300 font-sans flex flex-col items-center">
@@ -302,7 +291,7 @@ export default function CryptoChart() {
                                 const endY = CHART_HEIGHT - (lastPoint.value / Y_AXIS_MAX) * CHART_HEIGHT;
 
                                 return (
-                                    <g key={trader.id} className="transition-all duration-500 ease-in-out">
+                                    <g key={index} className="transition-all duration-500 ease-in-out">
                                         {isFocused && (
                                             <path d={areaPath} fill={`url(#grad-${trader.id})`} />
                                         )}
