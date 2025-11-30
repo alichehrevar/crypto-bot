@@ -12,7 +12,7 @@ const TradingStrategy = ({
                          }: TradingStrategyProps) => {
     return (
         <div className="bg-black text-white flex flex-col items-center justify-center">
-            <div className="w-full max-w-md">
+            <div className="w-full">
 
                 {/* Card Container */}
                 <div className="bg-[#0a0a0a] border border-zinc-800 rounded-2xl p-6">

@@ -52,7 +52,7 @@ const RoiChartCard: React.FC<RoiChartCardProps> = ({
     const yTicks = [0, 25, 50, 75, 100];
 
     return (
-        <div className="w-full rounded-2xl border border-slate-800 bg-slate-900/60 p-4 shadow-md backdrop-blur">
+        <div className="w-full rounded-2xl bg-[#0a0a0a] border border-zinc-800 p-4 shadow-md backdrop-blur">
             {/* Header */}
             <div className="mb-3 flex items-center justify-between">
                 <div className="flex flex-col gap-1">
@@ -92,13 +92,13 @@ const RoiChartCard: React.FC<RoiChartCardProps> = ({
                         .map((v) => (
                             <div key={v} className="flex items-center gap-1">
                                 <span>{v}</span>
-                                <span className="h-px flex-1 bg-slate-700/40" />
+                                <span className="h-px flex-1 bg-[#0a0a0a]" />
                             </div>
                         ))}
                 </div>
 
                 {/* SVG chart */}
-                <div className="relative flex-1 overflow-hidden rounded-xl bg-slate-900/80 px-2 py-1">
+                <div className="relative flex-1 overflow-hidden rounded-xl bg-[#0a0a0a] px-2 py-1">
                     {/* SVG from DB */}
                     <div
                         // SVG string straight from MongoDB (fullBalanceSketch)
