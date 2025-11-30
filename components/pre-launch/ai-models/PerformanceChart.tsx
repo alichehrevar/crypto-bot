@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Play, Activity, Bot, Sparkles, Zap, MessageSquare, Box } from 'lucide-react';
+import { Activity, Bot, Sparkles, Zap, MessageSquare, Box } from 'lucide-react';
 
 // --- Types ---
 type MetricType = 'returns' | 'equity' | 'win_rate';
@@ -199,7 +199,7 @@ export default function PerformanceChart() {
                     {/* Y-Axis Grid Lines & Labels */}
                     <div className="absolute inset-0 flex flex-col justify-between pointer-events-none">
                         {currentConfig.yAxisSteps.map((step, index) => (
-                            <div key={step} className="relative w-full flex items-center group">
+                            <div key={index} className="relative w-full flex items-center group">
                                 {/* Y-Axis Label */}
                                 <span className="absolute -left-10 text-xs text-zinc-500 font-mono w-8 text-right">
                                     {step === 0 && activeMetric === 'returns' ? '' : step}

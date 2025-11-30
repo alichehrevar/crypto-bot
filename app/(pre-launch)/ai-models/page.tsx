@@ -5,7 +5,6 @@ import {AnimatePresence, motion} from "framer-motion";
 
 import LiveArenaContent from "@/components/pre-launch/leaderboard/tabs/live-arena/LiveArenaContent";
 import TitleTabs from "@/components/pre-launch/shared/TitleTabs";
-import PerformanceChart from "@/components/pre-launch/ai-models/PerformanceChart";
 import AILeaderboardContent from "@/components/pre-launch/ai-models/LeaderboardContent";
 
 const formVariants = {
