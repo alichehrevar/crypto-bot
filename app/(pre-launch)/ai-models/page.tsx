@@ -3,9 +3,10 @@
 import React, {useState} from "react";
 import {AnimatePresence, motion} from "framer-motion";
 
-import LeaderboardAlgosTab from "@/components/pre-launch/leaderboard/tabs/algos/LeaderboardAlgosTab";
 import LiveArenaContent from "@/components/pre-launch/leaderboard/tabs/live-arena/LiveArenaContent";
 import TitleTabs from "@/components/pre-launch/shared/TitleTabs";
+import PerformanceChart from "@/components/pre-launch/ai-models/PerformanceChart";
+import AILeaderboardContent from "@/components/pre-launch/ai-models/LeaderboardContent";
 
 const formVariants = {
     hidden: { opacity: 0, y: 10 },
@@ -13,7 +14,7 @@ const formVariants = {
     exit: { opacity: 0, y: -10 }
 };
 
-export default function LeaderboardContent () {
+export default function AIModelsPage () {
 
     const [type, setType] = useState<'Algos' | 'Live Arena'>('Algos')
 
@@ -36,7 +37,7 @@ export default function LeaderboardContent () {
                             transition={{ duration: 0.25, ease: "easeInOut" }}
                             variants={formVariants}
                         >
-                            <LeaderboardAlgosTab />
+                            <AILeaderboardContent />
                         </motion.div>
                     </AnimatePresence>
                 )}
