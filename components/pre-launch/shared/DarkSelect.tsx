@@ -5,11 +5,10 @@ import Link from "next/link";
 // 1. Import motion and AnimatePresence
 import { motion, AnimatePresence } from 'framer-motion';
 
-import {daysOptions} from "@/utils/prelaunch/prelaunchItems";
-
 // Interface for the component props
 interface DarkSelectProps {
     title?: string; // Optional title for the mobile modal
+    daysOptions: string[]
 }
 
 // SVG Chevron Icon
@@ -30,7 +29,7 @@ const ChevronDownIcon: React.FC<{ className?: string }> = ({ className = "w-5 h-
 );
 
 // The Select Component
-const DarkSelect: React.FC<DarkSelectProps> = ({title = "Sort by"}) => {
+const DarkSelect: React.FC<DarkSelectProps> = ({title = "Sort by", daysOptions}) => {
     const [isOpen, setIsOpen] = useState(false);
     const [selectedOption, setSelectedOption] = useState(daysOptions[0]);
     const dropdownRef = useRef<HTMLDivElement>(null);

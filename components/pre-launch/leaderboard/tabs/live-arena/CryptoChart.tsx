@@ -1,6 +1,8 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import Image from "next/image";
 
+import DarkSelect from "@/components/pre-launch/shared/DarkSelect";
+
 // --- Types ---
 
 interface DataPoint {
@@ -20,13 +22,6 @@ interface Trader {
 // --- Mock Data ---
 
 const DATES = ["5 oct", "10 oct", "15 oct", "20 oct", "25 oct", "30 oct"];
-
-const generateData = (base: number, volatility: number): DataPoint[] => {
-    return DATES.map((date, i) => ({
-        date,
-        value: base + Math.sin(i * 0.8) * volatility + (i * (volatility * 0.5)) + (Math.random() * 1000 - 500)
-    }));
-};
 
 const TRADERS: Trader[] = [
     {
@@ -108,13 +103,8 @@ const TRADERS: Trader[] = [
 
 // --- Helpers ---
 
-// Simple smoothing function for SVG path (Catmull-Rom spline conversion to cubic bezier is complex,
-// using a simpler L (Line) for strict accuracy or basic curve smoothing could work.
-// For this visual style, standard lines with slight smoothing or straight lines are acceptable.
-// The screenshots show straight lines between points.
 const getSvgPath = (data: DataPoint[], width: number, height: number, maxVal: number) => {
     const stepX = width / (data.length - 1);
-
     const points = data.map((d, i) => {
         const x = i * stepX;
         const y = height - (d.value / maxVal) * height;
@@ -131,7 +121,7 @@ const getAreaPath = (data: DataPoint[], width: number, height: number, maxVal: n
     return `${linePath} L ${width},${height} L 0,${height} Z`;
 };
 
-// --- Components ---
+// --- Main Component ---
 
 export default function CryptoChart() {
     const [selectedTraderId, setSelectedTraderId] = useState<string | null>(null);
@@ -145,14 +135,12 @@ export default function CryptoChart() {
 
     const displayTraders = selectedTrader ? [selectedTrader] : TRADERS;
 
-    // Chart dimensions config
+    // Chart config
     const CHART_HEIGHT = 400;
     const Y_AXIS_MAX = 25000;
-
-    // Layout Constants
     const VIEWBOX_WIDTH = 1000;
-    const RIGHT_MARGIN = 160; // Space for the badges
-    const CHART_WIDTH = VIEWBOX_WIDTH - RIGHT_MARGIN; // The actual width of the line graph
+    const RIGHT_MARGIN = 160;
+    const CHART_WIDTH = VIEWBOX_WIDTH - RIGHT_MARGIN;
 
     useEffect(() => {
         const updateRect = () => {
@@ -171,11 +159,9 @@ export default function CryptoChart() {
         if (!chartRef.current) return;
         const rect = chartRef.current.getBoundingClientRect();
         const x = e.clientX - rect.left;
-        // Map the mouse X (which is relative to the full container width)
-        // to the SVG coordinate space (0-1000)
         const svgX = (x / rect.width) * VIEWBOX_WIDTH;
 
-        setHoverX(Math.max(0, Math.min(svgX, CHART_WIDTH))); // Clamp to chart area
+        setHoverX(Math.max(0, Math.min(svgX, CHART_WIDTH)));
     };
 
     const handleMouseLeave = () => {
@@ -191,12 +177,25 @@ export default function CryptoChart() {
 
     const hoverIndex = getHoverDataIndex();
 
-    // Handlers
     const toggleTrader = (id: string) => {
         if (selectedTraderId === id) {
-            setSelectedTraderId(null); // Deselect if already active
+            setSelectedTraderId(null);
         } else {
             setSelectedTraderId(id);
+        }
+    };
+
+    // Select Logic
+    const traderOptions = ["All", ...TRADERS.map(t => t.name)];
+    const currentSelectValue = selectedTrader ? selectedTrader.name : "All";
+
+    const handleSelectChange = (val: string) => {
+        if (val === "All") {
+            setSelectedTraderId(null);
+        } else {
+            const t = TRADERS.find(tr => tr.name === val);
+
+            if (t) setSelectedTraderId(t.id);
         }
     };
 
@@ -207,54 +206,64 @@ export default function CryptoChart() {
             <div className="w-full border border-[#4A4A4A] rounded-2xl bg-[#121212] p-6 shadow-2xl relative overflow-hidden">
 
                 {/* Header Controls */}
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-                    <div className="flex flex-wrap items-center gap-2">
-                        <button
-                            className={`px-4 py-1.5 rounded-xl text-sm font-medium transition-all duration-200 ${
-                                selectedTraderId === null
-                                    ? 'bg-[#F2F3F733] text-white shadow-lg'
-                                    : 'text-gray-500 hover:text-gray-300 hover:bg-gray-800'
-                            }`}
-                            onClick={() => setSelectedTraderId(null)}
-                        >
-                            All
-                        </button>
-                        {TRADERS.map(trader => (
+                <div className="flex flex-row justify-between items-center mb-8 gap-4">
+
+                    <div className="w-auto">
+                        {/* Mobile Select */}
+                        <div className="md:hidden w-full">
+                            <DarkSelect
+                                daysOptions={traderOptions}
+                            />
+                        </div>
+
+                        {/* Desktop Tabs */}
+                        <div className="hidden md:flex flex-wrap items-center gap-2">
                             <button
-                                key={trader.id}
                                 className={`px-4 py-1.5 rounded-xl text-sm font-medium transition-all duration-200 ${
-                                    selectedTraderId === trader.id
+                                    selectedTraderId === null
                                         ? 'bg-[#F2F3F733] text-white shadow-lg'
                                         : 'text-gray-500 hover:text-gray-300 hover:bg-gray-800'
                                 }`}
-                                onClick={() => toggleTrader(trader.id)}
+                                onClick={() => setSelectedTraderId(null)}
                             >
-                                {trader.name}
+                                All
                             </button>
-                        ))}
+                            {TRADERS.map(trader => (
+                                <button
+                                    key={trader.id}
+                                    className={`px-4 py-1.5 rounded-xl text-sm font-medium transition-all duration-200 ${
+                                        selectedTraderId === trader.id
+                                            ? 'bg-[#F2F3F733] text-white shadow-lg'
+                                            : 'text-gray-500 hover:text-gray-300 hover:bg-gray-800'
+                                    }`}
+                                    onClick={() => toggleTrader(trader.id)}
+                                >
+                                    {trader.name}
+                                </button>
+                            ))}
+                        </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
-                        <span className="text-xs font-semibold text-gray-500 uppercase">View:</span>
-                        <div className="flex bg-gray-800 rounded-lg p-1">
-                            <button className="px-3 py-1 rounded-md text-xs text-gray-400 hover:text-white">All</button>
-                            <button className="px-3 py-1 rounded-md text-xs bg-gray-600 text-white shadow">72H</button>
+                    <div className="flex items-center gap-2 self-end md:self-auto">
+                        <div className="flex">
+                            <button className="px-3 py-1.5 rounded-md text-xs text-gray-400 hover:text-white">All</button>
+                            <button className="px-3 py-1.5 rounded-md text-xs bg-[#F2F3F733] text-white shadow">72H</button>
                         </div>
                     </div>
                 </div>
 
                 {/* Chart Area */}
-                <div className="relative w-full h-[450px] pl-12 pr-4">
+                <div className="relative w-full h-[300px] md:h-[450px] pl-8 md:pl-12 pr-2 md:pr-4">
 
                     {/* Y Axis Labels */}
-                    <div className="absolute left-0 top-0 bottom-8 flex flex-col justify-between text-xs text-gray-500 font-mono pointer-events-none">
+                    <div className="absolute left-0 top-0 bottom-8 flex flex-col justify-between text-[10px] md:text-xs text-gray-500 font-mono pointer-events-none">
                         {[25000, 20000, 15000, 10000, 5000, 0].map((val) => (
                             <span key={val}>${val.toLocaleString()}</span>
                         ))}
                     </div>
 
                     {/* Grid Lines */}
-                    <div className="absolute left-12 right-4 top-2 bottom-8 flex flex-col justify-between pointer-events-none">
+                    <div className="absolute left-8 md:left-12 right-2 md:right-4 top-2 bottom-8 flex flex-col justify-between pointer-events-none">
                         {[0, 1, 2, 3, 4, 5].map((i) => (
                             <div key={i} className="w-full border-b border-dashed border-gray-800 h-0" />
                         ))}
@@ -263,7 +272,7 @@ export default function CryptoChart() {
                     {/* Chart SVG Layer */}
                     <div
                         ref={chartRef}
-                        className="absolute left-12 right-4 top-2 bottom-8 cursor-crosshair z-10"
+                        className="absolute left-8 md:left-12 right-2 md:right-4 top-2 bottom-8 cursor-crosshair z-10"
                         onMouseLeave={handleMouseLeave}
                         onMouseMove={handleMouseMove}
                     >
@@ -275,7 +284,6 @@ export default function CryptoChart() {
                             width="100%"
                         >
                             <defs>
-                                {/* Gradients for Single View */}
                                 {TRADERS.map(t => (
                                     <linearGradient key={t.id} id={`grad-${t.id}`} x1="0" x2="0" y1="0" y2="1">
                                         <stop offset="0%" stopColor={t.color} stopOpacity="0.25" />
@@ -286,24 +294,19 @@ export default function CryptoChart() {
 
                             {displayTraders.map((trader, index) => {
                                 const isFocused = selectedTraderId === trader.id;
-
-                                // Use CHART_WIDTH (840) instead of full 1000 so we have space at the end
                                 const path = getSvgPath(trader.data, CHART_WIDTH, CHART_HEIGHT, Y_AXIS_MAX);
                                 const areaPath = getAreaPath(trader.data, CHART_WIDTH, CHART_HEIGHT, Y_AXIS_MAX);
 
-                                // End Point Logic for Avatar
                                 const lastPoint = trader.data[trader.data.length - 1];
-                                const endX = CHART_WIDTH; // The end of the line is now at the restricted width
+                                const endX = CHART_WIDTH;
                                 const endY = CHART_HEIGHT - (lastPoint.value / Y_AXIS_MAX) * CHART_HEIGHT;
 
                                 return (
                                     <g key={trader.id} className="transition-all duration-500 ease-in-out">
-                                        {/* Area Fill - Only if Single View */}
                                         {isFocused && (
                                             <path d={areaPath} fill={`url(#grad-${trader.id})`} />
                                         )}
 
-                                        {/* Line */}
                                         <path
                                             className="drop-shadow-md"
                                             d={path}
@@ -314,20 +317,18 @@ export default function CryptoChart() {
                                             strokeWidth={isFocused ? 3 : 2}
                                         />
 
-                                        {/* End Point Avatar & Badge */}
                                         <g transform={`translate(${endX}, ${endY})`}>
                                             <circle fill={trader.color} r="4" />
-                                            {/* Avatar Circle - positioned to the right */}
                                             <foreignObject className="overflow-visible" height="34" width="140" x="10" y="-15">
                                                 <div className="flex items-center gap-2 transition-transform hover:scale-110 origin-left">
                                                     <div
-                                                        className="w-7 h-7 relative rounded-full flex items-center justify-center text-[10px] font-bold text-white shadow-sm border border-white/20 z-10"
+                                                        className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold text-white shadow-sm border border-white/20 z-10 overflow-hidden relative"
                                                         style={{ backgroundColor: trader.color }}
                                                     >
                                                         {['Q', 'Q9', 'T9', 'SL', 'T2'].includes(trader.avatar) ? (
                                                             <span>{trader.avatar}</span>
                                                         ) : (
-                                                            <Image fill alt={trader.name} className="w-full h-full rounded-full object-cover" src={trader.avatar} />
+                                                            <Image fill alt={trader.name} className="w-full h-full object-cover" src={trader.avatar} />
                                                         )}
                                                     </div>
                                                     <div
@@ -343,7 +344,6 @@ export default function CryptoChart() {
                                 );
                             })}
 
-                            {/* Hover Line */}
                             {hoverX !== null && (
                                 <line
                                     stroke="#4b5563"
@@ -361,8 +361,7 @@ export default function CryptoChart() {
                         {/* Tooltip Overlay */}
                         {hoverX !== null && hoverIndex !== -1 && hoverIndex < DATES.length && (
                             <div
-                                className="absolute top-10 pointer-events-none bg-[#1a1a1a]/90 backdrop-blur-md border border-gray-700 rounded-lg p-3 shadow-2xl z-50 text-xs min-w-[160px]"
-                                // Adjust left position calculation to map svgX back to DOM percentage
+                                className="absolute top-10 pointer-events-none bg-[#1a1a1a]/90 backdrop-blur-md border border-gray-700 rounded-lg p-3 shadow-2xl z-50 text-xs min-w-[140px] md:min-w-[160px]"
                                 style={{
                                     left: `${(hoverX / VIEWBOX_WIDTH) * 100}%`,
                                     transform: 'translateX(10px)'
@@ -387,11 +386,11 @@ export default function CryptoChart() {
                         )}
                     </div>
 
-                    {/* X Axis Labels - Constrained to Chart Width */}
+                    {/* X Axis Labels */}
                     <div
-                        className="absolute left-12 bottom-0 flex justify-between text-xs text-gray-500 font-medium pt-4"
+                        className="absolute left-8 md:left-12 bottom-0 flex justify-between text-[10px] md:text-xs text-gray-500 font-medium pt-4"
                         style={{
-                            right: `calc(1rem + ${(RIGHT_MARGIN / VIEWBOX_WIDTH) * 100}%)`
+                            right: `calc(0.5rem + ${(RIGHT_MARGIN / VIEWBOX_WIDTH) * 100}%)`
                         }}
                     >
                         {DATES.map((date) => (
@@ -401,8 +400,8 @@ export default function CryptoChart() {
                 </div>
 
                 {/* Legend / Status Bar */}
-                <div className="mt-12 flex flex-col items-center gap-6">
-                    <div className="flex flex-wrap justify-center gap-6">
+                <div className="mt-8 md:mt-12 flex flex-col items-center gap-6">
+                    <div className="hidden md:flex flex-wrap justify-center gap-6">
                         {TRADERS.map(trader => (
                             <button
                                 key={trader.id}
