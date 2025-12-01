@@ -2,12 +2,11 @@ const mongoose = require('mongoose');
 const { GridFSBucket } = require('mongodb');
 const { Readable } = require('stream');
 
-// Import connections and models
 const customAiDbConnection = require('../../config/customAiDb');
 const { N8nWorkflowJob_CustomAiDB, CustomAIWorkflowJob_DefaultDB } = require('../models/N8nWorkflowJob');
 const { CustomAIJobResponse_DefaultDB } = require('../models/N8nJobResponse');
 
-// --- Helpers (Same as before) ---
+// --- Helpers ---
 function stringToStream(string) {
     const stream = new Readable();
     stream.push(string);
@@ -33,23 +32,42 @@ async function uploadToGridFS(content, filename) {
     });
 }
 
-// --- POLLING LOGIC ---
+// --- DEBUG POLLING SERVICE ---
 
-// How often to check for new data (in milliseconds)
 const POLL_INTERVAL = 5000;
 let isPolling = false;
 
 async function startN8nListener() {
-    console.log('📡 [N8n Polling] Service started. Checking every 5 seconds...');
+    console.log('🔵 [N8n Debug] startN8nListener() called.');
+    console.log(`🔵 [N8n Debug] Custom DB State: ${customAiDbConnection.readyState} (0=D/C, 1=Conn, 2=Conn-ing)`);
 
-    // Ensure DB is connected
+    // 1. Force wait for connection if not ready
     if (customAiDbConnection.readyState !== 1) {
+        console.log('⏳ [N8n Debug] Waiting for Custom DB to open...');
         await new Promise(resolve => customAiDbConnection.once('open', resolve));
+        console.log('✅ [N8n Debug] Custom DB Connected!');
     }
 
-    // Start the interval loop
+    // 2. DEBUG: Check which collection Mongoose is actually using
+    const collectionName = N8nWorkflowJob_CustomAiDB.collection.name;
+    console.log(`🔎 [N8n Debug] Mongoose is querying collection: "${collectionName}"`);
+
+    // 3. DEBUG: Check total count in that collection (ignoring status)
+    try {
+        const totalCount = await N8nWorkflowJob_CustomAiDB.countDocuments({});
+        console.log(`📊 [N8n Debug] Total documents in "${collectionName}": ${totalCount}`);
+
+        if (totalCount === 0) {
+            console.warn('⚠️ [N8n Debug] Collection is empty! Check if n8n is writing to a different collection name.');
+        }
+    } catch (err) {
+        console.error('❌ [N8n Debug] Error counting docs:', err);
+    }
+
+    console.log('🟢 [N8n Debug] Starting Interval Loop...');
+
     setInterval(async () => {
-        if (isPolling) return; // Prevent overlapping runs if processing takes > 5s
+        if (isPolling) return;
         isPolling = true;
         await checkNewJobs();
         isPolling = false;
@@ -58,62 +76,59 @@ async function startN8nListener() {
 
 async function checkNewJobs() {
     try {
-        // 1. Find all jobs with status 'pending'
-        // We limit to 5 at a time to prevent memory spikes if there's a backlog
+        // Query for 'pending' jobs
         const pendingJobs = await N8nWorkflowJob_CustomAiDB.find({ status: 'pending' })
-            .sort({ createdAt: 1 }) // Process oldest first
+            .sort({ createdAt: 1 })
             .limit(5);
 
-        if (pendingJobs.length === 0) return;
-
-        console.log(`⚡ [N8n Polling] Found ${pendingJobs.length} new pending jobs.`);
-
-        for (const job of pendingJobs) {
-            await processJob(job);
+        // Silent log if empty (to avoid spamming), but log if found
+        if (pendingJobs.length > 0) {
+            console.log(`⚡ [N8n Debug] Found ${pendingJobs.length} PENDING jobs.`);
+            for (const job of pendingJobs) {
+                await processJob(job);
+            }
         }
 
     } catch (err) {
-        console.error('❌ [N8n Polling] Error checking jobs:', err);
+        console.error('❌ [N8n Debug] Error in polling loop:', err);
     }
 }
 
 async function processJob(n8nRecord) {
-    console.log(`⚙️ Processing Job: ${n8nRecord._id}`);
+    console.log(`⚙️ [N8n Debug] Processing Record ID: ${n8nRecord._id}`);
 
-    // Mark as 'processing' instantly so we don't pick it up again in the next poll
+    // Update status immediately
     n8nRecord.status = 'processing';
     await n8nRecord.save();
 
     try {
         const data = n8nRecord.response;
 
-        // If data is missing or empty, mark failed
         if (!data || !data.requestID) {
-            console.warn(`⚠️ Job ${n8nRecord._id} has no valid response data.`);
+            console.warn(`⚠️ [N8n Debug] Record ${n8nRecord._id} missing 'response.requestID'.`);
             n8nRecord.status = 'failed';
             n8nRecord.error = 'Missing response payload';
             await n8nRecord.save();
             return;
         }
 
-        // --- 1. Find or Sync Parent Job ---
-        // (Assuming you want to find a matching job in Main DB)
+        // Locate Parent Job
         let parentJob = await CustomAIWorkflowJob_DefaultDB.findOne({ _id: n8nRecord._id });
 
         if (!parentJob) {
-            console.warn(`⚠️ Parent Job not found in Main DB. Skipping sync for ${n8nRecord._id}`);
-            // We still mark n8n record as completed so we don't loop forever
+            console.warn(`⚠️ [N8n Debug] Parent Job not found in Main DB (ID: ${n8nRecord._id}). Marking completed anyway.`);
             n8nRecord.status = 'completed';
-            n8nRecord.error = 'Parent Job not found in DefaultDB';
+            n8nRecord.error = 'Parent Job not found';
             await n8nRecord.save();
             return;
         }
 
-        // --- 2. Upload Files ---
+        // Uploads
+        console.log(`📤 [N8n Debug] Uploading files for ${data.requestID}...`);
         const codeFileId = await uploadToGridFS(data.generatedCode?.code, `code-${data.requestID}.js`);
         const svgFileId = await uploadToGridFS(cleanSvgString(data.backtest?.balanceSketch), `balance-${data.requestID}.svg`);
 
-        // --- 3. Parse JSON strings ---
+        // Parse Logic
         let tradeLog = [];
         if (typeof data.backtest?.tradeLog === 'string') {
             try { tradeLog = JSON.parse(data.backtest.tradeLog); } catch(e) {}
@@ -121,7 +136,7 @@ async function processJob(n8nRecord) {
             tradeLog = data.backtest?.tradeLog || [];
         }
 
-        // --- 4. Create Response in Main DB ---
+        // Save Response
         const newResponse = new CustomAIJobResponse_DefaultDB({
             jobId: parentJob._id,
             status: data.status,
@@ -144,22 +159,17 @@ async function processJob(n8nRecord) {
 
         const savedResponse = await newResponse.save();
 
-        // --- 5. Finalize Parent & N8n Record ---
-
-        // Update Main DB Job
         parentJob.status = 'completed';
         parentJob.response = savedResponse._id;
         await parentJob.save();
 
-        // Update N8n DB Job
         n8nRecord.status = 'completed';
         await n8nRecord.save();
 
-        console.log(`✅ Job ${n8nRecord._id} synced successfully.`);
+        console.log(`✅ [N8n Debug] Job ${n8nRecord._id} Synced Successfully!`);
 
     } catch (err) {
-        console.error(`❌ Failed to process job ${n8nRecord._id}:`, err);
-        // Mark as failed so we don't keep trying forever
+        console.error(`❌ [N8n Debug] Failed to process ${n8nRecord._id}:`, err);
         n8nRecord.status = 'failed';
         n8nRecord.error = err.message;
         await n8nRecord.save();
