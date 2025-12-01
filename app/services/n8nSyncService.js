@@ -1,4 +1,4 @@
-// services/n8n/startN8nListener.js (CommonJS)
+// services/n8n/startN8nListener.js  (CommonJS)
 
 const mongoose = require("mongoose");
 const { GridFSBucket } = require("mongodb");
@@ -12,52 +12,55 @@ const {
 const { CustomAIJobResponse_DefaultDB } = require("../models/N8nJobResponse");
 
 /**
- * CONFIG
+ * Why your old service often "doesn't work" with the record you pasted:
+ * - n8n writes `response: { ... }` (an OBJECT) but your schema defines `response` as ObjectId ref,
+ *   so Mongoose can throw casting errors when reading docs.
+ * - n8n inserts docs without `status`, so querying {status:"pending"} returns nothing.
+ * - n8n inserts docs without required fields (userId, webhookPath, etc), so calling `doc.save()`
+ *   can fail validation. This service uses RAW collection updates for the n8n DB to avoid that.
  */
-const POLL_INTERVAL_MS = 5000;
+
+const POLL_INTERVAL_MS = 3000;
 const BATCH_SIZE = 5;
 
-// If your response schema requires GridFS ids, keep this true.
-// If it allows null file ids, set false.
+const WORKER_ID = `n8n-sync:${process.pid}:${Date.now()}`;
+
+// If your main response schema requires these fileIds, keep true.
+// (Your generatedCode & balanceSketch exist in your sample, so it’s fine.)
 const FORCE_GRIDFS_IDS = true;
 
-/**
- * INTERNAL STATE
- */
 let intervalId = null;
-let isTickRunning = false;
+let tickRunning = false;
 
-/**
- * Helpers
- */
-function waitForConnection(conn, label = "db") {
+// ---------- helpers ----------
+function waitForConn(conn, label) {
     if (conn.readyState === 1) return Promise.resolve();
     return new Promise((resolve, reject) => {
         const onOpen = () => {
             cleanup();
             resolve();
         };
-        const onError = (err) => {
+        const onErr = (e) => {
             cleanup();
-            reject(err);
+            reject(e);
         };
         const cleanup = () => {
             conn.off("open", onOpen);
-            conn.off("error", onError);
+            conn.off("error", onErr);
         };
         conn.once("open", onOpen);
-        conn.once("error", onError);
-    }).catch((err) => {
-        console.error(`❌ [N8n Listener] Failed to connect to ${label}:`, err);
-        throw err;
+        conn.once("error", onErr);
+    }).catch((e) => {
+        console.error(`❌ [N8nListener] Failed connecting to ${label}:`, e);
+        throw e;
     });
 }
 
 function stringToStream(str) {
-    const stream = new Readable();
-    stream.push(str);
-    stream.push(null);
-    return stream;
+    const s = new Readable();
+    s.push(str);
+    s.push(null);
+    return s;
 }
 
 function cleanSvgString(raw) {
@@ -65,185 +68,186 @@ function cleanSvgString(raw) {
     return String(raw).replace(/```svg/g, "").replace(/```/g, "").trim();
 }
 
-async function uploadToGridFS({ filename, content }) {
+async function uploadToGridFS(content, filename) {
     const hasContent = content !== undefined && content !== null;
+
     if (!hasContent && !FORCE_GRIDFS_IDS) return null;
 
-    const finalContent = hasContent ? String(content) : ""; // allow 0-byte file if forced
     const db = mongoose.connection?.db;
-    if (!db) throw new Error("Main mongoose connection has no db handle yet.");
+    if (!db) throw new Error("Main DB not ready (mongoose.connection.db missing).");
 
     const bucket = new GridFSBucket(db, { bucketName: "n8n_blobs" });
+    const finalContent = hasContent ? String(content) : ""; // allow empty if forced
 
     return new Promise((resolve, reject) => {
-        const uploadStream = bucket.openUploadStream(filename);
-
-        uploadStream.on("error", reject);
-        uploadStream.on("finish", () => resolve(uploadStream.id));
-
-        stringToStream(finalContent).pipe(uploadStream);
+        const up = bucket.openUploadStream(filename);
+        up.on("error", reject);
+        up.on("finish", () => resolve(up.id));
+        stringToStream(finalContent).pipe(up);
     });
 }
 
 /**
- * Extract payloads robustly (because your schema/model naming may differ)
+ * n8n record you pasted: { _id, response: { status, requestID, ... } }
+ * We support both patterns:
+ * - responsePayload (if you later switch)
+ * - response (your current n8n output)
  */
-function getPayloads(n8nRecord) {
-    // Most likely correct (per your schema naming): requestPayload/responsePayload
-    const requestPayload =
-        n8nRecord.requestPayload ||
-        n8nRecord.request ||
-        n8nRecord.input ||
-        null;
-
-    const responsePayload =
-        n8nRecord.responsePayload ||
-        n8nRecord.response || // <-- your old code used this; keep as fallback
-        n8nRecord.output ||
-        null;
-
-    return { requestPayload, responsePayload };
+function pickResponse(doc) {
+    return doc?.responsePayload || doc?.response || null;
 }
 
 /**
- * Atomically claim one pending job (prevents double-processing across instances)
+ * Try to find the parent job in main DB.
+ * Best case: you reuse the same _id across DBs (your old logic).
+ * Fallback: search by requestID in a few likely paths.
  */
-async function claimNextPendingJob() {
-    return N8nWorkflowJob_CustomAiDB.findOneAndUpdate(
-        { status: "pending" },
-        { $set: { status: "processing", processingAt: new Date() } },
-        { sort: { createdAt: 1 }, new: true }
-    );
+async function findParentJob({ n8nDocId, requestID }) {
+    // 1) best-case (your original assumption)
+    let parent = await CustomAIWorkflowJob_DefaultDB.findById(n8nDocId);
+    if (parent) return parent;
+
+    // 2) fallback: requestID stored somewhere inside requestPayload
+    // (Mixed type allows dot-notation queries, but it’s not indexed unless you add one.)
+    parent = await CustomAIWorkflowJob_DefaultDB.findOne({
+        $or: [
+            { "requestPayload.requestID": requestID },
+            { "requestPayload.requestId": requestID },
+            { "requestPayload.response.requestID": requestID },
+            { "requestPayload.input.requestID": requestID },
+            { "requestPayload.input.requestId": requestID },
+        ],
+    });
+
+    return parent;
+}
+
+// ---------- raw n8n db access ----------
+function getN8nCollection() {
+    // Use the same collection name Mongoose model points to, but via native driver.
+    const name = N8nWorkflowJob_CustomAiDB.collection.name;
+    return customAiDbConnection.db.collection(name);
 }
 
 /**
- * Main exported start function
+ * Claim one job atomically from n8n DB.
+ * Important: we treat missing status as pending because n8n inserts raw docs.
+ * Also: we only process docs that already have response.requestID (your sample).
  */
-async function startN8nListener() {
-    console.log("🔵 [N8n Listener] startN8nListener() called.");
+async function claimOne() {
+    const col = getN8nCollection();
 
-    if (intervalId) {
-        console.log("🟡 [N8n Listener] Listener already running. Skipping.");
-        return;
-    }
+    const filter = {
+        $and: [
+            { $or: [{ status: "pending" }, { status: { $exists: false } }] },
+            { $or: [{ syncedAt: { $exists: false } }, { syncedAt: null }] },
+            {
+                $or: [
+                    { "response.requestID": { $exists: true, $ne: null } },
+                    { "responsePayload.requestID": { $exists: true, $ne: null } },
+                ],
+            },
+        ],
+    };
 
-    // Ensure BOTH connections are ready:
-    // - customAiDbConnection (n8n db)
-    // - mongoose.connection (main db, needed for GridFS + main models)
-    console.log(
-        `🔵 [N8n Listener] Custom DB readyState: ${customAiDbConnection.readyState} (0=D/C, 1=Conn, 2=Conn-ing)`
-    );
-    console.log(
-        `🔵 [N8n Listener] Main   DB readyState: ${mongoose.connection.readyState} (0=D/C, 1=Conn, 2=Conn-ing)`
-    );
+    const update = {
+        $set: {
+            status: "processing",
+            claimedAt: new Date(),
+            workerId: WORKER_ID,
+        },
+    };
 
-    await waitForConnection(customAiDbConnection, "CustomAI (n8n) DB");
-    await waitForConnection(mongoose.connection, "Main (default) DB");
+    // sort by createdAt if available, else _id
+    const opts = {
+        sort: { createdAt: 1, _id: 1 },
+        returnDocument: "after",
+    };
 
-    const collectionName = N8nWorkflowJob_CustomAiDB.collection.name;
-    console.log(`✅ [N8n Listener] Connected. Watching collection: "${collectionName}"`);
+    const res = await col.findOneAndUpdate(filter, update, opts);
+    return res && res.value ? res.value : null;
+}
 
-    // Optional visibility check
-    try {
-        const total = await N8nWorkflowJob_CustomAiDB.countDocuments({});
-        const pending = await N8nWorkflowJob_CustomAiDB.countDocuments({ status: "pending" });
-        console.log(`📊 [N8n Listener] Total docs: ${total} | Pending: ${pending}`);
-    } catch (e) {
-        console.warn("⚠️ [N8n Listener] Could not count docs:", e.message);
-    }
-
-    intervalId = setInterval(async () => {
-        if (isTickRunning) return;
-        isTickRunning = true;
-        try {
-            await tick();
-        } catch (err) {
-            console.error("❌ [N8n Listener] Tick error:", err);
-        } finally {
-            isTickRunning = false;
+async function markN8nCompleted({ n8nId, mainJobId, mainResponseId }) {
+    const col = getN8nCollection();
+    await col.updateOne(
+        { _id: n8nId },
+        {
+            $set: {
+                status: "completed",
+                syncedAt: new Date(),
+                mainJobId: mainJobId || null,
+                mainResponseId: mainResponseId || null,
+                error: null,
+            },
         }
-    }, POLL_INTERVAL_MS);
-
-    console.log(`🟢 [N8n Listener] Polling every ${POLL_INTERVAL_MS}ms`);
+    );
 }
 
-/**
- * One poll tick: process up to BATCH_SIZE jobs
- */
-async function tick() {
-    for (let i = 0; i < BATCH_SIZE; i++) {
-        const job = await claimNextPendingJob();
-        if (!job) return; // no more pending
-        await processClaimedJob(job);
-    }
+async function markN8nFailed({ n8nId, message }) {
+    const col = getN8nCollection();
+    await col.updateOne(
+        { _id: n8nId },
+        {
+            $set: {
+                status: "failed",
+                failedAt: new Date(),
+                error: message || "Unknown error",
+            },
+        }
+    );
 }
 
-/**
- * Process one claimed job (status already set to processing)
- */
-async function processClaimedJob(n8nRecord) {
-    const recordId = String(n8nRecord._id);
-    console.log(`⚙️ [N8n Listener] Processing n8n record: ${recordId}`);
+// ---------- core processing ----------
+async function processOne(n8nDoc) {
+    const n8nId = n8nDoc._id;
+    const data = pickResponse(n8nDoc);
 
-    const { requestPayload, responsePayload } = getPayloads(n8nRecord);
-
-    // Request/Response correlation
-    const requestID = responsePayload?.requestID || responsePayload?.requestId || null;
-
-    // IMPORTANT: cross-db _id matching usually fails; use a stored parentJobId
-    const parentJobId =
-        requestPayload?.parentJobId ||
-        requestPayload?.jobId ||
-        responsePayload?.parentJobId ||
-        responsePayload?.jobId ||
-        null;
-
-    if (!responsePayload) {
-        await failN8nRecord(n8nRecord, "Missing responsePayload/response");
+    if (!data) {
+        await markN8nFailed({ n8nId, message: "Missing response/responsePayload" });
         return;
     }
 
+    const requestID = data.requestID || data.requestId;
     if (!requestID) {
-        await failN8nRecord(n8nRecord, "Missing responsePayload.requestID");
+        await markN8nFailed({ n8nId, message: "Missing response.requestID" });
         return;
     }
 
-    if (!parentJobId) {
-        await failN8nRecord(
-            n8nRecord,
-            "Missing parentJobId. Store it in requestPayload.parentJobId when creating the n8n record."
-        );
-        return;
-    }
-
-    // Find the parent job in MAIN DB
-    const parentJob = await CustomAIWorkflowJob_DefaultDB.findById(parentJobId);
+    // Locate parent job in MAIN DB
+    const parentJob = await findParentJob({ n8nDocId: n8nId, requestID });
     if (!parentJob) {
-        await failN8nRecord(n8nRecord, `Parent job not found in main DB: ${parentJobId}`);
+        await markN8nFailed({
+            n8nId,
+            message: `Parent job not found in main DB (requestID=${requestID})`,
+        });
+        return;
+    }
+
+    // If already completed, just mark n8n as synced and stop
+    if (parentJob.status === "completed" && parentJob.response) {
+        await markN8nCompleted({
+            n8nId,
+            mainJobId: parentJob._id,
+            mainResponseId: parentJob.response,
+        });
         return;
     }
 
     try {
-        // Upload blobs to GridFS (in MAIN DB)
-        const codeStr = responsePayload.generatedCode?.code ?? responsePayload.code ?? null;
-        const svgStr =
-            responsePayload.backtest?.balanceSketch ??
-            responsePayload.balanceSketch ??
-            null;
+        // Upload code + SVG blobs to GridFS in MAIN db
+        const codeStr = data.generatedCode?.code ?? null;
+        const svgStr = data.backtest?.balanceSketch ?? null;
 
-        const codeFileId = await uploadToGridFS({
-            filename: `code-${requestID}.js`,
-            content: codeStr,
-        });
+        const codeFileId = await uploadToGridFS(codeStr, `code-${requestID}.js`);
+        const svgFileId = await uploadToGridFS(
+            cleanSvgString(svgStr),
+            `balance-${requestID}.svg`
+        );
 
-        const svgFileId = await uploadToGridFS({
-            filename: `balance-${requestID}.svg`,
-            content: cleanSvgString(svgStr),
-        });
-
-        // Parse trade log safely
+        // Parse tradeLog (your sample has it as JSON string)
         let tradeLog = [];
-        const tl = responsePayload.backtest?.tradeLog;
+        const tl = data.backtest?.tradeLog;
         if (typeof tl === "string") {
             try {
                 tradeLog = JSON.parse(tl);
@@ -254,73 +258,113 @@ async function processClaimedJob(n8nRecord) {
             tradeLog = tl;
         }
 
-        // Build the response doc in MAIN DB
-        const responseDoc = new CustomAIJobResponse_DefaultDB({
+        // Idempotence: if a response with same (jobId, requestID) exists, reuse it
+        let existing = await CustomAIJobResponse_DefaultDB.findOne({
             jobId: parentJob._id,
-            status: responsePayload.status ?? "completed",
             requestID,
-            attempt: responsePayload.attempt,
-            input: responsePayload.input ?? requestPayload,
-
-            // Prefer actual value if provided by n8n
-            modelUsed: responsePayload.modelUsed ?? "unknown",
-
-            generatedCode: {
-                summary: responsePayload.generatedCode?.summary,
-                generatedCodeFileId: codeFileId,
-                fullCode: codeStr ?? undefined,
-            },
-
-            backtest: {
-                ...(responsePayload.backtest || {}),
-                tradeLog,
-                balanceSketchFileId: svgFileId,
-                fullBalanceSketch: cleanSvgString(svgStr) || undefined,
-            },
-
-            error: responsePayload.error ?? null,
         });
 
-        const savedResponse = await responseDoc.save();
+        if (!existing) {
+            existing = await new CustomAIJobResponse_DefaultDB({
+                jobId: parentJob._id,
+                status: data.status,
+                requestID,
+                attempt: data.attempt,
+                input: data.input,
+                modelUsed: data.modelUsed || "unknown",
+                generatedCode: {
+                    summary: data.generatedCode?.summary,
+                    generatedCodeFileId: codeFileId,
+                    fullCode: codeStr || undefined,
+                },
+                backtest: {
+                    ...(data.backtest || {}),
+                    tradeLog,
+                    balanceSketchFileId: svgFileId,
+                    fullBalanceSketch: cleanSvgString(svgStr) || undefined,
+                },
+                error: data.errorMessage || data.error || null,
+            }).save();
+        } else {
+            // if you want to update existing response from a retry, do it here:
+            existing.status = data.status;
+            existing.attempt = data.attempt;
+            existing.input = data.input;
+            existing.modelUsed = data.modelUsed || existing.modelUsed;
+            existing.generatedCode = {
+                summary: data.generatedCode?.summary,
+                generatedCodeFileId: codeFileId,
+                fullCode: codeStr || existing.generatedCode?.fullCode,
+            };
+            existing.backtest = {
+                ...(data.backtest || {}),
+                tradeLog,
+                balanceSketchFileId: svgFileId,
+                fullBalanceSketch: cleanSvgString(svgStr) || existing.backtest?.fullBalanceSketch,
+            };
+            existing.error = data.errorMessage || data.error || null;
+            await existing.save();
+        }
 
-        // Update parent job
         parentJob.status = "completed";
-        parentJob.response = savedResponse._id;
+        parentJob.response = existing._id;
         await parentJob.save();
 
-        // Mark n8n record completed
-        n8nRecord.status = "completed";
-        n8nRecord.completedAt = new Date();
-        n8nRecord.error = null;
-        await n8nRecord.save();
+        await markN8nCompleted({
+            n8nId,
+            mainJobId: parentJob._id,
+            mainResponseId: existing._id,
+        });
 
-        console.log(`✅ [N8n Listener] Synced OK | n8n:${recordId} -> main:${parentJob._id}`);
-    } catch (err) {
-        await failN8nRecord(n8nRecord, err.message || String(err));
-        console.error(`❌ [N8n Listener] Failed processing ${recordId}:`, err);
-    }
-}
-
-async function failN8nRecord(n8nRecord, message) {
-    n8nRecord.status = "failed";
-    n8nRecord.error = message;
-    n8nRecord.failedAt = new Date();
-    try {
-        await n8nRecord.save();
+        console.log(
+            `✅ [N8nListener] Synced n8n:${String(n8nId)} -> mainJob:${String(
+                parentJob._id
+            )} response:${String(existing._id)}`
+        );
     } catch (e) {
-        console.error("❌ [N8n Listener] Could not save failed status:", e.message);
+        console.error(`❌ [N8nListener] process failed for ${String(n8nId)}:`, e);
+        await markN8nFailed({ n8nId, message: e.message });
     }
-    console.warn(`⚠️ [N8n Listener] Marked failed: ${String(n8nRecord._id)} | ${message}`);
 }
 
-/**
- * Optional stop (useful in tests / graceful shutdown)
- */
+// ---------- public API ----------
+async function startN8nListener() {
+    console.log("🔵 [N8nListener] start called");
+
+    if (intervalId) {
+        console.log("🟡 [N8nListener] already running");
+        return;
+    }
+
+    await waitForConn(customAiDbConnection, "CustomAI (n8n) DB");
+    await waitForConn(mongoose.connection, "Main DB");
+
+    const colName = N8nWorkflowJob_CustomAiDB.collection.name;
+    console.log(`🟢 [N8nListener] connected. raw polling from collection "${colName}"`);
+
+    intervalId = setInterval(async () => {
+        if (tickRunning) return;
+        tickRunning = true;
+
+        try {
+            for (let i = 0; i < BATCH_SIZE; i++) {
+                const claimed = await claimOne();
+                if (!claimed) break;
+                await processOne(claimed);
+            }
+        } catch (e) {
+            console.error("❌ [N8nListener] tick error:", e);
+        } finally {
+            tickRunning = false;
+        }
+    }, POLL_INTERVAL_MS);
+}
+
 function stopN8nListener() {
     if (intervalId) clearInterval(intervalId);
     intervalId = null;
-    isTickRunning = false;
-    console.log("🛑 [N8n Listener] stopped");
+    tickRunning = false;
+    console.log("🛑 [N8nListener] stopped");
 }
 
 module.exports = { startN8nListener, stopN8nListener };
