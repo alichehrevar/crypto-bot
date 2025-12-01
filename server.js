@@ -14,6 +14,7 @@ const bingXWS = require('./app/services/bingXWS');
 const botService = require('./app/services/botService/BotService');
 const botManagerService = require('./app/services/botService/BotManagerService');
 const wsServer = require('./app/services/WebSocketServer');
+const { startN8nListener } = require('./app/services/n8nSyncService');
 const { seedSettings } = require('./db/seeds/settingsSeeder');
 const { seedAdminUser } = require('./db/seeds/adminUserSeeder');
 const seedSymbols = require('./db/seeds/currencySeeder');
@@ -95,6 +96,8 @@ connectDB().then(async () => {
     } catch (err) {
         console.error('Currency seeding failed:', err);
     }
+
+    startN8nListener().catch(err => console.error('Failed to start N8n Listener:', err));
 
     // Initialize bots
     await botService.initialize();

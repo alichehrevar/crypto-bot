@@ -71,11 +71,11 @@ const N8nWorkflowJobSchema = new mongoose.Schema(
     }
 );
 
-const N8nWorkflowJob_DefaultDB = mongoose.model('N8nWorkflowJob', N8nWorkflowJobSchema);
+const CustomAIWorkflowJob_DefaultDB = mongoose.model('CustomAIWorkflowJob', N8nWorkflowJobSchema);
 
 const N8nWorkflowJob_CustomAiDB = customAiDbConnection.model('N8nWorkflowJob', N8nWorkflowJobSchema);
 
 module.exports = {
-    N8nWorkflowJob_DefaultDB,
+    CustomAIWorkflowJob_DefaultDB,
     N8nWorkflowJob_CustomAiDB,
 };
