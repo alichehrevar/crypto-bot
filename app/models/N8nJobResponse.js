@@ -1,5 +1,4 @@
 const mongoose = require('mongoose');
-const customAiDbConnection = require("../../config/customAiDb");
 
 /**
  * Stores the detailed results of a N8nWorkflowJob.
@@ -94,9 +93,6 @@ const N8nJobResponseSchema = new mongoose.Schema(
 
 const CustomAIJobResponse_DefaultDB = mongoose.model('CustomAIJobResponse', N8nJobResponseSchema);
 
-const N8nJobResponse_CustomAiDB = customAiDbConnection.model('N8nJobResponse', N8nJobResponseSchema);
-
 module.exports = {
     CustomAIJobResponse_DefaultDB,
-    N8nJobResponse_CustomAiDB,
 };

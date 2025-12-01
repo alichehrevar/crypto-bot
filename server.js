@@ -18,7 +18,7 @@ const { startN8nListener } = require('./app/services/n8nSyncService');
 const { seedSettings } = require('./db/seeds/settingsSeeder');
 const { seedAdminUser } = require('./db/seeds/adminUserSeeder');
 const seedSymbols = require('./db/seeds/currencySeeder');
-const { seedN8nData } = require('./db/seeds/n8nJobResponseSeeder');
+// const { seedN8nData } = require('./db/seeds/n8nJobResponseSeeder');
 const { logEmitter, originalConsoleLog } = require('./logs/logEmitter');
 
 // Routers
@@ -67,7 +67,7 @@ connectDB().then(async () => {
     // seed admin user
     await seedAdminUser();
     await seedSettings();
-    await seedN8nData();
+    // await seedN8nData();
 
     // Start WS services
     binanceWS.connect();
