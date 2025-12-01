@@ -1,8 +1,8 @@
 import Image from "next/image";
+import React from "react";
 
 import { ABOUT_CONTENT } from '@/constants/about';
 import JoinCommunity from "@/components/pre-launch/layouts/partials/JoinCommunity";
-import React from "react";
 
 export default function AboutPage () {
 
