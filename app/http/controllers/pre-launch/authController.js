@@ -1,6 +1,3 @@
-const bcrypt = require('bcryptjs');
-const crypto = require('crypto');
-const User = require('../../../models/User');
 const AlgoTraderProfile = require('../../../models/AlgoTraderProfile');
 const AlgorithmPrompt = require('../../../models/AlgorithmPrompt');
 const logger = require("../../../../logs/logger");
