@@ -31,6 +31,7 @@ type FormValues = {
 export default function JoinAlgosForm() {
 
     const [step, setStep] = useState(1);
+    const [email, setEmail] = useState<string>('')
     const [formLoading, setFormLoading] = useState<boolean>(false)
 
     const {
@@ -57,6 +58,7 @@ export default function JoinAlgosForm() {
             const response: LeaderboardJoin = await sendRequest(data, '/leaderboard/join');
 
             if (response.success) {
+                setEmail(data.email)
                 setStep(3)
             } else {
                 addToast({
@@ -157,6 +159,7 @@ export default function JoinAlgosForm() {
                     >
                         <SuccessfulSubmission
                             backToFirst={() => setStep(1)}
+                            email={email}
                         />
                     </motion.div>
                 )}

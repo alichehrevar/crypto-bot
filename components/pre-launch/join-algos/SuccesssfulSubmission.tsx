@@ -1,7 +1,7 @@
 import React from "react";
 import Link from "next/link";
 
-export default function SuccessfulSubmission ({backToFirst}: {backToFirst: () => void}) {
+export default function SuccessfulSubmission ({email, backToFirst}: {email: string, backToFirst: () => void}) {
     return (
         <div className="flex items-center justify-center flex-col gap-3">
             <div className="bg-[#B9F641] flex items-center justify-center w-[72px] h-[72px] rounded-full">
@@ -20,7 +20,7 @@ export default function SuccessfulSubmission ({backToFirst}: {backToFirst: () =>
                 Your algos submitted successfully!
             </h3>
             <p className="text-[#606060] text-sm text-center leading-6">
-                Thank you, John! your algorithm has been submitted for evaluation. You’ll receive updates at <span className="text-[#262626]">j.doe@gmail.com</span>.
+                Thank you, John! your algorithm has been submitted for evaluation. You’ll receive updates at <span className="text-[#262626]">{email}</span>.
             </p>
             <div className="flex items-center justify-center gap-4 mt-8">
                 <Link
