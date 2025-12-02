@@ -27,14 +27,18 @@ exports.storeEarlyAccessInfo = async (req, res) => {
         const algoTraderProfile = await AlgoTraderProfile.findOneAndUpdate(
             { email },
             {
-                $setOnInsert: {
+                $set: {
                     name,
-                    nickname,
-                    email
+                    nickname
+                },
+                $setOnInsert: {
+                    email // Only set email if we are creating a new doc
                 }
             },
             {
                 upsert: true,
+                new: true,
+                runValidators: true
             }
         );
 

@@ -16,8 +16,8 @@ const algoTraderProfileSchema = new Schema({
         type: String,
         required: true,
         unique: true,
-        trim: true,
-        lowercase: true
+        lowercase: true,
+        index: true
     }
 }, {
     timestamps: true
