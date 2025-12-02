@@ -48,7 +48,7 @@ exports.storeEarlyAccessInfo = async (req, res) => {
         // show the response to the user
         res.json({success: true, data: {algorithmPromptId: algorithmPromptModel._id}});
 
-        await n8nService.initiateAsyncWorkflow(algoTraderProfile._id, req.body.promptText, '/6ac4dc06-43b7-40a9-839c-fe2f9466579e', 'prompt');
+        await n8nService.initiateAsyncWorkflow(algorithmPromptModel._id, req.body.promptText, '/6ac4dc06-43b7-40a9-839c-fe2f9466579e', 'prompt');
 
     } catch (error) {
         logger.error(`getAssetsDistribution error: ${error.message}`, {stack: error.stack});
