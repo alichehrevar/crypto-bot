@@ -92,7 +92,7 @@ const N8nJobResponseSchema = new mongoose.Schema(
 }
 );
 
-const CustomAIJobResponse_DefaultDB = mongoose.model('CustomAIJobResponse', N8nJobResponseSchema);
+const CustomAIJobResponse_DefaultDB = mongoose.model('N8nJobResponse', N8nJobResponseSchema);
 
 const N8nJobResponse_CustomAiDB = customAiDbConnection.model('N8nJobResponse', N8nJobResponseSchema);
 
