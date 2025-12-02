@@ -52,16 +52,18 @@ const InfoButton: FC<InfoButtonProps> = ({ title, content }) => {
                 setIsOpen(false);
             }
         };
+
         if (isOpen) {
             document.addEventListener('mousedown', handleClickOutside);
         }
+
         return () => {
             document.removeEventListener('mousedown', handleClickOutside);
         };
     }, [isOpen]);
 
     return (
-        <div className="relative flex items-center" ref={popupRef}>
+        <div ref={popupRef} className="relative flex items-center">
             <button
                 className="flex items-center justify-center bg-transparent text-gray-500 border border-gray-500 rounded-full w-4 h-4 text-[10px] italic font-serif font-bold cursor-pointer transition-all hover:border-white hover:text-white"
                 onClick={() => setIsOpen(!isOpen)}
@@ -89,7 +91,7 @@ const CardHeader: FC<CardHeaderProps> = ({ title, infoTitle, infoContent, childr
     <div className="flex justify-between items-center md:flex-row flex-col items-start gap-4">
         <div className="flex items-center gap-3">
             <h3 className="text-lg font-semibold text-white m-0">{title}</h3>
-            <InfoButton title={infoTitle} content={infoContent} />
+            <InfoButton content={infoContent} title={infoTitle} />
         </div>
         {children}
     </div>
@@ -108,6 +110,7 @@ const EventTimeline: FC<EventTimelineProps> = ({ events, setHighlightedEvent }) 
     const dates = events.map(e => new Date(e.date));
     const timelineStart = new Date(Math.min(...dates.map(d => d.getTime())));
     const timelineEnd = new Date(Math.max(...dates.map(d => d.getTime())));
+
     timelineStart.setDate(timelineStart.getDate() - 1);
     timelineEnd.setDate(timelineEnd.getDate() + 1);
 
@@ -115,8 +118,10 @@ const EventTimeline: FC<EventTimelineProps> = ({ events, setHighlightedEvent }) 
 
     const getPosition = (date: string | Date): number => {
         const eventDate = new Date(date);
+
         if (totalDuration === 0) return 50;
         const durationFromStart = eventDate.getTime() - timelineStart.getTime();
+
         return (durationFromStart / totalDuration) * 100;
     };
 
@@ -131,6 +136,7 @@ const EventTimeline: FC<EventTimelineProps> = ({ events, setHighlightedEvent }) 
         if (diffDays > 1 && diffDays < 7) {
             return `${eventDateTime.toLocaleDateString('en-US', { weekday: 'long' })} ${time}`;
         }
+
         return `${eventDateTime.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} ${time}`;
     };
 
@@ -138,7 +144,7 @@ const EventTimeline: FC<EventTimelineProps> = ({ events, setHighlightedEvent }) 
         <div className="p-4 mt-12 mb-8">
             <div className="relative w-full h-0.5 bg-gray-700">
                 <div className="absolute top-1/2 -translate-y-1/2" style={{ left: `${getPosition(now)}%` }}>
-                    <div className="w-3 h-3 bg-blue-500 rounded-full animate-pulse"></div>
+                    <div className="w-3 h-3 bg-blue-500 rounded-full animate-pulse" />
                     <span className="absolute -top-5 left-1/2 -translate-x-1/2 text-xs text-blue-500">Now</span>
                 </div>
                 {events.map((event, index) => (
@@ -149,7 +155,7 @@ const EventTimeline: FC<EventTimelineProps> = ({ events, setHighlightedEvent }) 
                         onMouseEnter={() => setHighlightedEvent(event.date)}
                         onMouseLeave={() => setHighlightedEvent(null)}
                     >
-                        <div className={`w-2.5 h-2.5 rounded-full cursor-pointer transition-colors ${event.isPast ? 'bg-gray-500' : 'bg-blue-500'}`}></div>
+                        <div className={`w-2.5 h-2.5 rounded-full cursor-pointer transition-colors ${event.isPast ? 'bg-gray-500' : 'bg-blue-500'}`} />
                         <div className="hidden group-hover:block absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-gray-800/80 backdrop-blur border border-white/15 text-white p-2 rounded-md z-10 text-center w-max max-w-[200px] whitespace-normal leading-snug">
                             <span className="text-xs font-medium block">{event.event}</span>
                             <small className="text-[10px] opacity-80">{formatRelativeDate(event.date, event.time)}</small>
@@ -186,15 +192,16 @@ const EconomicCatalystsAndEventCalendar: FC<EconomicCatalystsAndEventCalendarPro
 
     const formatValue = (value: string): string => {
         if (typeof value !== 'string') return value;
+
         return value.replace(' tokens', '');
     };
 
     return (
         <div className="bg-[#1a1a1a] rounded-xl p-6 border border-white/5 shadow-lg h-full flex flex-col">
             <CardHeader
-                title="Economic Catalysts & Event Calendar"
-                infoTitle="About the Event Calendar"
                 infoContent="This calendar lists upcoming economic data releases and crypto-specific events that can act as major market catalysts. High-impact events like CPI data or FOMC meetings often cause significant volatility."
+                infoTitle="About the Event Calendar"
+                title="Economic Catalysts & Event Calendar"
             />
             <EventTimeline events={data.events} setHighlightedEvent={setHighlightedEvent} />
             <div className="w-full overflow-x-auto mt-4">
