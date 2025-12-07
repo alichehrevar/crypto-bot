@@ -16,9 +16,6 @@ class BingXWS {
 
     /**
      * Generates a signature using the provided apiSecret.
-     * @param {string} timestamp - The timestamp as a string.
-     * @param {string} apiSecret - The API secret key.
-     * @returns {string} The generated signature.
      */
     generateSignature(timestamp, apiSecret) {
         const signString = `timestamp=${timestamp}`;
@@ -36,8 +33,6 @@ class BingXWS {
             perMessageDeflate: false
         });
         this.ws.binaryType = 'arraybuffer';
-
-        // REMOVED: this.setupPingInterval();
 
         this.ws.on('open', () => {
             console.log('[BingXWS] Connected to BingX WebSocket');
@@ -58,7 +53,6 @@ class BingXWS {
 
                 if (!message) return;
 
-                // This part is correct and is all you need for keep-alive
                 if (message.ping) {
                     this.handlePing(message.ping);
                     return;
@@ -87,20 +81,11 @@ class BingXWS {
         });
     }
 
-    /**
-     * Authenticate the WebSocket connection.
-     * This function now requires that you pass in the API key and secret from the user's account.
-     * For now, it is a placeholder.
-     *
-     * @param {string} timestamp
-     * @param {string} signature
-     * @param {string} apiKey - User provided API key.
-     */
     authenticate(timestamp, signature, apiKey) {
         const authMessage = {
             event: "login",
             params: {
-                apiKey: apiKey, // Use the user-provided API key.
+                apiKey: apiKey,
                 timestamp: timestamp,
                 signature: signature
             }
@@ -116,24 +101,6 @@ class BingXWS {
             this.cleanup();
             throw new Error('BingX WebSocket authentication failed');
         }
-    }
-
-    setupPingInterval() {
-        this.pingInterval = setInterval(() => {
-            if (this.ws?.readyState === WebSocket.OPEN) {
-                this.ws.ping();
-            }
-        }, 25000);
-
-        // Ping/Pong handlers.
-        this.ws.on('ping', () => {
-            console.debug('[BingXWS] Received ping');
-            this.ws.pong();
-        });
-
-        this.ws.on('pong', () => {
-            console.debug('[BingXWS] Received pong');
-        });
     }
 
     handlePing(pingTimestamp) {
@@ -171,9 +138,7 @@ class BingXWS {
 
     async processMessage(msg) {
         if (!msg || typeof msg !== 'object') return;
-
         try {
-            // Handle kline messages.
             if (msg.topic && msg.topic.includes('kline')) {
                 await this.processKlineMessage(msg);
             } else if (msg.topic && msg.topic.includes('ticker')) {
@@ -203,7 +168,6 @@ class BingXWS {
             isClosed: klineData.x
         };
 
-        // Validate numeric values.
         const isValid = ['open', 'high', 'low', 'close', 'volume']
             .every(key => Number.isFinite(candleData[key]));
 
@@ -220,21 +184,9 @@ class BingXWS {
 
     mapInterval(interval) {
         const mapping = {
-            '1m': '1m',
-            '3m': '3m',
-            '5m': '5m',
-            '15m': '15m',
-            '30m': '30m',
-            '1h': '1h',
-            '2h': '2h',
-            '4h': '4h',
-            '6h': '6h',
-            '8h': '8h',
-            '12h': '12h',
-            '1d': '1d',
-            '3d': '3d',
-            '1w': '1w',
-            '1M': '1M'
+            '1m': '1m', '3m': '3m', '5m': '5m', '15m': '15m', '30m': '30m',
+            '1h': '1h', '2h': '2h', '4h': '4h', '6h': '6h', '8h': '8h',
+            '12h': '12h', '1d': '1d', '3d': '3d', '1w': '1w', '1M': '1M'
         };
         return mapping[interval] || interval;
     }
@@ -309,7 +261,6 @@ class BingXWS {
         }
     }
 
-    // Public methods for managing the connection.
     disconnect() {
         if (this.ws) {
             this.cleanup();
@@ -325,45 +276,56 @@ class BingXWS {
         return Array.from(this.subscriptions.values());
     }
 
-    /**
-     * Attempt to gunzip & parse JSON; if it’s a plain “Ping” frame or
-     * fails to decompress/parse, return a ping object or null.
-     */
     parseBinaryMessage(data) {
-        // First, try a quick string check in case it's not gzipped at all
         const raw = data.toString();
         if (raw === 'Ping' || raw === 'pong' || raw === 'PING') {
-            // normalize into your existing ping handler format
             return { ping: Date.now() };
         }
-
         try {
-            // Attempt to gunzip
             const decompressed = zlib.gunzipSync(data);
             const text = decompressed.toString();
-
-            // Only JSON.parse if it looks like JSON
             const first = text.trim()[0];
             if (first === '{' || first === '[') {
                 return JSON.parse(text);
             } else {
-                // non-JSON text, treat as ping
                 return { ping: text };
             }
         } catch (err) {
-            // zlib error or parse error
             console.debug('[BingXWS] parseBinaryMessage non-gzip or invalid JSON:', err.message);
             return null;
         }
     }
 
+    // =========================================================================
+    // UPDATED BALANCE LOGIC START
+    // =========================================================================
+
     /**
-     * Fetches the Spot (Fund) Account Balance.
-     * This hits the /spot/v1/account/balance endpoint.
-     * @param {object} account - User's account with apiKey and secretKey.
-     * @returns {Promise<number>} - The free USDT balance in the spot account.
+     * Helper to get current Spot prices for USDT conversion.
      */
-    async getSpotBalance(account) {
+    async getSpotPrices() {
+        try {
+            const url = 'https://open-api.bingx.com/openApi/spot/v1/ticker/price';
+            const res = await axios.get(url);
+            const map = new Map();
+            if (res.data && Array.isArray(res.data.data)) {
+                res.data.data.forEach(item => {
+                    // Item usually { symbol: "BTC-USDT", price: "60000.00" }
+                    // Store as "BTC-USDT" -> 60000.00
+                    map.set(item.symbol, parseFloat(item.price));
+                });
+            }
+            return map;
+        } catch (e) {
+            console.warn('[BingXWS] Failed to fetch spot prices:', e.message);
+            return new Map();
+        }
+    }
+
+    /**
+     * Fetches raw Spot balances (array).
+     */
+    async getSpotBalanceRaw(account) {
         const { apiKey, secretKey } = account;
         const timestamp = Date.now().toString();
         const base = 'https://open-api.bingx.com';
@@ -373,112 +335,151 @@ class BingXWS {
         const toSign = queryParams.toString();
         const signature = crypto.createHmac('sha256', secretKey).update(toSign).digest('hex');
         queryParams.append('signature', signature);
-
         const url = `${base}${path}?${queryParams.toString()}`;
 
         try {
             const resp = await axios.get(url, { headers: { "X-BX-APIKEY": apiKey } });
-            const json = resp.data;
-
-            if (json.code !== 0) {
-                throw new Error(`BingX Spot Balance Error (${json.code}): ${json.msg}`);
+            if (resp.data.code !== 0) {
+                console.error(`BingX Spot Error: ${resp.data.msg}`);
+                return [];
             }
-
-            const usdtAsset = json.data.balances.find(b => b.asset === 'USDT');
-            return usdtAsset ? parseFloat(usdtAsset.free) : 0;
-
+            // Returns array of { asset, free, locked }
+            return resp.data.data.balances || [];
         } catch (err) {
-            const errorMessage = err.response?.data?.msg || err.message;
-            console.error('[BingXWS] getSpotBalance Error:', errorMessage);
-            throw new Error(errorMessage);
+            console.error('[BingXWS] getSpotBalanceRaw Error:', err.message);
+            return [];
         }
     }
 
     /**
-     * Fetches the Perpetual Futures Account Balance.
-     * This hits the /swap/v2/balance endpoint.
-     * @param {object} account - User's account with apiKey and secretKey.
-     * @returns {Promise<number>} - The USDT balance in the futures account.
+     * Fetches raw Futures user balance data.
      */
-    async getFuturesBalance(account) {
+    async getFuturesBalanceRaw(account) {
         const { apiKey, secretKey } = account;
         const timestamp = Date.now().toString();
         const base = 'https://open-api.bingx.com';
-
-        // THIS IS THE CORRECTED LINE:
         const path = '/openApi/swap/v2/user/balance';
 
         const queryParams = new URLSearchParams({ timestamp });
         const toSign = queryParams.toString();
         const signature = crypto.createHmac('sha256', secretKey).update(toSign).digest('hex');
         queryParams.append('signature', signature);
-
         const url = `${base}${path}?${queryParams.toString()}`;
 
         try {
             const resp = await axios.get(url, { headers: { 'X-BX-APIKEY': apiKey } });
-            const json = resp.data;
-
-            if (json.code !== 0) {
-                throw new Error(`BingX Futures Balance Error (${json.code}): ${json.msg}`);
+            if (resp.data.code !== 0) {
+                console.error(`BingX Futures Error: ${resp.data.msg}`);
+                return null;
             }
-
-            // The response structure for this endpoint has the balance details under data.balance
-            const usdtAsset = json.data.balance;
-            return usdtAsset ? parseFloat(usdtAsset.balance) : 0;
-
+            // Usually returns { balance: { equity: "...", availableMargin: "..." } }
+            // Or sometimes data.balance is the object directly.
+            return resp.data.data.balance || null;
         } catch (err) {
-            const errorMessage = err.response?.data?.msg || err.message;
-            console.error('[BingXWS] getFuturesBalance Error:', errorMessage);
-            throw new Error(errorMessage);
+            console.error('[BingXWS] getFuturesBalanceRaw Error:', err.message);
+            return null;
         }
     }
 
     /**
-     * Main getBalance function with updated logic for the 'accountType' parameter.
-     * @param {object} account - User's account credentials.
-     * @param {object} options - Contains 'all' and 'accountType' flags.
-     * @returns {Promise<Array<{accountType: string, usdtBalance: string}>>}
+     * Main getBalance function.
+     * Fetches Spot (converted to USDT) + Futures (Equity).
+     * Returns an array of objects compatible with accountController.
      */
     async getBalance(account, { all = false, accountType = '' } = {}) {
-        console.log(`[BingXWS] getBalance called with accountType: ${all} ${accountType}`);
+        const balances = [];
+
         try {
-            // Case 1: `all` is true, so we get the combined total of spot and futures.
-            if (all) {
-                const [spotBalance, futuresBalance] = await Promise.all([
-                    this.getSpotBalance(account),
-                    this.getFuturesBalance(account)
-                ]);
-
-                const totalBalance = spotBalance + futuresBalance;
-                return [{
-                    accountType: 'total', // A combined type
-                    usdtBalance: totalBalance.toString()
-                }];
+            // 1. Fetch Prices if we need spot data
+            let priceMap = new Map();
+            if (all || accountType === 'spot') {
+                priceMap = await this.getSpotPrices();
             }
 
-            // Case 2: `all` is false, so we check the specific accountType requested.
-            if (accountType === 'futures') {
-                const futuresBalance = await this.getFuturesBalance(account);
-                return [{
-                    accountType: 'futures',
-                    usdtBalance: futuresBalance.toString()
-                }];
+            // 2. Fetch Spot Balances
+            if (all || accountType === 'spot') {
+                const spotBalances = await this.getSpotBalanceRaw(account);
+
+                spotBalances.forEach(coin => {
+                    const free = parseFloat(coin.free);
+                    const locked = parseFloat(coin.locked);
+                    const totalQty = free + locked;
+
+                    if (totalQty > 0) {
+                        let usdtVal = 0;
+                        if (coin.asset === 'USDT') {
+                            usdtVal = totalQty;
+                        } else {
+                            // Try to find price for ASSET-USDT
+                            const price = priceMap.get(`${coin.asset}-USDT`);
+                            if (price) {
+                                usdtVal = totalQty * price;
+                            }
+                        }
+
+                        // Only push if it has value or quantity
+                        if (usdtVal > 0 || totalQty > 0) {
+                            balances.push({
+                                accountType: 'spot',
+                                asset: coin.asset,
+                                free: free,
+                                locked: locked,
+                                usdtBalance: usdtVal // Controller sums this up
+                            });
+                        }
+                    }
+                });
             }
 
-            // Default Case: If `all` is false and `accountType` is 'spot' or empty, return spot balance.
-            const spotBalance = await this.getSpotBalance(account);
-            return [{
-                accountType: 'spot',
-                usdtBalance: spotBalance.toString()
-            }];
+            // 3. Fetch Futures Balances
+            if (all || accountType === 'futures') {
+                const futData = await this.getFuturesBalanceRaw(account);
+                if (futData) {
+                    const equity = parseFloat(futData.equity || 0);
+                    const available = parseFloat(futData.availableMargin || 0);
+
+                    if (equity > 0) {
+                        balances.push({
+                            accountType: 'futures',
+                            asset: futData.currency || 'USDT',
+                            free: available,
+                            locked: equity - available,
+                            usdtBalance: equity // Equity includes unrealized PnL
+                        });
+                    }
+                }
+            }
+
+            return balances;
 
         } catch (err) {
-            console.error(`[BingXWS] Main getBalance orchestrator failed:`, err.message);
-            // Return a zero balance on failure to prevent crashing the entire summary.
-            return [{ accountType: 'error', usdtBalance: '0' }];
+            console.error(`[BingXWS] getBalance failed:`, err.message);
+            return [];
         }
     }
+
+    /**
+     * Preserved helper for Cron jobs checking singular Spot USDT balance.
+     * Re-uses the raw method.
+     */
+    async getSpotBalance(account) {
+        const balances = await this.getSpotBalanceRaw(account);
+        const usdt = balances.find(b => b.asset === 'USDT');
+        return usdt ? parseFloat(usdt.free) : 0;
+    }
+
+    /**
+     * Preserved helper for Cron jobs checking singular Futures USDT balance.
+     * Re-uses the raw method.
+     */
+    async getFuturesBalance(account) {
+        const data = await this.getFuturesBalanceRaw(account);
+        return data ? parseFloat(data.balance) : 0; // .balance is usually the wallet balance (excl upnl)
+    }
+
+    // =========================================================================
+    // END UPDATED BALANCE LOGIC
+    // =========================================================================
 
     getParameters(API, timestamp, urlEncode) {
         let parameters = ""
@@ -499,18 +500,11 @@ class BingXWS {
     }
 
     async executeOrder(orderDetails, account) {
-        // orderDetails might include properties such as:
-        // { symbol, side, orderType, quantity, price (if limit order), etc. }
-        // account is the user's BingX account object with apiKey and secretKey.
-
         const { apiKey, secretKey } = account;
         const timestamp = Date.now().toString();
 
-        // Construct a prehash string as required by BingX for signing the order request.
-        // Example: prehash = timestamp + HTTP_METHOD + requestPath + body
-        // (Consult BingX API documentation for the required signature format.)
         const method = 'POST';
-        const requestPath = '/api/v1/order/create'; // Example path; update as needed.
+        const requestPath = '/api/v1/order/create';
         const body = JSON.stringify(orderDetails);
         const prehash = timestamp + method + requestPath + body;
         const signature = crypto
@@ -553,26 +547,11 @@ class BingXWS {
         return resp.data;
     }
 
-    /**
-     * @description Placeholder for fetching historical balance. BingX API does not currently support
-     * fetching a total account balance for a specific past date.
-     * @param {object} account The user's BingX account credentials.
-     * @param {Date} date The date for which to fetch the balance.
-     * @returns {Promise<number>} Always returns 0 as this feature is not supported by the API.
-     */
     async getHistoricalBalance(account, date) {
         console.log(`[BingXWS] NOTE: getHistoricalBalance is not supported by the BingX API. Returning 0 for date ${date.toISOString().slice(0,10)}.`);
-        // This function must exist for the cron job to run without errors, but it returns 0.
-        // The cron job will only get BingX balances for the CURRENT day using the getBalance({ all: true }) method.
         return Promise.resolve(0);
     }
 
-    /**
-     * @description Fetches realized PnL from BingX USDT-M futures income history for a specified number of days.
-     * @param {object} account The user's account credentials.
-     * @param {object} options Contains the number of days of history to fetch.
-     * @returns {Promise<Array<{timestamp: number, profit: number}>>} A promise resolving to an array of daily PnL objects.
-     */
     async getHistoricalRealizedPnL(account, { days }) {
         const { apiKey, secretKey } = account;
         const endTime = Date.now();
@@ -582,14 +561,13 @@ class BingXWS {
             incomeType: 'REALIZED_PNL',
             startTime: startTime,
             endTime: endTime,
-            limit: 1000, // Max limit
+            limit: 1000,
             timestamp: Date.now().toString()
         };
 
         const queryString = new URLSearchParams(params).toString();
         const signature = crypto.createHmac('sha256', secretKey).update(queryString).digest('hex');
 
-        // Use the correct endpoint for income history
         const url = `https://open-api.bingx.com/openApi/swap/v2/user/income?${queryString}&signature=${signature}`;
 
         try {
@@ -601,8 +579,6 @@ class BingXWS {
             }
 
             const incomeRecords = Array.isArray(json.data?.income) ? json.data.income : [];
-
-            // Group the records by UTC date and sum the profit for each day
             const dailyGroups = {};
             for (const record of incomeRecords) {
                 const dateKey = new Date(parseInt(record.time, 10)).toISOString().slice(0, 10);
@@ -610,76 +586,52 @@ class BingXWS {
                 dailyGroups[dateKey] = (dailyGroups[dateKey] || 0) + pnl;
             }
 
-            // Convert the grouped data into the final array format
             return Object.entries(dailyGroups).map(([date, profit]) => ({
                 timestamp: new Date(`${date}T00:00:00Z`).getTime(),
                 profit
             }));
         } catch (err) {
             console.error('[BingXWS] getHistoricalRealizedPnL Error:', err.message);
-            return []; // Return empty array on failure
+            return [];
         }
     }
 
-    /**
-     * @description Fetches all open positions to calculate unrealized PnL.
-     * This has been updated to use the correct endpoint and return a detailed array of positions.
-     * @param {object} account The user's account credentials.
-     * @returns {Promise<Array<object>>} An array of open position objects.
-     */
     async getUnrealizedPnLHistory(account, { days }) {
         const { apiKey, secretKey } = account;
         const ts = Date.now().toString();
         const qs = `timestamp=${ts}`;
         const sig = crypto.createHmac('sha256', secretKey).update(qs).digest('hex');
 
-        // =================================================================
-        // CORRECTED API PATH
-        // =================================================================
         const url = `https://open-api.bingx.com/openApi/swap/v2/user/positions?${qs}&signature=${sig}`;
 
         try {
-            const res = await fetch(url, {
-                headers: {
-                    'X-BX-APIKEY': apiKey,
-                }
-            });
-
+            const res = await fetch(url, { headers: { 'X-BX-APIKEY': apiKey } });
             const json = await res.json();
 
-            console.log('[BingXWS] getUnrealizedPnLHistory response:', json);
             if (json.code !== 0) {
                 throw new Error(`BingX error: ${json.msg || json.message}`);
             }
 
-            // =================================================================
-            // CORRECTED DATA SHAPE
-            // The API returns an array of positions in json.data. We process each one.
-            // =================================================================
             const positions = Array.isArray(json.data) ? json.data : [];
 
             return positions.map(pos => {
                 const unrealizedPnl = parseFloat(pos.unrealizedPnl || 0);
                 const initialMargin = parseFloat(pos.initialMargin || 0);
-
-                // Calculate PnL as a percentage of the initial margin.
                 const pnlPercentage = (initialMargin > 0)
                     ? (unrealizedPnl / initialMargin) * 100
                     : 0;
 
-                // Return a detailed object that the pnlController can use.
                 return {
                     symbol: pos.symbol,
                     leverage: pos.leverage,
-                    unrealizedPnl: unrealizedPnl.toFixed(2), // The absolute PnL value
-                    pct: parseFloat(pnlPercentage.toFixed(2)), // The percentage PnL
+                    unrealizedPnl: unrealizedPnl.toFixed(2),
+                    pct: parseFloat(pnlPercentage.toFixed(2)),
                     timestamp: parseInt(pos.positionTimestamp, 10) || Date.now(),
                 };
             });
 
         } catch (err) {
             console.error('[BingXWS] getUnrealizedPnLHistory Error:', err.message);
-            // Return empty array on failure so Promise.all doesn't break.
             return [];
         }
     }
@@ -687,7 +639,6 @@ class BingXWS {
     async getDetailedBalance(account) {
         const { apiKey, secretKey } = account;
 
-        // signed GET helper
         const sendRequest = async (path, params = {}) => {
             const timestamp = Date.now();
             const qs = new URLSearchParams({ ...params, timestamp }).toString();
@@ -701,12 +652,11 @@ class BingXWS {
         };
 
         try {
-            // ---------- prices (public) ----------
             const pxRes = await axios.get('https://open-api.bingx.com/openApi/spot/v1/ticker/24hr');
             const raw = pxRes.data?.data || [];
             const priceMap = new Map(
                 (Array.isArray(raw) ? raw : []).map(t => [
-                    String((t.symbol || t.s || '').replace('-', '')).toUpperCase(),  // e.g. BTCUSDT
+                    String((t.symbol || t.s || '').replace('-', '')).toUpperCase(),
                     parseFloat(t.lastPrice || t.c || '0')
                 ])
             );
@@ -719,8 +669,6 @@ class BingXWS {
 
             const result = [];
 
-            // ---------- Spot balance ----------
-            // NOTE: must be signed; response is { code, data: { balances: [...] } }
             const spotData = await sendRequest('/openApi/spot/v1/account/balance');
             const spotBalances = Array.isArray(spotData?.balances) ? spotData.balances : [];
 
@@ -746,24 +694,20 @@ class BingXWS {
                         free: parseFloat(b.free || 0),
                         locked: parseFloat(b.locked || 0),
                         amount: parseFloat(b.free || 0) + parseFloat(b.locked || 0),
-                    })), // optional: helpful for persistence
+                    })),
                     children: spotAssets
                         .map(a => ({ name: a.name, value: a.value }))
                         .sort((a, b) => b.value - a.value)
                 });
             } else {
-                // still return the bucket to keep structure consistent (value 0)
                 result.push({ accountType: 'Spot', value: 0, balances: [], children: [] });
             }
 
-            // ---------- Futures: wallet + positions ----------
             const futBal = await sendRequest('/openApi/swap/v2/user/balance');
             const futPos = await sendRequest('/openApi/swap/v2/user/positions');
 
-            // balance shape: { balance: { balance: "1.2345", ... } }
             const walletBalance = parseFloat(futBal?.balance?.balance || 0);
 
-            // positions: array under data
             const futPositions = (Array.isArray(futPos) ? futPos : [])
                 .map(p => ({
                     symbol: p.symbol,
@@ -777,15 +721,13 @@ class BingXWS {
                     notional: parseFloat(p.positionValue || p.notional || 0),
                     unrealizedPnl: parseFloat(p.unrealizedPnl || p.uPnl || 0),
                 }))
-                // keep only meaningful lines
                 .filter(p => Math.abs(p.notional) > 0.01 || Math.abs(p.unrealizedPnl) > 0.01);
 
             const totalUnrealizedPnl = futPositions.reduce((s, p) => s + (p.unrealizedPnl || 0), 0);
-            const futuresValue = walletBalance + totalUnrealizedPnl; // canonical rule used by aggregator
+            const futuresValue = walletBalance + totalUnrealizedPnl;
 
             const futChildren = [];
             if (walletBalance > 0.0001) {
-                // USDT-M wallet → treat as USDT line in the tree or “Wallet”
                 futChildren.push({ name: 'Wallet', value: walletBalance, amount: 0 });
             }
             if (futPositions.length) {
@@ -815,5 +757,4 @@ class BingXWS {
     }
 }
 
-// Export a singleton instance.
 module.exports = new BingXWS();

@@ -9,18 +9,33 @@ const Candle         = require('../../models/Candle');
 const BinanceAccount = require('../../models/BinanceAccount');
 const OkxAccount     = require('../../models/OkxAccount');
 const BingxAccount   = require('../../models/BingxAccount');
-const MarketSnapshot   = require('../../models/MarketSnapshot');
+const MarketSnapshot = require('../../models/MarketSnapshot');
 const BotService     = require('../../services/botService/BotService');
 const PnLService     = require('../../services/PnLService');
-const logger = require("../../../logs/logger");
-const BotManagerService = require('../../services/botService/BotManagerService');
+const logger         = require("../../../logs/logger");
 
 // Default indicator parameters
 const defaultStrategyParams = require('../../../config/defaultStrategyParams');
 const mongoose = require("mongoose");
 
+// --- Helper to find account by ID across collections ---
+async function findAccount(accountId) {
+    let account = await BinanceAccount.findById(accountId);
+    if (account) return { account, accountType: 'binance' };
 
-// NEW: Controller to create an advanced grid bot using the new service structure
+    account = await OkxAccount.findById(accountId);
+    if (account) return { account, accountType: 'okx' };
+
+    account = await BingxAccount.findById(accountId);
+    if (account) return { account, accountType: 'bingx' };
+
+    return { account: null, accountType: null };
+}
+
+/**
+ * NEW: Controller to create and start an advanced grid bot.
+ * Extracts logic previously found in deployBot into a dedicated handler.
+ */
 exports.createGridBot = async (req, res) => {
     try {
         const userId = req.user?.id;
@@ -31,66 +46,92 @@ exports.createGridBot = async (req, res) => {
         const {
             name,
             accountId,
-            accountType,
-            exchange,
+            // accountType, // We will derive this from the DB to be safe
             symbol,
-            marketType,
             lowerPrice,
             upperPrice,
-            grids, // Note this name difference
-            gridMode,
+            grids, // Frontend sends 'grids', DB expects 'gridCount'
+            gridMode, // 'arithmetic' or 'geometric'
             investment,
-            takeProfitPrice,
-            stopLossPrice,
+            takeProfitPrice, // Optional: Bot level TP
+            stopLossPrice,   // Optional: Bot level SL
             flattenOnExit,
             baseFund,
         } = req.body;
 
-        const marketSnapshot = await MarketSnapshot.findById(symbol)
+        // 1. Validate Market
+        const marketSnapshot = await MarketSnapshot.findById(symbol);
         if (!marketSnapshot) {
-            return res.status(400).json({ error: 'Wrong symbol is selected.' });
+            return res.status(400).json({ error: 'Invalid symbol selected.' });
         }
 
+        // 2. Validate Account
+        const { account, accountType: type } = await findAccount(accountId);
+        if (!account) {
+            return res.status(400).json({ error: 'Invalid account selected.' });
+        }
+
+        // 3. Prepare Configuration Objects
         const marketInfo = {
             baseFund:  Number(baseFund) || 10000,
             tradeFund: Number(investment) || 50
         };
 
+        const tradeInfo = {
+            // Map specific grid bot trade settings if needed
+            leverageLong: 1, // Grid bots usually run 1x or specified leverage
+            leverageShort: 1,
+            // Add bot-level TP/SL to tradeInfo or root level depending on your model structure
+            botTakeProfit: Number(takeProfitPrice) || null,
+            botStopLoss: Number(stopLossPrice) || null,
+        };
 
-        // The bot configuration should match our new GridBotModel schema
-        const botConfig = {
-            name,
-            accountId,
-            accountType,
-            exchange,
-            symbol: marketSnapshot.symbol,
-            marketType,
-            investment,
-            takeProfitPrice,
-            stopLossPrice,
-            flattenOnExit,
-            gridMode,
-            userId, // from your authenticated user
-            active: true,
-            marketInfo,
-            riskStrategy: 'SimpleStrategy',
-            timeframe: '1h',
-            gridConfig: { // Create the required nested object
-                lowerPrice,
-                upperPrice,
-                gridCount: grids, // Map 'grids' to 'gridCount'
-                // gridType: gridMode // You might need to map this too, see below
-            }
+        const gridConfig = {
+            lowerPrice: Number(lowerPrice),
+            upperPrice: Number(upperPrice),
+            gridCount: Number(grids),
+            gridMode: gridMode || 'arithmetic', // Default to arithmetic if missing
+            gridStepPercentage: 0.01, // Default or calculate based on range
+            stopLossPct: 0,
+            takeProfitPct: 0,
+            flattenOnExit: flattenOnExit === true || flattenOnExit === 'true'
         };
 
         // Basic validation
-        if (!botConfig.name || !botConfig.symbol || !botConfig.exchange || !botConfig.marketType) {
-            return res.status(400).json({ error: 'Name, symbol, exchange, and marketType are required.' });
+        if (!name || !symbol || !gridConfig.lowerPrice || !gridConfig.upperPrice || !gridConfig.gridCount) {
+            return res.status(400).json({ error: 'Name, symbol, lowerPrice, upperPrice, and grids are required.' });
         }
 
-        const botInstance = await BotManagerService.createAndStartBot(botConfig);
+        if (gridConfig.lowerPrice >= gridConfig.upperPrice) {
+            return res.status(400).json({ error: 'Lower price must be less than Upper price.' });
+        }
 
-        res.status(201).json({ success: true, message: "Grid bot created and started successfully.", bot: botInstance.bot });
+        // 4. Create Database Entry
+        const newBot = await GridBotModel.create({
+            botType:       'grid',
+            name,
+            symbol:        marketSnapshot.symbol,
+            timeframe:     '1h', // Grid bots usually ignore timeframe, but field is required
+            userId,
+            accountType:   type,
+            accountId:     account._id,
+            active:        true,
+            mode:          'live', // or 'paper' based on req.body
+
+            riskStrategy:  'SimpleStrategy',
+            riskParams:    {},
+            marketInfo,
+            tradeInfo,
+            gridConfig,
+
+            positionMode:  'single',
+            fundMode:      'isolated'
+        });
+
+        // 5. Register in Memory Service
+        BotService.registerBot(newBot);
+
+        res.status(201).json({ success: true, message: "Grid bot created and started successfully.", bot: newBot });
 
     } catch(err) {
         console.error('createGridBot error:', err);
@@ -99,11 +140,27 @@ exports.createGridBot = async (req, res) => {
     }
 };
 
-// NEW: Controller to hard-stop an advanced grid bot
+/**
+ * NEW: Controller to hard-stop a grid bot.
+ * Utilizes the standard BotService deactivation logic.
+ */
 exports.stopGridBot = async (req, res) => {
     try {
         const { id } = req.params;
-        await BotManagerService.stopBot(id);
+
+        const bot = await BotBase.findByIdAndUpdate(
+            id,
+            { active: false },
+            { new: true }
+        );
+
+        if (!bot) {
+            return res.status(404).json({ success: false, error: 'Grid bot not found.' });
+        }
+
+        // Clean up from memory
+        BotService.deactivateBot(bot);
+
         res.status(200).json({ success: true, message: `Grid bot ${id} stopped successfully.` });
     } catch(err) {
         console.error('stopGridBot error:', err);
@@ -114,36 +171,27 @@ exports.stopGridBot = async (req, res) => {
 
 
 /**
- * Deploy a new bot (either an indicator bot or a grid bot).
+ * Deploy a new Indicator Bot.
+ * (Logic for Grid bots has been removed and moved to createGridBot)
  */
 exports.deployBot = async (req, res) => {
     try {
-        // 0) Authenticate user (No changes here)
+        // 0) Authenticate user
         const user = await User.findById(req.user?.id);
         if (!user) {
             return res.status(401).json({ error: 'User not found.' });
         }
 
-        // 1) Determine which account the user selected (No changes here)
+        // 1) Account Lookup
         const { accountId } = req.body;
-        let account, accountType;
-        account = await BinanceAccount.findById(accountId);
-        if (account) accountType = 'binance';
-        else {
-            account = await OkxAccount.findById(accountId);
-            if (account) accountType = 'okx';
-            else {
-                account = await BingxAccount.findById(accountId);
-                if (account) accountType = 'bingx';
-            }
-        }
+        const { account, accountType } = await findAccount(accountId);
+
         if (!account || !accountType) {
             return res.status(400).json({ error: 'Invalid account selected' });
         }
 
-        // 2) Extract and process fields from the new frontend payload
+        // 2) Extract fields (Indicator Bot specific)
         let {
-            botType = 'indicator',
             name,
             symbol,
             strategy, // "default", "optimized", or "dynamic"
@@ -153,8 +201,8 @@ exports.deployBot = async (req, res) => {
             stopLoss,
             positionTakeProfit,
             positionStopLoss,
-            compoundPositionSizing, // this is now a boolean
-            indicators, // this is now a structured array
+            compoundPositionSizing,
+            indicators,
             // Fields for optimized/dynamic strategies
             optimizationMethod,
             minOptimizationAccuracy,
@@ -168,13 +216,12 @@ exports.deployBot = async (req, res) => {
             share,
         } = req.body;
 
-        const marketSnapshot = await MarketSnapshot.findById(symbol)
+        const marketSnapshot = await MarketSnapshot.findById(symbol);
         if (!marketSnapshot) {
             return res.status(400).json({ error: 'Wrong symbol is selected.' });
         }
 
-        // We derive it from the first indicator, as the BotBase model requires it.
-        // Check if the indicators is a string and parse it
+        // Parse indicators if string
         if (typeof indicators === 'string') {
             try {
                 indicators = JSON.parse(indicators);
@@ -182,14 +229,15 @@ exports.deployBot = async (req, res) => {
                 return res.status(400).json({ success: false, error: 'Invalid format for indicators.' });
             }
         }
-        if (botType === 'indicator' && (!Array.isArray(indicators) || indicators.length === 0)) {
-            return res.status(400).json({ error: 'At least one indicator is required.' });
+
+        if (!Array.isArray(indicators) || indicators.length === 0) {
+            return res.status(400).json({ error: 'At least one indicator is required for Indicator Bots.' });
         }
-        // The frontend sends "timeFrame", the model expects "timeframe".
+
         const primaryTimeframe = indicators[0].timeFrame || '1h';
         const normalizedTF = primaryTimeframe.toLowerCase();
 
-        // 3) Build “marketInfo”, “tradeInfo”, and "riskParams"
+        // 3) Build Config Objects
         const marketInfo = {
             baseFund:  Number(baseFund) || 10000,
             tradeFund: Number(tradeFund) || 50
@@ -205,7 +253,6 @@ exports.deployBot = async (req, res) => {
             positionSide: (singleModeSide || 'long').toLowerCase() !== 'both'
                 ? (singleModeSide || 'long').toLowerCase()
                 : 'long',
-            // ADDED: Populate new strategy fields based on bot mode
             ...( (strategy === 'optimized' || strategy === 'dynamic') && {
                 optimizationMethod: optimizationMethod,
                 minimumAccuracy: Number(minOptimizationAccuracy),
@@ -216,135 +263,43 @@ exports.deployBot = async (req, res) => {
             }),
         };
 
-        // ADDED: Build riskParams object from new fields
         const riskParams = {
             positionSizingMethod: compoundPositionSizing === true || compoundPositionSizing === 'true' ? 'compound' : 'simple'
         };
 
-        // 4) Branch on botType
-        let bot;
+        // 4) Map Indicators
+        const formattedIndicators = indicators.map(ind => ({
+            name:      ind.indicator.name,
+            timeframe: (ind.timeFrame || '1h').toString().toLowerCase(),
+            params:    {}
+        }));
 
-        if (botType === 'indicator') {
-            ///
-            // ── I N D I C A T O R   B O T ─────────────────────────────────────────
-            //
+        // 5) Create IndicatorBot Document
+        const bot = await IndicatorBot.create({
+            botType:       'indicator',
+            name,
+            symbol:        marketSnapshot.symbol,
+            timeframe:     normalizedTF,
+            userId:        user._id,
+            accountType,
+            accountId:     account._id,
 
-            // CHANGED: The 'indicators' field is now a direct array, not a JSON string.
-            // We just need to map it to the expected schema format.
-            const formattedIndicators = indicators.map(ind => ({
-                name:      ind.indicator.name, // Frontend sends "indicator", model wants "name"
-                timeframe: (ind.timeFrame || '1h').toString().toLowerCase(), // Frontend sends "timeFrame"
-                params:    {} // Assuming default params for now, can be extended if frontend sends them
-            }));
+            riskStrategy:  'SimpleStrategy',
+            riskParams,
+            marketInfo,
+            tradeInfo,
 
+            indicators:    formattedIndicators,
+            strategy:      strategy || 'default',
 
-            // iv) Create a new IndicatorBot document with an updated structure
-            bot = await IndicatorBot.create({
-                botType:       'indicator',
-                name,
-                symbol: marketSnapshot.symbol,
-                timeframe:     normalizedTF, // ADDED: Pass the derived primary timeframe
-                userId:        user._id,
-                accountType,
-                accountId:     account._id,
+            fundMode:      (marginType || 'isolated').toLowerCase(),
+            positionMode:  (positionMode || 'single').toLowerCase(),
+            active:        true,
+            mode:          'live',
+            share
+        });
 
-                riskStrategy:  'SimpleStrategy', // Keeping default, can be dynamic if sent from frontend
-                riskParams, // UPDATED
-                marketInfo,
-                tradeInfo, // UPDATED
-
-                indicators:    formattedIndicators, // UPDATED
-                strategy:      strategy || 'default',
-
-                fundMode: (marginType || 'isolated').toLowerCase(), // 'Isolated' -> 'isolated'
-                positionMode: (positionMode || 'single').toLowerCase(), // 'Single' -> 'single'
-                active:        true,
-                mode:          'live',
-                share
-            });
-        }
-        else if (botType === 'grid') {
-            //
-            // ── G R I D B O T ─────────────────────────────────────────────────────────
-            //
-            // the Front end sends gridConfig as a JSON string, so parse it here
-            let rawGridConfig = req.body.gridConfig;
-            let gridConfig;
-            if (typeof rawGridConfig === 'string') {
-                try {
-                    gridConfig = JSON.parse(rawGridConfig);
-                } catch {
-                    return res.status(400).json({ error: 'gridConfig must be valid JSON.' });
-                }
-            } else {
-                gridConfig = rawGridConfig;
-            }
-
-            // Validate minimal fields
-            if (!gridConfig
-                || typeof gridConfig.lowerPrice !== 'number'
-                || typeof gridConfig.upperPrice !== 'number'
-                || typeof gridConfig.gridCount !== 'number'
-            ) {
-                return res.status(400).json({
-                    error: 'gridConfig must contain numeric lowerPrice, upperPrice, and gridCount.'
-                });
-            }
-
-            // Friendly check: lower < upper
-            if (gridConfig.lowerPrice >= gridConfig.upperPrice) {
-                return res.status(400).json({
-                    error: 'gridConfig.lowerPrice must be less than gridConfig.upperPrice'
-                });
-            }
-
-            // Create new GridBotModel document
-            bot = await GridBotModel.create({
-                botType:       'grid',
-                name,
-                symbol:        symbol,
-                timeframe:     '1h', // set a default, doesn't matter
-                userId:        user._id,
-                accountType,
-                accountId:     account._id,
-
-                riskStrategy: 'SimpleStrategy',
-                riskParams:    {},        // placeholders
-                marketInfo,
-                tradeInfo,
-
-                gridConfig: {
-                    lowerPrice:         gridConfig.lowerPrice,
-                    upperPrice:         gridConfig.upperPrice,
-                    gridCount:          gridConfig.gridCount,
-                    gridType:           gridConfig.gridType  || 'fixed',
-                    gridStepPercentage: gridConfig.gridStepPercentage != null
-                        ? gridConfig.gridStepPercentage
-                        : 0.01,
-                    takeProfitPct:      gridConfig.takeProfitPct != null
-                        ? gridConfig.takeProfitPct
-                        : 2,
-                    stopLossPct:        gridConfig.stopLossPct != null
-                        ? gridConfig.stopLossPct
-                        : 2,
-                    volatilityBasedSL:  gridConfig.volatilityBasedSL === true,
-                    trailingStop:       gridConfig.trailingStop !== false,
-                    ATRMultiplier:      gridConfig.ATRMultiplier != null
-                        ? gridConfig.ATRMultiplier
-                        : 3
-                },
-
-                positionMode:  'single',
-                fundMode:      'cross',
-                active:        true,
-                mode:          'live'
-            });
-        }
-        else {
-            return res.status(400).json({ error: `Unsupported botType: ${botType}` });
-        }
-
-        // 5) Register newly created bot in memory‐based BotService
+        // 6) Register in Memory Service
         BotService.registerBot(bot);
 
         return res.status(201).json({ success: true, bot });
@@ -357,19 +312,17 @@ exports.deployBot = async (req, res) => {
 };
 
 /**
- * Retrieve all bots (indicator + grid) for the current user, enriched with PnL and trades.
+ * Retrieve all bots (indicator + grid) for the current user.
  */
 exports.getBots = async (req, res) => {
-
     const { active } = req.query;
     console.log('getBots active:', active);
 
     try {
         const filter = { active: active, userId: req.user?.id };
-
         const botType = req.query.botType;
-        const bots = await BotBase.find(botType && botType !== 'undefined' ? {...filter, botType} : filter).lean();
 
+        const bots = await BotBase.find(botType && botType !== 'undefined' ? {...filter, botType} : filter).lean();
         const enriched = await calculateRelatedDataToBots(bots);
 
         return res.json({ success: true, bots: enriched });
@@ -412,7 +365,7 @@ async function calculateRelatedDataToBot (bot) {
 }
 
 /**
- * Retrieve one bot by ID (could be indicator or grid).
+ * Retrieve one bot by ID.
  */
 exports.getBotById = async (req, res) => {
     try {
@@ -430,7 +383,7 @@ exports.getBotById = async (req, res) => {
 };
 
 /**
- * Update a bot’s settings (works for both indicator and grid).
+ * Update a bot’s settings.
  */
 exports.updateBot = async (req, res) => {
     try {
@@ -462,7 +415,6 @@ exports.updateBot = async (req, res) => {
             existing[key] = req.body[key];
         });
 
-        // Save will run proper discriminator‐level validators
         const updated = await existing.save();
 
         if (updated.active) {
@@ -481,14 +433,14 @@ exports.updateBot = async (req, res) => {
 };
 
 /**
- * Stop a bot completely.
+ * Stop a bot completely (Generic).
  */
 exports.stopBot = async (req, res) => {
     try {
         const bot = await BotBase.findByIdAndUpdate(
             req.params.id,
             { active: false },
-            { new: true }           // return the updated document
+            { new: true }
         );
 
         if (!bot) {
@@ -506,7 +458,7 @@ exports.stopBot = async (req, res) => {
 };
 
 /**
- * Ensure bots for a symbol/timeframe (upsert). only indicator bots.
+ * Ensure bots for a symbol/timeframe (upsert). Only indicator bots.
  */
 exports.selectBots = async (req, res) => {
     try {
@@ -701,16 +653,13 @@ exports.botProps = async (_, res) => {
 
 exports.botsList = async (req, res) => {
     const bots = await BotBase.find().lean();
-
     return res.json({ success: true, data: bots });
 }
 
 exports.userBotsList = async (req, res) => {
     const bots = await BotBase.find({ userId: req.params.userId }).lean();
-
     const enriched = await calculateRelatedDataToBots(bots);
 
-    // Group bots by botType
     const groupedBots = enriched.reduce((acc, bot) => {
         const type = bot.botType;
         if (!acc[type]) {

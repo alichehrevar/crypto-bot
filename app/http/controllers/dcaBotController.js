@@ -23,7 +23,7 @@ exports.createDcaBot = async (req, res) => {
             accountType: marketSnapshot.name.toLowerCase(),
             userId: req.user.id,
             active: true,
-            direction: req.body,
+            direction: req.body.direction.toUpperCase(),
             marketType: 'SPOT',
             timeframe: '1m',
             riskStrategy: 'SimpleStrategy',
