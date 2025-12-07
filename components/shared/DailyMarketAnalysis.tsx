@@ -1,7 +1,6 @@
 'use client';
 
 import React, {useEffect, useMemo, useRef, useState} from 'react';
-import Image from "next/image";
 
 type FilterKey = 'all' | 'btc' | 'eth';
 type SummaryData = Record<FilterKey, string>;

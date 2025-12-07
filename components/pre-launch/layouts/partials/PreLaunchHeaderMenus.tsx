@@ -1,14 +1,19 @@
-import Link from "next/link";
+import ActiveLink from "./ActiveLink";
 
-import {PrelaunchHeaderMenus} from "@/utils/prelaunch/prelaunchItems";
+import { PrelaunchHeaderMenus } from "@/utils/prelaunch/prelaunchItems";
 
-export default function PreLaunchHeaderMenus({className = 'flex'} : {className?: string}) {
+export default function PreLaunchHeaderMenus({ className = 'flex' }: { className?: string }) {
+
     return (
         <div className={`${className} items-center justify-center flex-col lg:flex-row gap-8`}>
             {PrelaunchHeaderMenus.map((item, index) => (
-                <Link key={index} className="text-[14px] text-[#DDDDDD]" href={item.link}>
+                <ActiveLink
+                    key={index}
+                    className="text-[14px] text-[#DDDDDD]"
+                    href={item.link}
+                >
                     {item.title}
-                </Link>
+                </ActiveLink>
             ))}
         </div>
     )
