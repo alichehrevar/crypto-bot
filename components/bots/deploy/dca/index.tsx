@@ -129,7 +129,7 @@ export default function DcaConfigForm({
 
 
         const payload: any = {
-            selectedTab,
+            direction: selectedTab === 'buy' ? 'long' : 'short',
             name: botName,
             accountId: selectedAccountId,
             accountType: selectedAccount.name, // e.g., 'bingx'

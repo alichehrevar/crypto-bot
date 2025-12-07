@@ -328,8 +328,7 @@ export default function BotConfigForm({mode, selectedParentTab, onCloseAction, s
                 <NumericInput
                     label="Investment"
                     max={availableBalance}
-                    min={1}
-                    step={0.1}
+                    min={0}
                     usePercentageStep={true}
                     value={tradeFund}
                     onChange={e => setTradeFund(e)}

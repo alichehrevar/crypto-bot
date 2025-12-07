@@ -27,14 +27,14 @@ export function Providers({ children, themeProps }: ProvidersProps) {
   return (
     <HeroUIProvider navigate={router.push}>
       <ToastProvider
-        placement="top-right"
+        placement="bottom-right"
         toastProps={{
           radius: "md",
           variant: "flat",
           timeout: 3000,
           hideCloseButton: true,
           classNames: {
-            base: "top-[7px]",
+            base: "bottom-[10px]",
           },
         }}
       />
