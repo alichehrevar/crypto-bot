@@ -9,6 +9,7 @@ const HeikinAshi = require('./HeikinAshi');
 const CombinedRsiMacd = require('./CombinedRsiMacd');
 const BollingerBands = require('./BollingerBands');
 const StochasticRSI = require('./StochasticRSI');
+const N8NBotRunner = require('./N8NBotRunner');
 
 module.exports = {
     RSI,
@@ -20,4 +21,5 @@ module.exports = {
     CombinedRsiMacd,
     BollingerBands,
     StochasticRSI,
+    N8NBotRunner,
 };

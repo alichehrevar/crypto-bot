@@ -2,7 +2,9 @@
 
 const axios  = require('axios');
 const BotBase    = require('../../models/BotBase');
-const Indicators = require('../../strategies/technical');
+// Import the N8nJobResponse model to fetch code
+const { N8nJobResponse_CustomAiDB } = require('../../models/N8nJobResponse');
+const Indicators = require('../../strategies/technical'); // Now includes N8NBotRunner
 const candleStore = require('../../../utils/candleStore');
 const wsServer     = require('../WebSocketServer');
 const OrderExecutionService = require('./OrderExecutionService');
@@ -15,6 +17,10 @@ class BotService {
         this.activeBots = new Map();
         // promise-locks so each bot’s save is serialized
         this._locks     = new Map();
+
+        // CACHE: Store N8n code strings in memory to avoid DB hits every candle
+        // Map<jobId, codeString>
+        this._n8nCodeCache = new Map();
     }
 
     /** Load all active bots at startup */
@@ -93,6 +99,26 @@ class BotService {
         }));
     }
 
+    /** Helper: Fetch and Cache N8n Code */
+    async _getN8nCode(jobId) {
+        if (this._n8nCodeCache.has(jobId)) {
+            return this._n8nCodeCache.get(jobId);
+        }
+        try {
+            const job = await N8nJobResponse_CustomAiDB.findById(jobId);
+            if (!job || !job.generatedCode || !job.generatedCode.fullCode) {
+                console.error(`[BotService] N8n Job ${jobId} not found or has no code.`);
+                return null;
+            }
+            const code = job.generatedCode.fullCode;
+            this._n8nCodeCache.set(jobId, code);
+            return code;
+        } catch (err) {
+            console.error(`[BotService] Failed to fetch N8n Job ${jobId}:`, err);
+            return null;
+        }
+    }
+
     /**
      * Invoked on every candle (closed or updating).
      * Serializes per-bot via a promise queue so no races on save().
@@ -159,6 +185,8 @@ class BotService {
             // determine how many bars we need
             const p = cfg.params||{};
             let needed;
+
+            // --- UPDATED SWITCH CASE ---
             switch (cfg.name) {
                 case 'RSI':            needed = (p.period||14)+2; break;
                 case 'MACD':           needed = (p.longPeriod||26)+(p.signalPeriod||9)+1; break;
@@ -178,28 +206,46 @@ class BotService {
                     needed      = base + k + d + 1;
                     break;
                 }
+                // N8N Strategies usually require more data for stability (ADF tests, etc.)
+                case 'N8NBotRunner':
+                case 'N8nStrategy':    needed = (p.windowSize || 100) + 20; break;
                 default:               needed = 50;
             }
 
             // grab recent
             let recent = candleStore.getLatestCandles(symbol, timeframe, needed);
-            logger.info(`Got ${recent.length} candles for ${cfg.name} (needed ${needed})`);
+
+            // ... (Logging omitted for brevity) ...
+
             if (recent.length < needed) {
                 const more = await this._fetchHistorical(symbol, timeframe, needed - recent.length);
-                logger.info(`Fetched ${more.length} more candles for ${cfg.name} (needed ${needed})`);
                 recent      = more.concat(recent);
-                logger.info(`Now have ${recent.length} candles for ${cfg.name}`);
-                logger.info(`Candles: ${JSON.stringify(recent.slice(-5), null, 2)}`);
             }
 
             // run it
-            const key = cfg.name.replace(/-/g,'');
+            // MAPPING: Ensure 'N8nStrategy' maps to 'N8NBotRunner'
+            let key = cfg.name.replace(/-/g,'');
+            if (key === 'N8nStrategy') key = 'N8NBotRunner';
+
             const Cls = Indicators[key];
             if (!Cls) {
                 logger.error(`Unknown indicator "${cfg.name}"`);
                 signals.push('HOLD');
             } else {
                 try {
+                    // --- N8N SPECIFIC LOGIC ---
+                    // If it is an N8n strategy, we must fetch/inject the code
+                    if (key === 'N8NBotRunner') {
+                        const jobId = cfg.params.jobId;
+                        if (!jobId) throw new Error("Missing jobId in N8nStrategy params");
+
+                        const code = await this._getN8nCode(jobId);
+                        if (!code) throw new Error("Could not retrieve N8n code from DB");
+
+                        // Inject generatedCode into params for the N8NBotRunner constructor
+                        cfg.params.generatedCode = code;
+                    }
+
                     const inst = new Cls(cfg.params);
                     const signal = inst.calculateSignal(recent);
                     signals.push(signal);
@@ -212,6 +258,7 @@ class BotService {
         }
 
         // ——— C) aggregate across them ———
+        // ... (Rest of the function remains identical) ...
         const method     = bot.tradeInfo?.signalProcessingMethod || 'consensus';
         const finalSignal = method === 'weighted'
             ? this._aggregateWeighted(signals)
