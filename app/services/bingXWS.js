@@ -326,10 +326,11 @@ class BingXWS {
      * Fetches raw Spot balances (array).
      */
     async getSpotBalanceRaw(account) {
+
         const { apiKey, secretKey } = account;
         const timestamp = Date.now().toString();
         const base = 'https://open-api.bingx.com';
-        const path = '/openApi/spot/v1/account/balance';
+        const path = '/openApi/fund/v1/account/balance';
 
         const queryParams = new URLSearchParams({ timestamp });
         const toSign = queryParams.toString();
@@ -339,6 +340,7 @@ class BingXWS {
 
         try {
             const resp = await axios.get(url, { headers: { "X-BX-APIKEY": apiKey } });
+
             if (resp.data.code !== 0) {
                 console.error(`BingX Spot Error: ${resp.data.msg}`);
                 return [];
@@ -383,70 +385,163 @@ class BingXWS {
 
     /**
      * Main getBalance function.
-     * Fetches Spot (converted to USDT) + Futures (Equity).
+     * Fetches Spot + Fund + Futures (USDT-M) + Futures (Coin-M).
      * Returns an array of objects compatible with accountController.
      */
     async getBalance(account, { all = false, accountType = '' } = {}) {
         const balances = [];
+        const { apiKey, secretKey } = account;
 
         try {
-            // 1. Fetch Prices if we need spot data
+            // 1. Fetch Prices (Needed for Spot, Fund, and Coin-M conversion)
+            // We use the 24hr ticker because it is often more reliable for symbol formatting consistency
             let priceMap = new Map();
-            if (all || accountType === 'spot') {
-                priceMap = await this.getSpotPrices();
+            try {
+                const pxRes = await axios.get('https://open-api.bingx.com/openApi/spot/v1/ticker/24hr');
+                const raw = pxRes.data?.data || [];
+                // Map: "BTC" -> Price (Derived from BTC-USDT)
+                raw.forEach(t => {
+                    const symbol = t.symbol || t.s; // e.g. "BTC-USDT"
+                    const price = parseFloat(t.lastPrice || t.c || 0);
+                    if (symbol && symbol.endsWith('-USDT')) {
+                        const asset = symbol.split('-')[0]; // "BTC"
+                        priceMap.set(asset, price);
+                    }
+                });
+            } catch (e) {
+                console.warn('[BingXWS] Failed to fetch prices:', e.message);
             }
 
-            // 2. Fetch Spot Balances
-            if (all || accountType === 'spot') {
-                const spotBalances = await this.getSpotBalanceRaw(account);
+            // Helper to get USDT value
+            const getUsdtValue = (asset, amount) => {
+                if (amount <= 0) return 0;
+                const a = asset.toUpperCase();
+                if (a === 'USDT') return amount;
+                const price = priceMap.get(a);
+                return price ? amount * price : 0; // If no price found (e.g. delisted coin), value is 0
+            };
 
-                spotBalances.forEach(coin => {
+            // Helper for signed requests
+            const fetchSigned = async (path) => {
+                const timestamp = Date.now().toString();
+                const qs = `timestamp=${timestamp}`;
+                const signature = crypto.createHmac('sha256', secretKey).update(qs).digest('hex');
+                const url = `https://open-api.bingx.com${path}?${qs}&signature=${signature}`;
+                try {
+                    const res = await axios.get(url, { headers: { 'X-BX-APIKEY': apiKey } });
+                    return (res.data.code === 0) ? res.data.data : null;
+                } catch (err) {
+                    console.error(`[BingXWS] Fetch ${path} failed:`, err.message);
+                    return null;
+                }
+            };
+
+            // =========================================================
+            // 2. Fetch Spot Balances
+            // =========================================================
+            if (all || accountType === 'spot') {
+                const data = await fetchSigned('/openApi/spot/v1/account/balance');
+                const list = data?.balances || [];
+
+                list.forEach(coin => {
                     const free = parseFloat(coin.free);
                     const locked = parseFloat(coin.locked);
-                    const totalQty = free + locked;
-
-                    if (totalQty > 0) {
-                        let usdtVal = 0;
-                        if (coin.asset === 'USDT') {
-                            usdtVal = totalQty;
-                        } else {
-                            // Try to find price for ASSET-USDT
-                            const price = priceMap.get(`${coin.asset}-USDT`);
-                            if (price) {
-                                usdtVal = totalQty * price;
-                            }
-                        }
-
-                        // Only push if it has value or quantity
-                        if (usdtVal > 0 || totalQty > 0) {
-                            balances.push({
-                                accountType: 'spot',
-                                asset: coin.asset,
-                                free: free,
-                                locked: locked,
-                                usdtBalance: usdtVal // Controller sums this up
-                            });
-                        }
+                    const total = free + locked;
+                    if (total > 0) {
+                        balances.push({
+                            accountType: 'spot',
+                            asset: coin.asset,
+                            free: free,
+                            locked: locked,
+                            usdtBalance: getUsdtValue(coin.asset, total)
+                        });
                     }
                 });
             }
 
-            // 3. Fetch Futures Balances
-            if (all || accountType === 'futures') {
-                const futData = await this.getFuturesBalanceRaw(account);
-                if (futData) {
-                    const equity = parseFloat(futData.equity || 0);
-                    const available = parseFloat(futData.availableMargin || 0);
+            // =========================================================
+            // 3. Fetch Fund Account (Crucial: Missing in previous versions)
+            // =========================================================
+            if (all || accountType === 'fund') {
+                const data = await fetchSigned('/openApi/fund/v1/account/balance');
+                const list = data?.assets || [];
 
-                    if (equity > 0) {
+                list.forEach(coin => {
+                    const free = parseFloat(coin.free);
+                    const locked = parseFloat(coin.locked);
+                    const total = free + locked;
+                    if (total > 0) {
                         balances.push({
-                            accountType: 'futures',
-                            asset: futData.currency || 'USDT',
-                            free: available,
-                            locked: equity - available,
-                            usdtBalance: equity // Equity includes unrealized PnL
+                            accountType: 'fund',
+                            asset: coin.asset,
+                            free: free,
+                            locked: locked,
+                            usdtBalance: getUsdtValue(coin.asset, total)
                         });
                     }
+                });
+            }
+
+            // =========================================================
+            // 4. Fetch Futures Balances (USDT-M)
+            // =========================================================
+            if (all || accountType === 'futures') {
+                const data = await fetchSigned('/openApi/swap/v2/user/balance');
+                // The API can return nested { balance: {...} } or direct object
+                const balObj = data?.balance || data || {};
+
+                const equity = parseFloat(balObj.equity || 0);
+                const available = parseFloat(balObj.availableMargin || 0);
+
+                if (equity > 0) {
+                    balances.push({
+                        accountType: 'futures',
+                        asset: balObj.currency || 'USDT',
+                        free: available,
+                        locked: equity - available,
+                        usdtBalance: equity // Already in USDT usually
+                    });
+                }
+            }
+
+            // =========================================================
+            // 5. Fetch Coin-M Balances (Inverse)
+            // =========================================================
+            if (all || accountType === 'coin-m') {
+                // Note: Coin-M uses /openApi/cswap/v1
+                const { apiKey, secretKey } = account;
+                const timestamp = Date.now().toString();
+                const qs = `timestamp=${timestamp}`;
+                const signature = crypto.createHmac('sha256', secretKey).update(qs).digest('hex');
+                const url = `https://open-api.bingx.com/openApi/cswap/v1/user/balance?${qs}&signature=${signature}`;
+
+                try {
+                    const res = await axios.get(url, { headers: { 'X-BX-APIKEY': apiKey } });
+                    if (res.data.code === 0) {
+                        let list = [];
+                        if (Array.isArray(res.data.data)) {
+                            list = res.data.data;
+                        } else if (res.data.data?.balance) {
+                            list = res.data.data.balance;
+                        }
+
+                        list.forEach(coin => {
+                            const equity = parseFloat(coin.equity || 0);
+                            const asset = coin.asset.toUpperCase();
+
+                            if (equity > 0) {
+                                balances.push({
+                                    accountType: 'coin-m',
+                                    asset: asset,
+                                    free: parseFloat(coin.availableMargin || 0),
+                                    locked: equity - parseFloat(coin.availableMargin || 0),
+                                    usdtBalance: getUsdtValue(asset, equity)
+                                });
+                            }
+                        });
+                    }
+                } catch (err) {
+                    console.error('[BingXWS] Coin-M fetch failed:', err.message);
                 }
             }
 
@@ -639,36 +734,57 @@ class BingXWS {
     async getDetailedBalance(account) {
         const { apiKey, secretKey } = account;
 
+        // Helper to sign and send requests
         const sendRequest = async (path, params = {}) => {
             const timestamp = Date.now();
             const qs = new URLSearchParams({ ...params, timestamp }).toString();
             const sig = crypto.createHmac('sha256', secretKey).update(qs).digest('hex');
             const url = `https://open-api.bingx.com${path}?${qs}&signature=${sig}`;
-            const resp = await axios.get(url, { headers: { 'X-BX-APIKEY': apiKey } });
-            if (resp.data?.code !== 0) {
-                throw new Error(`BingX API error (${path}): ${resp.data?.msg || 'unknown'}`);
+
+            try {
+                const resp = await axios.get(url, { headers: { 'X-BX-APIKEY': apiKey } });
+                if (resp.data?.code !== 0) {
+                    console.warn(`[BingXWS] API warning (${path}): ${resp.data?.msg || 'unknown'}`);
+                    return null;
+                }
+                return resp.data.data;
+            } catch (e) {
+                console.warn(`[BingXWS] Request failed (${path}): ${e.message}`);
+                return null;
             }
-            return resp.data.data;
         };
 
         try {
+            // 1. Fetch Market Prices for USDT conversion
             const pxRes = await axios.get('https://open-api.bingx.com/openApi/spot/v1/ticker/24hr');
             const raw = pxRes.data?.data || [];
+
+            // Map: "BTCUSDT" -> 65000.00
             const priceMap = new Map(
                 (Array.isArray(raw) ? raw : []).map(t => [
                     String((t.symbol || t.s || '').replace('-', '')).toUpperCase(),
                     parseFloat(t.lastPrice || t.c || '0')
                 ])
             );
+
             const getUsdtValue = (asset, amount) => {
                 const a = String(asset || '').toUpperCase();
                 if (a === 'USDT') return amount;
-                const p = priceMap.get(`${a}USDT`);
+
+                // Try finding ASSET+USDT (e.g., BTCUSDT)
+                let p = priceMap.get(`${a}USDT`);
+                if (!p) {
+                    // Fallback for weird symbols or USDC
+                    p = priceMap.get(`${a}USDC`);
+                }
                 return p ? amount * p : 0;
             };
 
             const result = [];
 
+            // ==========================================
+            // 1. SPOT ACCOUNTS
+            // ==========================================
             const spotData = await sendRequest('/openApi/spot/v1/account/balance');
             const spotBalances = Array.isArray(spotData?.balances) ? spotData.balances : [];
 
@@ -685,28 +801,50 @@ class BingXWS {
                 .filter(x => x.value > 0.01);
 
             const spotTotal = spotAssets.reduce((s, a) => s + a.value, 0);
-            if (spotTotal > 0.01) {
-                result.push({
-                    accountType: 'Spot',
-                    value: spotTotal,
-                    balances: spotBalances.map(b => ({
-                        asset: b.asset?.toUpperCase() || '',
-                        free: parseFloat(b.free || 0),
-                        locked: parseFloat(b.locked || 0),
-                        amount: parseFloat(b.free || 0) + parseFloat(b.locked || 0),
-                    })),
-                    children: spotAssets
-                        .map(a => ({ name: a.name, value: a.value }))
-                        .sort((a, b) => b.value - a.value)
-                });
-            } else {
-                result.push({ accountType: 'Spot', value: 0, balances: [], children: [] });
-            }
 
+            result.push({
+                accountType: 'Spot',
+                value: spotTotal,
+                balances: spotAssets.length > 0 ? spotBalances : [],
+                children: spotAssets.sort((a, b) => b.value - a.value)
+            });
+
+            // ==========================================
+            // 2. FUND ACCOUNTS
+            // ==========================================
+            const fundData = await sendRequest('/openApi/fund/v1/account/balance');
+            const fundBalances = Array.isArray(fundData?.assets) ? fundData.assets : [];
+
+            const fundAssets = fundBalances
+                .map(b => {
+                    const asset  = b.asset?.toUpperCase() || '';
+                    const free   = parseFloat(b.free || 0);
+                    const locked = parseFloat(b.locked || 0);
+                    const amount = free + locked;
+                    return { name: asset, amount };
+                })
+                .filter(x => x.amount > 1e-8)
+                .map(x => ({ ...x, value: getUsdtValue(x.name, x.amount) }))
+                .filter(x => x.value > 0.01);
+
+            const fundTotal = fundAssets.reduce((s, a) => s + a.value, 0);
+
+            result.push({
+                accountType: 'Fund',
+                value: fundTotal,
+                balances: fundAssets.length > 0 ? fundBalances : [],
+                children: fundAssets.sort((a, b) => b.value - a.value)
+            });
+
+            // ==========================================
+            // 3. USDT-M FUTURES (Standard)
+            // ==========================================
             const futBal = await sendRequest('/openApi/swap/v2/user/balance');
             const futPos = await sendRequest('/openApi/swap/v2/user/positions');
 
-            const walletBalance = parseFloat(futBal?.balance?.balance || 0);
+            // Handle structure difference: sometimes data is array, sometimes object inside data
+            const actualFutBal = futBal?.balance || {};
+            const walletBalance = parseFloat(actualFutBal.balance || 0);
 
             const futPositions = (Array.isArray(futPos) ? futPos : [])
                 .map(p => ({
@@ -717,9 +855,8 @@ class BingXWS {
                     marginType: String(p.marginType || 'UNKNOWN').toUpperCase(),
                     entryPrice: parseFloat(p.entryPrice || 0),
                     markPrice: parseFloat(p.markPrice || 0),
-                    liqPrice: parseFloat(p.liquidationPrice || 0),
-                    notional: parseFloat(p.positionValue || p.notional || 0),
                     unrealizedPnl: parseFloat(p.unrealizedPnl || p.uPnl || 0),
+                    notional: parseFloat(p.positionValue || p.notional || 0),
                 }))
                 .filter(p => Math.abs(p.notional) > 0.01 || Math.abs(p.unrealizedPnl) > 0.01);
 
@@ -727,8 +864,8 @@ class BingXWS {
             const futuresValue = walletBalance + totalUnrealizedPnl;
 
             const futChildren = [];
-            if (walletBalance > 0.0001) {
-                futChildren.push({ name: 'Wallet', value: walletBalance, amount: 0 });
+            if (walletBalance > 0.01) {
+                futChildren.push({ name: 'Wallet (USDT)', value: walletBalance, amount: walletBalance });
             }
             if (futPositions.length) {
                 futChildren.push(
@@ -742,14 +879,90 @@ class BingXWS {
             result.push({
                 accountType: 'Futures',
                 subType: 'USDT-M',
+                value: futuresValue,
                 walletBalance,
                 totalUnrealizedPnl,
                 positions: futPositions,
-                value: futuresValue,
                 children: futChildren
             });
 
+            // ==========================================
+            // 4. COIN-M FUTURES (Inverse) - UPDATED
+            // ==========================================
+            const coinMBalResponse = await sendRequest('/openApi/cswap/v1/user/balance');
+            const coinMPosResponse = await sendRequest('/openApi/cswap/v1/user/positions');
+
+            // FIX: Handle response being a direct array OR an object with a balance key
+            let coinMBalances = [];
+            if (Array.isArray(coinMBalResponse)) {
+                coinMBalances = coinMBalResponse;
+            } else if (coinMBalResponse?.balance && Array.isArray(coinMBalResponse.balance)) {
+                coinMBalances = coinMBalResponse.balance;
+            }
+
+            const coinMPositionsRaw = Array.isArray(coinMPosResponse) ? coinMPosResponse : [];
+
+            let coinMTotalUsdtValue = 0;
+            const coinMChildren = [];
+
+            // Process Balance (Assets held like BTC, ETH)
+            coinMBalances.forEach(b => {
+                const asset = b.asset?.toUpperCase(); // e.g., "BTC"
+                const equity = parseFloat(b.equity || 0); // Use equity (includes unrl PnL)
+
+                if (equity > 0) {
+                    const usdtVal = getUsdtValue(asset, equity);
+                    coinMTotalUsdtValue += usdtVal;
+
+                    if (usdtVal > 0.01) {
+                        coinMChildren.push({
+                            name: `${asset} Equity`,
+                            amount: equity,
+                            value: usdtVal
+                        });
+                    }
+                }
+            });
+
+            // Process Positions
+            const coinMPositions = coinMPositionsRaw.map(p => {
+                return {
+                    symbol: p.symbol,
+                    side: String(p.positionSide || p.side || 'BOTH').toUpperCase(),
+                    size: parseFloat(p.positionAmt || 0),
+                    leverage: parseFloat(p.leverage || 0),
+                    entryPrice: parseFloat(p.entryPrice || 0),
+                    markPrice: parseFloat(p.markPrice || 0),
+                    unrealizedPnl: parseFloat(p.unrealizedPnl || 0),
+                    notional: parseFloat(p.positionValue || 0), // Usually USD value in Coin-M
+                };
+            }).filter(p => Math.abs(p.notional) > 1.0 || Math.abs(p.unrealizedPnl) > 0.0001);
+
+            // Add positions to children for visualization
+            if (coinMPositions.length > 0) {
+                coinMChildren.push(
+                    ...coinMPositions.map(p => ({
+                        name: `${p.symbol} Pos`,
+                        value: Math.abs(p.notional),
+                        amount: p.size
+                    })).sort((a, b) => b.value - a.value)
+                );
+            }
+
+            if (coinMTotalUsdtValue > 0.01 || coinMPositions.length > 0) {
+                result.push({
+                    accountType: 'Coin-M',
+                    subType: 'Inverse',
+                    value: coinMTotalUsdtValue,
+                    walletBalance: 0, // Not summed because assets differ (BTC, ETH, etc.)
+                    totalUnrealizedPnl: 0, // Not summed because currencies differ
+                    positions: coinMPositions,
+                    children: coinMChildren.sort((a, b) => b.value - a.value)
+                });
+            }
+
             return result;
+
         } catch (err) {
             console.error('[BingXWS] getDetailedBalance error:', err.message);
             return [];
