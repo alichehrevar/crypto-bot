@@ -108,18 +108,21 @@ function startPollingFallback() {
 async function processNewRecord(sourceDoc) {
     try {
         const requestId = sourceDoc.response?.requestID;
+        const sourceId = sourceDoc._id.toString(); // The unique ID from N8n DB
 
-        // 1. Prevent duplicates based on Request ID
+        // 1. IMPROVED DUPLICATE CHECK
+        // We check if we have already imported THIS specific N8n record ID.
+        // We look for 'responsePayload.n8nSourceId' which we will save below.
         const exists = await CustomAIWorkflowJob_DefaultDB.findOne({
-            'responsePayload.requestID': requestId
+            'responsePayload.n8nSourceId': sourceId
         });
 
         if (exists) {
-            console.log(`⚠️ Skipped Duplicate Record: ${requestId}`);
+            console.log(`⚠️ Skipped Already Synced Record: ${sourceId} (RequestID: ${requestId})`);
             return;
         }
 
-        console.log(`✨ Processing New Record: ${requestId}`);
+        console.log(`✨ Processing New Record: ${requestId} (Source ID: ${sourceId})`);
 
         // 2. Prepare payload for Main DB
         const payloadToSave = {
@@ -131,6 +134,9 @@ async function processNewRecord(sourceDoc) {
             requestPayload: sourceDoc.response?.input || {},
 
             responsePayload: {
+                // SAVE THE SOURCE ID HERE so we can check it next time
+                n8nSourceId: sourceId,
+
                 generatedCode: sourceDoc.response?.generatedCode,
                 backtest: sourceDoc.response?.backtest,
                 status: sourceDoc.response?.status,
