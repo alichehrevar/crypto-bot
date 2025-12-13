@@ -24,4 +24,6 @@ router.post('/prompt/submit', authenticate, n8nController.promptSubmission);
  */
 router.get('/status/:id', authenticate, n8nController.getJobStatus);
 
+router.post('/simulate-import', n8nController.simulateImport);
+
 module.exports = router;

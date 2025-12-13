@@ -1,3 +1,5 @@
+const mongoose = require('mongoose');
+const { N8nWorkflowJob_CustomAiDB } = require('../../../models/N8nWorkflowJob');
 const n8nService = require('../../../services/n8nService');
 
 async function triggerAsync(req, res) {
@@ -59,4 +61,71 @@ async function getJobStatus(req, res) {
     }
 }
 
-module.exports = { triggerAsync, promptSubmission, getJobStatus };
+async function simulateImport (req, res) {
+    try {
+        const testData = {
+            // Raw MongoDB driver requires explicit _id if you want to control it,
+            // otherwise it auto-generates one. Let's auto-generate one here for safety.
+            _id: new mongoose.Types.ObjectId(),
+
+            // This needs to be a valid ObjectId string or object for Mongo
+            userId: new mongoose.Types.ObjectId('68d7b4ac26dafccd478bea51'),
+
+            type: 'ai-model',
+            status: 'completed',
+            webhookPath: 'test-simulation-path',
+
+            // INTENTIONALLY BAD DATA (According to Schema)
+            // Schema expects ObjectId, but we insert a full Object to mimic n8n
+            response: {
+                status: "Success",
+                requestID: "UAS-10",
+                attempt: 1,
+                input: {
+                    originalPrompt: "I want an entry-only prompt for an automated trading bot...",
+                    cleanedPrompt: "Enter long when MACD line crosses above MACD signal...",
+                    experienceLevel: "Beginner",
+                    backtestSymbol: "BTCUSDT",
+                    backtestInterval: "5m"
+                },
+                generatedCode: {
+                    code: "const BaseIndicator = require('./BaseIndicator');...",
+                    summary: {
+                        overview: "The strategy is designed for momentum-driven markets...",
+                        executionLogic: "On each new candle...",
+                        longEntryCondition: "MACD bullish cross...",
+                        shortEntryCondition: "MACD bearish cross...",
+                        otherConditions: "N/A"
+                    }
+                },
+                backtest: {
+                    status: "Success",
+                    roi: "-5.88%",
+                    winRatio: "0.00%",
+                    simulatedTrades: 3,
+                    signalDistribution: "{\"BUY\":12,\"SELL\":10,\"HOLD\":977,\"ERROR\":0}",
+                    tradeLog: "[{\"Trade\":1,\"Direction\":\"Long\"...}]"
+                }
+            },
+            // Add timestamps manually because bypassing mongoose skips auto-timestamps
+            createdAt: new Date(),
+            updatedAt: new Date()
+        };
+
+        // 🚀 BYPASS MONGOOSE VALIDATION
+        // Access the native MongoDB collection driver directly
+        await N8nWorkflowJob_CustomAiDB.collection.insertOne(testData);
+
+        return res.status(200).json({
+            message: '✅ Test data inserted (Validation Bypassed).',
+            info: 'This simulated an n8n write. Check your console for the sync log.',
+            insertedId: testData._id
+        });
+
+    } catch (error) {
+        console.error('Test Import Error:', error);
+        return res.status(500).json({ error: error.message });
+    }
+}
+
+module.exports = { triggerAsync, promptSubmission, getJobStatus, simulateImport };

@@ -107,10 +107,7 @@ connectDB().then(async () => {
 
     // Initialize and start all scheduled jobs
     await startScheduledJobs();
-});
 
-mongoose.connection.once('open', () => {
-    // Start the listener
     syncImportedJobs();
 });
 
