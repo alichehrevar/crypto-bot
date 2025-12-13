@@ -130,7 +130,7 @@ const baseBotSchema = new Schema({
 
     share:      { type: Boolean, default: false },
 
-    accountType:{ type: String, required: true, enum: ['binance','okx','bingx'] },
+    accountType:{ type: String, required: true, enum: ['binance','okx','bingx','n8n'] },
     accountId:  {
         type: Schema.Types.ObjectId,
         required: true,

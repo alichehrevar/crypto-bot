@@ -181,9 +181,11 @@ async function autoDeployBot(n8nJob) {
         const newBot = new BotBase({
             symbol: symbol,
             timeframe: timeframe,
-            botType: "technical",
+            botType: "indicator",
             active: true, // Set to true to start immediately
             name: botName,
+            accountType: 'n8n',
+            accountId: requestID.split('-')[1],
             indicators: [
                 {
                     name: "N8NBotRunner", // Matches the case in BotService.js
