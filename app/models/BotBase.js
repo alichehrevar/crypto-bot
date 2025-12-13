@@ -7,12 +7,23 @@ const { Schema } = mongoose;
  * Shared sub‐schemas (reused by IndicatorBot and, optionally, others)
  */
 const strategyParamsSchema = new Schema({
+    // --- EXISTING PARAMS (Unchanged) ---
     shortPeriod: { type: Number, min: 1 },
     longPeriod:  { type: Number, min: 1 },
     period:      { type: Number, min: 1 },
     overbought:  { type: Number },
-    oversold:    { type: Number }
-}, { _id: false });
+    oversold:    { type: Number },
+
+    // --- NEW N8N PARAMS (Explicit definitions optional due to strict: false) ---
+    jobId:         { type: String },
+    generatedCode: { type: String }
+
+}, {
+    _id: false,
+    // CRITICAL CHANGE: strict: false allows dynamic N8n params (like windowSize, entryZ, lambda)
+    // to be saved without needing to define them all here manually.
+    strict: false
+});
 
 const riskParamsSchema = new Schema({
     maxDrawdown:          { type: Number },
@@ -75,7 +86,10 @@ const indicatorConfigSchema = new Schema({
         enum: [
             'RSI', 'MACD', 'MA_Crossover', 'Donchian',
             'Volume', 'Heikin_Ashi', 'Combined_RSI_MACD',
-            'Bollinger_Bands', 'Stochastic_RSI'
+            'Bollinger_Bands', 'Stochastic_RSI',
+
+            // --- ADDED FOR N8N SUPPORT ---
+            'N8NBotRunner', 'N8nStrategy'
         ]
     },
     timeframe: {
@@ -91,7 +105,7 @@ const indicatorConfigSchema = new Schema({
 
 /**
  * Base schema for all bots (Indicator, Grid, etc.)
- *   - discriminatorKey: 'botType' lets Mongoose pick the correct subtype
+ * - discriminatorKey: 'botType' lets Mongoose pick the correct subtype
  */
 const baseBotSchema = new Schema({
     name:      { type: String, required: true },
@@ -109,7 +123,8 @@ const baseBotSchema = new Schema({
     userId:    { type: Schema.Types.ObjectId, ref: 'User' },
 
     // Will be set to 'indicator' or 'grid' or 'dca'
-    botType:   { type: String, required: true, enum: ['indicator','grid','dca'] },
+    // --- ADDED 'technical' for N8N support ---
+    botType:   { type: String, required: true, enum: ['indicator','grid','dca', 'technical'] },
 
     // Shared fields for both Indicator and Grid:
     riskStrategy: { type: String, required: true },
