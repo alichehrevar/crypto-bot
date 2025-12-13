@@ -107,16 +107,21 @@ function startPollingFallback() {
  */
 async function processNewRecord(sourceDoc) {
     try {
+        const requestId = sourceDoc.response?.requestID;
+
         // 1. Prevent duplicates based on Request ID
-        // Checks if we already synced this specific N8n job
         const exists = await CustomAIWorkflowJob_DefaultDB.findOne({
-            'responsePayload.requestID': sourceDoc.response?.requestID
+            'responsePayload.requestID': requestId
         });
 
-        if (exists) return;
+        if (exists) {
+            console.log(`⚠️ Skipped Duplicate Record: ${requestId}`);
+            return;
+        }
 
-        // 2. Prepare payload for Main DB (CustomAIWorkflowJob)
-        // We map the raw N8n structure to our internal schema
+        console.log(`✨ Processing New Record: ${requestId}`);
+
+        // 2. Prepare payload for Main DB
         const payloadToSave = {
             userId: sourceDoc.userId || new mongoose.Types.ObjectId('000000000000000000000000'),
             type: sourceDoc.type || 'ai-model',
@@ -125,16 +130,14 @@ async function processNewRecord(sourceDoc) {
 
             requestPayload: sourceDoc.response?.input || {},
 
-            // Map the response strictly
             responsePayload: {
                 generatedCode: sourceDoc.response?.generatedCode,
                 backtest: sourceDoc.response?.backtest,
                 status: sourceDoc.response?.status,
-                requestID: sourceDoc.response?.requestID
+                requestID: requestId
             },
 
             error: sourceDoc.error || null,
-            // If createdAt is missing from n8n, generate a new date
             createdAt: sourceDoc.createdAt || new Date()
         };
 
@@ -143,7 +146,6 @@ async function processNewRecord(sourceDoc) {
         console.log(`✅ Synced Record ID: ${newDoc._id}`);
 
         // 4. TRIGGER AUTO-DEPLOYMENT
-        // Pass the *newly created doc* because BotService needs the ID from Main DB
         await autoDeployBot(newDoc);
 
     } catch (err) {
