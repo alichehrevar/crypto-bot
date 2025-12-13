@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 const {
     CustomAIWorkflowJob_DefaultDB,
     N8nWorkflowJob_CustomAiDB
-} = require('../../models/N8nWorkflowJob');
+} = require('../models/N8nWorkflowJob');
 
 const customDbConnection = N8nWorkflowJob_CustomAiDB.db;
 
