@@ -154,7 +154,7 @@ async function autoDeployBot(n8nJob) {
         // 3. Create Bot with FULL Configuration
         const newBot = new BotBase({
             name: botName,
-            symbol: symbol.split('USDT')[0],
+            symbol: symbol,
             timeframe: timeframe,
             userId: n8nJob.userId,
             active: true, // Start immediately

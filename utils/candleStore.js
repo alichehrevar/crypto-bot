@@ -38,7 +38,7 @@ function isCandleClosed(candle, timeframe) {
  * @param {Object} candle - Object including: timestamp, open, high, low, close, volume.
  */
 async function updateCandle(symbol, timeframe, candle) {
-    // 1. UPDATE IN-MEMORY STORE (Fast Access)
+    // 1. UPDATE IN-MEMORY STORE (Fast Access for Bots)
     const key = `${symbol.toUpperCase()}-${timeframe.toLowerCase()}`;
     if (!candleStore[key]) {
         candleStore[key] = [];
@@ -88,21 +88,20 @@ async function updateCandle(symbol, timeframe, candle) {
 
     } catch (error) {
         // ✅ CATCH RACE CONDITION ERROR (E11000)
+        // This occurs if another process inserted the candle exactly while we were processing.
         if (error.code === 11000) {
-            // This happens if another process (Cron or WS) inserted the candle milliseconds ago.
-            // We simply ignore it or do a standard update without upsert to ensure we have the latest close.
-            // console.warn(`⚠️ Candle race handled for ${symbol} ${timeframe}`);
-
-            // Optional: Force update the existing doc if needed
+            // Instead of crashing, we gracefully fallback to a standard update.
+            // This ensures we save the latest price data without violating unique constraints.
             try {
                 await Candle.updateOne(
                     { symbol, timeframe, timestamp: candle.timestamp },
                     { $set: update.$set }
                 );
-            } catch (ignore) {}
-
+            } catch (retryErr) {
+                console.error(`❌ Failed to recover from candle race condition: ${retryErr.message}`);
+            }
         } else {
-            // Log genuine DB errors
+            // Log genuine DB errors (connection lost, disk full, etc.)
             console.error(`❌ DB Error updating candle ${symbol} ${timeframe}:`, error.message);
         }
     }
@@ -115,7 +114,7 @@ function getLatestCandles(symbol, timeframe, count) {
     const key = `${symbol.toUpperCase()}-${timeframe.toLowerCase()}`;
     if (!candleStore[key]) return [];
 
-    // Filter only closed candles & Sort
+    // Filter only closed candles & Sort by timestamp
     const closedCandles = candleStore[key]
         .filter(c => c.isClosed)
         .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
