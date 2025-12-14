@@ -609,6 +609,8 @@ class BingXWS {
 
         const endpoint = `https://open-api-swap.bingx.com${requestPath}?timestamp=${timestamp}&signature=${signature}`;
 
+        console.log('gelwngnwngjn')
+
         const headers = {
             "Content-Type": "application/json",
             "X-BX-APIKEY": apiKey
@@ -620,6 +622,7 @@ class BingXWS {
                 headers,
                 body
             });
+
             if (!res.ok) {
                 throw new Error(`Order execution failed with status ${res.status}`);
             }
@@ -896,8 +899,8 @@ class BingXWS {
             let coinMBalances = [];
             if (Array.isArray(coinMBalResponse)) {
                 coinMBalances = coinMBalResponse;
-            } else if (coinMBalResponse?.balance && Array.isArray(coinMBalResponse.balance)) {
-                coinMBalances = coinMBalResponse.balance;
+            } else if (coinMBalResponse && Array.isArray(coinMBalResponse)) {
+                coinMBalances = coinMBalResponse;
             }
 
             const coinMPositionsRaw = Array.isArray(coinMPosResponse) ? coinMPosResponse : [];

@@ -194,7 +194,7 @@ async function autoDeployBot(n8nJob) {
             // --- FIX 6: Funds ---
             marketInfo: {
                 baseFund: 10000, // Will be updated by system
-                tradeFund: 1000, // Allocate $100 (or equivalent) for this bot
+                tradeFund: 100, // Allocate $100 (or equivalent) for this bot
                 lastSignal: "HOLD"
             },
 
