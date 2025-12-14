@@ -161,9 +161,7 @@ async function autoDeployBot(n8nJob) {
             mode: 'paper',
 
             // --- FIX 1: Match Manual Bot Type ---
-            // If 'indicator' is the standard working type, let's use it.
-            // (N8NBotRunner is injected into the indicators array anyway)
-            botType: "indicator",
+            botType: "technical",
 
             // --- FIX 2: Real Account Linking ---
             accountType: accountType,

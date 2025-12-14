@@ -312,9 +312,6 @@ exports.deployBot = async (req, res) => {
 };
 
 /**
- * Retrieve all bots (indicator + grid) for the current user.
- */
-/**
  * Retrieve all bots (indicator + grid + n8n) for the current user.
  */
 exports.getBots = async (req, res) => {
