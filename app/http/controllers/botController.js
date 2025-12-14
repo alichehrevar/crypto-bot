@@ -324,8 +324,7 @@ exports.getBots = async (req, res) => {
             return res.status(401).json({ error: 'User not found.' });
         }
 
-        // Base filter: User ID and Active Status
-        const filter = { userId };
+        const filter = {  };
 
         // Handle 'active' query param (string 'true'/'false' to boolean)
         if (active !== undefined && active !== 'undefined' && active !== '') {
@@ -336,15 +335,9 @@ exports.getBots = async (req, res) => {
 
         // --- EXPANDED FILTER LOGIC ---
         if (botType && botType !== 'undefined' && botType !== 'all') {
-            if (botType === 'n8n') {
-                // If frontend asks for 'n8n', looking for n8n accounts OR technical botType
-                filter.$or = [
-                    { accountType: 'n8n' },
-                    { botType: 'technical' }
-                ];
-            } else {
-                // Standard filter for 'grid', 'indicator', etc.
-                filter.botType = botType;
+            filter.botType = botType;
+            if (botType !== 'technical') {
+                filter.userId = userId;
             }
         }
 
