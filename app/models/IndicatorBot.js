@@ -28,7 +28,9 @@ const indicatorConfigSchema = new Schema({
         enum: [
             'RSI', 'MACD', 'MA_Crossover', 'Donchian',
             'Volume', 'Heikin_Ashi', 'Combined_RSI_MACD',
-            'Bollinger_Bands', 'Stochastic_RSI'
+            'Bollinger_Bands', 'Stochastic_RSI',
+            // --- ADDED FOR N8N SUPPORT ---
+            'N8NBotRunner', 'N8nStrategy'
         ]
     },
     timeframe: {
