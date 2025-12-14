@@ -20,9 +20,7 @@ const strategyParamsSchema = new Schema({
 
 }, {
     _id: false,
-    // CRITICAL CHANGE: strict: false allows dynamic N8n params (like windowSize, entryZ, lambda)
-    // to be saved without needing to define them all here manually.
-    strict: false
+    strict: false // Allows dynamic params
 });
 
 const riskParamsSchema = new Schema({
@@ -57,13 +55,10 @@ const marketInfoSchema = new Schema({
 const tradeInfoSchema = new Schema({
     takeProfit:            { type: Number },
     stopLoss:              { type: Number },
-    // leverage: { type: Number, default: 1 },
-    // Fields for separate long and short leverage
     leverageLong:          { type: Number, default: 1 },
     leverageShort:         { type: Number, default: 1 },
     side:                  { type: String, enum: ['buy','sell'] },
     positionSide:          { type: String, enum: ['long','short'] },
-
     winProbability:        { type: Number },
     payoffRatio:           { type: Number },
     lastTradeOutcome:      { type: String },
@@ -105,7 +100,6 @@ const indicatorConfigSchema = new Schema({
 
 /**
  * Base schema for all bots (Indicator, Grid, etc.)
- * - discriminatorKey: 'botType' lets Mongoose pick the correct subtype
  */
 const baseBotSchema = new Schema({
     name:      { type: String, required: true },
@@ -119,19 +113,18 @@ const baseBotSchema = new Schema({
         enum: ['1m','5m','15m','30m','1h','4h','1d','1w']
     },
 
-    // Who owns this bot?
     userId:    { type: Schema.Types.ObjectId, ref: 'User' },
 
-    // Will be set to 'indicator' or 'grid' or 'dca'
-    // --- ADDED 'technical' for N8N support ---
+    // Added 'technical' for N8N support, 'indicator' is standard
     botType:   { type: String, required: true, enum: ['indicator','grid','dca', 'technical'] },
 
-    // Shared fields for both Indicator and Grid:
     riskStrategy: { type: String, required: true },
     riskParams:   riskParamsSchema,
 
     marketInfo:   marketInfoSchema,
     tradeInfo:    tradeInfoSchema,
+
+    indicators: [indicatorConfigSchema],
 
     positionMode:{ type: String, enum: ['hedge','single'] },
     fundMode:   { type: String, enum: ['isolated','cross'] },
@@ -157,7 +150,7 @@ const baseBotSchema = new Schema({
     timestamps: true
 });
 
-// Index on (symbol, timeframe) - not unique, but helpful for queries
+// Index on (symbol, timeframe)
 baseBotSchema.index({ symbol: 1, timeframe: 1 });
 
 module.exports = mongoose.model('BotBase', baseBotSchema);
