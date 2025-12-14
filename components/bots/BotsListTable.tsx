@@ -50,7 +50,7 @@ export default function BotsListTable({refreshList = false, title = "Active Bots
         setExpandedIndex(expandedIndex === botIndex ? null : botIndex);
     }
 
-    const tableHeaderItems = listType === "indicator" ? indicatorBotListHeader : gridBotListHeader;
+    const tableHeaderItems = listType === "grid" ? gridBotListHeader : indicatorBotListHeader;
 
     return (
         <div className="ua-card p-4 py-6 px-3">
@@ -92,7 +92,7 @@ export default function BotsListTable({refreshList = false, title = "Active Bots
                     </div>
 
                     {/* indicator bots list */}
-                    {listType === 'indicator' && deployedBots.map((bot, botIndex) => (
+                    {listType === 'indicator' || listType === 'technical' && deployedBots.map((bot, botIndex) => (
                         <React.Fragment key={botIndex}>
                             <div
                                 aria-controls={`bot-content-${botIndex}`}
