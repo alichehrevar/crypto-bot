@@ -154,11 +154,11 @@ async function autoDeployBot(n8nJob) {
         // 3. Create Bot with FULL Configuration
         const newBot = new BotBase({
             name: botName,
-            symbol: symbol,
+            symbol: symbol.split('USDT')[0],
             timeframe: timeframe,
             userId: n8nJob.userId,
             active: true, // Start immediately
-            mode: 'live', // Manual bot is live, so we set live
+            mode: 'paper',
 
             // --- FIX 1: Match Manual Bot Type ---
             // If 'indicator' is the standard working type, let's use it.
@@ -195,8 +195,8 @@ async function autoDeployBot(n8nJob) {
 
             // --- FIX 6: Funds ---
             marketInfo: {
-                baseFund: 0, // Will be updated by system
-                tradeFund: 100, // Allocate $100 (or equivalent) for this bot
+                baseFund: 10000, // Will be updated by system
+                tradeFund: 1000, // Allocate $100 (or equivalent) for this bot
                 lastSignal: "HOLD"
             },
 
