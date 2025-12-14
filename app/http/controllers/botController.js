@@ -314,15 +314,47 @@ exports.deployBot = async (req, res) => {
 /**
  * Retrieve all bots (indicator + grid) for the current user.
  */
+/**
+ * Retrieve all bots (indicator + grid + n8n) for the current user.
+ */
 exports.getBots = async (req, res) => {
     const { active } = req.query;
-    console.log('getBots active:', active);
+    // console.log('getBots active:', active);
 
     try {
-        const filter = { active: active, userId: req.user?.id };
+        const userId = req.user?.id;
+        if (!userId) {
+            return res.status(401).json({ error: 'User not found.' });
+        }
+
+        // Base filter: User ID and Active Status
+        const filter = { userId };
+
+        // Handle 'active' query param (string 'true'/'false' to boolean)
+        if (active !== undefined && active !== 'undefined' && active !== '') {
+            filter.active = (active === 'true' || active === true);
+        }
+
         const botType = req.query.botType;
 
-        const bots = await BotBase.find(botType && botType !== 'undefined' ? {...filter, botType} : filter).lean();
+        // --- EXPANDED FILTER LOGIC ---
+        if (botType && botType !== 'undefined' && botType !== 'all') {
+            if (botType === 'n8n') {
+                // If frontend asks for 'n8n', looking for n8n accounts OR technical botType
+                filter.$or = [
+                    { accountType: 'n8n' },
+                    { botType: 'technical' }
+                ];
+            } else {
+                // Standard filter for 'grid', 'indicator', etc.
+                filter.botType = botType;
+            }
+        }
+
+        // Fetch bots with the constructed filter
+        const bots = await BotBase.find(filter).sort({ createdAt: -1 }).lean();
+
+        // Enrich data (PnL, Trades)
         const enriched = await calculateRelatedDataToBots(bots);
 
         return res.json({ success: true, bots: enriched });
