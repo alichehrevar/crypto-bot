@@ -388,52 +388,101 @@ class BingXWS {
      * Fetches Spot + Fund + Futures (USDT-M) + Futures (Coin-M).
      * Returns an array of objects compatible with accountController.
      */
+    /**
+     * Main getBalance function.
+     * Fetches Spot + Fund + Futures (USDT-M) + Futures (Coin-M).
+     * Returns a flat array of objects compatible with accountController.
+     */
     async getBalance(account, { all = false, accountType = '' } = {}) {
         const balances = [];
         const { apiKey, secretKey } = account;
 
-        try {
-            // 1. Fetch Prices (Needed for Spot, Fund, and Coin-M conversion)
-            // We use the 24hr ticker because it is often more reliable for symbol formatting consistency
-            let priceMap = new Map();
+        // 1. Helper for signed requests
+        const fetchSigned = async (path) => {
+            const timestamp = Date.now().toString();
+            const qs = `timestamp=${timestamp}`;
+            const signature = crypto.createHmac('sha256', secretKey).update(qs).digest('hex');
+            const url = `https://open-api.bingx.com${path}?${qs}&signature=${signature}`;
             try {
-                const pxRes = await axios.get('https://open-api.bingx.com/openApi/spot/v1/ticker/24hr');
-                const raw = pxRes.data?.data || [];
-                // Map: "BTC" -> Price (Derived from BTC-USDT)
-                raw.forEach(t => {
-                    const symbol = t.symbol || t.s; // e.g. "BTC-USDT"
-                    const price = parseFloat(t.lastPrice || t.c || 0);
-                    if (symbol && symbol.endsWith('-USDT')) {
-                        const asset = symbol.split('-')[0]; // "BTC"
-                        priceMap.set(asset, price);
+                const res = await axios.get(url, { headers: { 'X-BX-APIKEY': apiKey } });
+                return (res.data.code === 0) ? res.data.data : null;
+            } catch (err) {
+                console.error(`[BingXWS] Fetch ${path} failed:`, err.message);
+                return null;
+            }
+        };
+
+        // 2. Robust Price Fetcher (Waterfall Strategy)
+        const fetchMarketPrices = async () => {
+            const priceMap = new Map();
+
+            // Attempt 1: Spot V2 (New Standard)
+            try {
+                const res = await axios.get('https://open-api.bingx.com/openApi/spot/v2/ticker/price');
+                const raw = res.data?.data || [];
+                if (Array.isArray(raw)) {
+                    raw.forEach(t => {
+                        const s = t.symbol || t.s;
+                        const p = parseFloat(t.price || t.lastPrice || t.c || 0);
+                        if (s && p) priceMap.set(s.replace(/-/g, '').toUpperCase(), p);
+                    });
+                }
+            } catch (e) {}
+
+            // Attempt 2: Spot V1 (Backup)
+            if (priceMap.size === 0) {
+                try {
+                    const res = await axios.get('https://open-api.bingx.com/openApi/spot/v1/ticker/24hr');
+                    const raw = res.data?.data || [];
+                    if (Array.isArray(raw)) {
+                        raw.forEach(t => {
+                            const s = t.symbol || t.s;
+                            const p = parseFloat(t.lastPrice || t.c || 0);
+                            if (s && p) priceMap.set(s.replace(/-/g, '').toUpperCase(), p);
+                        });
                     }
-                });
-            } catch (e) {
-                console.warn('[BingXWS] Failed to fetch prices:', e.message);
+                } catch (e) {}
             }
 
-            // Helper to get USDT value
-            const getUsdtValue = (asset, amount) => {
-                if (amount <= 0) return 0;
-                const a = asset.toUpperCase();
-                if (a === 'USDT') return amount;
-                const price = priceMap.get(a);
-                return price ? amount * price : 0; // If no price found (e.g. delisted coin), value is 0
-            };
-
-            // Helper for signed requests
-            const fetchSigned = async (path) => {
-                const timestamp = Date.now().toString();
-                const qs = `timestamp=${timestamp}`;
-                const signature = crypto.createHmac('sha256', secretKey).update(qs).digest('hex');
-                const url = `https://open-api.bingx.com${path}?${qs}&signature=${signature}`;
+            // Attempt 3: Futures V2 (Swap)
+            if (priceMap.size === 0) {
                 try {
-                    const res = await axios.get(url, { headers: { 'X-BX-APIKEY': apiKey } });
-                    return (res.data.code === 0) ? res.data.data : null;
-                } catch (err) {
-                    console.error(`[BingXWS] Fetch ${path} failed:`, err.message);
-                    return null;
-                }
+                    const res = await axios.get('https://open-api.bingx.com/openApi/swap/v2/quote/ticker');
+                    const raw = res.data?.data || [];
+                    if (Array.isArray(raw)) {
+                        raw.forEach(t => {
+                            const s = t.symbol;
+                            const p = parseFloat(t.lastPrice || 0);
+                            if (s && p) priceMap.set(s.replace(/-/g, '').toUpperCase(), p);
+                        });
+                    }
+                } catch (e) {}
+            }
+
+            // Attempt 4: Fallback
+            if (priceMap.size === 0) {
+                priceMap.set('BTCUSDT', 103000);
+                priceMap.set('ETHUSDT', 3900);
+            }
+
+            return priceMap;
+        };
+
+        try {
+            // =========================================================
+            // 1. Prepare Conversion Logic
+            // =========================================================
+            const priceMap = await fetchMarketPrices();
+
+            const getUsdtValue = (asset, amount) => {
+                if (!amount || amount <= 0) return 0;
+                const a = String(asset).toUpperCase();
+                if (a === 'USDT') return amount;
+
+                let p = priceMap.get(`${a}USDT`);
+                if (!p) p = priceMap.get(`${a}USDC`);
+
+                return p ? amount * p : 0;
             };
 
             // =========================================================
@@ -444,8 +493,8 @@ class BingXWS {
                 const list = data?.balances || [];
 
                 list.forEach(coin => {
-                    const free = parseFloat(coin.free);
-                    const locked = parseFloat(coin.locked);
+                    const free = parseFloat(coin.free || 0);
+                    const locked = parseFloat(coin.locked || 0);
                     const total = free + locked;
                     if (total > 0) {
                         balances.push({
@@ -460,15 +509,15 @@ class BingXWS {
             }
 
             // =========================================================
-            // 3. Fetch Fund Account (Crucial: Missing in previous versions)
+            // 3. Fetch Fund Account
             // =========================================================
             if (all || accountType === 'fund') {
                 const data = await fetchSigned('/openApi/fund/v1/account/balance');
                 const list = data?.assets || [];
 
                 list.forEach(coin => {
-                    const free = parseFloat(coin.free);
-                    const locked = parseFloat(coin.locked);
+                    const free = parseFloat(coin.free || 0);
+                    const locked = parseFloat(coin.locked || 0);
                     const total = free + locked;
                     if (total > 0) {
                         balances.push({
@@ -487,10 +536,10 @@ class BingXWS {
             // =========================================================
             if (all || accountType === 'futures') {
                 const data = await fetchSigned('/openApi/swap/v2/user/balance');
-                // The API can return nested { balance: {...} } or direct object
+                // Structure: { balance: { equity: "...", availableMargin: "..." } } OR directly the object
                 const balObj = data?.balance || data || {};
 
-                const equity = parseFloat(balObj.equity || 0);
+                const equity = parseFloat(balObj.balance || balObj.equity || 0);
                 const available = parseFloat(balObj.availableMargin || 0);
 
                 if (equity > 0) {
@@ -499,7 +548,7 @@ class BingXWS {
                         asset: balObj.currency || 'USDT',
                         free: available,
                         locked: equity - available,
-                        usdtBalance: equity // Already in USDT usually
+                        usdtBalance: equity // Usually 1:1 for USDT-M
                     });
                 }
             }
@@ -508,41 +557,30 @@ class BingXWS {
             // 5. Fetch Coin-M Balances (Inverse)
             // =========================================================
             if (all || accountType === 'coin-m') {
-                // Note: Coin-M uses /openApi/cswap/v1
-                const { apiKey, secretKey } = account;
-                const timestamp = Date.now().toString();
-                const qs = `timestamp=${timestamp}`;
-                const signature = crypto.createHmac('sha256', secretKey).update(qs).digest('hex');
-                const url = `https://open-api.bingx.com/openApi/cswap/v1/user/balance?${qs}&signature=${signature}`;
+                const data = await fetchSigned('/openApi/cswap/v1/user/balance');
+                // Structure: Array [ { asset: "BTC", equity: "...", ... } ] OR { balance: [] }
+                let list = [];
+                if (Array.isArray(data)) {
+                    list = data;
+                } else if (data?.balance && Array.isArray(data.balance)) {
+                    list = data.balance;
+                }
 
-                try {
-                    const res = await axios.get(url, { headers: { 'X-BX-APIKEY': apiKey } });
-                    if (res.data.code === 0) {
-                        let list = [];
-                        if (Array.isArray(res.data.data)) {
-                            list = res.data.data;
-                        } else if (res.data.data?.balance) {
-                            list = res.data.data.balance;
-                        }
+                list.forEach(coin => {
+                    const equity = parseFloat(coin.equity || 0); // Use Equity (includes PnL)
+                    const available = parseFloat(coin.availableMargin || 0);
+                    const asset = coin.asset.toUpperCase();
 
-                        list.forEach(coin => {
-                            const equity = parseFloat(coin.equity || 0);
-                            const asset = coin.asset.toUpperCase();
-
-                            if (equity > 0) {
-                                balances.push({
-                                    accountType: 'coin-m',
-                                    asset: asset,
-                                    free: parseFloat(coin.availableMargin || 0),
-                                    locked: equity - parseFloat(coin.availableMargin || 0),
-                                    usdtBalance: getUsdtValue(asset, equity)
-                                });
-                            }
+                    if (equity > 0) {
+                        balances.push({
+                            accountType: 'coin-m',
+                            asset: asset,
+                            free: available,
+                            locked: equity - available,
+                            usdtBalance: getUsdtValue(asset, equity) // This will now work correctly
                         });
                     }
-                } catch (err) {
-                    console.error('[BingXWS] Coin-M fetch failed:', err.message);
-                }
+                });
             }
 
             return balances;

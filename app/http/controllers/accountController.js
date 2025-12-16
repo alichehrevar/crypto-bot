@@ -34,8 +34,11 @@ const getSafeUsdtValue = (item) => {
  */
 async function fetchExchangeRate() {
     try {
-        const response = await axios.get('https://api.exchangerate-api.com/v4/latest/USD');
-        return response.data.rates.EUR;
+        const response = await axios.get('https://api.exchangerate-api.com/v4/latest/USDT');
+        return {
+            EUR: response.data.rates.EUR,
+            USD: response.data.rates.USD,
+        };
     } catch (e) {
         console.error('Error fetching exchange rate, defaulting to 1:', e.message);
         return 1;
@@ -505,8 +508,11 @@ exports.getSummary = async (req, res) => {
             return res.status(404).json({ success: false, error: 'User info not found' });
         }
 
+        const exchangeRateResponse = await fetchExchangeRate();
         if (userInfo.currency === 'euro') {
-            exchangeRate = await fetchExchangeRate();
+            exchangeRate = exchangeRateResponse.EUR
+        } else if (userInfo.currency === 'dollar') {
+            exchangeRate = exchangeRateResponse.USD;
         }
 
         // --- Step 2: Calculate Portfolio Balance from Closed Trades ---
