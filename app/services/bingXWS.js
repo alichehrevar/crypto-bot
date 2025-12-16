@@ -737,8 +737,8 @@ class BingXWS {
     async getDetailedBalance(account) {
         const { apiKey, secretKey } = account;
 
-        // Helper to sign and send requests
-        const sendRequest = async (path, params = {}) => {
+        // 1. Helper: Sign and send PRIVATE requests (Balances)
+        const sendPrivateRequest = async (path, params = {}) => {
             const timestamp = Date.now();
             const qs = new URLSearchParams({ ...params, timestamp }).toString();
             const sig = crypto.createHmac('sha256', secretKey).update(qs).digest('hex');
@@ -747,262 +747,201 @@ class BingXWS {
             try {
                 const resp = await axios.get(url, { headers: { 'X-BX-APIKEY': apiKey } });
                 if (resp.data?.code !== 0) {
-                    console.warn(`[BingXWS] API warning (${path}): ${resp.data?.msg || 'unknown'}`);
+                    // console.warn(`[BingXWS] Private API warning (${path}): ${resp.data?.msg}`);
                     return null;
                 }
-                // Return the 'data' property directly
                 return resp.data.data;
             } catch (e) {
-                console.warn(`[BingXWS] Request failed (${path}): ${e.message}`);
+                console.warn(`[BingXWS] Private Request failed (${path}): ${e.message}`);
                 return null;
             }
         };
 
-        try {
-            // ==========================================
-            // 0. FETCH PRICES (Critical Step)
-            // ==========================================
-            let priceMap = new Map();
+        // 2. Helper: Fetch Public Prices (Waterfall Strategy)
+        const fetchMarketPrices = async () => {
+            const priceMap = new Map();
+
+            // ATTEMPT 1: Spot V2 (New Standard)
             try {
-                // Fetch 24hr ticker for prices
-                const pxRes = await axios.get('https://open-api.bingx.com/openApi/spot/v1/ticker/24hr');
-
-                // Handle various response structures (sometimes data is directly the array)
-                const raw = Array.isArray(pxRes.data) ? pxRes.data : (pxRes.data?.data || []);
-
-                if (raw.length > 0) {
+                const url = 'https://open-api.bingx.com/openApi/spot/v2/ticker/price';
+                const res = await axios.get(url); // Public, no headers
+                const raw = res.data?.data || [];
+                if (Array.isArray(raw)) {
                     raw.forEach(t => {
-                        // Support 'symbol' or 's', 'lastPrice' or 'c'
                         const s = t.symbol || t.s;
-                        const p = t.lastPrice || t.c;
-                        if (s && p) {
-                            // Standardize: "BTC-USDT" -> "BTCUSDT"
-                            const cleanSymbol = s.replace(/-/g, '').toUpperCase();
-                            priceMap.set(cleanSymbol, parseFloat(p));
-                        }
+                        const p = parseFloat(t.price || t.lastPrice || t.c || 0);
+                        if (s && p) priceMap.set(s.replace(/-/g, '').toUpperCase(), p);
                     });
-                    console.log(`[BingXWS] Loaded ${priceMap.size} prices for value calculation.`);
-                } else {
-                    console.warn('[BingXWS] Price API returned empty array. Values will be 0.');
                 }
             } catch (e) {
-                console.error('[BingXWS] Failed to fetch prices:', e.message);
+                // console.warn('[BingXWS] Spot V2 Price fetch failed, trying V1...');
             }
 
+            // ATTEMPT 2: Spot V1 24hr (Reliable Backup)
+            if (priceMap.size === 0) {
+                try {
+                    const url = 'https://open-api.bingx.com/openApi/spot/v1/ticker/24hr';
+                    const res = await axios.get(url);
+                    const raw = res.data?.data || []; // V1 structure
+                    if (Array.isArray(raw)) {
+                        raw.forEach(t => {
+                            const s = t.symbol || t.s;
+                            const p = parseFloat(t.lastPrice || t.c || 0);
+                            if (s && p) priceMap.set(s.replace(/-/g, '').toUpperCase(), p);
+                        });
+                    }
+                } catch (e) {
+                    // console.warn('[BingXWS] Spot V1 fetch failed, trying Futures...');
+                }
+            }
+
+            // ATTEMPT 3: Futures V2 (Swap API)
+            if (priceMap.size === 0) {
+                try {
+                    const url = 'https://open-api.bingx.com/openApi/swap/v2/quote/ticker';
+                    const res = await axios.get(url);
+                    const raw = res.data?.data || [];
+                    if (Array.isArray(raw)) {
+                        raw.forEach(t => {
+                            // Swap symbols are usually "BTC-USDT"
+                            const s = t.symbol;
+                            const p = parseFloat(t.lastPrice || 0);
+                            if (s && p) priceMap.set(s.replace(/-/g, '').toUpperCase(), p);
+                        });
+                    }
+                } catch (e) {
+                    console.warn('[BingXWS] Futures Price fetch failed:', e.message);
+                }
+            }
+
+            // ATTEMPT 4: Emergency Fallback
+            if (priceMap.size === 0) {
+                console.error('[BingXWS] CRITICAL: All price APIs failed. Using emergency values.');
+                priceMap.set('BTCUSDT', 103000);
+                priceMap.set('ETHUSDT', 3900);
+            } else {
+                console.log(`[BingXWS] Successfully loaded ${priceMap.size} prices.`);
+            }
+
+            return priceMap;
+        };
+
+        try {
+            // ==========================================
+            // EXECUTION START
+            // ==========================================
+
+            // Step 1: Get Prices
+            const priceMap = await fetchMarketPrices();
+
             const getUsdtValue = (asset, amount) => {
-                if (!amount) return 0;
+                if (!amount || amount === 0) return 0;
                 const a = String(asset || '').toUpperCase();
+
+                // Direct USDT
                 if (a === 'USDT') return amount;
 
-                // Try "BTCUSDT"
+                // Try "BTCUSDT" then "BTCUSDC"
                 let p = priceMap.get(`${a}USDT`);
-                // Fallback "BTCUSDC"
                 if (!p) p = priceMap.get(`${a}USDC`);
 
-                // Log missing prices to help debug
-                if (!p && amount > 0) {
-                    // console.debug(`[BingXWS] No price found for ${a}, value is 0`);
-                }
+                // If price found, return value
+                if (p) return amount * p;
 
-                return p ? amount * p : 0;
+                // Debug missing prices
+                // console.log(`[BingXWS] Missing price for: ${a}`);
+                return 0;
             };
 
             const result = [];
 
             // ==========================================
-            // 1. SPOT ACCOUNTS
+            // SPOT ACCOUNTS
             // ==========================================
-            const spotData = await sendRequest('/openApi/spot/v1/account/balance');
+            const spotData = await sendPrivateRequest('/openApi/spot/v1/account/balance');
             const spotBalances = Array.isArray(spotData?.balances) ? spotData.balances : [];
 
             const spotAssets = spotBalances
                 .map(b => {
-                    const asset  = b.asset?.toUpperCase() || '';
-                    const free   = parseFloat(b.free || 0);
-                    const locked = parseFloat(b.locked || 0);
-                    const amount = free + locked;
-                    return { name: asset, amount };
+                    const amount = parseFloat(b.free || 0) + parseFloat(b.locked || 0);
+                    return {
+                        name: b.asset,
+                        amount: amount,
+                        value: getUsdtValue(b.asset, amount)
+                    };
                 })
-                .filter(x => x.amount > 0) // Keep even small amounts for calculation
-                .map(x => ({ ...x, value: getUsdtValue(x.name, x.amount) }))
-                .filter(x => x.value > 0.01); // Only display if value > 1 cent
-
-            const spotTotal = spotAssets.reduce((s, a) => s + a.value, 0);
+                .filter(x => x.amount > 0); // Show everything you own, even if price is missing
 
             result.push({
                 accountType: 'Spot',
-                value: spotTotal,
-                balances: spotBalances,
-                children: spotAssets.sort((a, b) => b.value - a.value)
+                value: spotAssets.reduce((sum, item) => sum + item.value, 0),
+                children: spotAssets.sort((a,b) => b.value - a.value)
             });
 
             // ==========================================
-            // 2. FUND ACCOUNTS
+            // FUND ACCOUNTS
             // ==========================================
-            const fundData = await sendRequest('/openApi/fund/v1/account/balance');
+            const fundData = await sendPrivateRequest('/openApi/fund/v1/account/balance');
             const fundBalances = Array.isArray(fundData?.assets) ? fundData.assets : [];
 
             const fundAssets = fundBalances
                 .map(b => {
-                    const asset  = b.asset?.toUpperCase() || '';
-                    const free   = parseFloat(b.free || 0);
-                    const locked = parseFloat(b.locked || 0);
-                    const amount = free + locked;
-                    return { name: asset, amount };
+                    const amount = parseFloat(b.free || 0) + parseFloat(b.locked || 0);
+                    return {
+                        name: b.asset,
+                        amount: amount,
+                        value: getUsdtValue(b.asset, amount)
+                    };
                 })
-                .filter(x => x.amount > 0)
-                .map(x => ({ ...x, value: getUsdtValue(x.name, x.amount) }))
-                .filter(x => x.value > 0.01);
-
-            const fundTotal = fundAssets.reduce((s, a) => s + a.value, 0);
+                .filter(x => x.amount > 0);
 
             result.push({
                 accountType: 'Fund',
-                value: fundTotal,
-                balances: fundBalances,
-                children: fundAssets.sort((a, b) => b.value - a.value)
+                value: fundAssets.reduce((sum, item) => sum + item.value, 0),
+                children: fundAssets.sort((a,b) => b.value - a.value)
             });
 
             // ==========================================
-            // 3. USDT-M FUTURES (Standard)
+            // FUTURES (USDT-M)
             // ==========================================
-            const futBal = await sendRequest('/openApi/swap/v2/user/balance');
-            const futPos = await sendRequest('/openApi/swap/v2/user/positions');
-
-            const actualFutBal = futBal?.balance || futBal || {};
-            const walletBalance = parseFloat(actualFutBal.balance || actualFutBal.equity || 0);
-
-            const futPositions = (Array.isArray(futPos) ? futPos : [])
-                .map(p => ({
-                    symbol: p.symbol,
-                    side: String(p.positionSide || p.side || 'BOTH').toUpperCase(),
-                    size: parseFloat(p.positionAmt || p.qty || 0),
-                    leverage: parseFloat(p.leverage || 0),
-                    marginType: String(p.marginType || 'UNKNOWN').toUpperCase(),
-                    entryPrice: parseFloat(p.entryPrice || 0),
-                    markPrice: parseFloat(p.markPrice || 0),
-                    unrealizedPnl: parseFloat(p.unrealizedPnl || p.uPnl || 0),
-                    notional: parseFloat(p.positionValue || p.notional || 0),
-                }))
-                .filter(p => Math.abs(p.notional) > 0.01 || Math.abs(p.unrealizedPnl) > 0.01);
-
-            const totalUnrealizedPnl = futPositions.reduce((s, p) => s + (p.unrealizedPnl || 0), 0);
-
-            // For USDT-M, usually balance includes realized PnL but not unrealized.
-            // Total Value = Wallet Balance + Unrealized PnL
-            const futuresValue = walletBalance + totalUnrealizedPnl;
-
-            const futChildren = [];
-            if (walletBalance > 0.01) {
-                futChildren.push({ name: 'Wallet (USDT)', value: walletBalance, amount: walletBalance });
-            }
-            if (futPositions.length) {
-                futChildren.push(
-                    ...futPositions
-                        .map(p => ({ name: p.symbol, value: Math.abs(p.notional || 0) }))
-                        .filter(x => x.value > 0.01)
-                        .sort((a, b) => b.value - a.value)
-                );
-            }
+            const futBalData = await sendPrivateRequest('/openApi/swap/v2/user/balance');
+            const futBalObj = futBalData?.balance || futBalData || {};
+            const futWallet = parseFloat(futBalObj.balance || futBalObj.equity || 0);
 
             result.push({
                 accountType: 'Futures',
                 subType: 'USDT-M',
-                value: futuresValue,
-                walletBalance,
-                totalUnrealizedPnl,
-                positions: futPositions,
-                children: futChildren
+                value: futWallet,
+                children: futWallet > 0 ? [{ name: 'USDT', value: futWallet, amount: futWallet }] : []
             });
 
             // ==========================================
-            // 4. COIN-M FUTURES (Inverse) - FIXED
+            // COIN-M (Inverse)
             // ==========================================
-            const coinMBalResponse = await sendRequest('/openApi/cswap/v1/user/balance');
-            const coinMPosResponse = await sendRequest('/openApi/cswap/v1/user/positions');
+            const coinMBalResponse = await sendPrivateRequest('/openApi/cswap/v1/user/balance');
 
-            // Handle structure: data can be [ ... ] OR { balance: [ ... ] }
             let coinMBalances = [];
-            if (Array.isArray(coinMBalResponse)) {
-                coinMBalances = coinMBalResponse;
-            } else if (coinMBalResponse && Array.isArray(coinMBalResponse.balance)) {
-                coinMBalances = coinMBalResponse.balance;
-            }
+            if (Array.isArray(coinMBalResponse)) coinMBalances = coinMBalResponse;
+            else if (coinMBalResponse?.balance) coinMBalances = coinMBalResponse.balance;
 
-            const coinMPositionsRaw = Array.isArray(coinMPosResponse) ? coinMPosResponse : [];
-
-            let coinMTotalUsdtValue = 0;
-            const coinMChildren = [];
-
-            // Process Balance (Assets held like BTC, ETH)
-            coinMBalances.forEach(b => {
+            const coinMAssets = coinMBalances.map(b => {
                 const asset = b.asset?.toUpperCase();
                 const equity = parseFloat(b.equity || 0);
+                const val = getUsdtValue(asset, equity);
+                return {
+                    name: asset,
+                    amount: equity,
+                    value: val
+                };
+            }).filter(x => x.amount > 0);
 
-                if (equity > 0) {
-                    const usdtVal = getUsdtValue(asset, equity);
-                    coinMTotalUsdtValue += usdtVal;
-
-                    // DEBUG: If you see this log but no output, logic > 0.01 is hiding it
-                    // console.log(`[BingXWS] Coin-M Asset: ${asset}, Equity: ${equity}, USDT Value: ${usdtVal}`);
-
-                    if (usdtVal > 0.01) {
-                        coinMChildren.push({
-                            name: `${asset} Equity`,
-                            amount: equity,
-                            value: usdtVal
-                        });
-                    }
-                }
-            });
-
-            // Process Positions
-            const coinMPositions = coinMPositionsRaw.map(p => ({
-                symbol: p.symbol,
-                side: String(p.positionSide || p.side || 'BOTH').toUpperCase(),
-                size: parseFloat(p.positionAmt || 0),
-                leverage: parseFloat(p.leverage || 0),
-                entryPrice: parseFloat(p.entryPrice || 0),
-                markPrice: parseFloat(p.markPrice || 0),
-                unrealizedPnl: parseFloat(p.unrealizedPnl || 0),
-                notional: parseFloat(p.positionValue || 0),
-            })).filter(p => Math.abs(p.notional) > 1.0 || Math.abs(p.unrealizedPnl) > 0.0001);
-
-            if (coinMPositions.length > 0) {
-                coinMChildren.push(
-                    ...coinMPositions.map(p => ({
-                        name: `${p.symbol} Pos`,
-                        value: Math.abs(p.notional),
-                        amount: p.size
-                    })).sort((a, b) => b.value - a.value)
-                );
-            }
-
-            // Push to result if value exists
-            if (coinMTotalUsdtValue > 0.01 || coinMPositions.length > 0) {
+            // Always add Coin-M if assets exist, even if calculated value is 0 (shows as $0.00)
+            if (coinMAssets.length > 0) {
                 result.push({
                     accountType: 'Coin-M',
                     subType: 'Inverse',
-                    value: coinMTotalUsdtValue,
-                    walletBalance: 0,
-                    totalUnrealizedPnl: 0,
-                    positions: coinMPositions,
-                    children: coinMChildren.sort((a, b) => b.value - a.value)
-                });
-            } else if (coinMBalances.length > 0) {
-                // FALLBACK: If we have balances (e.g., BTC) but prices failed (value=0),
-                // push it anyway so it shows up in the UI as $0.00 instead of vanishing.
-                result.push({
-                    accountType: 'Coin-M',
-                    subType: 'Inverse',
-                    value: 0,
-                    walletBalance: 0,
-                    positions: [],
-                    children: coinMBalances.map(b => ({
-                        name: b.asset,
-                        amount: parseFloat(b.equity),
-                        value: 0
-                    }))
+                    value: coinMAssets.reduce((sum, item) => sum + item.value, 0),
+                    children: coinMAssets.sort((a,b) => b.value - a.value)
                 });
             }
 
