@@ -750,6 +750,7 @@ class BingXWS {
                     console.warn(`[BingXWS] API warning (${path}): ${resp.data?.msg || 'unknown'}`);
                     return null;
                 }
+                // Return the 'data' property directly
                 return resp.data.data;
             } catch (e) {
                 console.warn(`[BingXWS] Request failed (${path}): ${e.message}`);
@@ -758,28 +759,51 @@ class BingXWS {
         };
 
         try {
-            // 1. Fetch Market Prices for USDT conversion
-            const pxRes = await axios.get('https://open-api.bingx.com/openApi/spot/v1/ticker/24hr');
-            const raw = pxRes.data?.data || [];
+            // ==========================================
+            // 0. FETCH PRICES (Critical Step)
+            // ==========================================
+            let priceMap = new Map();
+            try {
+                // Fetch 24hr ticker for prices
+                const pxRes = await axios.get('https://open-api.bingx.com/openApi/spot/v1/ticker/24hr');
 
-            // Map: "BTCUSDT" -> 65000.00
-            const priceMap = new Map(
-                (Array.isArray(raw) ? raw : []).map(t => [
-                    String((t.symbol || t.s || '').replace('-', '')).toUpperCase(),
-                    parseFloat(t.lastPrice || t.c || '0')
-                ])
-            );
+                // Handle various response structures (sometimes data is directly the array)
+                const raw = Array.isArray(pxRes.data) ? pxRes.data : (pxRes.data?.data || []);
+
+                if (raw.length > 0) {
+                    raw.forEach(t => {
+                        // Support 'symbol' or 's', 'lastPrice' or 'c'
+                        const s = t.symbol || t.s;
+                        const p = t.lastPrice || t.c;
+                        if (s && p) {
+                            // Standardize: "BTC-USDT" -> "BTCUSDT"
+                            const cleanSymbol = s.replace(/-/g, '').toUpperCase();
+                            priceMap.set(cleanSymbol, parseFloat(p));
+                        }
+                    });
+                    console.log(`[BingXWS] Loaded ${priceMap.size} prices for value calculation.`);
+                } else {
+                    console.warn('[BingXWS] Price API returned empty array. Values will be 0.');
+                }
+            } catch (e) {
+                console.error('[BingXWS] Failed to fetch prices:', e.message);
+            }
 
             const getUsdtValue = (asset, amount) => {
+                if (!amount) return 0;
                 const a = String(asset || '').toUpperCase();
                 if (a === 'USDT') return amount;
 
-                // Try finding ASSET+USDT (e.g., BTCUSDT)
+                // Try "BTCUSDT"
                 let p = priceMap.get(`${a}USDT`);
-                if (!p) {
-                    // Fallback for weird symbols or USDC
-                    p = priceMap.get(`${a}USDC`);
+                // Fallback "BTCUSDC"
+                if (!p) p = priceMap.get(`${a}USDC`);
+
+                // Log missing prices to help debug
+                if (!p && amount > 0) {
+                    // console.debug(`[BingXWS] No price found for ${a}, value is 0`);
                 }
+
                 return p ? amount * p : 0;
             };
 
@@ -799,16 +823,16 @@ class BingXWS {
                     const amount = free + locked;
                     return { name: asset, amount };
                 })
-                .filter(x => x.amount > 1e-8)
+                .filter(x => x.amount > 0) // Keep even small amounts for calculation
                 .map(x => ({ ...x, value: getUsdtValue(x.name, x.amount) }))
-                .filter(x => x.value > 0.01);
+                .filter(x => x.value > 0.01); // Only display if value > 1 cent
 
             const spotTotal = spotAssets.reduce((s, a) => s + a.value, 0);
 
             result.push({
                 accountType: 'Spot',
                 value: spotTotal,
-                balances: spotAssets.length > 0 ? spotBalances : [],
+                balances: spotBalances,
                 children: spotAssets.sort((a, b) => b.value - a.value)
             });
 
@@ -826,7 +850,7 @@ class BingXWS {
                     const amount = free + locked;
                     return { name: asset, amount };
                 })
-                .filter(x => x.amount > 1e-8)
+                .filter(x => x.amount > 0)
                 .map(x => ({ ...x, value: getUsdtValue(x.name, x.amount) }))
                 .filter(x => x.value > 0.01);
 
@@ -835,7 +859,7 @@ class BingXWS {
             result.push({
                 accountType: 'Fund',
                 value: fundTotal,
-                balances: fundAssets.length > 0 ? fundBalances : [],
+                balances: fundBalances,
                 children: fundAssets.sort((a, b) => b.value - a.value)
             });
 
@@ -845,9 +869,8 @@ class BingXWS {
             const futBal = await sendRequest('/openApi/swap/v2/user/balance');
             const futPos = await sendRequest('/openApi/swap/v2/user/positions');
 
-            // Handle structure difference: sometimes data is array, sometimes object inside data
-            const actualFutBal = futBal?.balance || {};
-            const walletBalance = parseFloat(actualFutBal.balance || 0);
+            const actualFutBal = futBal?.balance || futBal || {};
+            const walletBalance = parseFloat(actualFutBal.balance || actualFutBal.equity || 0);
 
             const futPositions = (Array.isArray(futPos) ? futPos : [])
                 .map(p => ({
@@ -864,6 +887,9 @@ class BingXWS {
                 .filter(p => Math.abs(p.notional) > 0.01 || Math.abs(p.unrealizedPnl) > 0.01);
 
             const totalUnrealizedPnl = futPositions.reduce((s, p) => s + (p.unrealizedPnl || 0), 0);
+
+            // For USDT-M, usually balance includes realized PnL but not unrealized.
+            // Total Value = Wallet Balance + Unrealized PnL
             const futuresValue = walletBalance + totalUnrealizedPnl;
 
             const futChildren = [];
@@ -890,17 +916,17 @@ class BingXWS {
             });
 
             // ==========================================
-            // 4. COIN-M FUTURES (Inverse) - UPDATED
+            // 4. COIN-M FUTURES (Inverse) - FIXED
             // ==========================================
             const coinMBalResponse = await sendRequest('/openApi/cswap/v1/user/balance');
             const coinMPosResponse = await sendRequest('/openApi/cswap/v1/user/positions');
 
-            // FIX: Handle response being a direct array OR an object with a balance key
+            // Handle structure: data can be [ ... ] OR { balance: [ ... ] }
             let coinMBalances = [];
             if (Array.isArray(coinMBalResponse)) {
                 coinMBalances = coinMBalResponse;
-            } else if (coinMBalResponse && Array.isArray(coinMBalResponse)) {
-                coinMBalances = coinMBalResponse;
+            } else if (coinMBalResponse && Array.isArray(coinMBalResponse.balance)) {
+                coinMBalances = coinMBalResponse.balance;
             }
 
             const coinMPositionsRaw = Array.isArray(coinMPosResponse) ? coinMPosResponse : [];
@@ -910,12 +936,15 @@ class BingXWS {
 
             // Process Balance (Assets held like BTC, ETH)
             coinMBalances.forEach(b => {
-                const asset = b.asset?.toUpperCase(); // e.g., "BTC"
-                const equity = parseFloat(b.equity || 0); // Use equity (includes unrl PnL)
+                const asset = b.asset?.toUpperCase();
+                const equity = parseFloat(b.equity || 0);
 
                 if (equity > 0) {
                     const usdtVal = getUsdtValue(asset, equity);
                     coinMTotalUsdtValue += usdtVal;
+
+                    // DEBUG: If you see this log but no output, logic > 0.01 is hiding it
+                    // console.log(`[BingXWS] Coin-M Asset: ${asset}, Equity: ${equity}, USDT Value: ${usdtVal}`);
 
                     if (usdtVal > 0.01) {
                         coinMChildren.push({
@@ -928,20 +957,17 @@ class BingXWS {
             });
 
             // Process Positions
-            const coinMPositions = coinMPositionsRaw.map(p => {
-                return {
-                    symbol: p.symbol,
-                    side: String(p.positionSide || p.side || 'BOTH').toUpperCase(),
-                    size: parseFloat(p.positionAmt || 0),
-                    leverage: parseFloat(p.leverage || 0),
-                    entryPrice: parseFloat(p.entryPrice || 0),
-                    markPrice: parseFloat(p.markPrice || 0),
-                    unrealizedPnl: parseFloat(p.unrealizedPnl || 0),
-                    notional: parseFloat(p.positionValue || 0), // Usually USD value in Coin-M
-                };
-            }).filter(p => Math.abs(p.notional) > 1.0 || Math.abs(p.unrealizedPnl) > 0.0001);
+            const coinMPositions = coinMPositionsRaw.map(p => ({
+                symbol: p.symbol,
+                side: String(p.positionSide || p.side || 'BOTH').toUpperCase(),
+                size: parseFloat(p.positionAmt || 0),
+                leverage: parseFloat(p.leverage || 0),
+                entryPrice: parseFloat(p.entryPrice || 0),
+                markPrice: parseFloat(p.markPrice || 0),
+                unrealizedPnl: parseFloat(p.unrealizedPnl || 0),
+                notional: parseFloat(p.positionValue || 0),
+            })).filter(p => Math.abs(p.notional) > 1.0 || Math.abs(p.unrealizedPnl) > 0.0001);
 
-            // Add positions to children for visualization
             if (coinMPositions.length > 0) {
                 coinMChildren.push(
                     ...coinMPositions.map(p => ({
@@ -952,15 +978,31 @@ class BingXWS {
                 );
             }
 
+            // Push to result if value exists
             if (coinMTotalUsdtValue > 0.01 || coinMPositions.length > 0) {
                 result.push({
                     accountType: 'Coin-M',
                     subType: 'Inverse',
                     value: coinMTotalUsdtValue,
-                    walletBalance: 0, // Not summed because assets differ (BTC, ETH, etc.)
-                    totalUnrealizedPnl: 0, // Not summed because currencies differ
+                    walletBalance: 0,
+                    totalUnrealizedPnl: 0,
                     positions: coinMPositions,
                     children: coinMChildren.sort((a, b) => b.value - a.value)
+                });
+            } else if (coinMBalances.length > 0) {
+                // FALLBACK: If we have balances (e.g., BTC) but prices failed (value=0),
+                // push it anyway so it shows up in the UI as $0.00 instead of vanishing.
+                result.push({
+                    accountType: 'Coin-M',
+                    subType: 'Inverse',
+                    value: 0,
+                    walletBalance: 0,
+                    positions: [],
+                    children: coinMBalances.map(b => ({
+                        name: b.asset,
+                        amount: parseFloat(b.equity),
+                        value: 0
+                    }))
                 });
             }
 
