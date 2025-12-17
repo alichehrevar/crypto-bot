@@ -9,7 +9,6 @@ async function fixAlgoTraderProfileIndex() {
     } catch (error) {
         // If the index doesn't exist, it throws an error, which is fine
         if (error.code === 27) {
-            logger.error('Index did not exist, nothing to do.');
             console.log('Index did not exist, nothing to do.');
         } else {
             logger.error('Error dropping index:', error.message);
