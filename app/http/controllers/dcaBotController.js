@@ -8,13 +8,21 @@ exports.createDcaBot = async (req, res) => {
 
     const { symbol, selectedTab } = req.body;
 
-    if (!symbol) {
-        return res.status(400).json({ message: 'Symbol is required', success: false });
+    let marketSnapshot;
+
+    // check if symbol exists AND is not the string "undefined"
+    if (symbol && symbol !== 'undefined') {
+        marketSnapshot = await MarketSnapshot.findById(symbol);
+    } else {
+        marketSnapshot = await MarketSnapshot.findOne({
+            name: "Binance",
+            symbol: "BTC",
+            category: "Spot"
+        });
     }
 
-    const marketSnapshot = await MarketSnapshot.findById(symbol)
     if (!marketSnapshot) {
-        return res.status(404).json({ message: 'Symbol not found', success: false });
+        return res.status(400).json({ error: 'Wrong symbol is selected.' });
     }
 
     try {
@@ -51,7 +59,6 @@ exports.createDcaBot = async (req, res) => {
         }
 
         // For any other kind of error
-        logger.error('An internal server error occurred:', error.message)
         return res.status(500).json({
             message: "An internal server error occurred.",
             error: error.message

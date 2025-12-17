@@ -60,9 +60,21 @@ exports.createGridBot = async (req, res) => {
         } = req.body;
 
         // 1. Validate Market
-        const marketSnapshot = await MarketSnapshot.findById(symbol);
+        let marketSnapshot;
+
+        // check if symbol exists AND is not the string "undefined"
+        if (symbol && symbol !== 'undefined') {
+            marketSnapshot = await MarketSnapshot.findById(symbol);
+        } else {
+            marketSnapshot = await MarketSnapshot.findOne({
+                name: "Binance",
+                symbol: "BTC",
+                category: "Spot"
+            });
+        }
+
         if (!marketSnapshot) {
-            return res.status(400).json({ error: 'Invalid symbol selected.' });
+            return res.status(400).json({ error: 'Wrong symbol is selected.' });
         }
 
         // 2. Validate Account
@@ -98,7 +110,7 @@ exports.createGridBot = async (req, res) => {
         };
 
         // Basic validation
-        if (!name || !symbol || !gridConfig.lowerPrice || !gridConfig.upperPrice || !gridConfig.gridCount) {
+        if (!name || !gridConfig.lowerPrice || !gridConfig.upperPrice || !gridConfig.gridCount) {
             return res.status(400).json({ error: 'Name, symbol, lowerPrice, upperPrice, and grids are required.' });
         }
 
@@ -216,7 +228,19 @@ exports.deployBot = async (req, res) => {
             share,
         } = req.body;
 
-        const marketSnapshot = await MarketSnapshot.findById(symbol);
+        let marketSnapshot;
+
+        // check if symbol exists AND is not the string "undefined"
+        if (symbol && symbol !== 'undefined') {
+            marketSnapshot = await MarketSnapshot.findById(symbol);
+        } else {
+            marketSnapshot = await MarketSnapshot.findOne({
+                name: "Binance",
+                symbol: "BTC",
+                category: "Spot"
+            });
+        }
+
         if (!marketSnapshot) {
             return res.status(400).json({ error: 'Wrong symbol is selected.' });
         }
@@ -317,7 +341,6 @@ exports.deployBot = async (req, res) => {
  */
 exports.getBots = async (req, res) => {
     const { active } = req.query;
-    // console.log('getBots active:', active);
 
     try {
         const userId = req.user?.id;

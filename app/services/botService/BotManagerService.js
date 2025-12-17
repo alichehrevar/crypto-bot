@@ -130,7 +130,7 @@ class BotManagerService {
             return botInstance;
 
         } catch (error) {
-            logger.error({ botId, error: error.message, stack: error.stack }, `Failed to start bot instance`);
+            logger.error(`Failed to start bot instance. botId: ` + botId );
             await BotBase.updateOne({ _id: botId }, { status: 'ERROR' });
         }
     }
