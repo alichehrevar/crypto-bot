@@ -7,7 +7,6 @@ const UserInfo = require('../../app/models/UserInfo');
 const logger = require('../../logs/logger');
 
 const seedAdminUser = async () => {
-    logger.error(`[Seeder] Error ensuring admin user exists:',`);
     try {
 
         console.log('[Seeder] Ensuring default admin user…');
