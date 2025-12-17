@@ -24,6 +24,7 @@ const { logEmitter, originalConsoleLog } = require('./logs/logEmitter');
 
 // Routers
 const apiRoutes = require('./routes/index');
+const logger = require("./logs/logger");
 
 const app = express();
 
@@ -89,6 +90,7 @@ connectDB().then(async () => {
             }
         })
         .catch(err => {
+            logger.error('[Server] BingX lookup error:', err);
             console.error('[Server] BingX lookup error:', err);
             bingXWS.connect();
         });
@@ -97,6 +99,7 @@ connectDB().then(async () => {
     try {
         await seedSymbols();
     } catch (err) {
+        logger.error('Currency seeding failed:', err);
         console.error('Currency seeding failed:', err);
     }
 
@@ -199,6 +202,7 @@ server.listen(PORT, () => {
 
 // Catch unhandled promise rejections
 process.on('unhandledRejection', (err) => {
+    logger.error(`Unhandled Rejection: ${err.message}`);
     console.error(`Unhandled Rejection: ${err.message}`);
     server.close(() => process.exit(1));
 });

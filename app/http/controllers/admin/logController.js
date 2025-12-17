@@ -1,5 +1,6 @@
 const BotLog = require('../../../models/BotLog');
 const mongoose = require('mongoose');
+const logger = require("../../../../logs/logger");
 
 /**
  * Controller for handling log retrieval.
@@ -60,6 +61,7 @@ class LogController {
             });
 
         } catch (error) {
+            logger.error('Error fetching bot logs:', error);
             console.error('Error fetching bot logs:', error);
             res.status(500).json({ message: 'Internal server error while fetching logs.', success: false });
         }

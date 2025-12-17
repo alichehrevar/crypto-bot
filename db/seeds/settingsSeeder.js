@@ -1,4 +1,5 @@
 const Settings = require('../../app/models/Settings');
+const logger = require("../../logs/logger");
 
 const seedSettings = async () => {
     try {
@@ -22,6 +23,7 @@ const seedSettings = async () => {
 
         console.log('✅ Settings seeded successfully.');
     } catch (err) {
+        logger.error('❌ Error seeding settings:', err.message || err);
         console.error('❌ Error seeding settings:', err.message || err);
     }
 }

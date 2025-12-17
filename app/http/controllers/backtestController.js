@@ -6,6 +6,7 @@ const BacktestRun = require('../../models/BacktestRun');
 const paramBounds = require('../../../config/indicatorParamBounds');
 const User             = require('../../models/User');
 const axios = require('axios');
+const logger = require("../../../logs/logger");
 
 /**
  * @description Handles the initiation of a backtest run. It validates parameters,
@@ -33,6 +34,7 @@ exports.run = async (req, res) => {
             if (!Array.isArray(payload)) return res.status(400).json({ success: false, error: 'Indicators payload must be an array.' });
             strategies = payload.map(ind => ({ ...ind, paramSpace: paramBounds[ind.indicator] || {} }));
         } catch (error) {
+            logger.error('Invalid indicators payload.')
             return res.status(400).json({ success: false, error: 'Invalid indicators payload.' });
         }
 
@@ -51,6 +53,7 @@ exports.run = async (req, res) => {
                     return res.status(400).json({ success: false, error: 'Invalid risk payload.' });
                 }
             } catch {
+                logger.error('Invalid risk payload.')
                 return res.status(400).json({ success: false, error: 'Invalid risk payload.' });
             }
         }
@@ -98,6 +101,7 @@ exports.run = async (req, res) => {
 
         return res.json({ success: true, result });
     } catch (err) {
+        logger.error('backtestController.run error', err);
         console.error('backtestController.run error', err);
         return res.status(500).json({ success: false, error: err.message || 'Backtest failed.' });
     }
@@ -112,6 +116,7 @@ exports.listRuns = async (req, res) => {
             .lean();
         return res.json({ success: true, runs });
     } catch (err) {
+        logger.error(err);
         console.error(err);
         return res.status(500).json({ success: false, error: err.message });
     }
@@ -123,6 +128,7 @@ exports.getRunById = async (req, res) => {
         if (!run) return res.status(404).json({ success: false, error: 'Not found' });
         return res.json({ success: true, run });
     } catch (err) {
+        logger.error(err);
         console.error(err);
         return res.status(500).json({ success: false, error: err.message });
     }

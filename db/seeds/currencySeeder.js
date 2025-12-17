@@ -1,5 +1,6 @@
 const axios = require('axios');
 const Currency = require('../../app/models/Currency');
+const logger = require("../../logs/logger");
 
 async function seedSymbols() {
     const COINS_API = 'https://api.coinpaprika.com/v1/coins';
@@ -34,6 +35,7 @@ async function seedSymbols() {
             console.log('⚠️ No currencies found to seed.');
         }
     } catch (err) {
+        logger.error('❌ Error seeding currencies:', err.message || err);
         console.error('❌ Error seeding currencies:', err.message || err);
     }
 }

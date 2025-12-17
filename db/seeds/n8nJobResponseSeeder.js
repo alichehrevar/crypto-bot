@@ -10,6 +10,7 @@ const XLSX = require('xlsx');
 // Import Mongoose Models (assuming correct relative path to app/models)
 const { N8nJobResponse_CustomAiDB } = require('../../app/models/N8nJobResponse');
 const { N8nWorkflowJob_CustomAiDB } = require('../../app/models/N8nWorkflowJob');
+const logger = require("../../logs/logger");
 
 // The required path to the XLSX file.
 // You must place your 'Custom AI Bot.xlsx' file in this directory.
@@ -153,6 +154,7 @@ function mapDataToSchema(record) {
         if (!Array.isArray(tradeLog)) throw new Error('Parsed log is not an array.');
 
     } catch (e) {
+        logger.warn(`[Warning] Failed to parse Trade Log for Req ID ${record['Request ID']}. Defaulting to []. Error: ${e.message}`);
         console.warn(`[Warning] Failed to parse Trade Log for Req ID ${record['Request ID']}. Defaulting to []. Error: ${e.message}`);
         tradeLog = [];
     }
@@ -267,8 +269,11 @@ async function seedN8nData() {
         rawRecords = parseXlsx(XLSX_FILE_PATH);
     } catch (error) {
         console.error(`[FATAL] Could not process XLSX file at ${XLSX_FILE_PATH}.`);
+        logger.error(`[FATAL] Could not process XLSX file at ${XLSX_FILE_PATH}.`);
         console.error('Please ensure the file exists and npm install xlsx has been run.');
+        logger.error('Please ensure the file exists and npm install xlsx has been run.');
         console.error('Error details:', error.message);
+        logger.error('Error details:', error.message);
         return;
     }
 
@@ -316,6 +321,7 @@ async function seedN8nData() {
 
         console.log('Seeding completed successfully.');
     } catch (err) {
+        logger.error('An error occurred during seeding:', err);
         console.error('An error occurred during seeding:', err);
         // Important: Re-throw error to ensure the runner/main script catches it
         throw err;

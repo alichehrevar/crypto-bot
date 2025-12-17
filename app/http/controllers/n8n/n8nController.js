@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const { N8nWorkflowJob_CustomAiDB } = require('../../../models/N8nWorkflowJob');
 const n8nService = require('../../../services/n8nService');
+const logger = require("../../../../logs/logger");
 
 async function triggerAsync(req, res) {
     try {
@@ -14,9 +15,11 @@ async function triggerAsync(req, res) {
     } catch (error) {
         // Handle known service errors if you want specific 400 codes
         if (error instanceof n8nService.ServiceError && error.type === 'VALIDATION') {
+            logger.error(error.message)
             return res.status(400).json({ success: false, message: error.message });
         }
         // Generic fallback
+        logger.error(error.message)
         return res.status(500).json({ success: false, message: error.message });
     }
 }
@@ -31,6 +34,7 @@ async function promptSubmission(req, res) {
             jobId: job._id,
         });
     } catch (error) {
+        logger.error(error.message)
         // Handle known service errors if you want specific 400 codes
         if (error instanceof n8nService.ServiceError && error.type === 'VALIDATION') {
             return res.status(400).json({ success: false, message: error.message });
@@ -49,6 +53,7 @@ async function getJobStatus(req, res) {
             job: jobStatus,
         });
     } catch (error) {
+        logger.error(error.message)
         // Handle specific service errors to return correct HTTP codes
         if (error instanceof n8nService.ServiceError) {
             switch (error.type) {
@@ -123,6 +128,7 @@ async function simulateImport (req, res) {
         });
 
     } catch (error) {
+        logger.error('Test Import Error:', error);
         console.error('Test Import Error:', error);
         return res.status(500).json({ error: error.message });
     }

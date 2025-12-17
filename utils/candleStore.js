@@ -1,6 +1,7 @@
 // utils/candleStore.js
 
-const Candle = require('../app/models/Candle'); // Import your Mongoose Model
+const Candle = require('../app/models/Candle');
+const logger = require("../logs/logger"); // Import your Mongoose Model
 
 // Maximum number of candles to store per symbol/timeframe in RAM.
 const MAX_CANDLES = 100;
@@ -98,10 +99,12 @@ async function updateCandle(symbol, timeframe, candle) {
                     { $set: update.$set }
                 );
             } catch (retryErr) {
+                logger.error(`❌ Failed to recover from candle race condition: ${retryErr.message}`);
                 console.error(`❌ Failed to recover from candle race condition: ${retryErr.message}`);
             }
         } else {
             // Log genuine DB errors (connection lost, disk full, etc.)
+            logger.error(`❌ DB Error updating candle ${symbol} ${timeframe}:`, error.message);
             console.error(`❌ DB Error updating candle ${symbol} ${timeframe}:`, error.message);
         }
     }

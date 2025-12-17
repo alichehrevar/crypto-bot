@@ -226,6 +226,7 @@ exports.deployBot = async (req, res) => {
             try {
                 indicators = JSON.parse(indicators);
             } catch (e) {
+                logger.error('Invalid format for indicators.' + e.message)
                 return res.status(400).json({ success: false, error: 'Invalid format for indicators.' });
             }
         }
@@ -419,6 +420,7 @@ exports.updateBot = async (req, res) => {
             try {
                 req.body.gridConfig = JSON.parse(req.body.gridConfig);
             } catch {
+                logger.error('Invalid JSON for gridConfig')
                 return res.status(400).json({ error: 'Invalid JSON for gridConfig' });
             }
         }
@@ -428,6 +430,7 @@ exports.updateBot = async (req, res) => {
             try {
                 req.body.strategyParams = JSON.parse(req.body.strategyParams);
             } catch {
+                logger.error('Invalid JSON for strategyParams')
                 return res.status(400).json({ error: 'Invalid JSON for strategyParams' });
             }
         }
@@ -712,6 +715,7 @@ exports.getBotDetails = async (req, res) => {
 
         res.status(200).json({ data: enriched, success: true });
     } catch (error) {
+        logger.error('Error fetching bot details:', error);
         console.error('Error fetching bot details:', error);
         res.status(500).json({ message: 'Internal server error while fetching bot details.', success: false });
     }

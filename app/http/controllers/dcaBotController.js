@@ -1,6 +1,7 @@
 const DcaBot = require('../../models/DcaBot');
 const MarketSnapshot = require('../../models/MarketSnapshot')
 const BotManagerService = require('../../services/botService/BotManagerService');
+const logger = require("../../../logs/logger");
 
 // POST /api/dcabots
 exports.createDcaBot = async (req, res) => {
@@ -42,6 +43,7 @@ exports.createDcaBot = async (req, res) => {
 
         if (error.name === 'ValidationError') {
             // Send the detailed validation errors back
+            logger.error('Validation error:', error.message)
             return res.status(400).json({
                 message: "Validation failed. See 'errors' for details.",
                 errors: error.errors // 'error.errors' has the good stuff
@@ -49,6 +51,7 @@ exports.createDcaBot = async (req, res) => {
         }
 
         // For any other kind of error
+        logger.error('An internal server error occurred:', error.message)
         return res.status(500).json({
             message: "An internal server error occurred.",
             error: error.message

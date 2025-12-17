@@ -220,6 +220,7 @@ async function proxyKlines (req, res){
         return res.status(200).json(response.data);
 
     } catch (error) {
+        logger.error(`[PROXY ERROR for ${exchange}]:`, error.response ? error.response.data : error.message);
         console.error(`[PROXY ERROR for ${exchange}]:`, error.response ? error.response.data : error.message);
         const status = error.response ? error.response.status : 500;
         const message = error.response ? error.response.data : 'Internal server error';

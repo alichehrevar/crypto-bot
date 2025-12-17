@@ -3,6 +3,7 @@ const crypto = require('crypto');
 const zlib = require('zlib');
 const Candle = require('../models/Candle');
 const axios = require("axios");
+const logger = require("../../logs/logger");
 
 class BingXWS {
     constructor() {
@@ -65,6 +66,7 @@ class BingXWS {
 
                 await this.processMessage(message);
             } catch (error) {
+                logger.error('[BingXWS] Message processing error:', error);
                 console.error('[BingXWS] Message processing error:', error);
             }
         });

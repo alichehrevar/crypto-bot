@@ -7,6 +7,7 @@ const {
 const BotBase = require('../models/BotBase');
 const BotService = require('./botService/BotService');
 const Account = require('../models/Account');
+const logger = require("../../logs/logger");
 
 const customDbConnection = N8nWorkflowJob_CustomAiDB.db;
 let lastId = null;
@@ -48,7 +49,10 @@ function startPollingFallback() {
                 await processNewRecord(job);
                 lastId = job._id;
             }
-        } catch (err) { console.error('Polling Error:', err.message); }
+        } catch (err) {
+            logger.error('Polling Error:', err.message);
+            console.error('Polling Error:', err.message);
+        }
     }, 5000);
 }
 
@@ -101,6 +105,7 @@ async function processNewRecord(sourceDoc) {
         await autoDeployBot(newDoc);
 
     } catch (err) {
+        logger.error('❌ Error saving to Main DB:', err.message);
         console.error('❌ Error saving to Main DB:', err.message);
     }
 }
@@ -219,6 +224,7 @@ async function autoDeployBot(n8nJob) {
         console.log(`✅ Bot Registered Live!`);
 
     } catch (err) {
+        logger.error("❌ Auto-Deploy Failed:", err.message);
         console.error("❌ Auto-Deploy Failed:", err.message);
     }
 }

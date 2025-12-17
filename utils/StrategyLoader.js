@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const logger = require("../logs/logger");
 
 /**
  * Loads a dynamic strategy class from a string of code.
@@ -38,6 +39,7 @@ function loadDynamicStrategy(strategyId, codeString) {
 
         return StrategyClass;
     } catch (err) {
+        logger.error(`[StrategyLoader] Error loading strategy ${strategyId}:`, err);
         console.error(`[StrategyLoader] Error loading strategy ${strategyId}:`, err);
         throw new Error(`Failed to load dynamic strategy: ${err.message}`);
     }

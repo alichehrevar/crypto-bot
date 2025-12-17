@@ -9,6 +9,7 @@ const FavoriteSymbol = require('../../models/FavoriteSymbol');
 const MarketService = require('../../services/marketService');
 const MarketSnapshot = require('../../models/MarketSnapshot');
 const { sendOtpAndHandleFailure } = require('../../services/user/otpService');
+const logger = require("../../../logs/logger");
 
 exports.userInfo = async (req, res) => {
     const user = await User.findById(req.user?.id).populate('info');
@@ -85,6 +86,7 @@ exports.updateUserInfo = async (req, res) => {
         });
 
     } catch (error) {
+        logger.error('Error in updateUserInfo:', error);
         console.error('Error in updateUserInfo:', error);
         // Provide more specific error messages if possible, e.g., for validation errors
         if (error.name === 'ValidationError') {
@@ -139,6 +141,7 @@ exports.updateUserPreference = async (req, res) => {
         });
 
     } catch (error) {
+        logger.error('Error in updateUserInfo:', error);
         console.error('Error in updateUserInfo:', error);
         // Provide more specific error messages if possible, e.g., for validation errors
         if (error.name === 'ValidationError') {
@@ -213,6 +216,7 @@ exports.updateUserAvatar = async (req, res) => {
         });
 
     } catch (error) {
+        logger.error('Error updating avatar:', error);
         console.error('Error updating avatar:', error);
         res.status(500).json({ success: false, message: 'Server error while updating avatar.' });
     }
@@ -280,6 +284,7 @@ exports.updateUserSecurityInfo = async (req, res) => {
         });
 
     } catch (error) {
+        logger.error('Error in updateUserInfo:', error);
         console.error('Error in updateUserInfo:', error);
         // Provide more specific error messages if possible, e.g., for validation errors
         if (error.name === 'ValidationError') {
@@ -354,6 +359,7 @@ exports.favoriteSymbolsList = async (req, res) => {
         return res.status(200).json({ data: combinedResults, success: true });
 
     } catch (error) {
+        logger.error('Error in favoriteSymbolsList (live):', error);
         console.error('Error in favoriteSymbolsList (live):', error);
         res.status(500).json({ success: false, message: 'Internal server error.' });
     }
@@ -400,6 +406,7 @@ exports.toggleFavoriteSymbol = async (req, res) => {
             });
         }
     } catch (error) {
+        logger.error('Error in toggleFavoriteSymbol:', error);
         console.error('Error in toggleFavoriteSymbol:', error);
         res.status(500).json({ success: false, message: 'Internal server error.' });
     }
@@ -470,6 +477,7 @@ exports.usersList = async (req, res) => {
 
         res.json({ success: true, data: users });
     } catch (error) {
+        logger.error('Error getting users list');
         console.error('Error getting users list');
         res.status(500).json({ success: false, message: 'Internal server error.' });
     }
@@ -488,6 +496,7 @@ exports.changeUserRole = async (req, res) => {
 
         return res.json({message: 'User role changed successfully !', success: true})
     } catch (error) {
+        logger.error('Error updating user role');
         console.error('Error updating user role');
         res.status(500).json({ success: false, message: 'Internal server error.' });
     }

@@ -5,6 +5,7 @@ const path = require('path');
 const mongoose = require('mongoose');
 const MarketSnapshot = require('../../app/models/MarketSnapshot');
 const connectDB = require('../../config/db');
+const logger = require("../../logs/logger");
 require('dotenv').config({ path: path.resolve(__dirname, '../../.env') });
 
 const seedDatabase = async () => {
@@ -71,6 +72,7 @@ const seedDatabase = async () => {
         console.log(`[Market Seeder] ✅ Database seeded successfully with ${documentsToInsert.length} documents!`);
 
     } catch (error) {
+        logger.error('[Market Seeder] ❌ Error during database seeding:', error);
         console.error('[Market Seeder] ❌ Error during database seeding:', error);
     } finally {
         await mongoose.disconnect();

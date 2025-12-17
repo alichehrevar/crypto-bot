@@ -1,5 +1,6 @@
 const BaseIndicator = require('./BaseIndicator');
 const { loadDynamicStrategy } = require('../../../utils/StrategyLoader');
+const logger = require("../../../logs/logger");
 
 class N8NBotRunner extends BaseIndicator {
     /**
@@ -32,6 +33,7 @@ class N8NBotRunner extends BaseIndicator {
             // Forward the calculation to the AI strategy
             return this.strategyInstance.calculateSignal(candles);
         } catch (err) {
+            logger.error(`[N8NBotRunner] Error in strategy execution: ${err.message}`);
             console.error(`[N8NBotRunner] Error in strategy execution: ${err.message}`);
             return 'HOLD';
         }

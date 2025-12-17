@@ -23,6 +23,7 @@ exports.listMySnapshots = async (req, res) => {
 
         return res.json({ success: true, data: formattedData });
     } catch (err) {
+        logger.error('assetSnapshotController.listMySnapshots error', err);
         console.error('assetSnapshotController.listMySnapshots error', err);
         return res.status(500).json({ success: false, error: 'Failed to retrieve asset history' });
     }
@@ -67,6 +68,7 @@ exports.getAssetsOverview = async (req, res) => {
 
         res.json({ data: {broker: snap.brokerTree, asset: snap.assetTree}, success: true });
     } catch (e) {
+        logger.error('[getAssetsOverview] ', e);
         console.error('[getAssetsOverview] ', e);
         res.status(500).json({ error: 'Failed to load assets overview', success: false });
     }
@@ -85,6 +87,7 @@ exports.getAssetsTodayFull = async (req, res) => {
 
         res.json({data: snap, success: true});
     } catch (e) {
+        logger.error('[getAssetsTodayFull]', e);
         console.error('[getAssetsTodayFull]', e);
         res.status(500).json({ message: 'Failed to load full assets snapshot', success: false });
     }

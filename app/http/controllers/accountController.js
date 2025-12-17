@@ -40,6 +40,7 @@ async function fetchExchangeRate() {
             USD: response.data.rates.USD,
         };
     } catch (e) {
+        logger.error('Error fetching exchange rate, defaulting to 1:', e.message);
         console.error('Error fetching exchange rate, defaulting to 1:', e.message);
         return 1;
     }
@@ -289,6 +290,7 @@ exports.getAccountBalance = async (req, res) => {
         return res.json({ success: true, data: balanceData });
 
     } catch (error) {
+        logger.error('Error fetching account balance:', error.message);
         console.error('Error fetching account balance:', error.message);
         return res.status(500).json({ success: false, error: 'Internal server error while fetching account balance' });
     }
@@ -422,6 +424,7 @@ exports.getAssetsDistribution = async (req, res) => {
                         }
                     }
                 } catch (innerErr) {
+                    logger.error(`Error aggregating balance for account ${acct._id}:`, innerErr.message);
                     console.error(`Error aggregating balance for account ${acct._id}:`, innerErr.message);
                 }
             }
@@ -484,6 +487,7 @@ exports.getSummary = async (req, res) => {
 
                     return balances.reduce((accSum, item) => accSum + getSafeUsdtValue(item), 0);
                 } catch (e) {
+                    logger.error(`Error fetching balance for ${acc._id}:`, e.message);
                     console.error(`Error fetching balance for ${acc._id}:`, e.message);
                     return 0;
                 }
@@ -590,6 +594,7 @@ exports.getSummary = async (req, res) => {
         });
 
     } catch (err) {
+        logger.error('getSummary controller error:', err.message);
         console.error('getSummary controller error:', err.message);
         return res.status(500).json({ success: false, error: 'Internal server error while fetching summary' });
     }
@@ -703,6 +708,7 @@ exports.getDetailedSummary = async (req, res) => {
 
         return res.json({ success: true, data: assetTree });
     } catch (err) {
+        logger.error('getDetailedSummary controller error:', err.message);
         console.error('getDetailedSummary controller error:', err.message);
         return res
             .status(500)
