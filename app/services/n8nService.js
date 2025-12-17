@@ -4,9 +4,9 @@ const mongoose = require('mongoose');
 const { GridFSBucket } = require('mongodb');
 const { Readable } = require('stream');
 const logger = require('../../logs/logger');
-const { N8nWorkflowJob_CustomAiDB} = require('../models/N8nWorkflowJob');
+const { N8nWorkflowJob_CustomAiDB, CustomAIWorkflowJob_DefaultDB} = require('../models/N8nWorkflowJob');
 // Import the new response model
-const { N8nJobResponse_CustomAiDB} = require('../models/N8nJobResponse');
+const { N8nJobResponse_CustomAiDB, CustomAIJobResponse_DefaultDB} = require('../models/N8nJobResponse');
 
 // Load environment variables
 require('dotenv').config();
@@ -93,7 +93,7 @@ async function triggerWorkflowHttp(webhookPath, data) {
                 'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json',
             },
-            timeout: 30000 // 30 seconds
+            timeout: 600000 // 60 seconds
         });
 
         logger.info(`Workflow ${webhookPath} triggered successfully. n8n responded.`);
@@ -173,7 +173,7 @@ async function initiateAsyncWorkflow(userId, payload, webhookPath, type) {
 
     try {
         // 1. Create Job
-        const job = await N8nWorkflowJob_CustomAiDB.create({
+        const job = await CustomAIWorkflowJob_DefaultDB.create({
             userId,
             type,
             webhookPath,
@@ -204,7 +204,7 @@ async function initiateAsyncWorkflow(userId, payload, webhookPath, type) {
 async function getJobStatus(jobId, userId) {
     try {
         // Populate the 'response' field if it exists
-        const job = await N8nWorkflowJob_CustomAiDB.findById(jobId).populate('response');
+        const job = await CustomAIWorkflowJob_DefaultDB.findById(jobId).populate('response');
 
         if (!job) {
             throw new ServiceError('Job not found.', 'NOT_FOUND');

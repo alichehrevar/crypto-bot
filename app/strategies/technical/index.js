@@ -6,6 +6,8 @@ const MACrossover = require('./MovingAverageCrossover');
 const Donchian = require('./Donchian');
 const Volume = require('./Volume');
 const HeikinAshi = require('./HeikinAshi');
+const SmoothedHeikinAshi = require('./SmoothedHeikinAshi');
+const SMA = require('./SMA');
 const CombinedRsiMacd = require('./CombinedRsiMacd');
 const BollingerBands = require('./BollingerBands');
 const StochasticRSI = require('./StochasticRSI');
@@ -18,6 +20,8 @@ module.exports = {
     Donchian,
     Volume,
     HeikinAshi,
+    SmoothedHeikinAshi,
+    SMA,
     CombinedRsiMacd,
     BollingerBands,
     StochasticRSI,

@@ -4,9 +4,12 @@
 const bcrypt = require('bcryptjs');
 const User = require('../../app/models/User');
 const UserInfo = require('../../app/models/UserInfo');
+const logger = require('../../logs/logger');
 
 const seedAdminUser = async () => {
+    logger.error(`[Seeder] Error ensuring admin user exists:',`);
     try {
+
         console.log('[Seeder] Ensuring default admin user…');
         const adminEmail = 'admin@tradingx.com';
         const adminPassword = 'password123123';
@@ -63,6 +66,7 @@ const seedAdminUser = async () => {
         }
 
     } catch (error) {
+        logger.error(`[Seeder] Error ensuring admin user exists:', ${error.message}`);
         console.error('[Seeder] Error ensuring admin user exists:', error.message);
         throw error;
     }

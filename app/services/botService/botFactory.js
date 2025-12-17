@@ -10,6 +10,8 @@ const {
     Donchian,
     Volume,
     HeikinAshi,
+    SmoothedHeikinAshi,
+    SMA,
     CombinedRsiMacd,
     BollingerBands,
     StochasticRSI
@@ -51,30 +53,39 @@ function createTechnicalIndicator(bot) {
             indicatorInstance = new MACrossover(bot.strategyParams);
             break;
         case 'Donchian':
-            // For Donchian, we assume a static function is provided.
             indicatorInstance = {
-                calculateSignal: (candles) => Donchian.calculateDonchianSignal(candles, 'donchian')
+                calculateSignal: (candles) => Donchian.calculateSignal(candles)
             };
             break;
         case 'Volume':
             indicatorInstance = {
-                calculateSignal: (candles) => Volume.calculateVolumeSignal(candles, 'volume')
+                calculateSignal: (candles) => Volume.calculateSignal(candles)
             };
             break;
         case 'Heikin_Ashi':
             indicatorInstance = {
-                calculateSignal: (candles) => HeikinAshi.calculateHeikinAshiSignal(candles, 'heikinashi')
+                calculateSignal: (candles) => HeikinAshi.calculateSignal(candles)
+            };
+            break;
+        case 'SmoothedHA':
+            indicatorInstance = {
+                calculateSignal: (candles) => SmoothedHeikinAshi.calculateSignal(candles)
+            };
+            break;
+        case 'SMA':
+            indicatorInstance = {
+                calculateSignal: (candles) => SMA.calculateSignal(candles)
             };
             break;
         case 'Combined_RSI_MACD':
             indicatorInstance = {
                 calculateSignal: (candles) =>
-                    CombinedRsiMacd.calculateCombinedRsiMacdSignal(candles, 'combined', { parameters: { confirmation_window: 6 } })
+                    CombinedRsiMacd.calculateSignal(candles, 'combined', { parameters: { confirmation_window: 6 } })
             };
             break;
         case 'Bollinger_Bands':
             indicatorInstance = {
-                calculateSignal: (candles) => BollingerBands.calculateBollingerBandsSignal(candles, 'bollinger')
+                calculateSignal: (candles) => BollingerBands.calculateSignal(candles)
             };
             break;
         case 'Stochastic_RSI':

@@ -1,51 +1,128 @@
 // app/logger.js
+require('dotenv').config(); // Load .env variables
 
 const { createLogger, format, transports } = require('winston');
 require('winston-daily-rotate-file');
+const Transport = require('winston-transport');
 const path = require('path');
+const axios = require('axios');
 
-// 1) Define a daily‐rotate transport.
-//    This will create one log file per day under "logs/" named "app-YYYY-MM-DD.log".
+// --- CONFIGURATION ---
+const TELEGRAM_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
+
+// Helper to sanitize text for Telegram HTML parse mode
+function escapeHtml(unsafe) {
+    if (!unsafe) return '';
+    return unsafe
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+// ---------------------------------------------------------
+// 1) Define Custom Telegram Transport
+// ---------------------------------------------------------
+class TelegramLogger extends Transport {
+    constructor(opts) {
+        super(opts);
+        this.token = opts.token;
+        this.chatId = opts.chatId;
+    }
+
+    log(info, callback) {
+        setImmediate(() => {
+            this.emit('logged', info);
+        });
+
+        if (!this.token || !this.chatId) {
+            return callback();
+        }
+
+        const { level, message, timestamp, stack } = info;
+
+        // Escape content to prevent Telegram parsing errors
+        const safeMessage = escapeHtml(message);
+
+        // Visuals
+        const icon = level === 'error' ? '🚨' : '⚠️';
+        const projectTag = '#UnitedAlgos'; // Optional: Helps filtering in Telegram search
+
+        // Build HTML Message
+        let text = `<b>${icon} Error Report</b> ${projectTag}\n`;
+        text += `<code>${timestamp}</code>\n\n`;
+        text += `<b>Message:</b>\n${safeMessage}\n`;
+
+        if (stack) {
+            const safeStack = escapeHtml(stack);
+            // Truncate to avoid hitting 4096 char limit
+            const truncatedStack = safeStack.length > 3000
+                ? safeStack.substring(0, 3000) + '\n...[truncated]'
+                : safeStack;
+
+            text += `\n<b>Stack Trace:</b>\n<pre>${truncatedStack}</pre>`;
+        }
+
+        // Send
+        axios.post(`https://api.telegram.org/bot${this.token}/sendMessage`, {
+            chat_id: this.chatId,
+            text: text,
+            parse_mode: 'HTML'
+        }).catch(err => {
+            // Prevent infinite loops (logging logging errors)
+            console.error('Telegram Transport Error:', err.message);
+        });
+
+        callback();
+    }
+}
+
+// ---------------------------------------------------------
+// 2) Instantiate Transports
+// ---------------------------------------------------------
+
 const rotateTransport = new transports.DailyRotateFile({
     filename: path.join(__dirname, '..', 'logs/reports', 'app-%DATE%.log'),
     datePattern: 'YYYY-MM-DD',
     zippedArchive: true,
-    maxSize: '20m',            // optional: rotate if file > 20MB
-    maxFiles: '14d',           // keep logs for 14 days
-    level: 'info',             // write logs of level 'info' and above
+    maxSize: '20m',
+    maxFiles: '14d',
+    level: 'info',
 });
 
-// 2) Create the Winston logger instance.
+// Configure Telegram Transport (Errors only)
+const telegramTransport = new TelegramLogger({
+    token: TELEGRAM_TOKEN,
+    chatId: TELEGRAM_CHAT_ID,
+    level: 'error',
+    format: format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' })
+});
+
+// ---------------------------------------------------------
+// 3) Create Logger
+// ---------------------------------------------------------
 const logger = createLogger({
     level: 'info',
     format: format.combine(
         format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
-        // Include the timestamp and level in every message:
         format.printf(({ timestamp, level, message, stack }) => {
-            // If this log was created from an Error object, include the stack:
-            if (stack) {
-                return `${timestamp} [${level.toUpperCase()}] ${message}\n${stack}`;
-            }
-            return `${timestamp} [${level.toUpperCase()}] ${message}`;
+            return stack
+                ? `${timestamp} [${level.toUpperCase()}] ${message}\n${stack}`
+                : `${timestamp} [${level.toUpperCase()}] ${message}`;
         })
     ),
     transports: [
-        // 2a) Print to console (dev mode)
         new transports.Console({
             format: format.combine(
                 format.colorize(),
-                format.printf(({ timestamp, level, message, stack }) => {
-                    if (stack) {
-                        return `${timestamp} [${level}] ${message}\n${stack}`;
-                    }
-                    return `${timestamp} [${level}] ${message}`;
-                })
+                format.simple() // simpler console output
             )
         }),
-        // 2b) Write all 'info' and above to daily-rotated files:
         rotateTransport,
+        telegramTransport
     ],
-    // 3) Also catch any uncaught exceptions and send them to file:
     exceptionHandlers: [
         new transports.DailyRotateFile({
             filename: path.join(__dirname, '..', 'logs/reports', 'exceptions-%DATE%.log'),
@@ -56,16 +133,10 @@ const logger = createLogger({
             level: 'error'
         }),
         new transports.Console({
-            format: format.combine(
-                format.colorize(),
-                format.printf(({ timestamp, level, message, stack }) => {
-                    if (stack) {
-                        return `${timestamp} [${level}] ${message}\n${stack}`;
-                    }
-                    return `${timestamp} [${level}] ${message}`;
-                })
-            )
-        })
+            format: format.combine(format.colorize(), format.simple())
+        }),
+        // Send Uncaught Exceptions to Telegram
+        telegramTransport
     ]
 });
 
