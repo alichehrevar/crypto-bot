@@ -6,7 +6,7 @@ module.exports = {
             instances: 'max',
             script: 'node_modules/next/dist/bin/next',
             args: 'start',
-            port: 3009,
+            port: 3007,
         }
     ]
 }
