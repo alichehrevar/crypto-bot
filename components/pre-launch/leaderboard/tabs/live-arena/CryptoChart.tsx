@@ -126,7 +126,7 @@ const getAreaPath = (data: DataPoint[], width: number, height: number, maxVal: n
 export default function CryptoChart() {
     const [selectedTraderId, setSelectedTraderId] = useState<string | null>(null);
     const [hoverX, setHoverX] = useState<number | null>(null);
-    const [chartRect, setChartRect] = useState<DOMRect | null>(null);
+    const [, setChartRect] = useState<DOMRect | null>(null);
     const chartRef = useRef<HTMLDivElement>(null);
 
     const selectedTrader = useMemo(() =>
@@ -242,7 +242,7 @@ export default function CryptoChart() {
                 </div>
 
                 {/* Chart Area */}
-                <div className="relative w-full h-[300px] md:h-[450px] pl-8 md:pl-12 pr-2 md:pr-4">
+                <div className="relative w-full h-75 md:h-112.5 pl-8 md:pl-12 pr-2 md:pr-4">
 
                     {/* Y Axis Labels */}
                     <div className="absolute left-0 top-0 bottom-8 flex flex-col justify-between text-[10px] md:text-xs text-gray-500 font-mono pointer-events-none">
@@ -350,7 +350,7 @@ export default function CryptoChart() {
                         {/* Tooltip Overlay */}
                         {hoverX !== null && hoverIndex !== -1 && hoverIndex < DATES.length && (
                             <div
-                                className="absolute top-10 pointer-events-none bg-[#1a1a1a]/90 backdrop-blur-md border border-gray-700 rounded-lg p-3 shadow-2xl z-50 text-xs min-w-[140px] md:min-w-[160px]"
+                                className="absolute top-10 pointer-events-none bg-[#1a1a1a]/90 backdrop-blur-md border border-gray-700 rounded-lg p-3 shadow-2xl z-50 text-xs min-w-35 md:min-w-40"
                                 style={{
                                     left: `${(hoverX / VIEWBOX_WIDTH) * 100}%`,
                                     transform: 'translateX(10px)'
