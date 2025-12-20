@@ -18,7 +18,7 @@ export interface ApiJob {
     // optional or undocumented fields
     responseStatus?: number;
     responseMessage?: string;
-    responseError?: any;
+    responseError?: string;
 }
 
 export interface JobInput {

@@ -14,7 +14,7 @@ export default function AboutPage () {
         return (
             <h1 className="text-3xl font-bold text-white">
                 {parts[0]}
-                <span className="bg-gradient-to-r from-[#B9F641] to-[#CCF777] bg-clip-text text-transparent">
+                <span className="bg-linear-to-r from-[#B9F641] to-[#CCF777] bg-clip-text text-transparent">
                     {hero.highlightedText}
                 </span>
                 {parts[1]}

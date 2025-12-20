@@ -124,7 +124,7 @@ export default function JoinAlgosInformationSection({
 
             <div className="grid grid-cols-2 gap-4 pt-4">
                 <button
-                    className="flex items-center justify-center gap-2 border-1 border-[#030303] text-[#030303] rounded-3xl w-full h-[48px] text-sm hover:bg-gray-50 transition-colors"
+                    className="flex items-center justify-center gap-2 border border-[#030303] text-[#030303] rounded-3xl w-full h-12 text-sm hover:bg-gray-50 transition-colors"
                     type="button"
                     onClick={backToPrev}
                 >
@@ -132,7 +132,7 @@ export default function JoinAlgosInformationSection({
                     <span>Back</span>
                 </button>
                 <button
-                    className={`flex items-center justify-center gap-2 ${!isValid || isLoading ? 'text-[#98979A] bg-[#E3E3E4]' : 'bg-[#030303] text-white'} rounded-3xl w-full h-[48px] text-sm transition-colors`}
+                    className={`flex items-center justify-center gap-2 ${!isValid || isLoading ? 'text-[#98979A] bg-[#E3E3E4]' : 'bg-[#030303] text-white'} rounded-3xl w-full h-12 text-sm transition-colors`}
                     disabled={!isValid || isLoading}
                     type="submit"
                 >

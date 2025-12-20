@@ -77,7 +77,7 @@ export default function JoinAlgosForm() {
     };
 
     return (
-        <form className="w-full max-w-[500px] space-y-5 pb-10" onSubmit={handleSubmit(onSubmit)}>
+        <form className="w-full max-w-125 space-y-5 pb-10" onSubmit={handleSubmit(onSubmit)}>
             {/* --- Stepper Header --- */}
             {step !== 3 &&
                 <div className="flex items-center justify-center mb-6">

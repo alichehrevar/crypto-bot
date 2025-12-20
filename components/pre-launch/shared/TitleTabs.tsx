@@ -5,7 +5,7 @@ export default function TitleTabs ({tabs, type, setType}: {tabs: string[], type:
     return (
         <div className="flex items-center justify-between w-full mb-6">
             <h2 className="text-xl font-semibold">Lead traders</h2>
-            <div className="inline-flex items-center gap-2 border border-[#F2F3F799] rounded-xl p-0.5 h-[40px]">
+            <div className="inline-flex items-center gap-2 border border-[#F2F3F799] rounded-xl p-0.5 h-10">
                 {tabs.map(p => (
                     <motion.button
                         key={p}
@@ -13,7 +13,7 @@ export default function TitleTabs ({tabs, type, setType}: {tabs: string[], type:
                             type === p ? 'text-white' : 'text-[#C4C4C4]'
                         }`}
                         style={{ WebkitTapHighlightColor: "transparent" }}
-                        onClick={() => setType(p as any)}
+                        onClick={() => setType(p as 'Algos' | 'Live Arena')}
                     >
                         {type === p && (
                             <motion.div

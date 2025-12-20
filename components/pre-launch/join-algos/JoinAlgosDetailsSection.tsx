@@ -59,7 +59,7 @@ export default function JoinAlgosDetailsSection({
             />
 
             <button
-                className={`flex items-center justify-center gap-2 ${!isValid ? 'text-[#98979A] bg-[#E3E3E4]' : 'bg-[#030303] text-white'} rounded-3xl w-full h-[48px] text-sm transition-colors`}
+                className={`flex items-center justify-center gap-2 ${!isValid ? 'text-[#98979A] bg-[#E3E3E4]' : 'bg-[#030303] text-white'} rounded-3xl w-full h-12 text-sm transition-colors`}
                 disabled={!isValid}
                 type="button"
                 onClick={onProcess}
