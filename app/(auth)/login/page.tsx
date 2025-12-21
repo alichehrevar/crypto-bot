@@ -10,7 +10,7 @@ export default function LoginPage() {
       <div
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
         style={{
-          backgroundImage: `url('/images/auth/auth-bg-nature.webp')`
+          backgroundImage: `url('${process.env.PUBLIC_URL}/images/auth/auth-bg-nature.webp')`
         }}
       >
         <div className="absolute inset-0 bg-black/40" />
