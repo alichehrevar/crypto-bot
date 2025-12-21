@@ -6,7 +6,6 @@ const nextConfig = {
     env: {
         API_URL: process.env.API_URL,
         CDN_URL: process.env.CDN_URL,
-        PUBLIC_URL: process.env.PUBLIC_URL,
         NAME: process.env.NAME,
     },
     images: {
@@ -18,6 +17,7 @@ const nextConfig = {
         ],
         unoptimized: true,
     },
+    assetPrefix: '/assets',
 }
 
 export default nextConfig;
