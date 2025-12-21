@@ -99,7 +99,7 @@ const AccountSettingsTab = observer(() => {
                             <li className="flex items-center justify-center">
                                 <span className="text-gray-400 w-[200px]">Connected Accounts</span>
                                 <div className="w-[32px] h-[32px] flex items-center justify-center bg-[#283544] rounded-full">
-                                    <Image alt="apple logo" height={18} src="/assets/images/icons/apple.png" width={18}/>
+                                    <Image alt="apple logo" height={18} src="/images/icons/apple.png" width={18}/>
                                 </div>
                             </li>
                         </ul>

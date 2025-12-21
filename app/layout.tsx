@@ -16,7 +16,7 @@ export const metadata: Metadata = {
     description: siteConfig.description,
     keywords: siteConfig.keywords,
     icons: {
-        icon: "/assets/images/logos/white/favicon.ico",
+        icon: "/images/logos/white/favicon.ico",
     },
 };
 

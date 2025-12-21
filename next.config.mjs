@@ -17,7 +17,6 @@ const nextConfig = {
         ],
         unoptimized: true,
     },
-    assetPrefix: '/assets',
 }
 
 export default nextConfig;

@@ -15,7 +15,7 @@ export default function Sidebar() {
                         alt="United Algos"
                         className="object-cover"
                         height={24}
-                        src="/assets/images/logos/logo-white.png"
+                        src="/images/logos/logo-white.png"
                         width={24}
                     />
                 </div>

@@ -73,7 +73,7 @@ export default function PricingPlansSection() {
                     fill
                     alt="subscription background"
                     className="object-contain w-full h-auto opacity-35"
-                    src="/assets/images/profile/sub-bg-2.png"
+                    src="/images/profile/sub-bg-2.png"
                 />
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative z-20">
