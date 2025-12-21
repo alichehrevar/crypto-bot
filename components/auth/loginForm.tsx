@@ -33,7 +33,7 @@ export default function LoginForm() {
                             title: 'Welcome !',
                             color: "success",
                         });
-                        router.push('/dashboard');
+                        router.push('/my-account');
                     }
                 })
         } catch {

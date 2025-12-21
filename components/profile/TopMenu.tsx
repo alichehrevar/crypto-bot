@@ -31,7 +31,7 @@ export default function TopMenu() {
             <NavbarContent className="flex flex-1" justify="start">
                 <NavbarBrand>
                     <div className="w-[160px] h-[68px] flex items-center justify-center">
-                        <Link className="w-[160px] h-[68px] relative" href="/dashboard">
+                        <Link className="w-[160px] h-[68px] relative" href="/my-account">
                             <Image
                                 fill
                                 priority

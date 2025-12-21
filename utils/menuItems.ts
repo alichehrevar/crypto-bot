@@ -1,7 +1,7 @@
 export const MenuItems = [
     {
         name: 'Overview',
-        link: '/dashboard',
+        link: '/my-account',
         children: []
     },
     {
@@ -10,45 +10,45 @@ export const MenuItems = [
         children: [
             {
                 name: 'All Bots',
-                link: '/bots',
+                link: '/my-account/bots',
             },
             {
                 name: 'Technical Bot',
-                link: '/bots/technical',
+                link: '/my-account/bots/technical',
             },
             {
                 name: 'DCA Bot',
-                link: '/bots/dca',
+                link: '/my-account/bots/dca',
             },
             {
                 name: 'Grid Bot',
-                link: '/bots/grid',
+                link: '/my-account/bots/grid',
             },
             {
                 name: 'Custom AI Bot',
-                link: '/bots/custom-ai',
+                link: '/my-account/bots/custom-ai',
                 className: 'ai-text'
             }
         ]
     },
     {
         name: 'Portfolio',
-        link: '/portfolio',
+        link: '/my-account/portfolio',
         children: [ ]
     },
     {
         name: 'Trade',
-        link: '/manual-trading',
+        link: '/my-account/manual-trading',
         children: []
     },
     {
         name: 'Strategy Tester',
-        link: '/strategy-tester',
+        link: '/my-account/strategy-tester',
         children: []
     },
     {
         name: 'Market',
-        link: '/market',
+        link: '/my-account/market',
         children: []
     },
     {
@@ -57,17 +57,17 @@ export const MenuItems = [
         children: [
             {
                 name: 'Academy',
-                link: '/learn/academy',
+                link: '/my-account/learn/academy',
             },
             {
                 name: 'News',
-                link: '/learn/news',
+                link: '/my-account/learn/news',
             },
         ]
     },
     {
         name: 'Community',
-        link: '/profile/community',
+        link: '/my-account/profile/community',
         children: []
     }
 ]

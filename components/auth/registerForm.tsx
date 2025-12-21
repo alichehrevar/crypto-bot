@@ -152,7 +152,7 @@ const Register = () => {
                 description: `Welcome to ${siteConfig.name} !`,
                 color: "success"
             });
-            router.push('/dashboard');
+            router.push('/my-account');
         } else {
             addToast({
                 title: response.error,

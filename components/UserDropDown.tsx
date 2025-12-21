@@ -82,7 +82,7 @@ const UserDropDown = observer(() => {
                 {userStore.isAdmin ? (
                     <DropdownItem
                         key="dashboard"
-                        href="/dashboard"
+                        href="/my-account"
                         startContent={<UserIcon className="w-5 h-5"/>}
                     >
                         Profile
@@ -98,21 +98,21 @@ const UserDropDown = observer(() => {
                 </DropdownItem>
                 <DropdownItem
                     key="settings"
-                    href="/profile/settings"
+                    href="/my-account/profile/settings"
                     startContent={<Settings className="w-5 h-5"/>}
                 >
                     Settings
                 </DropdownItem>
                 <DropdownItem
                     key="help"
-                    href="/help-center"
+                    href="/my-account/help-center"
                     startContent={<Headset className="w-5 h-5" stroke="#ffffff" />}
                 >
                     Help
                 </DropdownItem>
                 <DropdownItem
                     key="terms"
-                    href="/terms"
+                    href="/my-account/terms"
                     startContent={<ReceiptText className="w-5 h-5" />}
                 >
                     Terms

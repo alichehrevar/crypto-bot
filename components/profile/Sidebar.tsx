@@ -111,7 +111,7 @@ export default function Sidebar() {
 
         <Link
           className="flex items-center space-x-3 px-2 py-2 rounded-md hover:bg-white/10"
-          href="/profile/settings"
+          href="/(authenticated)/(client)/my-account/profile/settings"
         >
           <Image
             alt="User"
@@ -127,7 +127,7 @@ export default function Sidebar() {
 
         <Link
           className="flex items-center space-x-3 px-2 py-2 rounded-md mt-2 hover:bg-white/10"
-          href="/profile/settings"
+          href="/(authenticated)/(client)/my-account/profile/settings"
         >
           <Cog8ToothIcon className="w-5 h-5" />
           <span className="font-medium text-[14px]">Settings</span>

@@ -68,7 +68,7 @@ export default function AssetsPieChart() {
     return (
       <div className="flex items-center justify-center h-full w-full flex-col gap-3">
           <span className="text-center text-sm">No assets found</span>
-          <Link className="flex items-center gap-1 hover:scale-105 transition-all duration-300 bg-white text-black border-1 border-white py-2 px-3 rounded-xl" href="/profile/settings?tab=connect-broker">
+          <Link className="flex items-center gap-1 hover:scale-105 transition-all duration-300 bg-white text-black border-1 border-white py-2 px-3 rounded-xl" href="/(authenticated)/(client)/my-account/profile/settings?tab=connect-broker">
               <span className="text-xs">Connect Broker</span>
               <ChevronRightIcon className="size-3" />
           </Link>
