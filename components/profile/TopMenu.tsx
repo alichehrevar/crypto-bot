@@ -37,7 +37,7 @@ export default function TopMenu() {
                                 priority
                                 alt={siteConfig.name}
                                 className="object-contain"
-                                src="/images/logos/logotype-white.png"
+                                src="/assets/images/logos/logotype-white.png"
                             />
                         </Link>
                     </div>

@@ -6,7 +6,7 @@ import { NextResponse } from 'next/server';
 export async function middleware(req: NextRequest) {
     const { pathname, origin } = req.nextUrl;
 
-    const publicPaths = ['/login', '/register', '/public', '/images', '/api', '/'];
+    const publicPaths = ['/login', '/register', '/public', '/assets/images', '/api', '/'];
 
     if (publicPaths.some((p) => pathname.startsWith(p))) {
         return NextResponse.next();
