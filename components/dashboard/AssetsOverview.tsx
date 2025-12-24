@@ -69,42 +69,6 @@ function pivotBrokerToAssetTree(brokerRoot: AssetNode): AssetNode | null {
     const assetMap = new Map<string, { value: number; brokers: Map<string, number>; color?: string }>();
     const brokerColors: Record<string, string> = {};
 
-    // 1. Traverse Broker Tree to find leaves (Assets)
-    function traverse(node: AssetNode, brokerName: string | null) {
-        // If we are at the broker level (depth 1 in children), capture color
-        const isBroker = node.depth === 1 || (brokerName === null && node.children && node.children.length > 0);
-
-        let currentBroker = brokerName;
-
-        if (isBroker && !brokerName) {
-            currentBroker = node.name;
-            if (node.color) brokerColors[node.name] = node.color;
-        }
-
-        // If it's a leaf node (has value, no children, or children are empty) and we have a broker context
-        if ((!node.children || node.children.length === 0) && node.value > 0 && currentBroker) {
-            // This is an asset leaf (e.g. "BTC")
-            // Note: In your specific JSON, the accounts (Earn, Spot) have value but empty children.
-            // If your tree strictly stops at Account Type, "By Asset" mode isn't possible.
-            // Assuming leaves exist deeper or treating AccountTypes as "Assets" for fallback:
-            const assetName = node.name; // e.g., "BTC" or "Earn" if that's the leaf
-
-            if (!assetMap.has(assetName)) {
-                assetMap.set(assetName, { value: 0, brokers: new Map() });
-            }
-            const entry = assetMap.get(assetName)!;
-
-            entry.value += node.value;
-            const currentBrokerVal = entry.brokers.get(currentBroker) || 0;
-
-            entry.brokers.set(currentBroker, currentBrokerVal + node.value);
-        }
-
-        if (node.children) {
-            node.children.forEach(c => traverse(c, currentBroker || (node.name === "Total Holdings" ? null : node.name)));
-        }
-    }
-
     // Traverse logic slightly adjusted: The root is Total, children are Brokers
     if (brokerRoot.children) {
         brokerRoot.children.forEach(broker => {
