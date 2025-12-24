@@ -80,8 +80,7 @@ const TrendingTopicsTable: React.FC = () => {
                     color: "danger"
                 });
             }
-        } catch (error) {
-            console.error("Error fetching trending topics:", error);
+        } catch {
             addToast({ title: "Connection error", color: "danger" });
         } finally {
             setIsLoading(false);
@@ -162,10 +161,10 @@ const TrendingTopicsTable: React.FC = () => {
                                             <Line
                                                 dataKey="mentions"
                                                 dot={false}
+                                                isAnimationActive={false} // Performance optimization for tables
                                                 stroke={topic.mentionChange >= 0 ? '#4CAF50' : '#F44336'}
                                                 strokeWidth={2}
                                                 type="monotone"
-                                                isAnimationActive={false} // Performance optimization for tables
                                             />
                                         </LineChart>
                                     </ResponsiveContainer>
@@ -176,23 +175,6 @@ const TrendingTopicsTable: React.FC = () => {
                     </tbody>
                 </table>
             </div>
-
-            {/* Custom Scrollbar Styles embedded strictly for this component */}
-            <style jsx>{`
-                .custom-scrollbar::-webkit-scrollbar {
-                    height: 6px;
-                }
-                .custom-scrollbar::-webkit-scrollbar-track {
-                    background: #1A1918;
-                }
-                .custom-scrollbar::-webkit-scrollbar-thumb {
-                    background: #333;
-                    border-radius: 3px;
-                }
-                .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-                    background: #444;
-                }
-            `}</style>
         </div>
     );
 };
