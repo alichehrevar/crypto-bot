@@ -1,10 +1,11 @@
 // components/portfolio/assets/AssetsTable.tsx
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronRightIcon } from '@/utils/icons'; // Ensure this path is correct
-import { getData } from '@/actions/get'; // Ensure this path is correct
+import React, {useEffect, useState} from 'react';
+import {AnimatePresence, motion} from 'framer-motion';
+
+import {ChevronRightIcon} from '@/utils/icons'; // Ensure this path is correct
+import {getData} from '@/actions/get'; // Ensure this path is correct
 
 /* ---------- TYPES ---------- */
 
@@ -44,6 +45,7 @@ const RENAME_MAP: Record<string, string> = {
 
 function sanitizeNumber(n: any): number {
     const v = Number(n);
+
     return Number.isFinite(v) ? v : 0;
 }
 
@@ -72,6 +74,7 @@ function normalizeTree(node: any): AssetNode | null {
 
     for (const ch of kids) {
         const c = normalizeTree(ch);
+
         if (!c) continue;
 
         // Filter out tiny dust values (optional, adjust threshold as needed)
@@ -82,8 +85,7 @@ function normalizeTree(node: any): AssetNode | null {
 
     if (cleanedKids.length > 0) {
         // If has children, sum them up (ensures consistency)
-        const sum = cleanedKids.reduce((s, c) => s + c.value, 0);
-        out.value = sum;
+        out.value = cleanedKids.reduce((s, c) => s + c.value, 0);
         out.children = cleanedKids.sort((a, b) => b.value - a.value); // Sort high to low
     } else {
         // Leaf node
@@ -115,6 +117,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, depth, parentValue, inherited
 
     const formatAmount = (v: number) => {
         if(v === 0) return '';
+
         return v < 1 ? v.toFixed(6) : v.toFixed(2);
     }
 
@@ -128,7 +131,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, depth, parentValue, inherited
                 <div className="flex items-center flex-1 gap-2">
                     {/* Indentation for hierarchy visual */}
                     {depth > 0 && (
-                        <div style={{ width: `${(depth - 1) * 1}rem` }} />
+                        <div style={{ width: `${(depth - 1)}rem` }} />
                     )}
 
                     {/* Expander Icon */}
@@ -189,9 +192,9 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, depth, parentValue, inherited
                             <TreeNode
                                 key={`${child.name}-${idx}`}
                                 depth={depth + 1}
+                                inheritedColor={displayColor}
                                 node={child}
                                 parentValue={node.value}
-                                inheritedColor={displayColor}
                             />
                         ))}
                     </motion.div>
@@ -224,6 +227,7 @@ export default function AssetsTable() {
                     if (res.success && res.data) {
                         // 2. Normalize the data (remove zeros, fix names)
                         const cleanData = normalizeTree(res.data);
+
                         setData(cleanData);
                     } else {
                         setError("Failed to retrieve asset details.");
@@ -246,10 +250,10 @@ export default function AssetsTable() {
     if (loading) {
         return (
             <div className="ua-card text-white p-6 animate-pulse min-h-[300px]">
-                <div className="h-6 w-32 bg-gray-700 rounded mb-6"></div>
+                <div className="h-6 w-32 bg-gray-700 rounded mb-6" />
                 <div className="space-y-4">
                     {[1, 2, 3].map(i => (
-                        <div key={i} className="h-12 w-full bg-gray-800 rounded opacity-50"></div>
+                        <div key={i} className="h-12 w-full bg-gray-800 rounded opacity-50" />
                     ))}
                 </div>
             </div>
