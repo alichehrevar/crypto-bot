@@ -31,8 +31,9 @@ export default function Dashboard() {
             <RecentBots/>
             <TopCreators />
             <CommunityBotList  />
-            <BotsList listType="indicator" />
-            <BotsList listType="grid" />
+            <BotsList listType="indicator" title="Active Indicator Bots" />
+            <BotsList listType="grid" title="Active Grid Bots" />
+            <BotsList listType="dca" title="Active DCA Bots" />
             <RecentActivities/>
         </section>
     )

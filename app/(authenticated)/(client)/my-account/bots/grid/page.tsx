@@ -2,19 +2,19 @@
 
 import React, {useState} from "react";
 
-import BotsListTable from "@/components/bots/BotsListTable";
 import GridDeployBotSection from "@/components/bots/deploy/GridDeployBotSection";
 import MarketListWithSearch from "@/components/market/marketListWithSearch/MarketListWithSearch";
 import CoinSummarySection from "@/components/shared/CoinSummarySection";
 import {MarketListItem} from "@/types/MarketList";
 import TradingViewLightweightChartGrid from "@/components/shared/charts/TradingViewLightweightChartGrid";
+import BotsList from "@/components/bots/BotsList";
 
 export default function TechnicalBotsPage() {
     const [refreshBotsList, setRefreshBotsList] = useState<boolean>(false)
     const [selectedSymbol, setSelectedSymbol] = useState<MarketListItem | null>(null);
 
     return (
-        <div className="no-scrollbar mx-auto w-[97%] h-screen overflow-y-auto pt-8 relative px-5">
+        <div className="mb-4 no-scrollbar mx-auto w-[97%] h-screen overflow-y-auto pt-8 relative px-5">
             <CoinSummarySection coinId={selectedSymbol?.id || "68edf9f3ae9ad504e3c7f799"}/>
             <div className="w-full flex justify-center gap-2 mt-2">
                 {/* --- Left Column --- */}
@@ -35,8 +35,8 @@ export default function TechnicalBotsPage() {
 
                     {/* Bottom part of Left Column */}
                     {/* This part remains the same. It will grow to fill the available space. */}
-                    <div className="grid grid-cols-1 flex-grow">
-                        <BotsListTable listType="grid" refreshList={refreshBotsList}/>
+                    <div className="grid grid-cols-1 h-[34%] overflow-y-auto no-scrollbar">
+                        <BotsList listType="grid" showDeployButton={false} showTitle={false} />
                     </div>
                 </div>
 

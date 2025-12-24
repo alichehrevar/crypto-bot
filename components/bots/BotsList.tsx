@@ -2,38 +2,39 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Link from "next/link";
-import { CheckCircle, ChevronDown, ChevronsUpDown, Clock, Pause, Play, Plus, X, Activity, Grid3X3 } from 'lucide-react';
+import { CheckCircle, ChevronDown, ChevronsUpDown, Clock, Pause, Play, Plus, X, Activity, Grid3X3, Layers } from 'lucide-react';
 import { addToast, Spinner } from "@heroui/react";
 
 import { getData } from "@/actions/get";
 
 // --- TYPE DEFINITIONS ---
 
-// 1. Updated ApiBot based on your JSON responses
 export type ApiBot = {
     _id: string;
     name: string;
     symbol: string;
     timeframe: string;
+    leverage: string;
+    paperBalance: number;
     userId: string;
-    botType: 'indicator' | 'grid';
+    botType: 'indicator' | 'grid' | 'dca';
     active: boolean;
-    mode: string;
+    mode: string; // 'live' | 'paper'
     createdAt: string;
     updatedAt: string;
-    strategy: string; // "default" or defined
+    strategy?: string;
 
     // Risk & Money Management
     riskStrategy?: string;
-    marketInfo: {
+    marketInfo?: {
         state: string;
         baseFund?: number;
-        tradeFund?: number; // Initial Capital
+        tradeFund?: number;
         lastSignal?: string;
         currentCandle?: { price: number };
     };
 
-    // Trading Specifics
+    // Trading Specifics (Indicator)
     tradeInfo?: {
         takeProfit?: number;
         stopLoss?: number;
@@ -52,6 +53,18 @@ export type ApiBot = {
         stopLossPct?: number;
     };
 
+    // DCA Specifics (Often flat in JSON)
+    baseOrderVolume?: number;
+    safetyOrderVolume?: number;
+    maxSafetyOrders?: number;
+    volumeScale?: number;
+    stepScale?: number;
+    priceDeviation?: number;
+    takeProfitPercent?: number;
+    stopLossPercent?: number;
+    direction?: string; // 'LONG' | 'SHORT'
+    marketType?: string; // 'SPOT' | 'FUTURES'
+
     // Indicator Specifics
     indicators?: { name: string; timeframe: string }[];
 
@@ -64,15 +77,12 @@ export type ApiBot = {
         total: number;
     };
 
-    // Legacy/Unused in UI but present in type
+    // Legacy/Unused/Common
     botTP?: number;
     botSL?: number;
-    cumulativePnL?: number;
-    userLevel?: number;
-    marketType?: string; // Inferred from accountType usually
-    accountType?: string;
-    marginType?: string;
+    fundMode?: string;
     positionMode?: string;
+    activeDeal?: boolean; // DCA specific status
 };
 
 export type DeployedBotsResponse = {
@@ -81,7 +91,7 @@ export type DeployedBotsResponse = {
     error?: string;
 };
 
-// 2. UI State Interface
+// UI State Interface
 interface Trade {
     type: 'buy' | 'sell';
     price: number;
@@ -93,7 +103,7 @@ export interface Bot {
     id: string;
     name: string;
     pair: string;
-    botType: 'indicator' | 'grid'; // Added to distinguish UI
+    botType: 'indicator' | 'grid' | 'dca';
     leverage: string;
     runtime: string;
     transactions: number;
@@ -101,15 +111,22 @@ export interface Bot {
     pnlPerc: number;
     pnlValue: number;
     status: 'active' | 'paused';
-    strategy: string; // For Grid, we display "Grid Fixed/Arithmetic"
+    strategy: string;
     initialCapital: number;
     deploymentDate: string;
     lastSignalAction: string;
 
     // Logic helpers
     marketType: 'Future' | 'Spot';
-    tp: number | string; // Can be '-'
+    tp: number | string;
     sl: number | string;
+    timeframe: string;
+    currentPrice: number;
+    pnlRealized: number;
+    pnlUnrealized: number;
+    fundMode: string;
+    positionMode: string;
+    gridType?: string;
 
     // Specific Display Data
     gridDetails?: {
@@ -120,21 +137,28 @@ export interface Bot {
     indicatorDetails?: {
         names: string[];
     };
+    dcaDetails?: {
+        baseOrder: number;
+        safetyOrder: number;
+        maxSteps: number;
+        volScale: number;
+        stepScale: number;
+        deviation: number;
+    };
 
     trades: Trade[];
     isExpanded?: boolean;
 
-    // Stats placeholders (if not provided by API yet)
+    // Stats placeholders
     avgHoldTime: string;
     winRate: number;
     sharpeRatio: number;
 }
 
-// --- Component Prop Types ---
 interface BotsListProps {
     refreshList?: boolean;
     title?: string;
-    listType?: string; // 'indicator' | 'grid'
+    listType?: string;
     active?: boolean;
     showTitle?: boolean;
     showDeployButton?: boolean;
@@ -204,6 +228,19 @@ const BotCard = ({ bot, onTogglePause, onDelete, onToggleExpand }: { bot: Bot, o
         }
     }, [bot.name]);
 
+    // Type Icon Logic
+    const TypeIcon = {
+        grid: Grid3X3,
+        dca: Layers,
+        indicator: Activity
+    }[bot.botType] || Activity;
+
+    const typeColor = {
+        grid: 'text-blue-400',
+        dca: 'text-amber-400',
+        indicator: 'text-purple-400'
+    }[bot.botType] || 'text-neutral-400';
+
     return (
         <div className={`
             bg-[#1A1918] border border-[#333333] rounded-xl transition-all duration-500 ease-in-out
@@ -221,14 +258,19 @@ const BotCard = ({ bot, onTogglePause, onDelete, onToggleExpand }: { bot: Bot, o
 
                         {/* Type Icon */}
                         <div className="hidden sm:flex h-8 w-8 items-center justify-center rounded-lg bg-[#262626] border border-[#333333] flex-shrink-0">
-                            {bot.botType === 'grid' ? <Grid3X3 className="w-4 h-4 text-blue-400" /> : <Activity className="w-4 h-4 text-purple-400" />}
+                            <TypeIcon className={`w-4 h-4 ${typeColor}`} />
                         </div>
 
                         <div className={`min-w-0 flex-1 overflow-hidden ${canMarquee ? 'group' : ''}`}>
                             <h4 ref={nameRef} className="truncate text-lg font-bold text-white leading-tight">
                                 <span className={`inline-block ${canMarquee ? 'group-hover:animate-marquee' : ''}`}>{bot.name}</span>
                             </h4>
-                            <p className="text-xs capitalize text-neutral-400 mt-0.5">{bot.botType} | {bot.pair}</p>
+                            <p className="text-xs capitalize text-neutral-400 mt-0.5 flex items-center gap-2">
+                                <span>{bot.botType.toUpperCase()}</span>
+                                <span className="w-px h-3 bg-neutral-700" />
+                                <span className="text-white font-medium">{bot.pair}</span>
+                                <span className="bg-[#333] px-1.5 rounded text-[10px]">{bot.timeframe}</span>
+                            </p>
                         </div>
                     </div>
 
@@ -243,10 +285,13 @@ const BotCard = ({ bot, onTogglePause, onDelete, onToggleExpand }: { bot: Bot, o
 
                     {/* PNL and Actions */}
                     <div className="flex items-center justify-end gap-2 sm:gap-4">
-                        <div className="text-right min-w-[80px]">
-                            <p className={`text-lg font-bold ${pnlColor} leading-none mb-1`}>{pnlPositive ? '+' : ''}{bot.pnlPerc.toFixed(2)}%</p>
-                            <p className="text-xs text-neutral-400">{pnlPositive ? '+' : ''}${Math.abs(bot.pnlValue).toFixed(2)}</p>
-                        </div>
+                        <Tooltip content={`Realized: $${bot.pnlRealized.toFixed(2)} | Unrealized: $${bot.pnlUnrealized.toFixed(2)}`}>
+                            <div className="text-right min-w-[80px] cursor-help">
+                                <p className={`text-lg font-bold ${pnlColor} leading-none mb-1`}>{pnlPositive ? '+' : ''}{bot.pnlPerc.toFixed(2)}%</p>
+                                <p className="text-xs text-neutral-400">{pnlPositive ? '+' : ''}${Math.abs(bot.pnlValue).toFixed(2)}</p>
+                            </div>
+                        </Tooltip>
+
                         <div className="flex items-center gap-1.5">
                             <Tooltip content={isPaused ? 'Resume Bot' : 'Pause Bot'}>
                                 <button className={`p-1.5 rounded-md transition-colors hover:opacity-80 ${isPaused ? 'bg-amber-500/10 text-amber-500' : 'bg-[#333333] text-white'}`} onClick={onTogglePause}>
@@ -282,26 +327,42 @@ const BotCard = ({ bot, onTogglePause, onDelete, onToggleExpand }: { bot: Bot, o
                                 <BotDetailItem label="Market" value={bot.marketType} />
                                 <BotDetailItem label="Leverage" value={bot.leverage} />
 
-                                {/* Dynamic Content based on Bot Type */}
-                                {bot.botType === 'grid' && bot.gridDetails ? (
+                                {/* --- GRID BOTS --- */}
+                                {bot.botType === 'grid' && bot.gridDetails && (
                                     <>
                                         <BotDetailItem className="col-span-2" label="Price Range" value={`$${bot.gridDetails.rangeLow} - $${bot.gridDetails.rangeHigh}`} />
                                         <BotDetailItem label="Grid Count" value={bot.gridDetails.grids} />
-                                        <BotDetailItem label="Strategy" value="Fixed Grid" />
+                                        <BotDetailItem label="Strategy" value={`Grid (${bot.gridType || 'Fixed'})`} />
                                     </>
-                                ) : (
+                                )}
+
+                                {/* --- DCA BOTS --- */}
+                                {bot.botType === 'dca' && bot.dcaDetails && (
                                     <>
-                                        <BotDetailItem className="col-span-2" label="Indicators" value={bot.indicatorDetails?.names.join(', ') || '-'} />
-                                        <BotDetailItem label="TP / SL" value={
-                                            <>
-                                                <span className="text-green-400">{bot.tp !== null ? `${bot.tp}%` : '-'}</span> / <span className="text-red-400">{bot.sl !== null ? `${bot.sl}%` : '-'}</span>
-                                            </>
-                                        } />
+                                        <BotDetailItem className="col-span-2" label="Order Size (Base / Safety)" value={`$${bot.dcaDetails.baseOrder} / $${bot.dcaDetails.safetyOrder}`} />
+                                        <BotDetailItem label="Max Orders" value={bot.dcaDetails.maxSteps} />
+                                        <BotDetailItem label="Scaling (Vol / Step)" value={`x${bot.dcaDetails.volScale} / x${bot.dcaDetails.stepScale}`} />
+                                        <BotDetailItem label="Deviation" value={`${bot.dcaDetails.deviation}%`} />
                                         <BotDetailItem label="Strategy" value={bot.strategy} />
                                     </>
                                 )}
 
-                                <BotDetailItem className="col-span-2" label="Last Signal" value={
+                                {/* --- INDICATOR BOTS --- */}
+                                {bot.botType === 'indicator' && (
+                                    <>
+                                        <BotDetailItem className="col-span-2" label="Indicators" value={bot.indicatorDetails?.names.join(', ') || '-'} />
+                                        <BotDetailItem label="Strategy" value={bot.strategy} />
+                                    </>
+                                )}
+
+                                {/* Common TP/SL for non-DCA (or DCA if needed) */}
+                                <BotDetailItem label="TP / SL" value={
+                                    <>
+                                        <span className="text-green-400">{bot.tp !== null && bot.tp !== '-' ? `${bot.tp}%` : '-'}</span> / <span className="text-red-400">{bot.sl !== null && bot.sl !== '-' ? `${bot.sl}%` : '-'}</span>
+                                    </>
+                                } />
+
+                                <BotDetailItem className="col-span-2" label="Last Signal / Status" value={
                                     <span className={`px-2 py-0.5 rounded text-xs font-bold ${
                                         bot.lastSignalAction === 'BUY' ? 'bg-green-500/20 text-green-400' :
                                             bot.lastSignalAction === 'SELL' ? 'bg-red-500/20 text-red-400' :
@@ -387,47 +448,68 @@ export default function BotsList({
             if (res.success) {
                 const mappedBots = res.bots.map((apiBot: ApiBot): Bot => {
                     const isGrid = apiBot.botType === 'grid';
+                    const isDca = apiBot.botType === 'dca';
 
-                    // Determine Leverage
-                    let leverage = '1x'; // Default spot
+                    // --- Leverage Calculation ---
+                    let leverage = '1x';
 
-                    if (apiBot.tradeInfo?.leverageLong) leverage = `${apiBot.tradeInfo.leverageLong}x`;
+                    // DCA JSON explicit check
+                    if (isDca && apiBot.leverage) leverage = `${apiBot.leverage}x`;
+                    else if (apiBot.tradeInfo?.leverageLong) leverage = `${apiBot.tradeInfo.leverageLong}x`;
                     else if (apiBot.tradeInfo?.leverageShort) leverage = `${apiBot.tradeInfo.leverageShort}x`;
 
-                    // Determine TP/SL display
-                    // Grid bots often store this in gridConfig, Indicator bots in tradeInfo
-                    const tp = isGrid
-                        ? (apiBot.gridConfig?.takeProfitPct || null)
-                        : (apiBot.tradeInfo?.takeProfit || apiBot.botTP || null);
+                    // --- TP / SL Mapping ---
+                    let tp: number | null = null;
+                    let sl: number | null = null;
 
-                    const sl = isGrid
-                        ? (apiBot.gridConfig?.stopLossPct || null)
-                        : (apiBot.tradeInfo?.stopLoss || apiBot.botSL || null);
+                    if (isGrid) {
+                        tp = apiBot.gridConfig?.takeProfitPct || null;
+                        sl = apiBot.gridConfig?.stopLossPct || null;
+                    } else if (isDca) {
+                        tp = apiBot.takeProfitPercent || null;
+                        sl = apiBot.stopLossPercent || null;
+                    } else {
+                        // Indicator
+                        tp = apiBot.tradeInfo?.takeProfit || apiBot.botTP || null;
+                        sl = apiBot.tradeInfo?.stopLoss || apiBot.botSL || null;
+                    }
+
+                    // --- Strategy Naming ---
+                    let strategyName = apiBot.strategy || 'Custom';
+
+                    if (isGrid) strategyName = 'Grid Trading';
+                    if (isDca) strategyName = `DCA ${apiBot.direction ? apiBot.direction.charAt(0) + apiBot.direction.slice(1).toLowerCase() : ''}`;
 
                     return {
                         id: apiBot._id,
-                        name: apiBot.name || `${apiBot.strategy} Bot`,
+                        name: apiBot.name || `${strategyName} Bot`,
                         pair: apiBot.symbol,
                         botType: apiBot.botType,
                         leverage: leverage,
 
+                        // Market Data
+                        timeframe: apiBot.timeframe,
+                        currentPrice: apiBot.marketInfo?.currentCandle?.price || 0,
+                        marketType: apiBot.marketType === 'FUTURES' ? 'Future' : 'Spot', // DCA uses explicit marketType string
+                        fundMode: apiBot.fundMode ? apiBot.fundMode.charAt(0).toUpperCase() + apiBot.fundMode.slice(1) : '-',
+                        positionMode: apiBot.positionMode ? apiBot.positionMode.charAt(0).toUpperCase() + apiBot.positionMode.slice(1) : '-',
+
                         // PNL
                         pnlPerc: apiBot.pnl.pct,
                         pnlValue: apiBot.pnl.total,
+                        pnlRealized: apiBot.pnl.realized,
+                        pnlUnrealized: apiBot.pnl.unrealized,
 
                         // Status
                         status: apiBot.active ? 'active' : 'paused',
                         transactions: apiBot.trades ? apiBot.trades.length : 0,
+                        lastSignalAction: apiBot.marketInfo?.lastSignal || (apiBot.activeDeal ? "IN DEAL" : "WAITING"),
 
-                        // Strategy Name
-                        strategy: isGrid ? 'Grid Trading' : (apiBot.strategy || 'Custom'),
-
-                        // Capital
-                        initialCapital: apiBot.marketInfo?.tradeFund || 0,
+                        // Strategy & Capital
+                        strategy: strategyName,
+                        initialCapital: apiBot.marketInfo?.tradeFund || apiBot.paperBalance || 0, // Fallback for DCA paper mode
 
                         // Logic & Dates
-                        lastSignalAction: apiBot.marketInfo?.lastSignal ?? "—",
-                        marketType: (apiBot.tradeInfo?.leverageLong && apiBot.tradeInfo.leverageLong > 1) ? 'Future' : 'Spot',
                         deploymentDate: apiBot.createdAt,
                         runtime: calculateRuntime(apiBot.createdAt),
 
@@ -435,22 +517,36 @@ export default function BotsList({
                         tp: tp ?? '-',
                         sl: sl ?? '-',
 
-                        // Specific Details Mapping
+                        // --- TYPE SPECIFIC DETAILS ---
+
+                        // 1. Grid Details
                         gridDetails: isGrid && apiBot.gridConfig ? {
                             rangeLow: apiBot.gridConfig.lowerPrice,
                             rangeHigh: apiBot.gridConfig.upperPrice,
                             grids: apiBot.gridConfig.gridCount
                         } : undefined,
+                        gridType: apiBot.gridConfig?.gridType,
 
-                        indicatorDetails: !isGrid && apiBot.indicators ? {
+                        // 2. DCA Details
+                        dcaDetails: isDca ? {
+                            baseOrder: apiBot.baseOrderVolume || 0,
+                            safetyOrder: apiBot.safetyOrderVolume || 0,
+                            maxSteps: apiBot.maxSafetyOrders || 0,
+                            volScale: apiBot.volumeScale || 1,
+                            stepScale: apiBot.stepScale || 1,
+                            deviation: apiBot.priceDeviation || 0
+                        } : undefined,
+
+                        // 3. Indicator Details
+                        indicatorDetails: !isGrid && !isDca && apiBot.indicators ? {
                             names: apiBot.indicators.map(i => i.name)
                         } : undefined,
 
                         // Trades
                         trades: apiBot.trades?.slice(0, 10).map(t => ({
-                            type: t.type === 'BUY' ? 'buy' : 'sell', // Normalize case
+                            type: t.type === 'BUY' ? 'buy' : 'sell',
                             price: t.entryPrice || t.price || 0,
-                            pnl: 0, // Current JSON trades don't show PNL per trade, default to 0
+                            pnl: 0,
                             time: t.timestamp ? new Date(t.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'N/A',
                         })) || [],
 
@@ -466,7 +562,7 @@ export default function BotsList({
             } else {
                 addToast({ title: res.error || "An unknown error occurred", color: "danger" });
             }
-        } catch (err: any) {
+        } catch {
             addToast({ title: "Failed to load bots", color: "danger" });
         } finally {
             setIsLoading(false);
@@ -479,7 +575,6 @@ export default function BotsList({
 
     const handleDeleteBot = (id: string) => {
         setDeletingId(id);
-        // Simulate API deletion call
         setTimeout(() => {
             setBots(prev => prev.filter(bot => bot.id !== id));
             setDeletingId(null);

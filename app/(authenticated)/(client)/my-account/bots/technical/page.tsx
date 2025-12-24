@@ -2,12 +2,12 @@
 
 import React, {useState} from "react";
 
-import BotsListTable from "@/components/bots/BotsListTable";
 import TechnicalDeployBotSection from "@/components/bots/deploy/TechnicalDeployBotSection";
 import CoinSummarySection from "@/components/shared/CoinSummarySection";
 import AnalysisAndSymbolsList from "@/components/profile/manual-trading/AnalysisAndSymbolsList";
 import {MarketListItem} from "@/types/MarketList";
 import TradingViewLightweightChartGrid from "@/components/shared/charts/TradingViewLightweightChartGrid";
+import BotsList from "@/components/bots/BotsList";
 
 export default function TechnicalBotsPage() {
 
@@ -15,7 +15,7 @@ export default function TechnicalBotsPage() {
     const [selectedSymbol, setSelectedSymbol] = useState<MarketListItem | null>(null);
 
     return (
-        <div className=" no-scrollbar mx-auto w-[97%] h-screen overflow-y-auto pt-8 relative px-5 space-y-2">
+        <div className="mb-4 no-scrollbar mx-auto w-[97%] h-screen overflow-y-auto pt-8 relative px-5 space-y-2">
             <CoinSummarySection coinId={selectedSymbol?.id || "68edf9f3ae9ad504e3c7f799"} />
             <div className=" w-full flex items-start justify-center gap-2 mt-2 lg:h-[900px]">
                 <div className="w-full lg:w-[76%] self-stretch">
@@ -32,8 +32,8 @@ export default function TechnicalBotsPage() {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 mt-2 rounded-lg h-[34%]">
-                        <BotsListTable listType="indicator" refreshList={refreshBotsList}/>
+                    <div className="grid grid-cols-1 mt-2 rounded-lg h-[34%] overflow-y-auto no-scrollbar">
+                        <BotsList listType="indicator" showDeployButton={false} showTitle={false} />
                     </div>
                 </div>
                 <div className="w-full lg:w-[24%] lg:h-[900px] ua-card">

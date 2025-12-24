@@ -2,21 +2,21 @@
 
 import React, {useState} from "react";
 
-import BotsListTable from "@/components/bots/BotsListTable";
 import MarketListWithSearch from "@/components/market/marketListWithSearch/MarketListWithSearch";
 import CoinSummarySection from "@/components/shared/CoinSummarySection";
 import {MarketListItem} from "@/types/MarketList";
 import TradingViewLightweightChartGrid from "@/components/shared/charts/TradingViewLightweightChartGrid";
 import DcaTabsList from "@/components/bots/deploy/dca/DcaTabsList";
+import BotsList from "@/components/bots/BotsList";
 
 export default function TechnicalBotsPage() {
     const [refreshBotsList, setRefreshBotsList] = useState<boolean>(false)
     const [selectedSymbol, setSelectedSymbol] = useState<MarketListItem | null>(null);
 
     return (
-        <div className="no-scrollbar mx-auto w-[97%] h-screen overflow-y-auto pt-8 relative px-5">
+        <div className="mb-4 no-scrollbar mx-auto w-[97%] h-screen overflow-y-auto pt-8 relative px-5 space-y-2">
             <CoinSummarySection coinId={selectedSymbol?.id || "68edf9f3ae9ad504e3c7f799"}/>
-            <div className="w-full flex justify-center gap-2 mt-2">
+            <div className="w-full flex justify-center gap-2 mt-2 lg:h-[900px]">
                 {/* --- Left Column --- */}
                 <div className="w-full lg:w-[76%] self-stretch flex flex-col gap-2">
 
@@ -36,13 +36,13 @@ export default function TechnicalBotsPage() {
 
                     {/* Bottom part of Left Column */}
                     {/* This part remains the same. It will grow to fill the available space. */}
-                    <div className="grid grid-cols-1 flex-grow">
-                        <BotsListTable listType="dca" refreshList={refreshBotsList}/>
+                    <div className="grid grid-cols-1 h-[34%] overflow-y-auto no-scrollbar">
+                        <BotsList listType="dca" showDeployButton={false} showTitle={false} />
                     </div>
                 </div>
 
                 {/* --- Right Column --- */}
-                <div className="w-full lg:w-[24%] ua-card">
+                <div className="w-full lg:w-[24%] ua-card overflow-y-auto pb-4">
                     <DcaTabsList
                         selectedSymbol={selectedSymbol}
                         onSuccessAction={() => setRefreshBotsList(true)}
