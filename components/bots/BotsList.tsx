@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Link from "next/link";
 import { CheckCircle, ChevronDown, ChevronsUpDown, Clock, Pause, Play, Plus, X, Activity, Grid3X3 } from 'lucide-react';
 import { addToast, Spinner } from "@heroui/react";
+
 import { getData } from "@/actions/get";
 
 // --- TYPE DEFINITIONS ---
@@ -150,6 +151,7 @@ const calculateRuntime = (startDate: string) => {
     const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
 
     if (days > 0) return `${days}d ${hours}h`;
+
     return `${hours}h`;
 };
 
@@ -388,6 +390,7 @@ export default function BotsList({
 
                     // Determine Leverage
                     let leverage = '1x'; // Default spot
+
                     if (apiBot.tradeInfo?.leverageLong) leverage = `${apiBot.tradeInfo.leverageLong}x`;
                     else if (apiBot.tradeInfo?.leverageShort) leverage = `${apiBot.tradeInfo.leverageShort}x`;
 
@@ -464,7 +467,6 @@ export default function BotsList({
                 addToast({ title: res.error || "An unknown error occurred", color: "danger" });
             }
         } catch (err: any) {
-            console.error("Bot loading error:", err);
             addToast({ title: "Failed to load bots", color: "danger" });
         } finally {
             setIsLoading(false);
