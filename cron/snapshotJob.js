@@ -11,7 +11,7 @@ const { backfillAndSyncSnapshots } = require('../app/services/AssetSnapshotServi
  */
 const scheduleSnapshots = () => {
     // This schedule runs at the beginning of every hour.
-    cron.schedule('0 * * * *', () => {
+    cron.schedule('0 0 * * *', () => {
         console.log('[Snapshot Cron] ⏳ Running hourly snapshot job…');
         backfillAndSyncSnapshots().catch(err => {
             console.error('[Snapshot Cron] ❌ Hourly snapshot job failed:', err);

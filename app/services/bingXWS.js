@@ -593,25 +593,6 @@ class BingXWS {
         }
     }
 
-    /**
-     * Preserved helper for Cron jobs checking singular Spot USDT balance.
-     * Re-uses the raw method.
-     */
-    async getSpotBalance(account) {
-        const balances = await this.getSpotBalanceRaw(account);
-        const usdt = balances.find(b => b.asset === 'USDT');
-        return usdt ? parseFloat(usdt.free) : 0;
-    }
-
-    /**
-     * Preserved helper for Cron jobs checking singular Futures USDT balance.
-     * Re-uses the raw method.
-     */
-    async getFuturesBalance(account) {
-        const data = await this.getFuturesBalanceRaw(account);
-        return data ? parseFloat(data.balance) : 0; // .balance is usually the wallet balance (excl upnl)
-    }
-
     // =========================================================================
     // END UPDATED BALANCE LOGIC
     // =========================================================================

@@ -468,42 +468,32 @@ exports.getSummary = async (req, res) => {
     try {
         const userId = req.user.id;
 
-        // --- Step 1: Fetch the LIVE Total Balance ---
-        const [binanceAccts, okxAccts, bingxAccts] = await Promise.all([
-            BinanceAccount.find({ userId }).lean(),
-            OkxAccount.find({ userId }).lean(),
-            BingxAccount.find({ userId }).lean(),
-        ]);
+        const today = new Date();
+        today.setUTCHours(0, 0, 0, 0);
 
-        // Helper to sum using the safe value parser
-        const sumTotalBalance = async (accounts, Service) => {
-            if (!accounts || accounts.length === 0) return 0;
+        // --- Step 1: Fetch the Total Balance & Funding Balance from Snapshot ---
+        const latestSnapshot = await AssetSnapshot.findOne({ userId })
+            .sort({ timestamp: -1 })
+            .lean();
 
-            // Map each account to a promise that fetches its balance
-            const promises = accounts.map(async (acc) => {
-                try {
-                    const balances = await Service.getBalance(acc, { all: true });
-                    if (!Array.isArray(balances)) return 0;
+        // 1. Get Total Balance
+        const totalBalance = latestSnapshot ? latestSnapshot.total : 0;
 
-                    return balances.reduce((accSum, item) => accSum + getSafeUsdtValue(item), 0);
-                } catch (e) {
-                    logger.error(`Error fetching balance for ${acc._id}:`, e.message);
-                    console.error(`Error fetching balance for ${acc._id}:`, e.message);
-                    return 0;
+        // 2. Calculate "Fund" or "Funding" Balance
+        // We sum up the value of all accounts in the details array where type is 'Funding' or 'Fund'
+        let fundBalance = 0;
+        if (latestSnapshot && latestSnapshot.details) {
+            latestSnapshot.details.forEach(brokerDetail => {
+                if (brokerDetail.accounts) {
+                    brokerDetail.accounts.forEach(account => {
+                        // FIX: Added 'earn' to the exclusion list
+                        if (['funding', 'fund', 'earn'].includes(account.type.toLowerCase())) {
+                            fundBalance += (account.value || 0);
+                        }
+                    });
                 }
             });
-
-            const results = await Promise.all(promises);
-            return results.reduce((a, b) => a + b, 0);
-        };
-
-        const [binanceBalance, okxBalance, bingxBalance] = await Promise.all([
-            sumTotalBalance(binanceAccts, BinanceService),
-            sumTotalBalance(okxAccts, OkxService),
-            sumTotalBalance(bingxAccts, BingxService)
-        ]);
-
-        const totalBalance = binanceBalance + okxBalance + bingxBalance;
+        }
 
         // --- Currency Conversion ---
         let exchangeRate = 1;
@@ -533,12 +523,10 @@ exports.getSummary = async (req, res) => {
         }, 0);
 
         // --- Step 3: Calculate Available Funds ---
-        const availableFunds = totalBalance - portfolioBalance;
+        // available = total - funding accounts - closed trades portfolio
+        const availableFunds = totalBalance - fundBalance - portfolioBalance;
 
-        // --- Step 4: Fetch snapshot and calculate Percentage Change ---
-        const today = new Date();
-        today.setUTCHours(0, 0, 0, 0);
-
+        // --- Step 4: Fetch previous snapshot for Percentage Change ---
         const lastSnapshot = await AssetSnapshot.findOne({
             userId,
             timestamp: { $lt: today }
@@ -578,7 +566,7 @@ exports.getSummary = async (req, res) => {
             });
         }
 
-        // --- Step 6: Format and return the final API response ---
+        // --- Step 6: Return Response ---
         return res.json({
             success: true,
             data: {
@@ -604,6 +592,7 @@ exports.getSummary = async (req, res) => {
  * @description Fetches a detailed, hierarchical summary of all assets across all exchanges.
  */
 exports.getDetailedSummary = async (req, res) => {
+
     try {
         const userId = req.user.id;
 
