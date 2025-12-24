@@ -2,54 +2,76 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Link from "next/link";
-import { CheckCircle, ChevronDown, ChevronsUpDown, Clock, Pause, Play, Plus, X } from 'lucide-react';
-// --- Helper imports from your project ---
+import { CheckCircle, ChevronDown, ChevronsUpDown, Clock, Pause, Play, Plus, X, Activity, Grid3X3 } from 'lucide-react';
 import { addToast, Spinner } from "@heroui/react";
-
 import { getData } from "@/actions/get";
 
 // --- TYPE DEFINITIONS ---
 
-// The Bot type definition from your API response
+// 1. Updated ApiBot based on your JSON responses
 export type ApiBot = {
     _id: string;
     name: string;
-    active: boolean;
-    botTP: number;
-    botSL: number;
-    cumulativePnL: number;
-    createdAt: string;
-    updatedAt: string;
-    mode: string;
-    userId: string;
-    userLevel: number;
     symbol: string;
     timeframe: string;
-    indicators: any[];
+    userId: string;
+    botType: 'indicator' | 'grid';
+    active: boolean;
+    mode: string;
+    createdAt: string;
+    updatedAt: string;
+    strategy: string; // "default" or defined
+
+    // Risk & Money Management
+    riskStrategy?: string;
     marketInfo: {
-        leverage?: number;
-        tradeFund?: number;
+        state: string;
+        baseFund?: number;
+        tradeFund?: number; // Initial Capital
         lastSignal?: string;
+        currentCandle?: { price: number };
     };
-    tradeInfo: any;
-    gridConfig: {
+
+    // Trading Specifics
+    tradeInfo?: {
+        takeProfit?: number;
+        stopLoss?: number;
+        leverageLong?: number;
+        leverageShort?: number;
+        positionSide?: string;
+    };
+
+    // Grid Specifics
+    gridConfig?: {
+        lowerPrice: number;
+        upperPrice: number;
+        gridCount: number;
+        gridType: string;
         takeProfitPct?: number;
         stopLossPct?: number;
     };
+
+    // Indicator Specifics
+    indicators?: { name: string; timeframe: string }[];
+
+    // Stats
     trades: any[] | [];
-    paperBalance: number;
     pnl: {
         pct: number;
         realized: number;
         unrealized: number;
         total: number;
     };
-    accountType: string;
-    botType: string;
-    strategy: string;
-    riskStrategy: string;
-    share: boolean;
-    __v: number;
+
+    // Legacy/Unused in UI but present in type
+    botTP?: number;
+    botSL?: number;
+    cumulativePnL?: number;
+    userLevel?: number;
+    marketType?: string; // Inferred from accountType usually
+    accountType?: string;
+    marginType?: string;
+    positionMode?: string;
 };
 
 export type DeployedBotsResponse = {
@@ -58,8 +80,7 @@ export type DeployedBotsResponse = {
     error?: string;
 };
 
-
-// The Bot type expected by the UI components
+// 2. UI State Interface
 interface Trade {
     type: 'buy' | 'sell';
     price: number;
@@ -71,6 +92,7 @@ export interface Bot {
     id: string;
     name: string;
     pair: string;
+    botType: 'indicator' | 'grid'; // Added to distinguish UI
     leverage: string;
     runtime: string;
     transactions: number;
@@ -78,40 +100,66 @@ export interface Bot {
     pnlPerc: number;
     pnlValue: number;
     status: 'active' | 'paused';
-    strategy: string;
+    strategy: string; // For Grid, we display "Grid Fixed/Arithmetic"
     initialCapital: number;
-    avgHoldTime: string;
     deploymentDate: string;
-    winRate: number;
-    sharpeRatio: number;
     lastSignalAction: string;
+
+    // Logic helpers
     marketType: 'Future' | 'Spot';
-    marginType: 'Cross' | 'Isolated' | null;
-    positionMode: 'Hedge' | 'Single' | null;
-    tp: number | null;
-    sl: number | null;
+    tp: number | string; // Can be '-'
+    sl: number | string;
+
+    // Specific Display Data
+    gridDetails?: {
+        rangeLow: number;
+        rangeHigh: number;
+        grids: number;
+    };
+    indicatorDetails?: {
+        names: string[];
+    };
+
     trades: Trade[];
     isExpanded?: boolean;
+
+    // Stats placeholders (if not provided by API yet)
+    avgHoldTime: string;
+    winRate: number;
+    sharpeRatio: number;
 }
 
 // --- Component Prop Types ---
 interface BotsListProps {
     refreshList?: boolean;
     title?: string;
-    listType?: string;
+    listType?: string; // 'indicator' | 'grid'
     active?: boolean;
     showTitle?: boolean;
     showDeployButton?: boolean;
 }
 
+// --- HELPER FUNCTIONS ---
 
-// --- HELPER COMPONENTS (Unchanged) ---
+const calculateRuntime = (startDate: string) => {
+    const start = new Date(startDate).getTime();
+    const now = new Date().getTime();
+    const diff = now - start;
+
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+
+    if (days > 0) return `${days}d ${hours}h`;
+    return `${hours}h`;
+};
+
+// --- HELPER COMPONENTS ---
 
 const Tooltip = ({ content, children }: { content: string; children: React.ReactNode }) => (
     <div className="group relative flex items-center">
         {children}
-        <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-max max-w-xs scale-90 transform-gpu opacity-0 transition-all duration-200 ease-in-out group-hover:scale-100 group-hover:opacity-100 pointer-events-none">
-            <div className="rounded-lg border border-neutral-700/50 bg-neutral-900/80 px-3 py-1.5 text-xs font-medium text-white shadow-lg backdrop-blur-md">
+        <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-max max-w-xs scale-90 transform-gpu opacity-0 transition-all duration-200 ease-in-out group-hover:scale-100 group-hover:opacity-100 pointer-events-none z-10">
+            <div className="rounded-lg border border-neutral-700/50 bg-neutral-900/95 px-3 py-1.5 text-xs font-medium text-white shadow-lg backdrop-blur-md">
                 {content}
             </div>
         </div>
@@ -127,15 +175,14 @@ const BotStat = ({ icon: Icon, value, tooltip }: { icon: React.ElementType, valu
     </Tooltip>
 );
 
-const BotDetailItem = ({ label, value }: { label: string, value: React.ReactNode }) => (
-    <div>
-        <p className="text-xs text-neutral-400">{label}</p>
-        <p className="font-medium text-white">{value}</p>
+const BotDetailItem = ({ label, value, className = "" }: { label: string, value: React.ReactNode, className?: string }) => (
+    <div className={className}>
+        <p className="text-[10px] uppercase tracking-wider text-neutral-500 mb-0.5">{label}</p>
+        <p className="font-medium text-sm text-white truncate">{value}</p>
     </div>
 );
 
-
-// --- MAIN BOT CARD COMPONENT (Unchanged) ---
+// --- MAIN BOT CARD COMPONENT ---
 
 const BotCard = ({ bot, onTogglePause, onDelete, onToggleExpand }: { bot: Bot, onTogglePause: () => void, onDelete: () => void, onToggleExpand: () => void }) => {
     const isPaused = bot.status === 'paused';
@@ -149,14 +196,11 @@ const BotCard = ({ bot, onTogglePause, onDelete, onToggleExpand }: { bot: Bot, o
     useEffect(() => {
         if (nameRef.current && nameRef.current.scrollWidth > nameRef.current.clientWidth) {
             setCanMarquee(true);
-            const scrollAmount = nameRef.current.scrollWidth - nameRef.current.clientWidth;
-
-            nameRef.current.style.setProperty('--scroll-amount', `${scrollAmount}px`);
+            nameRef.current.style.setProperty('--scroll-amount', `${nameRef.current.scrollWidth - nameRef.current.clientWidth}px`);
         } else {
             setCanMarquee(false);
         }
     }, [bot.name]);
-
 
     return (
         <div className={`
@@ -172,43 +216,52 @@ const BotCard = ({ bot, onTogglePause, onDelete, onToggleExpand }: { bot: Bot, o
                             {!isPaused && <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${pulseColor}`} />}
                             <span className={`relative inline-flex rounded-full h-3 w-3 ${pulseColor}`} />
                         </span>
+
+                        {/* Type Icon */}
+                        <div className="hidden sm:flex h-8 w-8 items-center justify-center rounded-lg bg-[#262626] border border-[#333333] flex-shrink-0">
+                            {bot.botType === 'grid' ? <Grid3X3 className="w-4 h-4 text-blue-400" /> : <Activity className="w-4 h-4 text-purple-400" />}
+                        </div>
+
                         <div className={`min-w-0 flex-1 overflow-hidden ${canMarquee ? 'group' : ''}`}>
-                            <h4 ref={nameRef} className="truncate text-lg font-bold text-white">
+                            <h4 ref={nameRef} className="truncate text-lg font-bold text-white leading-tight">
                                 <span className={`inline-block ${canMarquee ? 'group-hover:animate-marquee' : ''}`}>{bot.name}</span>
                             </h4>
-                            <p className="text-xs capitalize text-neutral-400">{bot.status} | {bot.pair}</p>
+                            <p className="text-xs capitalize text-neutral-400 mt-0.5">{bot.botType} | {bot.pair}</p>
                         </div>
                     </div>
 
-                    {/* Stats */}
-                    <div className="hidden sm:flex items-center justify-center gap-x-6 me-8">
-                        <BotStat icon={Clock} tooltip="Operation time" value={bot.runtime} />
+                    {/* Stats (Hidden on small screens) */}
+                    <div className="hidden md:flex items-center justify-center gap-x-6 me-4">
+                        <BotStat icon={Clock} tooltip="Runtime" value={bot.runtime} />
                         <BotStat icon={ChevronsUpDown} tooltip="Executed trades" value={bot.transactions} />
-                        <BotStat icon={CheckCircle} tooltip="Profitable trades" value={`${bot.successRate}%`} />
+                        {bot.transactions > 0 && (
+                            <BotStat icon={CheckCircle} tooltip="Win Rate" value={`${bot.successRate}%`} />
+                        )}
                     </div>
 
                     {/* PNL and Actions */}
                     <div className="flex items-center justify-end gap-2 sm:gap-4">
-                        <div className="text-right">
-                            <p className={`text-lg font-bold ${pnlColor}`}>{pnlPositive ? '+' : ''}{bot.pnlPerc.toFixed(2)}%</p>
-                            <p className="text-xs text-neutral-400">{pnlPositive ? '+' : '-'}${Math.abs(bot.pnlValue).toFixed(2)}</p>
+                        <div className="text-right min-w-[80px]">
+                            <p className={`text-lg font-bold ${pnlColor} leading-none mb-1`}>{pnlPositive ? '+' : ''}{bot.pnlPerc.toFixed(2)}%</p>
+                            <p className="text-xs text-neutral-400">{pnlPositive ? '+' : ''}${Math.abs(bot.pnlValue).toFixed(2)}</p>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1.5">
                             <Tooltip content={isPaused ? 'Resume Bot' : 'Pause Bot'}>
-                                <button className={`p-2 rounded-md transition-colors hover:opacity-80 ${isPaused ? 'bg-amber-500' : 'bg-[#333333]'}`} onClick={onTogglePause}>
-                                    {isPaused ? <Play className="h-4 w-4 text-white" /> : <Pause className="h-4 w-4 text-white" />}
+                                <button className={`p-1.5 rounded-md transition-colors hover:opacity-80 ${isPaused ? 'bg-amber-500/10 text-amber-500' : 'bg-[#333333] text-white'}`} onClick={onTogglePause}>
+                                    {isPaused ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
                                 </button>
                             </Tooltip>
                             <Tooltip content="Close Bot">
-                                <button className="p-2 rounded-md bg-[#333333] transition-colors hover:bg-red-800/50" onClick={onDelete}>
-                                    <X className="h-4 w-4 text-white" />
+                                <button className="p-1.5 rounded-md bg-[#333333] text-white transition-colors hover:bg-red-900/30 hover:text-red-400" onClick={onDelete}>
+                                    <X className="h-4 w-4" />
                                 </button>
                             </Tooltip>
-                            <Tooltip content="View Metrics">
-                                <button className="p-2 rounded-md bg-transparent transition-transform duration-300 hover:bg-white/10" style={{ transform: bot.isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }} onClick={onToggleExpand}>
-                                    <ChevronDown className="h-4 w-4 text-white" />
-                                </button>
-                            </Tooltip>
+                            <button
+                                className={`p-1.5 rounded-md transition-all duration-300 hover:bg-white/10 ${bot.isExpanded ? 'bg-white/10' : ''}`}
+                                onClick={onToggleExpand}
+                            >
+                                <ChevronDown className={`h-4 w-4 text-white transition-transform duration-300 ${bot.isExpanded ? 'rotate-180' : ''}`} />
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -218,51 +271,86 @@ const BotCard = ({ bot, onTogglePause, onDelete, onToggleExpand }: { bot: Bot, o
                     overflow-hidden transition-all duration-700 ease-[cubic-bezier(0.4,0,0.2,1)]
                     ${bot.isExpanded ? 'max-h-[500px] opacity-100 mt-4 pt-4 border-t border-[#333333]' : 'max-h-0 opacity-0'}
                 `}>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-6 text-sm">
-                        <div className="space-y-4">
-                            <div className="grid grid-cols-2 gap-4">
-                                <BotDetailItem label="Strategy" value={bot.strategy} />
-                                <BotDetailItem label="Initial Capital" value={`$${bot.initialCapital.toLocaleString()}`} />
-                                <BotDetailItem label="Deployment" value={bot.deploymentDate.replace(/-/g, '.').slice(0, 16)} />
-                                <BotDetailItem label="Avg. Hold Time" value={bot.avgHoldTime} />
-                                <BotDetailItem label="Win Ratio" value={`${bot.winRate}%`} />
-                                <BotDetailItem label="Sharpe Ratio" value={bot.sharpeRatio} />
-                                <BotDetailItem label="Type" value={bot.marketType} />
-                                <BotDetailItem label="Leverage" value={bot.marketType === 'Future' ? bot.leverage : '-'} />
-                                <BotDetailItem label="TP/SL" value={<>
-                                    <span className="font-medium text-green-400">{bot.tp ? `${bot.tp}%` : '-'}</span> / <span className="font-medium text-red-400">{bot.sl ? `${bot.sl}%` : '-'}</span>
-                                </>} />
-                                <BotDetailItem label="Margin" value={bot.marginType || '-'} />
-                                <BotDetailItem label="Position" value={bot.positionMode || '-'} />
-                                <BotDetailItem label="Last Action" value={bot.lastSignalAction} />
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 text-sm">
+                        {/* Left Column: Strategy & Config */}
+                        <div className="lg:col-span-1 space-y-4">
+                            <div className="grid grid-cols-2 gap-y-4 gap-x-2">
+                                <BotDetailItem label="Total Capital" value={`$${bot.initialCapital.toLocaleString()}`} />
+                                <BotDetailItem label="Deployed" value={bot.deploymentDate.slice(0, 10)} />
+                                <BotDetailItem label="Market" value={bot.marketType} />
+                                <BotDetailItem label="Leverage" value={bot.leverage} />
+
+                                {/* Dynamic Content based on Bot Type */}
+                                {bot.botType === 'grid' && bot.gridDetails ? (
+                                    <>
+                                        <BotDetailItem className="col-span-2" label="Price Range" value={`$${bot.gridDetails.rangeLow} - $${bot.gridDetails.rangeHigh}`} />
+                                        <BotDetailItem label="Grid Count" value={bot.gridDetails.grids} />
+                                        <BotDetailItem label="Strategy" value="Fixed Grid" />
+                                    </>
+                                ) : (
+                                    <>
+                                        <BotDetailItem className="col-span-2" label="Indicators" value={bot.indicatorDetails?.names.join(', ') || '-'} />
+                                        <BotDetailItem label="TP / SL" value={
+                                            <>
+                                                <span className="text-green-400">{bot.tp !== null ? `${bot.tp}%` : '-'}</span> / <span className="text-red-400">{bot.sl !== null ? `${bot.sl}%` : '-'}</span>
+                                            </>
+                                        } />
+                                        <BotDetailItem label="Strategy" value={bot.strategy} />
+                                    </>
+                                )}
+
+                                <BotDetailItem className="col-span-2" label="Last Signal" value={
+                                    <span className={`px-2 py-0.5 rounded text-xs font-bold ${
+                                        bot.lastSignalAction === 'BUY' ? 'bg-green-500/20 text-green-400' :
+                                            bot.lastSignalAction === 'SELL' ? 'bg-red-500/20 text-red-400' :
+                                                'bg-neutral-800 text-neutral-400'
+                                    }`}>
+                                        {bot.lastSignalAction}
+                                    </span>
+                                } />
                             </div>
                         </div>
-                        <div className="lg:col-span-2">
-                            <p className="mb-2 text-xs text-neutral-400">Recent Trades</p>
-                            <div className="max-h-40 overflow-y-auto pr-2">
+
+                        {/* Right Column: Recent Trades */}
+                        <div className="lg:col-span-2 border-l border-[#333333] pl-0 lg:pl-6">
+                            <div className="flex items-center justify-between mb-3">
+                                <p className="text-xs uppercase tracking-wider text-neutral-500">Recent Activity</p>
+                                <span className="text-xs text-neutral-600">Last 5 trades</span>
+                            </div>
+
+                            <div className="relative overflow-hidden rounded-lg border border-[#333333] bg-[#0f0f0f]">
                                 {bot.trades.length > 0 ? (
-                                    <table className="w-full text-xs">
-                                        <thead>
-                                        <tr className="text-left text-neutral-400 font-medium">
-                                            <th className="py-1 px-2">Type</th>
-                                            <th className="py-1 px-2">Price</th>
-                                            <th className="py-1 px-2">PNL ($)</th>
-                                            <th className="py-1 px-2">Time</th>
-                                        </tr>
-                                        </thead>
-                                        <tbody>
-                                        {bot.trades.map((trade, index) => (
-                                            <tr key={index}>
-                                                <td className={`capitalize font-medium py-1 px-2 ${trade.type === 'buy' ? 'text-green-400' : 'text-red-400'}`}>{trade.type}</td>
-                                                <td className="py-1 px-2 text-white">${trade.price.toFixed(2)}</td>
-                                                <td className={`py-1 px-2 ${trade.pnl >= 0 ? 'text-green-400' : 'text-red-400'}`}>{trade.pnl >= 0 ? '+' : ''}{trade.pnl.toFixed(2)}</td>
-                                                <td className="py-1 px-2 text-white">{trade.time}</td>
+                                    <div className="max-h-40 overflow-y-auto custom-scrollbar">
+                                        <table className="w-full text-xs">
+                                            <thead className="sticky top-0 bg-[#1A1918] z-10 border-b border-[#333333]">
+                                            <tr className="text-left text-neutral-400 font-medium">
+                                                <th className="py-2 px-3">Type</th>
+                                                <th className="py-2 px-3">Price</th>
+                                                <th className="py-2 px-3 text-right">PNL</th>
+                                                <th className="py-2 px-3 text-right">Time</th>
                                             </tr>
-                                        ))}
-                                        </tbody>
-                                    </table>
+                                            </thead>
+                                            <tbody className="divide-y divide-[#333333]">
+                                            {bot.trades.map((trade, index) => (
+                                                <tr key={index} className="hover:bg-[#1f1f1f] transition-colors">
+                                                    <td className={`font-bold py-2 px-3 uppercase ${trade.type === 'buy' ? 'text-green-400' : 'text-red-400'}`}>
+                                                        {trade.type}
+                                                    </td>
+                                                    <td className="py-2 px-3 text-white font-mono">${trade.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })}</td>
+                                                    <td className={`py-2 px-3 text-right font-mono ${trade.pnl > 0 ? 'text-green-400' : trade.pnl < 0 ? 'text-red-400' : 'text-neutral-400'}`}>
+                                                        {trade.pnl > 0 ? '+' : ''}{trade.pnl.toFixed(2)}
+                                                    </td>
+                                                    <td className="py-2 px-3 text-right text-neutral-500">{trade.time}</td>
+                                                </tr>
+                                            ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
                                 ) : (
-                                    <div className="py-8 text-center text-sm text-neutral-500">No trades recorded yet.</div>
+                                    <div className="flex flex-col items-center justify-center py-8 text-neutral-500 gap-2">
+                                        <Clock className="w-6 h-6 opacity-20" />
+                                        <span className="text-xs">No executed trades yet</span>
+                                    </div>
                                 )}
                             </div>
                         </div>
@@ -274,16 +362,16 @@ const BotCard = ({ bot, onTogglePause, onDelete, onToggleExpand }: { bot: Bot, o
 };
 
 
-// --- PARENT COMPONENT (Renamed, Props Added) ---
+// --- PARENT COMPONENT ---
 
 export default function BotsList({
-     refreshList = false,
-     title = "Active Bots",
-     listType,
-     active = true,
-     showTitle = true,
-     showDeployButton = true,
-}: BotsListProps) {
+                                     refreshList = false,
+                                     title = "Active Bots",
+                                     listType,
+                                     active = true,
+                                     showTitle = true,
+                                     showDeployButton = true,
+                                 }: BotsListProps) {
     const [bots, setBots] = useState<Bot[]>([]);
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -291,59 +379,105 @@ export default function BotsList({
     const loadBots = useCallback(async () => {
         setIsLoading(true);
         try {
-            // Use props in the API call
             const endpoint = `/bots?active=${active}${listType ? `&botType=${listType}` : ''}`;
             const res: DeployedBotsResponse = await getData(endpoint);
 
             if (res.success) {
-                const mappedBots = res.bots.map((apiBot: ApiBot): Bot => ({
-                    id: apiBot._id,
-                    name: apiBot.name || `${apiBot.strategy} Bot`,
-                    pair: apiBot.symbol,
-                    leverage: apiBot.marketInfo?.leverage ? `${apiBot.marketInfo.leverage}x` : 'N/A',
-                    pnlPerc: apiBot.pnl.pct,
-                    pnlValue: apiBot.pnl.total,
-                    status: apiBot.active ? 'active' : 'paused',
-                    transactions: apiBot.trades ? apiBot.trades.length : 0,
-                    strategy: apiBot.strategy,
-                    initialCapital: apiBot.marketInfo?.tradeFund || 0,
-                    lastSignalAction: apiBot.marketInfo?.lastSignal ?? "—",
-                    marketType: apiBot.accountType === 'futures' ? 'Future' : 'Spot',
-                    tp: apiBot.botTP || null,
-                    sl: apiBot.botSL || null,
-                    deploymentDate: apiBot.createdAt,
-                    runtime: 'N/A',
-                    successRate: 0,
-                    avgHoldTime: 'N/A',
-                    winRate: 0,
-                    sharpeRatio: 0,
-                    marginType: null,
-                    positionMode: null,
-                    trades: apiBot.trades?.slice(0, 5).map(t => ({
-                        type: t.side === 'buy' ? 'buy' : 'sell',
-                        price: t.price || 0,
-                        pnl: t.realizedPnl || 0,
-                        time: t.time ? new Date(t.time).toLocaleTimeString() : 'N/A',
-                    })) || [],
-                }));
+                const mappedBots = res.bots.map((apiBot: ApiBot): Bot => {
+                    const isGrid = apiBot.botType === 'grid';
+
+                    // Determine Leverage
+                    let leverage = '1x'; // Default spot
+                    if (apiBot.tradeInfo?.leverageLong) leverage = `${apiBot.tradeInfo.leverageLong}x`;
+                    else if (apiBot.tradeInfo?.leverageShort) leverage = `${apiBot.tradeInfo.leverageShort}x`;
+
+                    // Determine TP/SL display
+                    // Grid bots often store this in gridConfig, Indicator bots in tradeInfo
+                    const tp = isGrid
+                        ? (apiBot.gridConfig?.takeProfitPct || null)
+                        : (apiBot.tradeInfo?.takeProfit || apiBot.botTP || null);
+
+                    const sl = isGrid
+                        ? (apiBot.gridConfig?.stopLossPct || null)
+                        : (apiBot.tradeInfo?.stopLoss || apiBot.botSL || null);
+
+                    return {
+                        id: apiBot._id,
+                        name: apiBot.name || `${apiBot.strategy} Bot`,
+                        pair: apiBot.symbol,
+                        botType: apiBot.botType,
+                        leverage: leverage,
+
+                        // PNL
+                        pnlPerc: apiBot.pnl.pct,
+                        pnlValue: apiBot.pnl.total,
+
+                        // Status
+                        status: apiBot.active ? 'active' : 'paused',
+                        transactions: apiBot.trades ? apiBot.trades.length : 0,
+
+                        // Strategy Name
+                        strategy: isGrid ? 'Grid Trading' : (apiBot.strategy || 'Custom'),
+
+                        // Capital
+                        initialCapital: apiBot.marketInfo?.tradeFund || 0,
+
+                        // Logic & Dates
+                        lastSignalAction: apiBot.marketInfo?.lastSignal ?? "—",
+                        marketType: (apiBot.tradeInfo?.leverageLong && apiBot.tradeInfo.leverageLong > 1) ? 'Future' : 'Spot',
+                        deploymentDate: apiBot.createdAt,
+                        runtime: calculateRuntime(apiBot.createdAt),
+
+                        // TP/SL
+                        tp: tp ?? '-',
+                        sl: sl ?? '-',
+
+                        // Specific Details Mapping
+                        gridDetails: isGrid && apiBot.gridConfig ? {
+                            rangeLow: apiBot.gridConfig.lowerPrice,
+                            rangeHigh: apiBot.gridConfig.upperPrice,
+                            grids: apiBot.gridConfig.gridCount
+                        } : undefined,
+
+                        indicatorDetails: !isGrid && apiBot.indicators ? {
+                            names: apiBot.indicators.map(i => i.name)
+                        } : undefined,
+
+                        // Trades
+                        trades: apiBot.trades?.slice(0, 10).map(t => ({
+                            type: t.type === 'BUY' ? 'buy' : 'sell', // Normalize case
+                            price: t.entryPrice || t.price || 0,
+                            pnl: 0, // Current JSON trades don't show PNL per trade, default to 0
+                            time: t.timestamp ? new Date(t.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'N/A',
+                        })) || [],
+
+                        // Placeholders
+                        successRate: 0,
+                        avgHoldTime: '-',
+                        winRate: 0,
+                        sharpeRatio: 0,
+                    };
+                });
 
                 setBots(mappedBots);
             } else {
                 addToast({ title: res.error || "An unknown error occurred", color: "danger" });
             }
         } catch (err: any) {
-            addToast({ title: err.message || "Failed to load bots", color: "danger" });
+            console.error("Bot loading error:", err);
+            addToast({ title: "Failed to load bots", color: "danger" });
         } finally {
             setIsLoading(false);
         }
-    }, [active, listType]); // Dependency array for useCallback
+    }, [active, listType]);
 
     useEffect(() => {
         loadBots();
-    }, [loadBots, refreshList]); // Re-fetch when refreshList changes
+    }, [loadBots, refreshList]);
 
     const handleDeleteBot = (id: string) => {
         setDeletingId(id);
+        // Simulate API deletion call
         setTimeout(() => {
             setBots(prev => prev.filter(bot => bot.id !== id));
             setDeletingId(null);
@@ -366,27 +500,27 @@ export default function BotsList({
     const renderContent = () => {
         if (isLoading) {
             return (
-                <div className="flex items-center justify-center flex-row-reverse gap-3 h-24 rounded-lg w-full">
-                    <Spinner className="mr-2" color="primary" size="sm" variant="wave" />
-                    Loading Bots…
+                <div className="flex flex-col items-center justify-center h-48 rounded-lg w-full border border-dashed border-[#333333]">
+                    <Spinner className="mb-3" color="primary" size="lg" />
+                    <span className="text-neutral-400 animate-pulse">Syncing Bots...</span>
                 </div>
             )
         }
 
         if (bots.length === 0) {
             return (
-                <div className="flex flex-col items-center justify-center py-16 text-center border-2 border-dashed border-[#333333] rounded-lg">
+                <div className="flex flex-col items-center justify-center py-16 text-center border-2 border-dashed border-[#333333] rounded-xl bg-[#1A1918]/50">
                     <div className="w-16 h-16 text-[#333333] mb-4">
-                        <svg fill="none" stroke="currentColor" strokeWidth="1" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                        <Activity className="w-full h-full opacity-20" />
                     </div>
-                    <p className="mt-4 text-lg text-neutral-400">No active bots</p>
-                    <p className="mt-1 text-sm text-neutral-500">Click &#39;Deploy New&#39; to get started.</p>
+                    <p className="mt-2 text-lg text-neutral-300 font-medium">No active bots found</p>
+                    <p className="mt-1 text-sm text-neutral-500">Deploy a new strategy to track performance here.</p>
                 </div>
             );
         }
 
         return bots.map(bot => (
-            <div key={bot.id} className={`transition-all duration-500 ease-in-out ${deletingId === bot.id ? 'opacity-0 scale-95 max-h-0 !m-0 !p-0 !border-0' : 'opacity-100 scale-100'}`}>
+            <div key={bot.id} className={`transition-all duration-500 ease-in-out ${deletingId === bot.id ? 'opacity-0 scale-95 max-h-0 overflow-hidden !m-0 !p-0' : 'opacity-100 scale-100'}`}>
                 <BotCard
                     bot={bot}
                     onDelete={() => handleDeleteBot(bot.id)}
@@ -398,37 +532,43 @@ export default function BotsList({
     }
 
     return (
-        <div className="ua-card text-white font-sans antialiased w-full">
+        <div className="w-full font-sans antialiased">
             <style>{`
                 @keyframes marquee {
                   0% { transform: translateX(0); }
-                  15% { transform: translateX(0); }
-                  85% { transform: translateX(calc(-1 * var(--scroll-amount) - 4px)); }
-                  100% { transform: translateX(calc(-1 * var(--scroll-amount) - 4px)); }
+                  20% { transform: translateX(0); }
+                  100% { transform: translateX(calc(-1 * var(--scroll-amount) - 8px)); }
                 }
                 .animate-marquee {
-                    animation: marquee 5s linear 1 forwards;
+                    animation: marquee 8s linear infinite alternate;
+                }
+                .custom-scrollbar::-webkit-scrollbar {
+                    width: 4px;
+                }
+                .custom-scrollbar::-webkit-scrollbar-track {
+                    background: #111;
+                }
+                .custom-scrollbar::-webkit-scrollbar-thumb {
+                    background: #333;
+                    border-radius: 2px;
                 }
             `}</style>
-            <div className="w-full">
-                <div className="p-6 h-full">
-                    <div className="flex items-center justify-between w-full mb-6">
-                        {showTitle && <h3 className="text-lg font-bold text-white">{title}</h3>}
-                        {showDeployButton &&
-                            <Link
-                                className="flex items-center gap-2 bg-white text-black py-2 px-4 rounded-lg font-medium text-sm cursor-pointer hover:opacity-90 transition-opacity duration-300 disabled:opacity-50"
-                                href="/bots"
-                            >
-                                <span>Deploy New</span>
-                                <Plus className="w-4 h-4" />
-                            </Link>
-                        }
-                    </div>
 
-                    <div className="flex flex-col gap-4">
-                        {renderContent()}
-                    </div>
-                </div>
+            <div className="flex items-center justify-between w-full mb-6 px-1">
+                {showTitle && <h3 className="text-xl font-bold text-white tracking-tight">{title}</h3>}
+                {showDeployButton &&
+                    <Link
+                        className="flex items-center gap-2 bg-white text-black py-2 px-4 rounded-lg font-bold text-sm hover:bg-neutral-200 transition-colors duration-200"
+                        href="/bots"
+                    >
+                        <Plus className="w-4 h-4" />
+                        <span>Deploy New</span>
+                    </Link>
+                }
+            </div>
+
+            <div className="flex flex-col gap-4">
+                {renderContent()}
             </div>
         </div>
     );
