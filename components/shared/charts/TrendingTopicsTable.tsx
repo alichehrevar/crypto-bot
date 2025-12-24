@@ -1,7 +1,11 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { ResponsiveContainer, LineChart, Line } from 'recharts';
+import { addToast, Spinner } from "@heroui/react";
+import { AlertCircle } from 'lucide-react';
+
+import { getData } from "@/actions/get";
 
 // =====================================================================
 // --- TYPE DEFINITIONS ---
@@ -22,8 +26,9 @@ interface TrendingTopic {
     sparkline: SparklineData[];
 }
 
-export interface TrendingTopicsData {
+interface TrendingTopicsResponse {
     trendingTopics: TrendingTopic[];
+    error?: string;
 }
 
 // =====================================================================
@@ -53,62 +58,141 @@ const SentimentCell: React.FC<{ value: TrendingTopic['sentiment'] }> = ({ value 
     return <span className={sentimentColor[value]}>{value}</span>;
 };
 
-
 // =====================================================================
 // --- MAIN COMPONENT ---
 // =====================================================================
 
-const TrendingTopicsTable: React.FC<{ data: TrendingTopicsData | null }> = ({ data }) => {
+const TrendingTopicsTable: React.FC = () => {
+    const [trendingData, setTrendingData] = useState<TrendingTopicsResponse | null>(null);
+    const [isLoading, setIsLoading] = useState<boolean>(true);
 
-    if (!data) {
+    const loadTopics = useCallback(async () => {
+        setIsLoading(true);
+        try {
+            // Fetching from the route specified
+            const res: TrendingTopicsResponse = await getData('/sentiment/trending-topics');
+
+            if (res && res.trendingTopics) {
+                setTrendingData(res);
+            } else {
+                addToast({
+                    title: res.error || "Failed to load trending topics",
+                    color: "danger"
+                });
+            }
+        } catch (error) {
+            console.error("Error fetching trending topics:", error);
+            addToast({ title: "Connection error", color: "danger" });
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        loadTopics();
+    }, [loadTopics]);
+
+    // --- RENDER HELPERS ---
+
+    if (isLoading) {
         return (
-            <div className="bg-dark-gray rounded-xl p-6 border border-white/5 shadow-md min-h-[400px] flex items-center justify-center">
-                <p>Loading Topics...</p>
+            <div className="bg-[#1A1918] rounded-xl p-6 border border-[#333333] shadow-md min-h-[400px] flex flex-col items-center justify-center">
+                <Spinner className="mb-3" color="primary" size="lg" />
+                <span className="text-neutral-400 animate-pulse text-sm">Analyzing Social Data...</span>
             </div>
         );
     }
 
+    if (!trendingData || trendingData.trendingTopics.length === 0) {
+        return (
+            <div className="bg-[#1A1918] rounded-xl p-6 border border-[#333333] shadow-md min-h-[400px] flex flex-col items-center justify-center">
+                <AlertCircle className="w-10 h-10 text-neutral-600 mb-3" />
+                <p className="text-neutral-400">No trending topics found at the moment.</p>
+            </div>
+        );
+    }
+
+    // --- MAIN RENDER ---
+
     return (
-        <div className="ua-card p-6 shadow-md flex flex-col h-full">
-            <h3 className="text-lg font-semibold text-white m-0 mb-4">Social Trending Topics</h3>
-            <div className="overflow-x-auto">
+        <div className="ua-card p-6 shadow-md flex flex-col h-full ua-card rounded-xl">
+            <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-white m-0">Social Trending Topics</h3>
+                <div className="text-xs text-neutral-500">
+                    Live Updates
+                </div>
+            </div>
+
+            <div className="overflow-x-auto lg:overflow-x-hidden">
                 <table className="w-full border-collapse text-sm">
                     <thead>
                     <tr>
                         {['Topic', 'Social Media', '24h Change', '30d z-score', 'Sentiment', 'Linked Assets', '30d Trend'].map(h => (
-                            <th key={h} className="p-3 border-b border-white/10 text-left font-medium text-gray-400 text-xs capitalize">
+                            <th key={h} className="p-3 border-b border-white/10 text-left font-medium text-gray-400 text-xs capitalize whitespace-nowrap">
                                 {h === '30d z-score' ? <GlossaryTerm term={h} /> : h}
                             </th>
                         ))}
                     </tr>
                     </thead>
                     <tbody>
-                    {data.trendingTopics.map((topic) => (
-                        <tr key={topic.text} className="hover:bg-white/5 transition-colors">
+                    {trendingData.trendingTopics.map((topic) => (
+                        <tr key={topic.text} className="hover:bg-white/5 transition-colors group">
                             <td className="p-3 border-b border-white/10 font-semibold text-white">{topic.text}</td>
-                            <td className="p-3 border-b border-white/10">{topic.socialMedia}</td>
+                            <td className="p-3 border-b border-white/10 text-neutral-300">{topic.socialMedia}</td>
                             <td className={`p-3 border-b border-white/10 font-medium ${topic.mentionChange >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                                {topic.mentionChange.toFixed(2)}%
+                                {topic.mentionChange > 0 ? '+' : ''}{topic.mentionChange.toFixed(2)}%
                             </td>
-                            <td className={`p-3 border-b border-white/10 font-medium ${topic.zScore > 2 ? 'text-yellow-400' : ''}`}>
+                            <td className={`p-3 border-b border-white/10 font-medium ${Math.abs(topic.zScore) > 2 ? 'text-yellow-400' : 'text-neutral-300'}`}>
                                 {topic.zScore.toFixed(2)}
                             </td>
                             <td className="p-3 border-b border-white/10">
                                 <SentimentCell value={topic.sentiment} />
                             </td>
-                            <td className="p-3 border-b border-white/10">{topic.linkedAssets.join(', ')}</td>
                             <td className="p-3 border-b border-white/10">
-                                <ResponsiveContainer height={30} width={100}>
-                                    <LineChart data={topic.sparkline}>
-                                        <Line dataKey="mentions" dot={false} stroke={topic.mentionChange >= 0 ? '#4CAF50' : '#F44336'} strokeWidth={2} type="monotone" />
-                                    </LineChart>
-                                </ResponsiveContainer>
+                                {topic.linkedAssets.map(asset => (
+                                    <span key={asset} className="inline-block bg-[#333] text-white text-[10px] px-1.5 py-0.5 rounded mr-1">
+                                        {asset}
+                                    </span>
+                                ))}
+                            </td>
+                            <td className="p-3 border-b border-white/10 min-w-[120px]">
+                                <div className="h-[30px] w-[100px]">
+                                    <ResponsiveContainer height="100%" width="100%">
+                                        <LineChart data={topic.sparkline}>
+                                            <Line
+                                                dataKey="mentions"
+                                                dot={false}
+                                                stroke={topic.mentionChange >= 0 ? '#4CAF50' : '#F44336'}
+                                                strokeWidth={2}
+                                                type="monotone"
+                                                isAnimationActive={false} // Performance optimization for tables
+                                            />
+                                        </LineChart>
+                                    </ResponsiveContainer>
+                                </div>
                             </td>
                         </tr>
                     ))}
                     </tbody>
                 </table>
             </div>
+
+            {/* Custom Scrollbar Styles embedded strictly for this component */}
+            <style jsx>{`
+                .custom-scrollbar::-webkit-scrollbar {
+                    height: 6px;
+                }
+                .custom-scrollbar::-webkit-scrollbar-track {
+                    background: #1A1918;
+                }
+                .custom-scrollbar::-webkit-scrollbar-thumb {
+                    background: #333;
+                    border-radius: 3px;
+                }
+                .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+                    background: #444;
+                }
+            `}</style>
         </div>
     );
 };
