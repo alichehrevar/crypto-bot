@@ -32,6 +32,7 @@ export default function BotsListTable({refreshList = false, title = "Active Bots
         setIsLoading(true);
         loadBots()
             .then((res: DeployedBotsResponse) => {
+                console.log(res);
                 if (res.success) {
                     setDeployedBots(res.bots)
                 } else {

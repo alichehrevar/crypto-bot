@@ -1,20 +1,18 @@
 "use client";
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import {addToast} from "@heroui/react";
 
-import {getData} from "@/actions/get";
+import { getData } from "@/actions/get";
 
 type ViewMode = "broker" | "asset";
 
-/* ---------- TYPES (match API) ---------- */
+/* ---------- TYPES ---------- */
 interface AssetNode {
     name: string;
     value: number;
     color?: string;
-    amount?: number; // may appear in some leaves
+    amount?: number;
     children?: AssetNode[];
-    // internal at runtime:
     parent?: AssetNode | null;
     depth?: number;
 }
@@ -25,13 +23,25 @@ interface SnapshotTodayFull {
         assetTree: AssetNode;
         balances: { binance: number; okx: number; bingx: number };
         total: number;
-        // details/meta exist but not needed here
     },
     success: boolean,
     message: string,
 }
 
+/* ---------- CONFIGURATION ---------- */
+
+// 1. MAPPING DICTIONARY: Maps DB names to UI names
+const RENAME_MAP: Record<string, string> = {
+    "Earn": "Funding",
+    "Other": "Coin-M",
+    "Futures": "USDT-M",
+    "Spot": "Spot",
+    "Margin": "Margin",
+    "Funding": "Funding"
+};
+
 /* ---------- HELPERS ---------- */
+
 function sanitizeNumber(n: any): number {
     const v = Number(n);
 
@@ -49,28 +59,130 @@ function buildBrokerColorMap(brokerTree?: AssetNode | null): Record<string, stri
     return map;
 }
 
-function applyBrokerColorsToAssetTree(assetTree: AssetNode | null, colorMap: Record<string,string>): AssetNode | null {
-    if (!assetTree) return null;
-    const clone = structuredClone ? structuredClone(assetTree) : JSON.parse(JSON.stringify(assetTree));
+/** * Pivots a Broker-centric tree (Total -> Broker -> Account -> Asset)
+ * into an Asset-centric tree (Total -> Asset -> Broker).
+ * This acts as a fallback if the API sends an empty assetTree.
+ */
+function pivotBrokerToAssetTree(brokerRoot: AssetNode): AssetNode | null {
+    if (!brokerRoot || !brokerRoot.children) return null;
 
-    const walk = (n: AssetNode, depth = 0) => {
-        // For asset-centric tree, level 2 nodes are brokers (Asset -> Broker)
-        if (depth === 2 && n.name && !n.color && colorMap[n.name]) {
-            n.color = colorMap[n.name];
+    const assetMap = new Map<string, { value: number; brokers: Map<string, number>; color?: string }>();
+    const brokerColors: Record<string, string> = {};
+
+    // 1. Traverse Broker Tree to find leaves (Assets)
+    function traverse(node: AssetNode, brokerName: string | null) {
+        // If we are at the broker level (depth 1 in children), capture color
+        const isBroker = node.depth === 1 || (brokerName === null && node.children && node.children.length > 0);
+
+        let currentBroker = brokerName;
+
+        if (isBroker && !brokerName) {
+            currentBroker = node.name;
+            if (node.color) brokerColors[node.name] = node.color;
         }
-        if (n.children) n.children.forEach(c => walk(c, depth + 1));
+
+        // If it's a leaf node (has value, no children, or children are empty) and we have a broker context
+        if ((!node.children || node.children.length === 0) && node.value > 0 && currentBroker) {
+            // This is an asset leaf (e.g. "BTC")
+            // Note: In your specific JSON, the accounts (Earn, Spot) have value but empty children.
+            // If your tree strictly stops at Account Type, "By Asset" mode isn't possible.
+            // Assuming leaves exist deeper or treating AccountTypes as "Assets" for fallback:
+            const assetName = node.name; // e.g., "BTC" or "Earn" if that's the leaf
+
+            if (!assetMap.has(assetName)) {
+                assetMap.set(assetName, { value: 0, brokers: new Map() });
+            }
+            const entry = assetMap.get(assetName)!;
+
+            entry.value += node.value;
+            const currentBrokerVal = entry.brokers.get(currentBroker) || 0;
+
+            entry.brokers.set(currentBroker, currentBrokerVal + node.value);
+        }
+
+        if (node.children) {
+            node.children.forEach(c => traverse(c, currentBroker || (node.name === "Total Holdings" ? null : node.name)));
+        }
+    }
+
+    // Traverse logic slightly adjusted: The root is Total, children are Brokers
+    if (brokerRoot.children) {
+        brokerRoot.children.forEach(broker => {
+            brokerColors[broker.name] = broker.color || "#888";
+            if(broker.children) {
+                broker.children.forEach(account => {
+                    // If accounts have children (actual assets), recurse
+                    if (account.children && account.children.length > 0) {
+                        account.children.forEach(asset => {
+                            const name = asset.name;
+
+                            if (!assetMap.has(name)) assetMap.set(name, { value: 0, brokers: new Map() });
+                            const entry = assetMap.get(name)!;
+
+                            entry.value += asset.value;
+                            entry.brokers.set(broker.name, (entry.brokers.get(broker.name) || 0) + asset.value);
+                        });
+                    }
+                    // If accounts ARE the leaves (as in your JSON snippet), we pivot on Account Type
+                    else if (account.value > 0) {
+                        const name = RENAME_MAP[account.name] || account.name;
+
+                        if (!assetMap.has(name)) assetMap.set(name, { value: 0, brokers: new Map() });
+                        const entry = assetMap.get(name)!;
+
+                        entry.value += account.value;
+                        entry.brokers.set(broker.name, (entry.brokers.get(broker.name) || 0) + account.value);
+                    }
+                });
+            }
+        });
+    }
+
+    if (assetMap.size === 0) return null;
+
+    // 2. Build Asset Tree
+    const children: AssetNode[] = [];
+
+    assetMap.forEach((data, assetName) => {
+        const brokerChildren: AssetNode[] = [];
+
+        data.brokers.forEach((val, brokerName) => {
+            brokerChildren.push({
+                name: brokerName,
+                value: val,
+                color: brokerColors[brokerName],
+                children: []
+            });
+        });
+
+        children.push({
+            name: assetName,
+            value: data.value,
+            children: brokerChildren
+        });
+    });
+
+    // Sort by value desc
+    children.sort((a, b) => b.value - a.value);
+
+    return {
+        name: "Total Assets",
+        value: brokerRoot.value,
+        children: children
     };
-
-    walk(clone, 0);
-
-    return clone;
 }
 
-/** Remove 0/NaN slices, re-sum parents from kids, keep structure consistent */
+
+/** * Normalizes tree: removes zero values, sums children, and APPLIES RENAMING
+ */
 function normalizeTree(root: AssetNode): AssetNode | null {
     function walk(n: AssetNode): AssetNode | null {
+        // 2. APPLY RENAMING HERE
+        const originalName = String(n.name ?? "");
+        const mappedName = RENAME_MAP[originalName] || originalName;
+
         const out: AssetNode = {
-            name: String(n.name ?? ""),
+            name: mappedName,
             value: 0,
             color: n.color,
             amount: sanitizeNumber(n.amount),
@@ -78,7 +190,6 @@ function normalizeTree(root: AssetNode): AssetNode | null {
         };
 
         const kids = Array.isArray(n.children) ? n.children : [];
-
         const cleanedKids: AssetNode[] = [];
 
         for (const ch of kids) {
@@ -128,27 +239,40 @@ const AssetsOverview: React.FC = () => {
                 setLoading(true);
                 setError(null);
 
-                const data: SnapshotTodayFull = await getData('/asset/today/full');
+                const res: SnapshotTodayFull = await getData('/asset/today/full');
 
-                if (data.success) {
-                    const safeBroker = normalizeTree(data.data.brokerTree);
-                    const brokerColorMap = buildBrokerColorMap(safeBroker);
+                if (res.success) {
+                    // 1. Process Broker Tree (with Renaming)
+                    const safeBroker = normalizeTree(res.data.brokerTree);
 
-                    const safeAssetRaw = normalizeTree(data.data.assetTree);
-                    const safeAsset = applyBrokerColorsToAssetTree(safeAssetRaw, brokerColorMap);
+                    // 2. Process Asset Tree
+                    let safeAsset = normalizeTree(res.data.assetTree);
 
-                    if (!safeBroker && !safeAsset) {
-                        addToast({
-                            title: 'No drawable data after normalization.',
-                            color: 'warning'
-                        })
+                    // 3. Fallback: If Asset Tree is empty (value 0), try to pivot the Broker Tree
+                    if (!safeAsset && safeBroker) {
+                        safeAsset = pivotBrokerToAssetTree(safeBroker);
+                    } else if (safeAsset) {
+                        // Apply colors if we used the API tree
+                        const brokerColorMap = buildBrokerColorMap(safeBroker);
 
-                        return;
+                        // Helper to apply colors deep in asset tree
+                        const applyColors = (node: AssetNode, depth = 0) => {
+                            if(depth === 2 && node.name && brokerColorMap[node.name]) {
+                                node.color = brokerColorMap[node.name];
+                            }
+                            if(node.children) node.children.forEach(c => applyColors(c, depth + 1));
+                        };
+
+                        applyColors(safeAsset);
                     }
 
                     if (!cancelled) {
                         setBrokerData(safeBroker || null);
                         setAssetData(safeAsset || null);
+
+                        if (!safeBroker) {
+                            setError("No balance data available.");
+                        }
                     }
                 }
             } catch (e: any) {
@@ -163,12 +287,12 @@ const AssetsOverview: React.FC = () => {
         };
     }, []);
 
-    /* -------- Chart renderer (unchanged core, just fed with live data) -------- */
-    const drawChart = useCallback((assetData: AssetNode) => {
+    /* -------- Chart renderer -------- */
+    const drawChart = useCallback((dataToRender: AssetNode) => {
         const container = chartWrapperRef.current;
         const assetsContainer = componentContainerRef.current;
 
-        if (!container || !assetsContainer || !assetData) return;
+        if (!container || !assetsContainer || !dataToRender) return;
 
         const config = {
             viewBoxSize: 250,
@@ -189,7 +313,7 @@ const AssetsOverview: React.FC = () => {
         <svg id="chart-svg" class="w-full h-full overflow-visible" viewBox="0 0 250 250"></svg>
         <div id="center-text" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none flex flex-col items-center"></div>
       </div>
-      <div id="legend" class="flex-1 flex flex-row justify-start items-start gap-4"></div>
+      <div id="legend" class="flex-1 flex flex-row justify-start items-start gap-4 overflow-y-auto max-h-[250px] custom-scrollbar"></div>
     `;
 
         const svg = container.querySelector<SVGSVGElement>("#chart-svg");
@@ -198,8 +322,8 @@ const AssetsOverview: React.FC = () => {
 
         if (!svg || !centerTextEl || !legendEl) return;
 
-        let activeNode: AssetNode = assetData;
-        let lastActiveNode: AssetNode = assetData;
+        let activeNode: AssetNode = dataToRender;
+        let lastActiveNode: AssetNode = dataToRender;
 
         const lightenColor = (hex: string, percent: number): string => {
             hex = (hex || "#888").replace(/^#/, "");
@@ -235,18 +359,12 @@ const AssetsOverview: React.FC = () => {
         };
 
         const describeFlatSidedArc = (
-            x: number,
-            y: number,
-            rInner: number,
-            rOuter: number,
-            startAngle: number,
-            endAngle: number,
-            gapDegrees: number
+            x: number, y: number, rInner: number, rOuter: number,
+            startAngle: number, endAngle: number, gapDegrees: number
         ): string => {
             const totalAngleSpan = endAngle - startAngle;
             const gap = totalAngleSpan > gapDegrees && totalAngleSpan < 359.99 ? gapDegrees : 0;
-            const effectiveStart = startAngle + gap / 2,
-                effectiveEnd = endAngle - gap / 2;
+            const effectiveStart = startAngle + gap / 2, effectiveEnd = endAngle - gap / 2;
             const angleSpan = effectiveEnd - effectiveStart;
 
             if (angleSpan <= 0) return "";
@@ -278,63 +396,15 @@ const AssetsOverview: React.FC = () => {
                 lei = polarToCartesian(x, y, rInner + cr, effectiveEnd);
 
             return [
-                "M",
-                oas.x,
-                oas.y,
-                "A",
-                rOuter,
-                rOuter,
-                0,
-                angleSpan <= 180 ? "0" : "1",
-                1,
-                oae.x,
-                oae.y,
-                "A",
-                cr,
-                cr,
-                0,
-                0,
-                1,
-                leo.x,
-                leo.y,
-                "L",
-                lei.x,
-                lei.y,
-                "A",
-                cr,
-                cr,
-                0,
-                0,
-                1,
-                iae.x,
-                iae.y,
-                "A",
-                rInner,
-                rInner,
-                0,
-                angleSpan <= 180 ? "0" : "1",
-                0,
-                ias.x,
-                ias.y,
-                "A",
-                cr,
-                cr,
-                0,
-                0,
-                1,
-                lsi.x,
-                lsi.y,
-                "L",
-                lso.x,
-                lso.y,
-                "A",
-                cr,
-                cr,
-                0,
-                0,
-                1,
-                oas.x,
-                oas.y,
+                "M", oas.x, oas.y,
+                "A", rOuter, rOuter, 0, angleSpan <= 180 ? "0" : "1", 1, oae.x, oae.y,
+                "A", cr, cr, 0, 0, 1, leo.x, leo.y,
+                "L", lei.x, lei.y,
+                "A", cr, cr, 0, 0, 1, iae.x, iae.y,
+                "A", rInner, rInner, 0, angleSpan <= 180 ? "0" : "1", 0, ias.x, ias.y,
+                "A", cr, cr, 0, 0, 1, lsi.x, lsi.y,
+                "L", lso.x, lso.y,
+                "A", cr, cr, 0, 0, 1, oas.x, oas.y,
                 "Z",
             ].join(" ");
         };
@@ -342,22 +412,13 @@ const AssetsOverview: React.FC = () => {
         const formatCurrency = (v: number): string =>
             v >= 1000 ? `$${(v / 1000).toFixed(1)}K` : `$${v.toFixed(2)}`;
 
-        const createClipPath = (
-            defs: SVGDefsElement,
-            id: string,
-            rInner: number,
-            rOuter: number
-        ) => {
+        const createClipPath = (defs: SVGDefsElement, id: string, rInner: number, rOuter: number) => {
             const cp = document.createElementNS("http://www.w3.org/2000/svg", "clipPath");
 
             cp.id = id;
             const sh = document.createElementNS("http://www.w3.org/2000/svg", "path");
-            const o = `M ${centerX - rOuter},${centerY} a ${rOuter},${rOuter} 0 1,0 ${
-                rOuter * 2
-            },0 a ${rOuter},${rOuter} 0 1,0 -${rOuter * 2},0 Z`;
-            const i = `M ${centerX - rInner},${centerY} a ${rInner},${rInner} 0 1,0 ${
-                rInner * 2
-            },0 a ${rInner},${rInner} 0 1,0 -${rInner * 2},0 Z`;
+            const o = `M ${centerX - rOuter},${centerY} a ${rOuter},${rOuter} 0 1,0 ${rOuter * 2},0 a ${rOuter},${rOuter} 0 1,0 -${rOuter * 2},0 Z`;
+            const i = `M ${centerX - rInner},${centerY} a ${rInner},${rInner} 0 1,0 ${rInner * 2},0 a ${rInner},${rInner} 0 1,0 -${rInner * 2},0 Z`;
 
             sh.setAttribute("d", o + " " + i);
             sh.setAttribute("clip-rule", "evenodd");
@@ -374,46 +435,28 @@ const AssetsOverview: React.FC = () => {
             const activePath: AssetNode[] = [];
             let cn: AssetNode | null | undefined = activeNode;
 
-            while (cn) {
-                activePath.unshift(cn);
-                cn = cn.parent;
-            }
+            while (cn) { activePath.unshift(cn); cn = cn.parent; }
 
             const l1ClipId = "clip-l1";
 
-            createClipPath(
-                defs,
-                l1ClipId,
-                config.baseInnerRadius,
-                config.baseInnerRadius + config.ringHeight
-            );
-            drawLayer(assetData, 0, 360, false, l1ClipId);
+            createClipPath(defs, l1ClipId, config.baseInnerRadius, config.baseInnerRadius + config.ringHeight);
+            drawLayer(dataToRender, 0, 360, false, l1ClipId);
 
-            let sa = 0,
-                ea = 360;
+            let sa = 0, ea = 360;
 
             for (let i = 1; i < activePath.length; i++) {
-                const node = activePath[i],
-                    parent = activePath[i - 1];
+                const node = activePath[i], parent = activePath[i - 1];
                 let ao = sa;
                 const pa = ea - sa;
 
                 parent.children?.forEach((sib) => {
                     const s = (sib.value / parent.value) * pa;
 
-                    if (sib === node) {
-                        sa = ao;
-                        ea = ao + s;
-                    }
+                    if (sib === node) { sa = ao; ea = ao + s; }
                     ao += s;
                 });
-
                 const cd = (node.depth || 0) + 1;
-                const rIn =
-                    config.baseInnerRadius +
-                    config.ringHeight +
-                    (cd - 2) * (config.expandedRingHeight + config.expansionGap) +
-                    config.expansionGap;
+                const rIn = config.baseInnerRadius + config.ringHeight + (cd - 2) * (config.expandedRingHeight + config.expansionGap) + config.expansionGap;
                 const rOut = rIn + config.expandedRingHeight;
                 const clipId = `clip-l${cd}`;
 
@@ -423,56 +466,32 @@ const AssetsOverview: React.FC = () => {
             updateInfo();
         };
 
-        const EPS = 0.001;
-        const drawLayer = (
-            parentNode: AssetNode,
-            startAngle: number,
-            endAngle: number,
-            isAnimated: boolean,
-            clipPathId: string
-        ) => {
+        const drawLayer = (parentNode: AssetNode, startAngle: number, endAngle: number, isAnimated: boolean, clipPathId: string) => {
             if (!parentNode.children || parentNode.children.length === 0) return;
-
             let currentAngle = startAngle;
             const totalValue = parentNode.value;
             const fullSpan = endAngle - startAngle;
 
             parentNode.children.forEach((child) => {
-                // raw span
                 const rawSpan = (child.value / totalValue) * fullSpan;
-
-                // clamp 360° slices
                 const isOnlyChild = parentNode.children!.length === 1;
                 const span = Math.min(rawSpan, 359.999);
-                const localStart = isOnlyChild ? currentAngle + EPS : currentAngle;
-                const localEnd   = localStart + span;
+                const localStart = isOnlyChild ? currentAngle + 0.001 : currentAngle;
+                const localEnd = localStart + span;
 
-                const rInner =
-                    config.baseInnerRadius +
-                    config.ringHeight +
-                    ((child.depth || 0) - 2) * (config.expandedRingHeight + config.expansionGap) +
-                    config.expansionGap;
-
+                const rInner = config.baseInnerRadius + config.ringHeight + ((child.depth || 0) - 2) * (config.expandedRingHeight + config.expansionGap) + config.expansionGap;
                 const rOuter = rInner + config.expandedRingHeight;
-
                 const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
 
-                path.setAttribute(
-                    "d",
-                    describeFlatSidedArc(
-                        centerX,
-                        centerY,
-                        child.depth === 1 ? config.baseInnerRadius : rInner,
-                        child.depth === 1 ? config.baseInnerRadius + config.ringHeight : rOuter,
-                        localStart,
-                        localEnd,
-                        config.sliceGap
-                    )
-                );
+                path.setAttribute("d", describeFlatSidedArc(
+                    centerX, centerY,
+                    child.depth === 1 ? config.baseInnerRadius : rInner,
+                    child.depth === 1 ? config.baseInnerRadius + config.ringHeight : rOuter,
+                    localStart, localEnd, config.sliceGap
+                ));
                 path.setAttribute("fill", child.color || "#888");
                 path.setAttribute("class", "arc");
-                path.style.transition =
-                    "opacity 0.3s ease, transform 0.5s cubic-bezier(0.16, 1, 0.3, 1)";
+                path.style.transition = "opacity 0.3s ease, transform 0.5s cubic-bezier(0.16, 1, 0.3, 1)";
                 path.style.transformOrigin = `${centerX}px ${centerY}px`;
                 path.style.cursor = "pointer";
                 if (clipPathId) path.setAttribute("clip-path", `url(#${clipPathId})`);
@@ -480,12 +499,8 @@ const AssetsOverview: React.FC = () => {
                 if (isAnimated) {
                     path.style.opacity = "0";
                     path.style.transform = "scale(0.95)";
-                    requestAnimationFrame(() => {
-                        path.style.opacity = "1";
-                        path.style.transform = "scale(1)";
-                    });
+                    requestAnimationFrame(() => { path.style.opacity = "1"; path.style.transform = "scale(1)"; });
                 }
-
                 path.addEventListener("mouseenter", () => {
                     if (child !== activeNode) {
                         lastActiveNode = activeNode;
@@ -493,43 +508,30 @@ const AssetsOverview: React.FC = () => {
                         renderChart();
                     }
                 });
-
                 svg.appendChild(path);
-
-                // advance
-                currentAngle += rawSpan; // keep accumulator aligned with the true proportions
+                currentAngle += rawSpan;
             });
         };
 
         const updateInfo = () => {
-            const name = activeNode === assetData ? assetData.name : activeNode.name;
+            const name = activeNode === dataToRender ? dataToRender.name : activeNode.name;
             const value = formatCurrency(activeNode.value);
-            const color =
-                (activeNode.depth || 0) > 0 ? activeNode.color : "var(--color-text-primary)";
+            const color = (activeNode.depth || 0) > 0 ? activeNode.color : "var(--color-text-primary)";
 
             centerTextEl.innerHTML = `
         <span class="text-xs font-medium text-gray-400 mb-0.5">${name}</span>
         <span class="text-lg font-semibold transition-colors" style="color: ${color};">${value}</span>
       `;
-
             legendEl.innerHTML = "";
-
             const activePath: AssetNode[] = [];
             let cur: AssetNode | null | undefined = activeNode;
 
-            while (cur) {
-                activePath.unshift(cur);
-                cur = cur.parent;
-            }
+            while (cur) { activePath.unshift(cur); cur = cur.parent; }
 
-            const renderColumn = (
-                nodes: AssetNode[],
-                parentValue: number,
-                highlightNode: AssetNode | null
-            ) => {
+            const renderColumn = (nodes: AssetNode[], parentValue: number, highlightNode: AssetNode | null) => {
                 const colDiv = document.createElement("div");
 
-                colDiv.className = "flex flex-col gap-1";
+                colDiv.className = "flex flex-col gap-1 min-w-[120px]";
                 if (legendEl.children.length > 0) {
                     colDiv.style.paddingLeft = "16px";
                     colDiv.style.borderLeft = "1px solid #333";
@@ -538,15 +540,23 @@ const AssetsOverview: React.FC = () => {
                     const percentage = ((node.value / parentValue) * 100).toFixed(0);
                     const itemEl = document.createElement("div");
 
-                    itemEl.className = `flex items-center text-sm p-1 px-2 rounded-md transition-all whitespace-nowrap ${
+                    itemEl.className = `flex items-center text-sm p-1 px-2 rounded-md transition-all whitespace-nowrap cursor-pointer hover:bg-white/5 ${
                         activePath.includes(node) ? "text-white" : "text-gray-400"
                     } ${highlightNode === node ? "font-semibold text-white bg-[#333]" : ""}`;
+
+                    // Allow clicking legend to navigate
+                    itemEl.onclick = () => {
+                        if (node !== activeNode) {
+                            lastActiveNode = activeNode;
+                            activeNode = node;
+                            renderChart();
+                        }
+                    };
+
                     itemEl.innerHTML = `
-            <div class="w-2 h-2 rounded-full mr-2.5 shrink-0" style="background-color:${
-                        node.color || "#888"
-                    };"></div>
-            <div class="flex-grow">${node.name}</div>
-            <div class="font-medium ml-3">${percentage}%</div>
+            <div class="w-2 h-2 rounded-full mr-2.5 shrink-0" style="background-color:${node.color || "#888"};"></div>
+            <div class="flex-grow truncate mr-2">${node.name}</div>
+            <div class="font-medium">${percentage}%</div>
           `;
                     colDiv.appendChild(itemEl);
                 });
@@ -558,59 +568,45 @@ const AssetsOverview: React.FC = () => {
                 const parentNode = activePath[i];
 
                 if (parentNode.children && parentNode.children.length > 0) {
-                    const highlightNode =
-                        activePath[i + 1] ||
-                        ((activeNode.depth || 0) > (parentNode.depth || 0) ? activeNode : null);
+                    const highlightNode = activePath[i + 1] || ((activeNode.depth || 0) > (parentNode.depth || 0) ? activeNode : null);
 
-                    legendEl.appendChild(
-                        renderColumn(parentNode.children, parentNode.value, highlightNode)
-                    );
+                    legendEl.appendChild(renderColumn(parentNode.children, parentNode.value, highlightNode));
                 }
             }
         };
 
         const handleMouseMove = (e: MouseEvent) => {
-            if (activeNode === assetData) return;
+            if (activeNode === dataToRender) return;
             const rect = svg.getBoundingClientRect();
             const scaleX = svg.viewBox.baseVal.width / rect.width;
             const scaleY = svg.viewBox.baseVal.height / rect.height;
-            const mouseX = (e.clientX - rect.left) * scaleX;
-            const mouseY = (e.clientY - rect.top) * scaleY;
-            const dx = mouseX - centerX;
-            const dy = mouseY - centerY;
-            const dist = Math.sqrt(dx * dx + dy * dy);
+            const dist = Math.sqrt(Math.pow((e.clientX - rect.left) * scaleX - centerX, 2) + Math.pow((e.clientY - rect.top) * scaleY - centerY, 2));
 
             let maxR = config.baseInnerRadius + config.ringHeight;
 
             if ((activeNode.depth || 0) === 1) maxR += config.expansionGap + config.expandedRingHeight;
-            else if ((activeNode.depth || 0) >= 2)
-                maxR += (config.expansionGap + config.expandedRingHeight) * 2;
+            else if ((activeNode.depth || 0) >= 2) maxR += (config.expansionGap + config.expandedRingHeight) * 2;
 
-            if (
-                dist < config.baseInnerRadius - config.centerBuffer ||
-                dist > maxR + config.resetMargin
-            ) {
+            if (dist < config.baseInnerRadius - config.centerBuffer || dist > maxR + config.resetMargin) {
                 lastActiveNode = activeNode;
-                activeNode = assetData;
+                activeNode = dataToRender;
                 renderChart();
             }
         };
 
         const handleMouseLeave = () => {
-            if (activeNode !== assetData) {
+            if (activeNode !== dataToRender) {
                 lastActiveNode = activeNode;
-                activeNode = assetData;
+                activeNode = dataToRender;
                 renderChart();
             }
         };
 
         assetsContainer.addEventListener("mousemove", handleMouseMove);
         assetsContainer.addEventListener("mouseleave", handleMouseLeave);
-
-        processData(assetData);
+        processData(dataToRender);
         renderChart();
 
-        // Cleanup
         return () => {
             assetsContainer.removeEventListener("mousemove", handleMouseMove);
             assetsContainer.removeEventListener("mouseleave", handleMouseLeave);
@@ -621,16 +617,22 @@ const AssetsOverview: React.FC = () => {
     useEffect(() => {
         const data = view === "broker" ? brokerData : assetData;
 
+        // Handle Empty State visual for "By Asset" specifically
+        if (view === "asset" && !data && !loading) {
+            if(chartWrapperRef.current) chartWrapperRef.current.innerHTML = "<div class='text-gray-500 text-sm italic w-full text-center mt-10'>No granular asset data available</div>";
+
+            return;
+        }
+
         if (!data) return;
 
         return drawChart(data);
-    }, [view, brokerData, assetData, drawChart]);
+    }, [view, brokerData, assetData, drawChart, loading]);
 
     return (
-        <div ref={componentContainerRef} className="ua-card p-6 w-full text-white h-full">
+        <div ref={componentContainerRef} className="ua-card p-6 w-full text-white h-full min-h-[350px]">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between w-full mb-4 gap-4 sm:gap-0">
                 <h4 className="font-bold text-lg">Assets</h4>
-
                 <div className="inline-flex">
                     <div className="flex p-1 gap-1 items-center h-8 rounded-lg bg-[#0A0908]">
                         <button
@@ -653,13 +655,10 @@ const AssetsOverview: React.FC = () => {
                 </div>
             </div>
 
-            {loading && <div className="mt-6 text-sm text-gray-400 flex items-center justify-center w-full">Loading assets…</div>}
+            {loading && <div className="mt-6 text-sm text-gray-400 flex items-center justify-center w-full animate-pulse">Loading assets…</div>}
             {error && <div className="mt-6 text-sm text-red-400">Error: {error}</div>}
 
-            <div
-                ref={chartWrapperRef}
-                className="assets-chart-body mt-4 flex flex-col sm:flex-row flex-1 relative items-center justify-start gap-6"
-            >
+            <div ref={chartWrapperRef} className="assets-chart-body mt-4 flex flex-col sm:flex-row flex-1 relative items-center justify-start gap-6">
                 {/* Chart & Legend render here */}
             </div>
         </div>
