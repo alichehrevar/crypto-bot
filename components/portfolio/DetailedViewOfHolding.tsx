@@ -1,7 +1,7 @@
 import React from "react";
 
-import SummaryPieChartWithDetails from "@/components/portfolio/assets/SummaryPieChartWithDetails";
 import AssetsTable from "@/components/portfolio/assets/AssetsTable";
+import AssetsOverview from "@/components/dashboard/AssetsOverview";
 
 export default function DetailedViewOfHolding() {
     return (
@@ -12,7 +12,7 @@ export default function DetailedViewOfHolding() {
             <div className="col-span-5 h-full">
                 <div className="relative h-full">
                     <div className="sticky top-[85px]">
-                        <SummaryPieChartWithDetails />
+                        <AssetsOverview />
                     </div>
                 </div>
             </div>
