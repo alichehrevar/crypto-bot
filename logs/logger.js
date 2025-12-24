@@ -43,6 +43,8 @@ class TelegramLogger extends Transport {
 
         const { level, message, timestamp, stack } = info;
 
+        if (process.env.NODE_ENV === 'development') return null;
+
         // Escape content to prevent Telegram parsing errors
         const safeMessage = escapeHtml(message);
 

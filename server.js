@@ -112,7 +112,7 @@ connectDB().then(async () => {
     // Initialize and start all scheduled jobs
     await startScheduledJobs();
 
-    syncImportedJobs();
+    syncImportedJobs().catch(() => logger.error('Failed to sync imported jobs.'));
 });
 
 // Health check
