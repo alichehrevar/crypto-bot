@@ -168,4 +168,80 @@ async function updateListingsData() {
     }
 }
 
-module.exports = { updateListingsData };
+/**
+ * CRITICAL: Updates prices for tokens that have already launched (Recent).
+ * Without this, the 'Launch Performance Tracker' on the frontend will show stale data.
+ */
+async function updateRecentPrices() {
+    console.log('Starting background price update for recent listings...');
+
+    try {
+        // Find recent listings that need price updates (e.g., launched in the last 30 days)
+        const now = new Date();
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+        const recentListings = await UpcomingListing.find({
+            date_event: { $lt: now, $gte: thirtyDaysAgo },
+            'coins.0.coinId': { $exists: true } // Ensure there is a CoinGecko ID
+        }).limit(20); // Process in batches to avoid rate limits
+
+        if (recentListings.length === 0) return;
+
+        for (const listing of recentListings) {
+            const coinId = listing.coins[0].coinId;
+
+            try {
+                // Fetch current price from CoinGecko
+                const response = await axios.get(`${COINGECKO_BASE_URL}/simple/price`, {
+                    params: {
+                        ids: coinId,
+                        vs_currencies: 'usd',
+                        include_24hr_change: 'true'
+                    }
+                });
+
+                const priceData = response.data[coinId];
+
+                if (priceData) {
+                    const currentPrice = priceData.usd || 0;
+                    const change24h = priceData.usd_24h_change || 0;
+
+                    // Update Velocity Logic based on live data
+                    let velocity = 'Medium';
+                    if (change24h > 5) velocity = 'High ↑';
+                    else if (change24h < -5) velocity = 'High ↓';
+
+                    // If launchPrice was 0 (missed previously), try to set it to current price
+                    // (or fetch history if you want to be precise, but this is a fallback)
+                    const updateFields = {
+                        currentPrice: currentPrice,
+                        velocity: velocity
+                    };
+
+                    // Only update launchPrice if it was missing
+                    if (listing.launchPrice === 0 && currentPrice > 0) {
+                        updateFields.launchPrice = currentPrice;
+                    }
+
+                    await UpcomingListing.updateOne(
+                        { _id: listing._id },
+                        { $set: updateFields }
+                    );
+
+                    console.log(`Updated price for ${listing.coins[0].name}: $${currentPrice}`);
+                }
+
+                // Small delay to respect CoinGecko Rate Limit (Free Tier)
+                await sleep(1500);
+
+            } catch (err) {
+                console.error(`Failed to update price for ${coinId}:`, err.message);
+            }
+        }
+    } catch (error) {
+        console.error('Error in updateRecentPrices:', error);
+    }
+}
+
+module.exports = { updateListingsData, updateRecentPrices };

@@ -1,12 +1,18 @@
 const cron = require('node-cron');
-const {updateListingsData} = require("../app/services/listingService");
+const {updateListingsData, updateRecentPrices} = require("../app/services/listingService");
 const logger = require('../logs/logger');
 
 // This job runs every hour to update the current prices of recently launched assets.
 const schedulePriceUpdate = () => {
-    cron.schedule('0 * * * *', async () => {
-        logger.info('Starting price update job...')
-        await updateListingsData()
+    // Sync new events every 4 hours
+    cron.schedule('0 */4 * * *', () => {
+        updateListingsData().catch(err =>
+            logger.error('Failed to update listings data:', err.message));
+    });
+
+    // Update prices for the "Performance Tracker" every 15 minutes
+    cron.schedule('*/15 * * * *', () => {
+        updateRecentPrices();
     });
 };
 
