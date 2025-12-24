@@ -15,6 +15,7 @@ export type ApiBot = {
     symbol: string;
     timeframe: string;
     leverage: string;
+    accountType: string;
     paperBalance: number;
     userId: string;
     botType: 'indicator' | 'grid' | 'dca';
@@ -22,7 +23,7 @@ export type ApiBot = {
     mode: string; // 'live' | 'paper'
     createdAt: string;
     updatedAt: string;
-    strategy?: string;
+    strategy: string;
 
     // Risk & Money Management
     riskStrategy?: string;
@@ -30,6 +31,7 @@ export type ApiBot = {
         state: string;
         baseFund?: number;
         tradeFund?: number;
+        leverage?: number;
         lastSignal?: string;
         currentCandle?: { price: number };
     };
