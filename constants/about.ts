@@ -13,7 +13,7 @@ export const ABOUT_CONTENT = {
     },
     testimonial: {
         paragraph: 'We started United Algos to make trading cryptocurrencies easy, efficient, and stress-free. For traders with any experience.',
-        author: 'Sasan',
+        author: 'Kaveh',
         specialization: 'CEO',
     }
 };
