@@ -274,7 +274,7 @@ export function UserHub() {
                             className="border-b border-zinc-900 hover:bg-zinc-900/50 cursor-pointer transition-colors group"
                         >
                             <td className="p-4 pl-6 overflow-hidden">
-                                <Link href={`/users/${user.id}`} className="block">
+                                <Link href={`/app/(dashboard)/users/${user.id}`} className="block">
                                     <div className="flex items-center gap-3">
                                         <div className="w-8 h-8 relative rounded-full bg-zinc-800 border border-zinc-700 overflow-hidden grayscale group-hover:grayscale-0 transition-all shrink-0">
                                             <Image fill src={user.avatar} className="w-full h-full object-cover" alt={`${user.firstName} ${user.lastName}`} />
@@ -289,7 +289,7 @@ export function UserHub() {
                                 </Link>
                             </td>
                             <td className="p-4 text-xs text-zinc-400 text-left truncate">
-                                <Link href={`/users/${user.id}`} className="block">
+                                <Link href={`/app/(dashboard)/users/${user.id}`} className="block">
                                     <div className="flex items-center gap-1">
                                         <MapPin size={10} />
                                         {user.country}
@@ -297,17 +297,17 @@ export function UserHub() {
                                 </Link>
                             </td>
                             <td className="p-4 text-left">
-                                <Link href={`/users/${user.id}`} className="block">
+                                <Link href={`/app/(dashboard)/users/${user.id}`} className="block">
                                     <Badge variant={user.plan}>{user.plan}</Badge>
                                 </Link>
                             </td>
                             <td className="p-4 text-center font-mono text-zinc-300">
-                                <Link href={`/users/${user.id}`} className="block">
+                                <Link href={`/app/(dashboard)/users/${user.id}`} className="block">
                                     {user.botCount}
                                 </Link>
                             </td>
                             <td className="p-4 text-xs text-zinc-500 font-mono text-right">
-                                <Link href={`/users/${user.id}`} className="block">
+                                <Link href={`/app/(dashboard)/users/${user.id}`} className="block">
                                     <div className="flex items-center justify-end gap-1">
                                         <Gift size={10} />
                                         {user.birthday}
@@ -315,7 +315,7 @@ export function UserHub() {
                                 </Link>
                             </td>
                             <td className="p-4 text-xs text-zinc-500 font-mono text-right">
-                                <Link href={`/users/${user.id}`} className="block">
+                                <Link href={`/app/(dashboard)/users/${user.id}`} className="block">
                                     <div className="flex items-center justify-end gap-1">
                                         <Calendar size={10} />
                                         {user.joinedAt}
@@ -323,12 +323,12 @@ export function UserHub() {
                                 </Link>
                             </td>
                             <td className="p-4 text-center">
-                                <Link href={`/users/${user.id}`} className="block">
+                                <Link href={`/app/(dashboard)/users/${user.id}`} className="block">
                                     <Badge variant={user.status}>{user.status}</Badge>
                                 </Link>
                             </td>
                             <td className="p-4 pr-6 text-right">
-                                <Link href={`/users/${user.id}`} className="block">
+                                <Link href={`/app/(dashboard)/users/${user.id}`} className="block">
                                     <ChevronRight size={16} className="text-zinc-700 group-hover:text-white" />
                                 </Link>
                             </td>

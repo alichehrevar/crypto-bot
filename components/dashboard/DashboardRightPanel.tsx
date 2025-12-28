@@ -124,7 +124,7 @@ export function DashboardRightPanel() {
                     {RISK_ALERTS.map((alert, i) => (
                         <Link
                             key={i}
-                            href={`/users/${alert.id}`}
+                            href={`/app/(dashboard)/users/${alert.id}`}
                             className="flex items-start gap-3 p-3 bg-rose-900/10 border border-rose-900/20 rounded-sm hover:bg-rose-900/20 transition-colors cursor-pointer group"
                         >
                             <AlertTriangle size={16} className="text-rose-500 mt-0.5" />
