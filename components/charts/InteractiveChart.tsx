@@ -1,7 +1,7 @@
 // components/charts/InteractiveChart.tsx
 'use client'
 
-import { useState, useMemo, useRef, useEffect } from 'react'
+import React, { useState, useMemo, useRef } from 'react'
 import { Card } from '@/components/common/Card'
 import { MoveHorizontal } from 'lucide-react'
 import { SimpleLineChart } from './SimpleLineChart'
@@ -11,6 +11,9 @@ interface ChartDataPoint {
     v: number
 }
 
+// 1. Define Filter Type locally for reuse
+type FilterType = '1D' | '7D' | '30D' | 'ALL';
+
 interface InteractiveChartProps {
     data: ChartDataPoint[]
     type: 'PNL' | 'EQUITY'
@@ -19,7 +22,7 @@ interface InteractiveChartProps {
 }
 
 export function InteractiveChart({ data, type, setType, className }: InteractiveChartProps) {
-    const [filter, setFilter] = useState<'1D' | '7D' | '30D' | 'ALL'>('30D')
+    const [filter, setFilter] = useState<FilterType>('30D')
     const [windowStart, setWindowStart] = useState(0)
     const [hoverData, setHoverData] = useState<ChartDataPoint | null>(null)
     const [hoverPos, setHoverPos] = useState<{ x: number; y: number } | null>(null)
@@ -28,6 +31,7 @@ export function InteractiveChart({ data, type, setType, className }: Interactive
     const isDragging = useRef(false)
     const lastX = useRef(0)
 
+    // Calculate window size purely based on state
     const windowSize = useMemo(() => {
         const len = data.length
         switch (filter) {
@@ -44,9 +48,24 @@ export function InteractiveChart({ data, type, setType, className }: Interactive
         }
     }, [filter, data.length])
 
-    useEffect(() => {
-        setWindowStart(Math.max(0, data.length - windowSize))
-    }, [windowSize, data.length])
+    // --- REMOVED useEffect ---
+    // Was causing cascading renders. Now logic moves to 'handleFilterChange' below.
+
+    // 2. New Handler to update Filter AND WindowStart simultaneously
+    const handleFilterChange = (newFilter: FilterType) => {
+        setFilter(newFilter);
+
+        // Recalculate size immediately for the new start position logic
+        // We duplicate the logic here or extract it to a helper function.
+        // For simplicity, extracting logic:
+        let newSize = data.length;
+        if (newFilter === '1D') newSize = Math.ceil(data.length * 0.05);
+        if (newFilter === '7D') newSize = Math.ceil(data.length * 0.2);
+        if (newFilter === '30D') newSize = Math.ceil(data.length * 0.5);
+
+        // Reset window to the end (the most recent data)
+        setWindowStart(Math.max(0, data.length - newSize));
+    };
 
     const visibleData = useMemo(() => {
         const start = Math.max(0, Math.min(windowStart, data.length - windowSize))
@@ -55,6 +74,7 @@ export function InteractiveChart({ data, type, setType, className }: Interactive
     }, [data, windowStart, windowSize])
 
     const yAxisRange = useMemo(() => {
+        if (visibleData.length === 0) return { min: 0, max: 100 };
         const max = Math.max(...visibleData.map((d) => d.v))
         const min = Math.min(...visibleData.map((d) => d.v))
         return { max, min }
@@ -121,6 +141,9 @@ export function InteractiveChart({ data, type, setType, className }: Interactive
 
     const chartColor = '#ffffff'
 
+    // Typed array for buttons
+    const FILTERS: FilterType[] = ['1D', '7D', '30D', 'ALL'];
+
     return (
         <Card className={`flex flex-col p-0 overflow-hidden ${className || 'h-full'}`}>
             <div className="p-4 border-b border-zinc-900 flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 bg-zinc-950">
@@ -147,10 +170,11 @@ export function InteractiveChart({ data, type, setType, className }: Interactive
                 </div>
 
                 <div className="flex gap-1">
-                    {['1D', '7D', '30D', 'ALL'].map((f) => (
+                    {FILTERS.map((f) => (
                         <button
                             key={f}
-                            onClick={() => setFilter(f as any)}
+                            // 3. Use the new handler, 'f' is strongly typed now
+                            onClick={() => handleFilterChange(f)}
                             className={`px-3 py-1 text-[10px] font-bold transition-all rounded-sm uppercase ${
                                 filter === f ? 'bg-white text-black' : 'text-zinc-500 hover:text-white'
                             }`}
@@ -213,8 +237,9 @@ export function InteractiveChart({ data, type, setType, className }: Interactive
                 </div>
 
                 <div className="absolute bottom-1 left-8 right-6 flex justify-between text-[9px] font-mono text-zinc-600 pointer-events-none">
-                    <span>T-{visibleData[0]?.d}</span>
-                    <span>T-{visibleData[visibleData.length - 1]?.d}</span>
+                    {/* Add optional chaining or fallback to prevent crashes on empty data */}
+                    <span>T-{visibleData[0]?.d ?? 0}</span>
+                    <span>T-{visibleData[visibleData.length - 1]?.d ?? 0}</span>
                 </div>
             </div>
 
