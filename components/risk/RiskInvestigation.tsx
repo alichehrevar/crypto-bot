@@ -1,9 +1,10 @@
 // components/risk/RiskInvestigation.tsx
 'use client'
 
+import { useMemo } from 'react'
 import { RiskUser } from '@/components/risk/RiskControl'
 import { Card } from '@/components/common/Card'
-import { ArrowLeft, Microscope, AlertTriangle } from 'lucide-react'
+import { ArrowLeft, Microscope } from 'lucide-react'
 
 interface RiskInvestigationProps {
     user: RiskUser
@@ -11,6 +12,15 @@ interface RiskInvestigationProps {
 }
 
 export function RiskInvestigation({ user, onBack }: RiskInvestigationProps) {
+
+    const caseId = useMemo(() => {
+        let hash = 0;
+        for (let i = 0; i < user.id.length; i++) {
+            hash = user.id.charCodeAt(i) + ((hash << 5) - hash);
+        }
+        return Math.abs(hash % 10000).toString().padStart(4, '0');
+    }, [user.id]);
+
     return (
         <div className="animate-enter space-y-6">
             <button
@@ -26,10 +36,10 @@ export function RiskInvestigation({ user, onBack }: RiskInvestigationProps) {
                         <Microscope size={32} className="text-rose-500" /> Forensic Investigation
                     </h2>
                     <div className="flex gap-4 mt-2 text-xs font-mono text-zinc-500">
-                        <span>CASE-ID: {Math.floor(Math.random() * 10000)}</span>
+                        <span>CASE-ID: {caseId}</span>
                         <span>
-              TARGET: {user.name} ({user.id})
-            </span>
+                            TARGET: {user.name} ({user.id})
+                        </span>
                     </div>
                 </div>
                 <div className="flex gap-2">
@@ -77,7 +87,7 @@ export function RiskInvestigation({ user, onBack }: RiskInvestigationProps) {
 
                 <Card className="lg:col-span-2">
                     <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500 mb-6">Suspicious Activity Log</h3>
-                    <div className="space-y-2 max-h-[300px] overflow-y-auto custom-scrollbar pr-2">
+                    <div className="space-y-2 max-h-75 overflow-y-auto custom-scrollbar pr-2">
                         {[...Array(8)].map((_, i) => (
                             <div key={i} className="grid grid-cols-12 gap-2 text-xs border-b border-zinc-900/50 pb-2">
                                 <span className="col-span-2 font-mono text-zinc-500">14:02:{10 + i}</span>
