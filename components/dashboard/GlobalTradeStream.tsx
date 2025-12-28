@@ -1,7 +1,7 @@
 // components/dashboard/GlobalTradeStream.tsx
 'use client'
 
-import { useState, useMemo, useEffect } from 'react'
+import React, { useState, useMemo } from 'react'
 import { Card } from '@/components/common/Card'
 import { Badge } from '@/components/common/Badge'
 import { Pagination } from '@/components/common/Pagination'
@@ -9,16 +9,7 @@ import { PremiumCheckbox } from '@/components/common/PremiumCheckbox'
 import { MOCK_GLOBAL_TRADES } from '@/lib/mock-service'
 import { Activity, Clock, Search, Filter, TrendingUp, TrendingDown } from 'lucide-react'
 
-interface Trade {
-    id: string
-    pair: string
-    side: 'BUY' | 'SELL'
-    time: string
-    price: string
-    vol: string
-    user: string
-    botType: 'TECHNICAL' | 'GRID' | 'DCA' | 'CUSTOM_AI'
-}
+// ... (Interface remains the same)
 
 export function GlobalTradeStream() {
     const [tradeStreamPage, setTradeStreamPage] = useState(1)
@@ -32,7 +23,22 @@ export function GlobalTradeStream() {
     const [searchTerm, setSearchTerm] = useState('')
     const ITEMS_PER_PAGE_STREAM = 14
 
-    const globalTrades = MOCK_GLOBAL_TRADES // Use pre-generated data
+    const globalTrades = MOCK_GLOBAL_TRADES
+
+    const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setSearchTerm(e.target.value)
+        setTradeStreamPage(1) // Reset page immediately
+    }
+
+    const toggleSideFilter = (key: 'buy' | 'sell') => {
+        setTradeStreamFilter(prev => ({ ...prev, [key]: !prev[key] }))
+        setTradeStreamPage(1) // Reset page immediately
+    }
+
+    const toggleBotFilter = (key: keyof typeof tradeStreamBotFilter) => {
+        setTradeStreamBotFilter(prev => ({ ...prev, [key]: !prev[key] }))
+        setTradeStreamPage(1) // Reset page immediately
+    }
 
     const filteredStream = useMemo(() => {
         return globalTrades.filter((t) => {
@@ -45,7 +51,7 @@ export function GlobalTradeStream() {
                 ((tradeStreamFilter.buy && t.side === 'BUY') || (tradeStreamFilter.sell && t.side === 'SELL'))
 
             const matchesBotFilter =
-                tradeStreamBotFilter[t.botType as keyof typeof tradeStreamBotFilter] !== false
+                tradeStreamBotFilter[t.botType as keyof typeof tradeStreamBotFilter]
 
             return matchesSearch && matchesSideFilter && matchesBotFilter
         })
@@ -58,11 +64,6 @@ export function GlobalTradeStream() {
 
     const totalStreamPages = Math.ceil(filteredStream.length / ITEMS_PER_PAGE_STREAM)
 
-    useEffect(() => {
-        setTradeStreamPage(1)
-    }, [tradeStreamFilter, tradeStreamBotFilter, searchTerm])
-
-    // Calculate some statistics
     const stats = useMemo(() => {
         if (filteredStream.length === 0) {
             return { buyCount: 0, sellCount: 0, totalVolume: 0, avgPrice: 0 }
@@ -92,12 +93,13 @@ export function GlobalTradeStream() {
     }
 
     return (
-        <Card className="h-[520px] flex flex-col p-0 border border-zinc-800 bg-zinc-950">
+        <Card className="h-130 flex flex-col p-0 border border-zinc-800 bg-zinc-950">
             <div className="p-4 border-b border-zinc-900 bg-zinc-950 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
                 <div className="flex items-center gap-3">
                     <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500 flex items-center gap-2">
                         <Activity size={14} /> Global Trade Stream
                     </h3>
+                    {/* ... Stats Section (Unchanged) ... */}
                     <div className="hidden md:flex items-center gap-4 text-xs">
                         <div className="flex items-center gap-1">
                             <div className="w-2 h-2 rounded-full bg-emerald-500" />
@@ -121,7 +123,8 @@ export function GlobalTradeStream() {
                         <Search className="absolute left-3 top-2.5 text-zinc-600" size={14} />
                         <input
                             value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
+                            // 3. UPDATED ONCHANGE
+                            onChange={handleSearchChange}
                             placeholder="Search trades..."
                             className="w-full bg-black border border-zinc-800 py-2 pl-9 pr-4 text-xs text-white focus:border-white outline-none placeholder-zinc-700"
                         />
@@ -131,44 +134,44 @@ export function GlobalTradeStream() {
                             <PremiumCheckbox
                                 label="Buy"
                                 checked={tradeStreamFilter.buy}
-                                onChange={() => setTradeStreamFilter((prev) => ({ ...prev, buy: !prev.buy }))}
+                                // 3. UPDATED ONCHANGE
+                                onChange={() => toggleSideFilter('buy')}
                             />
                             <PremiumCheckbox
                                 label="Sell"
                                 checked={tradeStreamFilter.sell}
-                                onChange={() => setTradeStreamFilter((prev) => ({ ...prev, sell: !prev.sell }))}
+                                // 3. UPDATED ONCHANGE
+                                onChange={() => toggleSideFilter('sell')}
                             />
                         </div>
                         <div className="flex gap-2">
+                            {/* 3. UPDATED ONCHANGE FOR ALL BOTS */}
                             <PremiumCheckbox
                                 label="Technical"
                                 checked={tradeStreamBotFilter.TECHNICAL}
-                                onChange={() =>
-                                    setTradeStreamBotFilter((prev) => ({ ...prev, TECHNICAL: !prev.TECHNICAL }))
-                                }
+                                onChange={() => toggleBotFilter('TECHNICAL')}
                             />
                             <PremiumCheckbox
                                 label="Grid"
                                 checked={tradeStreamBotFilter.GRID}
-                                onChange={() => setTradeStreamBotFilter((prev) => ({ ...prev, GRID: !prev.GRID }))}
+                                onChange={() => toggleBotFilter('GRID')}
                             />
                             <PremiumCheckbox
                                 label="DCA"
                                 checked={tradeStreamBotFilter.DCA}
-                                onChange={() => setTradeStreamBotFilter((prev) => ({ ...prev, DCA: !prev.DCA }))}
+                                onChange={() => toggleBotFilter('DCA')}
                             />
                             <PremiumCheckbox
                                 label="Custom AI"
                                 checked={tradeStreamBotFilter.CUSTOM_AI}
-                                onChange={() =>
-                                    setTradeStreamBotFilter((prev) => ({ ...prev, CUSTOM_AI: !prev.CUSTOM_AI }))
-                                }
+                                onChange={() => toggleBotFilter('CUSTOM_AI')}
                             />
                         </div>
                     </div>
                 </div>
             </div>
 
+            {/* ... Rest of the component (List, Pagination, Footer) remains exactly the same ... */}
             <div className="flex-1 overflow-hidden relative bg-black">
                 <div className="grid grid-cols-12 px-4 py-2 border-b border-zinc-900 text-[10px] uppercase font-bold text-zinc-600">
                     <div className="col-span-2">Pair</div>

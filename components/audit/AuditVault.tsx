@@ -5,19 +5,15 @@ import { useState, useMemo } from 'react'
 import { Card } from '@/components/common/Card'
 import { Badge } from '@/components/common/Badge'
 import { Bar } from 'react-chartjs-2'
+import { ChartOptions } from 'chart.js'
 import '@/lib/chart-config'
 import {
     FileJson,
     Download,
     Search,
     X,
-    FileText,
     CheckCircle,
     XCircle,
-    AlertTriangle,
-    Shield,
-    History,
-    Activity,
 } from 'lucide-react'
 
 interface AuditLog {
@@ -29,7 +25,7 @@ interface AuditLog {
     timestamp: string
     status: 'SUCCESS' | 'FAILED'
     severity: 'INFO' | 'WARN' | 'CRITICAL'
-    payload: Record<string, any>
+    payload: Record<string, string | number | boolean | null>
     hash: string
 }
 
@@ -37,27 +33,37 @@ export function AuditVault() {
     const [auditSearch, setAuditSearch] = useState('')
     const [detailLog, setDetailLog] = useState<AuditLog | null>(null)
 
-    // Memoized audit logs data
-    const AUDIT_LOGS = useMemo(
-        () =>
-            Array.from({ length: 20 }).map((_, i) => ({
+    // Deterministic Data Generation (No useEffect needed)
+    const AUDIT_LOGS = useMemo(() => {
+        const baseDate = new Date('2024-10-25T12:00:00Z').getTime()
+
+        return Array.from({ length: 20 }).map((_, i) => {
+            const seed = (i + 1) * 123.45
+            const pseudoRand = (offset: number) => {
+                const x = Math.sin(seed + offset) * 10000
+                return x - Math.floor(x)
+            }
+
+            return {
                 id: `LOG-${84920 - i}`,
                 admin: ['Kaveh', 'System_Auto', 'Support_Team', 'Admin_2'][i % 4],
                 action: ['FORCE_LOGOUT', 'UPDATE_FEE', 'KILL_SWITCH_TEST', 'USER_REFUND', 'CONFIG_CHANGE'][i % 5],
                 target: `User-${1000 + i}`,
                 ip: `192.168.1.${i}`,
-                timestamp: new Date(Date.now() - i * 1000000).toISOString(),
+                timestamp: new Date(baseDate - i * 3600000).toISOString(),
                 status: ['SUCCESS', 'SUCCESS', 'SUCCESS', 'FAILED'][i % 4] as 'SUCCESS' | 'FAILED',
                 severity: ['INFO', 'WARN', 'CRITICAL', 'INFO'][i % 4] as 'INFO' | 'WARN' | 'CRITICAL',
                 payload: { fee_old: '0.1%', fee_new: '0.05%', reason: 'Holiday promo', auth_hash: 'a8f92...' },
-                hash: `sha256:${Math.random().toString(36).substring(2, 15)}${Math.random().toString(36).substring(2, 15)}`,
-            })),
-        [],
-    )
+                hash: `sha256:${Math.floor(pseudoRand(1) * 10000000).toString(16)}...`,
+            }
+        })
+    }, [])
 
-    const filteredLogs = AUDIT_LOGS.filter(
-        (log) => log.id.includes(auditSearch) || log.target.includes(auditSearch) || log.admin.includes(auditSearch),
-    )
+    const filteredLogs = useMemo(() => {
+        return AUDIT_LOGS.filter(
+            (log) => log.id.includes(auditSearch) || log.target.includes(auditSearch) || log.admin.includes(auditSearch),
+        )
+    }, [AUDIT_LOGS, auditSearch])
 
     // Activity Chart Data
     const chartData = {
@@ -72,24 +78,11 @@ export function AuditVault() {
         ],
     }
 
-    const chartOptions: any = {
+    const chartOptions: ChartOptions<'bar'> = {
         responsive: true,
         maintainAspectRatio: false,
         plugins: { legend: { display: false } },
         scales: { x: { display: false }, y: { display: false } },
-    }
-
-    const getSeverityColor = (severity: string) => {
-        switch (severity) {
-            case 'CRITICAL':
-                return 'text-rose-500'
-            case 'WARN':
-                return 'text-amber-500'
-            case 'INFO':
-                return 'text-emerald-500'
-            default:
-                return 'text-zinc-500'
-        }
     }
 
     const getStatusIcon = (status: string) => {
@@ -168,7 +161,7 @@ export function AuditVault() {
 
             <div className="flex gap-6">
                 <Card className={`p-0 overflow-hidden transition-all duration-300 ${detailLog ? 'w-2/3' : 'w-full'}`}>
-                    <div className="overflow-x-auto h-[600px] custom-scrollbar">
+                    <div className="overflow-x-auto h-150 custom-scrollbar">
                         <table className="w-full text-left text-xs">
                             <thead className="text-[10px] text-zinc-500 uppercase font-bold bg-zinc-950 border-b border-zinc-900 sticky top-0">
                             <tr>
@@ -185,8 +178,7 @@ export function AuditVault() {
                                 <tr
                                     key={log.id}
                                     onClick={() => setDetailLog(log)}
-                                    className={`cursor-pointer transition-colors font-mono ${
-                                        detailLog?.id === log.id ? 'bg-zinc-900' : 'hover:bg-zinc-900/30'
+                                    className={`cursor-pointer transition-colors font-mono ${detailLog?.id === log.id ? 'bg-zinc-900' : 'hover:bg-zinc-900/30'
                                     }`}
                                 >
                                     <td className="p-4 pl-6 text-zinc-500">{log.id}</td>
@@ -210,8 +202,8 @@ export function AuditVault() {
                                         <div className="flex items-center justify-end gap-2">
                                             {getStatusIcon(log.status)}
                                             <span className={log.status === 'SUCCESS' ? 'text-emerald-500' : 'text-rose-500 font-bold'}>
-                          {log.status}
-                        </span>
+                                                {log.status}
+                                            </span>
                                         </div>
                                     </td>
                                 </tr>
@@ -222,7 +214,7 @@ export function AuditVault() {
                 </Card>
 
                 {detailLog && (
-                    <Card className="w-1/3 h-[600px] flex flex-col border-l-4 border-l-white animate-enter">
+                    <Card className="w-1/3 h-150 flex flex-col border-l-4 border-l-white animate-enter">
                         <div className="flex justify-between items-start mb-6">
                             <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500">Log Inspector</h3>
                             <button onClick={() => setDetailLog(null)} className="text-zinc-500 hover:text-white">
@@ -253,8 +245,8 @@ export function AuditVault() {
                             <div className="space-y-1">
                                 <label className="text-[10px] font-bold text-zinc-600 uppercase">Change Payload (JSON)</label>
                                 <pre className="text-[10px] text-emerald-500 font-mono bg-black p-3 border border-zinc-800 overflow-x-auto rounded">
-                  {JSON.stringify(detailLog.payload, null, 2)}
-                </pre>
+                                    {JSON.stringify(detailLog.payload, null, 2)}
+                                </pre>
                             </div>
                         </div>
                         <div className="mt-auto pt-4 border-t border-zinc-900">

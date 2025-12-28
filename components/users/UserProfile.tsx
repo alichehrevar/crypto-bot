@@ -1,15 +1,15 @@
 // components/users/UserProfile.tsx
 'use client'
 
-import { useState, useMemo, useEffect } from 'react'
+import React, { useState, useMemo } from 'react'
 import { Card } from '@/components/common/Card'
 import { Badge } from '@/components/common/Badge'
 import { Pagination } from '@/components/common/Pagination'
 import { PremiumCheckbox } from '@/components/common/PremiumCheckbox'
 import { InteractiveChart } from '@/components/charts/InteractiveChart'
-import { User } from '@/types'
+import {SubscriptionPlan, User} from '@/types'
 import { MOCK_BOTS, MOCK_INVOICES, MOCK_ACTION_HISTORY } from '@/lib/data'
-import { MOCK_PNL_DATA, MOCK_EQUITY_DATA } from '@/lib/mock-service'
+import {MOCK_PNL_DATA, MOCK_EQUITY_DATA, ActivityLog} from '@/lib/mock-service'
 
 import {
     ArrowLeft,
@@ -27,27 +27,14 @@ import {
     MapPin,
     Hash,
     Monitor,
-    Activity,
-    BarChart2,
-    Check,
     CheckCircle,
     XCircle,
     TrendingUp,
     RefreshCw,
     FileText as InvoiceIcon,
-    Users,
-    Zap,
-    Database,
-    Server,
-    Filter,
-    Clock,
-    MoveHorizontal,
-    ChevronLeft,
-    ChevronDown,
-    Plus,
-    Minus,
 } from 'lucide-react'
 import Link from 'next/link'
+import Image from "next/image";
 
 interface UserProfileProps {
     user: User
@@ -89,13 +76,37 @@ export function UserProfile({ user }: UserProfileProps) {
     const [actionPage, setActionPage] = useState(1)
     const ACTION_PAGE_SIZE = 5
 
-    const [selectedPlan, setSelectedPlan] = useState(user.plan)
+    const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan>(user.plan as SubscriptionPlan)
     const [customFee, setCustomFee] = useState('49.00')
 
-    useEffect(() => {
-        setSelectedPlan(user.plan)
-        setCustomFee('49.00')
-    }, [user])
+    const handleBotSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setBotSearch(e.target.value)
+        setBotPage(1)
+    }
+
+    const toggleBotStatus = (key: keyof typeof botStatusFilters) => {
+        setBotStatusFilters(prev => ({ ...prev, [key]: !prev[key] }))
+        setBotPage(1)
+    }
+
+    const handleBotSort = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        setBotSort(e.target.value)
+        setBotPage(1)
+    }
+
+    // --- HANDLERS FOR INVOICES (To replace useEffect) ---
+
+    const handleInvoiceSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setInvoiceSearch(e.target.value)
+        setInvoicePage(1)
+    }
+
+    const toggleInvoiceStatus = (key: keyof typeof invoiceStatusFilters) => {
+        setInvoiceStatusFilters(prev => ({ ...prev, [key]: !prev[key] }))
+        setInvoicePage(1)
+    }
+
+    // --- REMOVED useEffects for botPage and invoicePage ---
 
     const filteredBots = useMemo(() => {
         let result = MOCK_BOTS.filter(b =>
@@ -120,9 +131,6 @@ export function UserProfile({ user }: UserProfileProps) {
 
     const totalBotPages = Math.ceil(filteredBots.length / BOT_PAGE_SIZE)
 
-    useEffect(() => {
-        setBotPage(1)
-    }, [botSearch, botStatusFilters, botSort])
 
     const filteredInvoices = useMemo(() => {
         return MOCK_INVOICES.filter(inv => {
@@ -139,9 +147,6 @@ export function UserProfile({ user }: UserProfileProps) {
 
     const totalInvoicePages = Math.ceil(filteredInvoices.length / INVOICE_PAGE_SIZE)
 
-    useEffect(() => {
-        setInvoicePage(1)
-    }, [invoiceSearch, invoiceStatusFilters])
 
     const paginatedActivity = useMemo(() => {
         const start = (activityPage - 1) * ACTIVITY_PAGE_SIZE
@@ -183,13 +188,17 @@ export function UserProfile({ user }: UserProfileProps) {
                 <ArrowLeft size={14} /> Return to Hub
             </Link>
 
+            {/* ... Header and Cards Section (Unchanged) ... */}
             <div className="flex flex-col lg:flex-row gap-6 mb-8 items-stretch">
                 <Card className="flex-1 flex flex-col md:flex-row gap-6 items-center md:items-start border-t-4 border-t-white">
-                    <img
-                        src={user.avatar}
-                        className="w-24 h-24 rounded-full border-2 border-zinc-800 grayscale"
-                        alt={`${user.firstName} ${user.lastName}`}
-                    />
+                    <div className="w-24 h-24 relative">
+                        <Image
+                            fill
+                            src={user.avatar}
+                            className="w-24 h-24 rounded-full border-2 border-zinc-800 grayscale object-contain"
+                            alt={`${user.firstName} ${user.lastName}`}
+                        />
+                    </div>
                     <div className="flex-1 text-center md:text-left">
                         <h1 className="text-3xl font-light text-white uppercase">
                             {user.firstName} {user.lastName}
@@ -244,8 +253,9 @@ export function UserProfile({ user }: UserProfileProps) {
                 ))}
             </div>
 
-            <div className="min-h-[400px]">
+            <div className="min-h-100">
                 {tab === 'OVERVIEW' && (
+                    // ... Overview Content Unchanged ...
                     <div key="overview" className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-enter items-stretch">
                         <InteractiveChart
                             data={chartType === 'PNL' ? pnlData : equityData}
@@ -268,18 +278,18 @@ export function UserProfile({ user }: UserProfileProps) {
                                 <div className="flex justify-between border-b border-zinc-900 pb-2">
                                     <span className="text-zinc-500">Current Plan</span>
                                     <span className="text-white font-bold">
-                    {user.plan} <span className="text-zinc-500 font-normal">({user.planFreq})</span>
-                  </span>
+                                        {user.plan} <span className="text-zinc-500 font-normal">({user.planFreq})</span>
+                                    </span>
                                 </div>
                                 <div className="flex justify-between border-b border-zinc-900 pb-2">
                                     <span className="text-zinc-500">Brokers</span>
                                     <span className="text-zinc-300 flex gap-2">
-                    {user.brokers.map((b: string) => (
-                        <span key={b} className="bg-zinc-900 px-1 border border-zinc-800 text-[10px]">
-                        {b}
-                      </span>
-                    ))}
-                  </span>
+                                        {user.brokers.map((b: string) => (
+                                            <span key={b} className="bg-zinc-900 px-1 border border-zinc-800 text-[10px]">
+                                                {b}
+                                            </span>
+                                        ))}
+                                    </span>
                                 </div>
                                 <div className="flex justify-between border-b border-zinc-900 pb-2">
                                     <span className="text-zinc-500">2FA Status</span>
@@ -312,12 +322,12 @@ export function UserProfile({ user }: UserProfileProps) {
                                 </h3>
                             </div>
                             <div className="space-y-4 px-6 pb-4">
-                                {paginatedActivity.map((act: any, i: number) => (
+                                {paginatedActivity.map((act: ActivityLog, i: number) => (
                                     <div
                                         key={i}
                                         className="flex items-start gap-4 border-b border-zinc-900/50 pb-3 last:border-0 last:pb-0"
                                     >
-                                        <div className="min-w-[100px] text-[10px] font-mono text-zinc-500 pt-0.5">{act.time}</div>
+                                        <div className="min-w-25 text-[10px] font-mono text-zinc-500 pt-0.5">{act.time}</div>
                                         <div className="flex-1">
                                             <div className="text-xs font-bold text-white">{act.action.replace('_', ' ')}</div>
                                             <div className="text-[10px] text-zinc-400">{act.details}</div>
@@ -349,7 +359,8 @@ export function UserProfile({ user }: UserProfileProps) {
                                     placeholder="Filter Bots..."
                                     className="w-full bg-black border border-zinc-800 py-2 pl-9 text-xs text-white focus:border-white outline-none placeholder-zinc-700"
                                     value={botSearch}
-                                    onChange={(e) => setBotSearch(e.target.value)}
+                                    // UPDATED: Use Handler
+                                    onChange={handleBotSearch}
                                 />
                             </div>
                             <div className="flex gap-4 items-center">
@@ -357,30 +368,28 @@ export function UserProfile({ user }: UserProfileProps) {
                                     <PremiumCheckbox
                                         label="Running"
                                         checked={botStatusFilters.RUNNING}
-                                        onChange={() =>
-                                            setBotStatusFilters((prev) => ({ ...prev, RUNNING: !prev.RUNNING }))
-                                        }
+                                        // UPDATED: Use Handler
+                                        onChange={() => toggleBotStatus('RUNNING')}
                                     />
                                     <PremiumCheckbox
                                         label="Paused"
                                         checked={botStatusFilters.PAUSED}
-                                        onChange={() =>
-                                            setBotStatusFilters((prev) => ({ ...prev, PAUSED: !prev.PAUSED }))
-                                        }
+                                        // UPDATED: Use Handler
+                                        onChange={() => toggleBotStatus('PAUSED')}
                                     />
                                     <PremiumCheckbox
                                         label="Stopped"
                                         checked={botStatusFilters.STOPPED}
-                                        onChange={() =>
-                                            setBotStatusFilters((prev) => ({ ...prev, STOPPED: !prev.STOPPED }))
-                                        }
+                                        // UPDATED: Use Handler
+                                        onChange={() => toggleBotStatus('STOPPED')}
                                     />
                                 </div>
                                 <div className="relative">
                                     <select
                                         className="bg-zinc-950 border border-zinc-800 text-xs text-zinc-300 py-2 pl-3 pr-8 appearance-none outline-none focus:border-zinc-600"
                                         value={botSort}
-                                        onChange={(e) => setBotSort(e.target.value)}
+                                        // UPDATED: Use Handler
+                                        onChange={handleBotSort}
                                     >
                                         <option value="DEFAULT">Default Sort</option>
                                         <option value="PNL_DESC">Highest PnL</option>
@@ -391,6 +400,7 @@ export function UserProfile({ user }: UserProfileProps) {
                             </div>
                         </div>
 
+                        {/* ... Bot List Render (Unchanged) ... */}
                         {paginatedBots.map((bot) => (
                             <div
                                 key={bot.id}
@@ -398,11 +408,11 @@ export function UserProfile({ user }: UserProfileProps) {
                             >
                                 <div className="grid grid-cols-12 items-center gap-4">
                                     <div className="col-span-12 md:col-span-4 flex items-center gap-4">
-                                        <div className={`w-2 h-2 rounded-full flex-shrink-0 ${getBotStatusColor(bot.status)}`} />
+                                        <div className={`w-2 h-2 rounded-full shrink-0 ${getBotStatusColor(bot.status)}`} />
                                         <div>
                                             <div className="text-sm font-bold text-white group-hover:underline">{bot.name}</div>
                                             <div className="text-[10px] font-mono text-zinc-500 flex gap-2 items-center">
-                                                <span>{bot.id}</span> <span className="text-zinc-700">//</span>{' '}
+                                                <span>{bot.id}</span> <span className="text-zinc-700">{'//'}</span>{' '}
                                                 <Badge variant={bot.type}>{bot.type}</Badge>
                                             </div>
                                         </div>
@@ -421,13 +431,12 @@ export function UserProfile({ user }: UserProfileProps) {
                                     <div className="col-span-6 md:col-span-2 text-right">
                                         <span className="block text-[9px] uppercase text-zinc-600">PnL</span>
                                         <div className="flex items-center justify-end gap-2">
-                      <span
-                          className={`font-mono font-bold text-xs ${
-                              parseFloat(bot.pnl) >= 0 ? 'text-emerald-400' : 'text-rose-400'
-                          }`}
-                      >
-                        ${bot.pnl}
-                      </span>
+                                            <span className={`font-mono font-bold text-xs ${
+                                                parseFloat(bot.pnl) >= 0 ? 'text-emerald-400' : 'text-rose-400'
+                                            }`}
+                                            >
+                                                ${bot.pnl}
+                                            </span>
                                             <ChevronRight size={16} className="text-zinc-700 group-hover:text-white" />
                                         </div>
                                     </div>
@@ -446,6 +455,7 @@ export function UserProfile({ user }: UserProfileProps) {
 
                 {tab === 'BILLING' && (
                     <div key="billing" className="space-y-8 animate-enter">
+                        {/* ... Subscription History (Unchanged) ... */}
                         <div className="border border-zinc-800 bg-zinc-950 p-8">
                             <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500 mb-8 flex items-center gap-2">
                                 <RefreshCw size={14} /> Subscription Lifecycle
@@ -456,16 +466,16 @@ export function UserProfile({ user }: UserProfileProps) {
                                     return (
                                         <div key={i} className="relative group">
                                             <div
-                                                className={`absolute -left-[27px] top-1 w-6 h-6 rounded-full bg-black border ${item.border} flex items-center justify-center z-10 shadow-[0_0_10px_rgba(0,0,0,0.5)]`}
+                                                className={`absolute -left-6.75 top-1 w-6 h-6 rounded-full bg-black border ${item.border} flex items-center justify-center z-10 shadow-[0_0_10px_rgba(0,0,0,0.5)]`}
                                             >
                                                 <Icon size={12} className={item.color} />
                                             </div>
                                             <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 pl-4">
                                                 <div>
                                                     <div className="flex items-center gap-3">
-                            <span className="text-sm font-bold text-white uppercase tracking-wider">
-                              {item.event}
-                            </span>
+                                                        <span className="text-sm font-bold text-white uppercase tracking-wider">
+                                                            {item.event}
+                                                        </span>
                                                         <span className="text-[10px] font-mono text-zinc-600">{item.date}</span>
                                                     </div>
                                                     <div className="text-xs text-zinc-500 mt-1">{item.details}</div>
@@ -493,29 +503,29 @@ export function UserProfile({ user }: UserProfileProps) {
                                                 placeholder="Search Invoices..."
                                                 className="w-full bg-black border border-zinc-800 py-2 pl-9 text-xs text-white focus:border-white outline-none placeholder-zinc-700"
                                                 value={invoiceSearch}
-                                                onChange={(e) => setInvoiceSearch(e.target.value)}
+                                                // UPDATED: Use Handler
+                                                onChange={handleInvoiceSearch}
                                             />
                                         </div>
                                         <div className="flex gap-4 items-center">
                                             <PremiumCheckbox
                                                 label="Paid"
                                                 checked={invoiceStatusFilters.PAID}
-                                                onChange={() =>
-                                                    setInvoiceStatusFilters((prev) => ({ ...prev, PAID: !prev.PAID }))
-                                                }
+                                                // UPDATED: Use Handler
+                                                onChange={() => toggleInvoiceStatus('PAID')}
                                             />
                                             <PremiumCheckbox
                                                 label="Failed"
                                                 checked={invoiceStatusFilters.FAILED}
-                                                onChange={() =>
-                                                    setInvoiceStatusFilters((prev) => ({ ...prev, FAILED: !prev.FAILED }))
-                                                }
+                                                // UPDATED: Use Handler
+                                                onChange={() => toggleInvoiceStatus('FAILED')}
                                             />
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
+                            {/* ... Invoice Table (Unchanged) ... */}
                             <div className="overflow-x-auto p-8 pt-4 pb-0 flex-1">
                                 <table className="w-full text-left text-sm">
                                     <thead className="text-[10px] text-zinc-600 uppercase border-b border-zinc-900">
@@ -569,6 +579,7 @@ export function UserProfile({ user }: UserProfileProps) {
                 )}
 
                 {tab === 'ACTION' && (
+                    // ... Action Tab Content Unchanged ...
                     <div key="action" className="space-y-6 animate-enter">
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                             <Card>
@@ -582,14 +593,12 @@ export function UserProfile({ user }: UserProfileProps) {
                                             {['FREE', 'BASIC', 'ESSENTIAL', 'PRO'].map((plan) => (
                                                 <button
                                                     key={plan}
-                                                    onClick={() => setSelectedPlan(plan as any)}
-                                                    className={`py-3 text-xs font-bold uppercase tracking-wider border rounded-sm transition-all
-                            ${
+                                                    onClick={() => setSelectedPlan(plan as 'BASIC' | 'ESSENTIAL' | 'PRO')}
+                                                    className={`py-3 text-xs font-bold uppercase tracking-wider border rounded-sm transition-all ${
                                                         selectedPlan === plan
                                                             ? 'bg-white text-black border-white shadow-sm'
                                                             : 'bg-black text-zinc-500 border-zinc-800 hover:border-zinc-600 hover:text-zinc-300'
-                                                    }
-                          `}
+                                                    }`}
                                                 >
                                                     {plan}
                                                 </button>
@@ -664,9 +673,9 @@ export function UserProfile({ user }: UserProfileProps) {
                                         <tr key={act.id} className="group hover:bg-zinc-900/30 transition-colors">
                                             <td className="py-4 pl-4 font-mono text-zinc-500 text-xs">{act.id}</td>
                                             <td className="py-4 text-left">
-                          <span className="text-xs font-bold text-white uppercase tracking-wider">
-                            {act.action.replace('_', ' ')}
-                          </span>
+                                                <span className="text-xs font-bold text-white uppercase tracking-wider">
+                                                    {act.action.replace('_', ' ')}
+                                                </span>
                                             </td>
                                             <td className="py-4 text-zinc-300 text-xs text-left">{act.admin}</td>
                                             <td className="py-4 text-zinc-400 text-xs text-left">{act.details}</td>

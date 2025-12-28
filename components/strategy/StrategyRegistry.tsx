@@ -14,11 +14,6 @@ import {
     CheckSquare,
     RefreshCcw,
     Play,
-    Check,
-    BarChart2,
-    Database,
-    Activity,
-    Settings,
 } from 'lucide-react'
 
 interface MarketSwitchProps {

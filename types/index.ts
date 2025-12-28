@@ -15,6 +15,8 @@ export interface AdminAction {
     type: string
 }
 
+export type SubscriptionPlan = 'BASIC' | 'ESSENTIAL' | 'PRO'
+
 // Update the existing types to be more specific if needed
 export interface User {
     id: string
@@ -22,7 +24,7 @@ export interface User {
     lastName: string
     email: string
     country: string
-    plan: 'BASIC' | 'ESSENTIAL' | 'PRO'
+    plan: SubscriptionPlan
     planFreq: 'MONTHLY' | 'ANNUAL'
     botCount: number
     birthday: string

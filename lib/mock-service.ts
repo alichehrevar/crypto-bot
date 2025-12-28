@@ -135,7 +135,6 @@ class SeededRandom {
 
 // --- Global Seed for Deterministic Randomness ---
 const globalSeed = 123456789 // Fixed seed for consistency
-const random = new SeededRandom(globalSeed)
 
 // --- Pre-generate all random data ---
 

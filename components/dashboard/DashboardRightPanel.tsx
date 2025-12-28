@@ -8,15 +8,15 @@ import { useMemo } from 'react'
 import Link from 'next/link'
 import { ChartData, ChartOptions } from 'chart.js'
 
-export function DashboardRightPanel() {
+// 1. Asset Allocation Data
+const ASSET_ALLOCATION = [
+    { name: 'USDT', value: 45, color: '#ffffff' },
+    { name: 'BTC', value: 30, color: '#52525b' },
+    { name: 'ETH', value: 15, color: '#27272a' },
+    { name: 'SOL', value: 10, color: '#18181b' },
+]
 
-    // 1. Asset Allocation Data
-    const ASSET_ALLOCATION = [
-        { name: 'USDT', value: 45, color: '#ffffff' },
-        { name: 'BTC', value: 30, color: '#52525b' },
-        { name: 'ETH', value: 15, color: '#27272a' },
-        { name: 'SOL', value: 10, color: '#18181b' },
-    ]
+export function DashboardRightPanel() {
 
     const allocationData: ChartData<'doughnut'> = useMemo(() => ({
         labels: ASSET_ALLOCATION.map(a => a.name),
