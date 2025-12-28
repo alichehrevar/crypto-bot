@@ -14,7 +14,7 @@ export const MOCK_USERS: User[] = Array.from({ length: 124 }).map((_, i) => ({
     joinedAt: `2024-0${(i % 9) + 1}-12`,
     balance: (Math.random() * 250000).toFixed(2),
     status: ['ACTIVE', 'ACTIVE', 'ACTIVE', 'SUSPENDED'][i % 4] as 'ACTIVE' | 'SUSPENDED',
-    avatar: `https://ui-avatars.com/api/?name=User+${i}&background=000&color=fff`,
+    avatar: `/images/user-placeholder.png`,
     brokers: ['Binance', 'Bybit'],
     billingAddress: 'Friedrichstraße 12, 10117 Berlin, Germany',
     session: {
