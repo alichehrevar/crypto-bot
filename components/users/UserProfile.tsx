@@ -1,15 +1,22 @@
 // components/users/UserProfile.tsx
 'use client'
 
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect, useCallback } from 'react'
 import { Card } from '@/components/common/Card'
 import { Badge } from '@/components/common/Badge'
 import { Pagination } from '@/components/common/Pagination'
 import { PremiumCheckbox } from '@/components/common/PremiumCheckbox'
 import { InteractiveChart } from '@/components/charts/InteractiveChart'
-import {SubscriptionPlan, User} from '@/types'
-import { MOCK_BOTS, MOCK_INVOICES, MOCK_ACTION_HISTORY } from '@/lib/data'
-import {MOCK_PNL_DATA, MOCK_EQUITY_DATA, ActivityLog} from '@/lib/mock-service'
+import { SubscriptionPlan, User } from '@/types'
+import { MOCK_INVOICES, MOCK_ACTION_HISTORY } from '@/lib/data'
+import { MOCK_PNL_DATA, MOCK_EQUITY_DATA, ActivityLog } from '@/lib/mock-service'
+import { getData } from "@/actions/get"
+// 1. Remove HeroUI imports
+// import { addToast, Spinner } from "@heroui/react"
+
+// 2. Add New Imports
+import { useToast } from '@/components/providers/ToastProvider'
+import { Loader2 } from 'lucide-react'
 
 import {
     ArrowLeft,
@@ -36,6 +43,38 @@ import {
 import Link from 'next/link'
 import Image from "next/image";
 
+// ... [Types defined previously] ...
+type ApiBot = {
+    _id: string;
+    name: string;
+    symbol: string;
+    botType: 'indicator' | 'grid' | 'dca';
+    active: boolean;
+    createdAt: string;
+    leverage?: string;
+    marketType?: string;
+    tradeInfo?: { leverageLong?: number; leverageShort?: number };
+    pnl: { pct: number; total: number };
+};
+
+type DeployedBotsResponse = {
+    success: boolean;
+    bots: ApiBot[];
+    error?: string;
+};
+
+interface UiBot {
+    id: string;
+    name: string;
+    status: string;
+    type: string;
+    tradingMode: string;
+    symbol: string;
+    startedAt: string;
+    pnl: string;
+    rawPnl: number;
+}
+
 interface UserProfileProps {
     user: User
 }
@@ -49,88 +88,111 @@ const MOCK_SUB_HISTORY = [
 
 export function UserProfile({ user }: UserProfileProps) {
     const [tab, setTab] = useState('OVERVIEW')
+
+    // 3. Initialize Toast Hook
+    const { addToast } = useToast()
+
+    const [bots, setBots] = useState<UiBot[]>([])
+    const [isLoadingBots, setIsLoadingBots] = useState(false)
+    const [hasLoadedBots, setHasLoadedBots] = useState(false)
+
+    // ... [Other State definitions remain exactly the same] ...
     const [botSearch, setBotSearch] = useState('')
     const [chartType, setChartType] = useState<'PNL' | 'EQUITY'>('PNL')
-
     const [botPage, setBotPage] = useState(1)
     const [botStatusFilters, setBotStatusFilters] = useState({
-        RUNNING: true,
-        PAUSED: true,
-        STOPPED: true,
-        ERROR: true,
+        RUNNING: true, PAUSED: true, STOPPED: true, ERROR: true,
     })
     const BOT_PAGE_SIZE = 5
     const [botSort, setBotSort] = useState('DEFAULT')
-
     const [invoiceSearch, setInvoiceSearch] = useState('')
     const [invoicePage, setInvoicePage] = useState(1)
-    const [invoiceStatusFilters, setInvoiceStatusFilters] = useState({
-        PAID: true,
-        FAILED: true,
-    })
+    const [invoiceStatusFilters, setInvoiceStatusFilters] = useState({ PAID: true, FAILED: true })
     const INVOICE_PAGE_SIZE = 5
-
     const [activityPage, setActivityPage] = useState(1)
     const ACTIVITY_PAGE_SIZE = 6
-
     const [actionPage, setActionPage] = useState(1)
     const ACTION_PAGE_SIZE = 5
-
     const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan>(user.plan as SubscriptionPlan)
     const [customFee, setCustomFee] = useState('49.00')
 
-    const handleBotSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setBotSearch(e.target.value)
-        setBotPage(1)
-    }
+    const fetchUserBots = useCallback(async () => {
+        setIsLoadingBots(true);
+        try {
+            const res: DeployedBotsResponse = await getData(`/bots?userId=${user.id}`);
 
-    const toggleBotStatus = (key: keyof typeof botStatusFilters) => {
-        setBotStatusFilters(prev => ({ ...prev, [key]: !prev[key] }))
-        setBotPage(1)
-    }
+            if (res.success) {
+                const mappedBots: UiBot[] = res.bots.map((apiBot) => {
+                    const startDate = new Date(apiBot.createdAt).toLocaleDateString('en-US', {
+                        year: 'numeric', month: 'short', day: 'numeric'
+                    });
+                    const status = apiBot.active ? 'RUNNING' : 'PAUSED';
 
-    const handleBotSort = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        setBotSort(e.target.value)
-        setBotPage(1)
-    }
+                    return {
+                        id: apiBot._id,
+                        name: apiBot.name,
+                        status: status,
+                        type: apiBot.botType.toUpperCase(),
+                        tradingMode: apiBot.marketType === 'FUTURES' ? 'FUTURES' : 'SPOT',
+                        symbol: apiBot.symbol,
+                        startedAt: startDate,
+                        pnl: apiBot.pnl.total.toFixed(2),
+                        rawPnl: apiBot.pnl.total
+                    };
+                });
+                setBots(mappedBots);
+                setHasLoadedBots(true);
+            } else {
+                // 4. Update Toast Usage (Error)
+                addToast({
+                    title: "Error",
+                    message: res.error || "Failed to load user bots",
+                    type: "error"
+                });
+            }
+        } catch (error) {
+            console.error(error);
+            // 4. Update Toast Usage (Connection Error)
+            addToast({
+                title: "Network Error",
+                message: "Error connecting to server",
+                type: "error"
+            });
+        } finally {
+            setIsLoadingBots(false);
+        }
+    }, [user.id, addToast]); // Added addToast to dependency
 
-    // --- HANDLERS FOR INVOICES (To replace useEffect) ---
+    useEffect(() => {
+        if (tab === 'BOTS' && !hasLoadedBots) {
+            fetchUserBots();
+        }
+    }, [tab, hasLoadedBots, fetchUserBots]);
 
-    const handleInvoiceSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setInvoiceSearch(e.target.value)
-        setInvoicePage(1)
-    }
+    // ... [Handlers remain exactly the same] ...
+    const handleBotSearch = (e: React.ChangeEvent<HTMLInputElement>) => { setBotSearch(e.target.value); setBotPage(1); }
+    const toggleBotStatus = (key: keyof typeof botStatusFilters) => { setBotStatusFilters(prev => ({ ...prev, [key]: !prev[key] })); setBotPage(1); }
+    const handleBotSort = (e: React.ChangeEvent<HTMLSelectElement>) => { setBotSort(e.target.value); setBotPage(1); }
+    const handleInvoiceSearch = (e: React.ChangeEvent<HTMLInputElement>) => { setInvoiceSearch(e.target.value); setInvoicePage(1); }
+    const toggleInvoiceStatus = (key: keyof typeof invoiceStatusFilters) => { setInvoiceStatusFilters(prev => ({ ...prev, [key]: !prev[key] })); setInvoicePage(1); }
 
-    const toggleInvoiceStatus = (key: keyof typeof invoiceStatusFilters) => {
-        setInvoiceStatusFilters(prev => ({ ...prev, [key]: !prev[key] }))
-        setInvoicePage(1)
-    }
-
-    // --- REMOVED useEffects for botPage and invoicePage ---
-
+    // ... [Memos remain exactly the same] ...
     const filteredBots = useMemo(() => {
-        let result = MOCK_BOTS.filter(b =>
+        let result = bots.filter(b =>
             (b.name.toLowerCase().includes(botSearch.toLowerCase()) ||
                 b.id.toLowerCase().includes(botSearch.toLowerCase())) &&
             botStatusFilters[b.status as keyof typeof botStatusFilters]
         )
-
-        if (botSort === 'PNL_DESC') {
-            result = result.sort((a, b) => parseFloat(b.pnl) - parseFloat(a.pnl))
-        } else if (botSort === 'PNL_ASC') {
-            result = result.sort((a, b) => parseFloat(a.pnl) - parseFloat(b.pnl))
-        }
-
+        if (botSort === 'PNL_DESC') result = result.sort((a, b) => b.rawPnl - a.rawPnl)
+        else if (botSort === 'PNL_ASC') result = result.sort((a, b) => a.rawPnl - b.rawPnl)
         return result
-    }, [botSearch, botStatusFilters, botSort])
+    }, [bots, botSearch, botStatusFilters, botSort])
 
     const paginatedBots = useMemo(() => {
         const start = (botPage - 1) * BOT_PAGE_SIZE
         return filteredBots.slice(start, start + BOT_PAGE_SIZE)
     }, [filteredBots, botPage])
-
     const totalBotPages = Math.ceil(filteredBots.length / BOT_PAGE_SIZE)
-
 
     const filteredInvoices = useMemo(() => {
         return MOCK_INVOICES.filter(inv => {
@@ -144,22 +206,18 @@ export function UserProfile({ user }: UserProfileProps) {
         const start = (invoicePage - 1) * INVOICE_PAGE_SIZE
         return filteredInvoices.slice(start, start + INVOICE_PAGE_SIZE)
     }, [filteredInvoices, invoicePage])
-
     const totalInvoicePages = Math.ceil(filteredInvoices.length / INVOICE_PAGE_SIZE)
-
 
     const paginatedActivity = useMemo(() => {
         const start = (activityPage - 1) * ACTIVITY_PAGE_SIZE
         return user.activityHistory.slice(start, start + ACTIVITY_PAGE_SIZE)
     }, [user.activityHistory, activityPage])
-
     const totalActivityPages = Math.ceil(user.activityHistory.length / ACTIVITY_PAGE_SIZE)
 
     const paginatedActions = useMemo(() => {
         const start = (actionPage - 1) * ACTION_PAGE_SIZE
         return MOCK_ACTION_HISTORY.slice(start, start + ACTION_PAGE_SIZE)
     }, [actionPage])
-
     const totalActionPages = Math.ceil(MOCK_ACTION_HISTORY.length / ACTION_PAGE_SIZE)
 
     const pnlData = MOCK_PNL_DATA
@@ -167,15 +225,10 @@ export function UserProfile({ user }: UserProfileProps) {
 
     const getBotStatusColor = (status: string) => {
         switch (status) {
-            case 'RUNNING':
-                return 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)] animate-pulse'
-            case 'PAUSED':
-                return 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]'
-            case 'STOPPED':
-            case 'ERROR':
-                return 'bg-rose-500'
-            default:
-                return 'bg-zinc-600'
+            case 'RUNNING': return 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)] animate-pulse'
+            case 'PAUSED': return 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]'
+            case 'STOPPED': case 'ERROR': return 'bg-rose-500'
+            default: return 'bg-zinc-600'
         }
     }
 
@@ -188,7 +241,7 @@ export function UserProfile({ user }: UserProfileProps) {
                 <ArrowLeft size={14} /> Return to Hub
             </Link>
 
-            {/* ... Header and Cards Section (Unchanged) ... */}
+            {/* ... [Top Cards / Header Section remains exactly the same] ... */}
             <div className="flex flex-col lg:flex-row gap-6 mb-8 items-stretch">
                 <Card className="flex-1 flex flex-col md:flex-row gap-6 items-center md:items-start border-t-4 border-t-white">
                     <div className="w-24 h-24 relative">
@@ -204,12 +257,8 @@ export function UserProfile({ user }: UserProfileProps) {
                             {user.firstName} {user.lastName}
                         </h1>
                         <div className="flex flex-wrap justify-center md:justify-start gap-4 mt-2 text-xs font-mono text-zinc-500">
-              <span className="flex items-center gap-1">
-                <Hash size={12} /> {user.id}
-              </span>
-                            <span className="flex items-center gap-1">
-                <MapPin size={12} /> {user.country}
-              </span>
+                            <span className="flex items-center gap-1"><Hash size={12} /> {user.id}</span>
+                            <span className="flex items-center gap-1"><MapPin size={12} /> {user.country}</span>
                         </div>
                         <div className="mt-4 flex gap-2 justify-center md:justify-start">
                             <Badge variant={user.status}>{user.status}</Badge>
@@ -224,9 +273,7 @@ export function UserProfile({ user }: UserProfileProps) {
                     </Card>
                     <Card className="flex flex-col justify-between py-4 h-full">
                         <div className="text-[10px] uppercase text-zinc-500 font-bold mb-1">Available Fund</div>
-                        <div className="text-lg font-mono text-zinc-400 truncate">
-                            ${(parseFloat(user.balance) * 0.4).toFixed(2)}
-                        </div>
+                        <div className="text-lg font-mono text-zinc-400 truncate">${(parseFloat(user.balance) * 0.4).toFixed(2)}</div>
                     </Card>
                     <Card className="flex flex-col justify-between py-4 h-full">
                         <div className="text-[10px] uppercase text-zinc-500 font-bold mb-1">Active bots</div>
@@ -255,97 +302,29 @@ export function UserProfile({ user }: UserProfileProps) {
 
             <div className="min-h-100">
                 {tab === 'OVERVIEW' && (
-                    // ... Overview Content Unchanged ...
+                    // ... [Overview content remains exactly the same] ...
                     <div key="overview" className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-enter items-stretch">
-                        <InteractiveChart
-                            data={chartType === 'PNL' ? pnlData : equityData}
-                            type={chartType}
-                            setType={setChartType}
-                            className="h-64"
-                        />
-
+                        <InteractiveChart data={chartType === 'PNL' ? pnlData : equityData} type={chartType} setType={setChartType} className="h-64" />
                         <Card className="h-64 flex flex-col">
                             <h3 className="text-xs font-bold uppercase text-zinc-500 mb-6">Dossier</h3>
                             <div className="space-y-4 text-sm flex-1 overflow-y-auto pr-2 custom-scrollbar">
-                                <div className="flex justify-between border-b border-zinc-900 pb-2">
-                                    <span className="text-zinc-500">Email</span>
-                                    <span className="text-zinc-300">{user.email}</span>
-                                </div>
-                                <div className="flex justify-between border-b border-zinc-900 pb-2">
-                                    <span className="text-zinc-500">Phone</span>
-                                    <span className="text-zinc-300">+1 202 555 0192</span>
-                                </div>
-                                <div className="flex justify-between border-b border-zinc-900 pb-2">
-                                    <span className="text-zinc-500">Current Plan</span>
-                                    <span className="text-white font-bold">
-                                        {user.plan} <span className="text-zinc-500 font-normal">({user.planFreq})</span>
-                                    </span>
-                                </div>
-                                <div className="flex justify-between border-b border-zinc-900 pb-2">
-                                    <span className="text-zinc-500">Brokers</span>
-                                    <span className="text-zinc-300 flex gap-2">
-                                        {user.brokers.map((b: string) => (
-                                            <span key={b} className="bg-zinc-900 px-1 border border-zinc-800 text-[10px]">
-                                                {b}
-                                            </span>
-                                        ))}
-                                    </span>
-                                </div>
-                                <div className="flex justify-between border-b border-zinc-900 pb-2">
-                                    <span className="text-zinc-500">2FA Status</span>
-                                    <span className="text-emerald-400 font-bold">ENABLED</span>
-                                </div>
-                                <div className="flex flex-col border-b border-zinc-900 pb-2 gap-1">
-                                    <span className="text-zinc-500">Billing Address</span>
-                                    <span className="text-zinc-300 text-xs">{user.billingAddress}</span>
-                                </div>
-
-                                <div className="pt-2 mt-auto">
-                                    <h4 className="text-[10px] uppercase font-bold text-zinc-500 mb-2">Last Known Session</h4>
-                                    <div className="flex justify-between items-center bg-zinc-900 p-3 border border-zinc-800 rounded">
-                                        <div className="flex items-center gap-2">
-                                            <Monitor size={14} className="text-zinc-500" />
-                                            <span className="text-zinc-300 font-mono text-xs">{user.session.ip}</span>
-                                        </div>
-                                        <div className="flex items-center gap-2 text-[10px] text-zinc-500">
-                                            <MapPin size={10} /> {user.session.city}, {user.session.country}
-                                        </div>
-                                    </div>
-                                </div>
+                                <div className="flex justify-between border-b border-zinc-900 pb-2"><span className="text-zinc-500">Email</span><span className="text-zinc-300">{user.email}</span></div>
+                                <div className="flex justify-between border-b border-zinc-900 pb-2"><span className="text-zinc-500">Phone</span><span className="text-zinc-300">+1 202 555 0192</span></div>
+                                <div className="flex justify-between border-b border-zinc-900 pb-2"><span className="text-zinc-500">Current Plan</span><span className="text-white font-bold">{user.plan} <span className="text-zinc-500 font-normal">({user.planFreq})</span></span></div>
+                                <div className="flex justify-between border-b border-zinc-900 pb-2"><span className="text-zinc-500">Brokers</span><span className="text-zinc-300 flex gap-2">{user.brokers.map((b: string) => (<span key={b} className="bg-zinc-900 px-1 border border-zinc-800 text-[10px]">{b}</span>))}</span></div>
+                                <div className="flex justify-between border-b border-zinc-900 pb-2"><span className="text-zinc-500">2FA Status</span><span className="text-emerald-400 font-bold">ENABLED</span></div>
+                                <div className="flex flex-col border-b border-zinc-900 pb-2 gap-1"><span className="text-zinc-500">Billing Address</span><span className="text-zinc-300 text-xs">{user.billingAddress}</span></div>
+                                <div className="pt-2 mt-auto"><h4 className="text-[10px] uppercase font-bold text-zinc-500 mb-2">Last Known Session</h4><div className="flex justify-between items-center bg-zinc-900 p-3 border border-zinc-800 rounded"><div className="flex items-center gap-2"><Monitor size={14} className="text-zinc-500" /><span className="text-zinc-300 font-mono text-xs">{user.session.ip}</span></div><div className="flex items-center gap-2 text-[10px] text-zinc-500"><MapPin size={10} /> {user.session.city}, {user.session.country}</div></div></div>
                             </div>
                         </Card>
-
                         <div className="lg:col-span-2 border border-zinc-800 bg-zinc-950 p-0">
-                            <div className="p-6 pb-2">
-                                <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500 mb-4 flex items-center gap-2">
-                                    <History size={14} /> User Activity Stream
-                                </h3>
-                            </div>
+                            <div className="p-6 pb-2"><h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500 mb-4 flex items-center gap-2"><History size={14} /> User Activity Stream</h3></div>
                             <div className="space-y-4 px-6 pb-4">
                                 {paginatedActivity.map((act: ActivityLog, i: number) => (
-                                    <div
-                                        key={i}
-                                        className="flex items-start gap-4 border-b border-zinc-900/50 pb-3 last:border-0 last:pb-0"
-                                    >
-                                        <div className="min-w-25 text-[10px] font-mono text-zinc-500 pt-0.5">{act.time}</div>
-                                        <div className="flex-1">
-                                            <div className="text-xs font-bold text-white">{act.action.replace('_', ' ')}</div>
-                                            <div className="text-[10px] text-zinc-400">{act.details}</div>
-                                        </div>
-                                        {act.ip && (
-                                            <div className="text-[10px] font-mono text-zinc-600 bg-zinc-900 px-2 py-0.5 rounded">
-                                                {act.ip}
-                                            </div>
-                                        )}
-                                    </div>
+                                    <div key={i} className="flex items-start gap-4 border-b border-zinc-900/50 pb-3 last:border-0 last:pb-0"><div className="min-w-25 text-[10px] font-mono text-zinc-500 pt-0.5">{act.time}</div><div className="flex-1"><div className="text-xs font-bold text-white">{act.action.replace('_', ' ')}</div><div className="text-[10px] text-zinc-400">{act.details}</div></div>{act.ip && (<div className="text-[10px] font-mono text-zinc-600 bg-zinc-900 px-2 py-0.5 rounded">{act.ip}</div>)}</div>
                                 ))}
                             </div>
-                            <Pagination
-                                page={activityPage}
-                                setPage={setActivityPage}
-                                total={totalActivityPages}
-                                label="Activity"
-                            />
+                            <Pagination page={activityPage} setPage={setActivityPage} total={totalActivityPages} label="Activity" />
                         </div>
                     </div>
                 )}
@@ -359,38 +338,17 @@ export function UserProfile({ user }: UserProfileProps) {
                                     placeholder="Filter Bots..."
                                     className="w-full bg-black border border-zinc-800 py-2 pl-9 text-xs text-white focus:border-white outline-none placeholder-zinc-700"
                                     value={botSearch}
-                                    // UPDATED: Use Handler
                                     onChange={handleBotSearch}
                                 />
                             </div>
                             <div className="flex gap-4 items-center">
                                 <div className="flex gap-4 border-r border-zinc-800 pr-4">
-                                    <PremiumCheckbox
-                                        label="Running"
-                                        checked={botStatusFilters.RUNNING}
-                                        // UPDATED: Use Handler
-                                        onChange={() => toggleBotStatus('RUNNING')}
-                                    />
-                                    <PremiumCheckbox
-                                        label="Paused"
-                                        checked={botStatusFilters.PAUSED}
-                                        // UPDATED: Use Handler
-                                        onChange={() => toggleBotStatus('PAUSED')}
-                                    />
-                                    <PremiumCheckbox
-                                        label="Stopped"
-                                        checked={botStatusFilters.STOPPED}
-                                        // UPDATED: Use Handler
-                                        onChange={() => toggleBotStatus('STOPPED')}
-                                    />
+                                    <PremiumCheckbox label="Running" checked={botStatusFilters.RUNNING} onChange={() => toggleBotStatus('RUNNING')} />
+                                    <PremiumCheckbox label="Paused" checked={botStatusFilters.PAUSED} onChange={() => toggleBotStatus('PAUSED')} />
+                                    <PremiumCheckbox label="Stopped" checked={botStatusFilters.STOPPED} onChange={() => toggleBotStatus('STOPPED')} />
                                 </div>
                                 <div className="relative">
-                                    <select
-                                        className="bg-zinc-950 border border-zinc-800 text-xs text-zinc-300 py-2 pl-3 pr-8 appearance-none outline-none focus:border-zinc-600"
-                                        value={botSort}
-                                        // UPDATED: Use Handler
-                                        onChange={handleBotSort}
-                                    >
+                                    <select className="bg-zinc-950 border border-zinc-800 text-xs text-zinc-300 py-2 pl-3 pr-8 appearance-none outline-none focus:border-zinc-600" value={botSort} onChange={handleBotSort}>
                                         <option value="DEFAULT">Default Sort</option>
                                         <option value="PNL_DESC">Highest PnL</option>
                                         <option value="PNL_ASC">Lowest PnL</option>
@@ -400,64 +358,44 @@ export function UserProfile({ user }: UserProfileProps) {
                             </div>
                         </div>
 
-                        {/* ... Bot List Render ... */}
-                        {paginatedBots.map((bot) => (
-                            <div
-                                key={bot.id}
-                                className="bg-zinc-950 border border-zinc-800 p-4 hover:border-zinc-500 cursor-pointer transition-colors group"
-                            >
-                                <div className="grid grid-cols-12 items-center gap-4">
-                                    <div className="col-span-12 md:col-span-4 flex items-center gap-4">
-                                        <div className={`w-2 h-2 rounded-full shrink-0 ${getBotStatusColor(bot.status)}`} />
-                                        <div>
-                                            <div className="text-sm font-bold text-white group-hover:underline">{bot.name}</div>
-                                            <div className="text-[10px] font-mono text-zinc-500 flex gap-2 items-center">
-                                                <span>{bot.id}</span> <span className="text-zinc-700">{'//'}</span>{' '}
-                                                <Badge variant={bot.type}>{bot.type}</Badge>
+                        {isLoadingBots ? (
+                            <div className="flex flex-col items-center justify-center py-16 border border-dashed border-zinc-800 rounded bg-zinc-950/50">
+                                {/* 5. Replace HeroUI Spinner with Lucide Icon */}
+                                <Loader2 className="w-8 h-8 text-white animate-spin" />
+                                <span className="text-zinc-500 mt-4 text-xs font-mono animate-pulse">Syncing User Strategies...</span>
+                            </div>
+                        ) : (
+                            <>
+                                {paginatedBots.map((bot) => (
+                                    <div key={bot.id} className="bg-zinc-950 border border-zinc-800 p-4 hover:border-zinc-500 cursor-pointer transition-colors group">
+                                        <div className="grid grid-cols-12 items-center gap-4">
+                                            <div className="col-span-12 md:col-span-4 flex items-center gap-4">
+                                                <div className={`w-2 h-2 rounded-full shrink-0 ${getBotStatusColor(bot.status)}`} />
+                                                <div>
+                                                    <div className="text-sm font-bold text-white group-hover:underline">{bot.name}</div>
+                                                    <div className="text-[10px] font-mono text-zinc-500 flex gap-2 items-center"><span>{bot.id}</span> <span className="text-zinc-700">{'//'}</span>{' '}<Badge variant={bot.type}>{bot.type}</Badge></div>
+                                                </div>
                                             </div>
+                                            <div className="col-span-6 md:col-span-2 text-left md:text-center"><Badge variant={bot.tradingMode}>{bot.tradingMode}</Badge></div>
+                                            <div className="col-span-6 md:col-span-2 text-left md:text-center"><span className="block text-[9px] uppercase text-zinc-600">Symbol</span><span className="font-mono text-xs text-zinc-300">{bot.symbol}</span></div>
+                                            <div className="col-span-6 md:col-span-2 text-left md:text-center"><span className="block text-[9px] uppercase text-zinc-600">Started</span><span className="font-mono text-xs text-zinc-400">{bot.startedAt}</span></div>
+                                            <div className="col-span-6 md:col-span-2 text-right"><span className="block text-[9px] uppercase text-zinc-600">PnL</span><div className="flex items-center justify-end gap-2"><span className={`font-mono font-bold text-xs ${parseFloat(bot.pnl) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>${bot.pnl}</span><Link href={`/users/${user.id}/bot/${bot.id}`}><ChevronRight size={16} className="text-zinc-700 group-hover:text-white" /></Link></div></div>
                                         </div>
                                     </div>
-                                    <div className="col-span-6 md:col-span-2 text-left md:text-center">
-                                        <Badge variant={bot.tradingMode}>{bot.tradingMode}</Badge>
-                                    </div>
-                                    <div className="col-span-6 md:col-span-2 text-left md:text-center">
-                                        <span className="block text-[9px] uppercase text-zinc-600">Symbol</span>
-                                        <span className="font-mono text-xs text-zinc-300">{bot.symbol}</span>
-                                    </div>
-                                    <div className="col-span-6 md:col-span-2 text-left md:text-center">
-                                        <span className="block text-[9px] uppercase text-zinc-600">Started</span>
-                                        <span className="font-mono text-xs text-zinc-400">{bot.startedAt}</span>
-                                    </div>
-                                    <div className="col-span-6 md:col-span-2 text-right">
-                                        <span className="block text-[9px] uppercase text-zinc-600">PnL</span>
-                                        <div className="flex items-center justify-end gap-2">
-                                            <span className={`font-mono font-bold text-xs ${
-                                                parseFloat(bot.pnl) >= 0 ? 'text-emerald-400' : 'text-rose-400'
-                                            }`}
-                                            >
-                                                ${bot.pnl}
-                                            </span>
-                                            <Link href={`/users/${user.id}/bot/${bot.id}`}>
-                                                <ChevronRight size={16} className="text-zinc-700 group-hover:text-white" />
-                                            </Link>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
-                        {paginatedBots.length === 0 && (
-                            <div className="text-center py-12 text-zinc-500 text-xs border border-zinc-900 border-dashed">
-                                No bots found matching criteria.
-                            </div>
+                                ))}
+                                {paginatedBots.length === 0 && (
+                                    <div className="text-center py-12 text-zinc-500 text-xs border border-zinc-900 border-dashed">No bots found matching criteria.</div>
+                                )}
+                            </>
                         )}
-
                         <Pagination page={botPage} setPage={setBotPage} total={totalBotPages} label="Bots" />
                     </div>
                 )}
 
+                {/* ... [Billing and Action Tabs remain exactly the same] ... */}
                 {tab === 'BILLING' && (
                     <div key="billing" className="space-y-8 animate-enter">
-                        {/* ... Subscription History (Unchanged) ... */}
+                        {/* ... content ... */}
                         <div className="border border-zinc-800 bg-zinc-950 p-8">
                             <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500 mb-8 flex items-center gap-2">
                                 <RefreshCw size={14} /> Subscription Lifecycle
@@ -581,8 +519,8 @@ export function UserProfile({ user }: UserProfileProps) {
                 )}
 
                 {tab === 'ACTION' && (
-                    // ... Action Tab Content Unchanged ...
                     <div key="action" className="space-y-6 animate-enter">
+                        {/* ... Action Content ... */}
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                             <Card>
                                 <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500 mb-6 flex items-center gap-2">
