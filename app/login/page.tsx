@@ -1,38 +1,48 @@
 // app/login/page.tsx
 'use client'
 
-import React, { useState } from 'react'
+import { useState, FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import { Lock, Mail, ArrowRight, ShieldCheck, AlertCircle, Loader2 } from 'lucide-react'
 import { Card } from '@/components/common/Card'
+import { sendRequest } from "@/actions/post"
+import { AuthResponse } from "@/types/auth"
 
 export default function LoginPage() {
     const router = useRouter()
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState('')
 
-    // Form State
     const [formData, setFormData] = useState({
         email: '',
         password: ''
     })
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault()
+    async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+        event.preventDefault()
         setIsLoading(true)
         setError('')
 
-        // Simulate Network Request
-        setTimeout(() => {
-            // MOCK AUTHENTICATION LOGIC
-            // In a real app, this would be an API call
-            if (formData.email === 'admin@unitedalgos.com' && formData.password === 'admin') {
-                router.push('/') // Redirect to dashboard
-            } else {
-                setError('Invalid credentials. Access denied.')
-                setIsLoading(false)
-            }
-        }, 1500)
+        // 1. Extract data using FormData (matches your example's logic)
+        const submissionData = Object.fromEntries(new FormData(event.currentTarget));
+
+        try {
+            // 2. Send request to API
+            await sendRequest(submissionData, '/auth/login')
+                .then((res: AuthResponse) => {
+                    if (res.error) {
+                        // 3. Handle Error
+                        setError(res.error)
+                    } else {
+                        // 4. Handle Success
+                        router.push('/')
+                    }
+                })
+        } catch {
+            setError("Something went wrong. Please check your connection.")
+        } finally {
+            setIsLoading(false)
+        }
     }
 
     return (
@@ -54,7 +64,7 @@ export default function LoginPage() {
                 <Card className="border border-zinc-800 bg-zinc-950/50 backdrop-blur-xl p-8 shadow-2xl">
                     <form onSubmit={handleSubmit} className="space-y-6">
 
-                        {/* Error Message */}
+                        {/* Error Message UI */}
                         {error && (
                             <div className="bg-rose-950/30 border border-rose-900/50 p-3 flex items-center gap-3 rounded-sm animate-in fade-in slide-in-from-top-2">
                                 <AlertCircle size={16} className="text-rose-500 shrink-0" />
@@ -69,7 +79,9 @@ export default function LoginPage() {
                                 </label>
                                 <div className="relative group">
                                     <Mail className="absolute left-3 top-2.5 text-zinc-600 group-focus-within:text-white transition-colors" size={16} />
+                                    {/* Added name="email" for FormData */}
                                     <input
+                                        name="email"
                                         type="email"
                                         required
                                         placeholder="admin@unitedalgos.com"
@@ -88,7 +100,9 @@ export default function LoginPage() {
                                 </div>
                                 <div className="relative group">
                                     <Lock className="absolute left-3 top-2.5 text-zinc-600 group-focus-within:text-white transition-colors" size={16} />
+                                    {/* Added name="password" for FormData */}
                                     <input
+                                        name="password"
                                         type="password"
                                         required
                                         placeholder="••••••••"
@@ -122,9 +136,6 @@ export default function LoginPage() {
                             Restricted Access Level 4. <br />
                             Reset functions are disabled for this terminal.
                         </p>
-                        <div className="mt-2 text-[10px] text-zinc-700">
-                            Contact <span className="text-zinc-500 underline decoration-dotted cursor-help">Super Admin</span> for lost credentials.
-                        </div>
                     </div>
                 </Card>
 
