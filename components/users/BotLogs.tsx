@@ -155,7 +155,7 @@ export default function BotLogs({ botId, userId }: BotLogsProps) {
                                 {log.type === 'WARN' && <span className="text-amber-500">WARN</span>}
                                 {log.type === 'SUCCESS' && <span className="text-emerald-500">OK</span>}
                             </div>
-                            <div className="col-span-9 md:col-span-9 text-zinc-300 group-hover:text-white break-words flex gap-2">
+                            <div className="col-span-9 md:col-span-9 text-zinc-300 group-hover:text-white wrap-break-word flex gap-2">
                                 <span className="text-zinc-700 select-none">|</span>
                                 {log.msg}
                             </div>
