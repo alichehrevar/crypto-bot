@@ -47,18 +47,22 @@ const ToastItem = ({
 }) => {
     const [isVisible, setIsVisible] = useState(false);
 
-    const handleDismiss = () => {
+    // FIX: Wrapped in useCallback to stabilize the function reference
+    const handleDismiss = useCallback(() => {
         setIsVisible(false);
+        // Wait for animation to finish before actual removal
         setTimeout(() => {
             onRemove(toast.id);
         }, 300);
-    };
+    }, [onRemove, toast.id]);
 
     useEffect(() => {
+        // Trigger entrance animation immediately after mount
         const animationFrame = requestAnimationFrame(() => {
             setIsVisible(true);
         });
 
+        // Handle auto-dismiss
         let dismissTimer: NodeJS.Timeout;
         if (toast.duration !== Infinity) {
             dismissTimer = setTimeout(() => {
@@ -70,8 +74,11 @@ const ToastItem = ({
             cancelAnimationFrame(animationFrame);
             if (dismissTimer) clearTimeout(dismissTimer);
         };
-    }, [handleDismiss, toast]);
+    }, [toast, handleDismiss]); // handleDismiss is now a stable dependency
 
+    // ... (Rest of the component: getStyles, getIcon, return JSX... remains exactly the same)
+
+    // Styles: Glassy background + Colored Border matching text
     const getStyles = (type: ToastType) => {
         switch (type) {
             case 'success':
@@ -128,13 +135,13 @@ const ToastItem = ({
     return (
         <div
             className={`
-        pointer-events-auto relative flex w-full max-w-sm overflow-hidden 
-        rounded-2xl shadow-md border
-        transition-all duration-300 ease-[cubic-bezier(0.21,1.02,0.73,1)]
-        ${styles.container}
-        ${isVisible ? 'translate-y-0 opacity-100 scale-100' : 'translate-y-2 opacity-0 scale-95'}
-        mb-3
-      `}
+                pointer-events-auto relative flex w-full max-w-sm overflow-hidden 
+                rounded-2xl shadow-md border
+                transition-all duration-300 ease-[cubic-bezier(0.21,1.02,0.73,1)]
+                ${styles.container}
+                ${isVisible ? 'translate-y-0 opacity-100 scale-100' : 'translate-y-2 opacity-0 scale-95'}
+                mb-3
+            `}
             role="alert"
         >
             <div className="p-3 w-full">
