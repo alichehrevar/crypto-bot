@@ -171,7 +171,7 @@ export function SystemPerformanceChart() {
                 ))}
             </div>
 
-            <div className="flex-1 w-full h-[360px] p-4 relative bg-zinc-950">
+            <div className="flex-1 w-full h-90 p-4 relative bg-zinc-950">
                 {activeTab === 'BOTS' && (
                     <div className="absolute top-4 right-6 z-10 flex flex-wrap gap-3 bg-zinc-900/80 p-2 rounded border border-zinc-800 backdrop-blur-sm">
                         {Object.entries(botFilters).map(([key, checked]) => (

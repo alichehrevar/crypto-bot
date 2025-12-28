@@ -400,7 +400,7 @@ export function UserProfile({ user }: UserProfileProps) {
                             </div>
                         </div>
 
-                        {/* ... Bot List Render (Unchanged) ... */}
+                        {/* ... Bot List Render ... */}
                         {paginatedBots.map((bot) => (
                             <div
                                 key={bot.id}
@@ -437,7 +437,9 @@ export function UserProfile({ user }: UserProfileProps) {
                                             >
                                                 ${bot.pnl}
                                             </span>
-                                            <ChevronRight size={16} className="text-zinc-700 group-hover:text-white" />
+                                            <Link href={`/users/${user.id}/bot/${bot.id}`}>
+                                                <ChevronRight size={16} className="text-zinc-700 group-hover:text-white" />
+                                            </Link>
                                         </div>
                                     </div>
                                 </div>
