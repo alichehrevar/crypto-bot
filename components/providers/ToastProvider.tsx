@@ -47,6 +47,13 @@ const ToastItem = ({
 }) => {
     const [isVisible, setIsVisible] = useState(false);
 
+    const handleDismiss = () => {
+        setIsVisible(false);
+        setTimeout(() => {
+            onRemove(toast.id);
+        }, 300);
+    };
+
     useEffect(() => {
         const animationFrame = requestAnimationFrame(() => {
             setIsVisible(true);
@@ -63,14 +70,7 @@ const ToastItem = ({
             cancelAnimationFrame(animationFrame);
             if (dismissTimer) clearTimeout(dismissTimer);
         };
-    }, [toast]);
-
-    const handleDismiss = () => {
-        setIsVisible(false);
-        setTimeout(() => {
-            onRemove(toast.id);
-        }, 300);
-    };
+    }, [handleDismiss, toast]);
 
     const getStyles = (type: ToastType) => {
         switch (type) {
@@ -139,7 +139,7 @@ const ToastItem = ({
         >
             <div className="p-3 w-full">
                 <div className="flex items-center gap-3">
-                    <div className="flex-shrink-0">
+                    <div className="shrink-0">
                         {getIcon(toast.type)}
                     </div>
                     <div className="flex-1 pt-0.5">
@@ -148,7 +148,7 @@ const ToastItem = ({
                         )}
                         <p className={`text-sm opacity-90 ${styles.content}`}>{toast.message}</p>
                     </div>
-                    <div className="flex flex-shrink-0">
+                    <div className="flex shrink-0">
                         <button
                             type="button"
                             className={`inline-flex rounded-full p-1.5 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-transparent transition-colors ${styles.button}`}
@@ -169,7 +169,7 @@ const ToastContainer = () => {
     return (
         <div
             aria-live="assertive"
-            className="pointer-events-none fixed inset-0 flex flex-col items-end px-4 py-6 sm:items-end sm:p-6 z-[9999] space-y-4"
+            className="pointer-events-none fixed inset-0 flex flex-col items-end px-4 py-6 sm:items-end sm:p-6 z-9999 space-y-4"
         >
             <div className="flex w-full flex-col items-center space-y-3 sm:items-end">
                 {toasts.map((toast) => (
