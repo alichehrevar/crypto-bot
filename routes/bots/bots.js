@@ -5,6 +5,7 @@ const router = express.Router();
 const { validateBotParams } = require('../../app/http/middleware/validation');
 const botController = require('../../app/http/controllers/botController');
 const authenticate = require('../../app/http/middleware/auth');
+const bindBot = require('../../app/http/middleware/bindBot');
 
 // --- ADVANCED GRID BOT ROUTES ---
 router.post('/grid/create', authenticate, botController.createGridBot);
@@ -23,7 +24,7 @@ router.get('/select', botController.selectBots);
 router.get('/', authenticate, botController.getBots);
 
 // Retrieve a single bot by ID
-router.get('/:id', botController.getBotById);
+router.get('/:id', authenticate, bindBot, botController.getBotById);
 
 // Update an existing bot configuration
 router.put('/:id', validateBotParams, botController.updateBot);
@@ -34,6 +35,9 @@ router.post('/:id/resume', authenticate, botController.resumeBot);
 
 // Delete a bot
 router.delete('/:id', authenticate, botController.stopBot);
+
+// bot logs
+router.get('/:id/logs', authenticate, bindBot, botController.getBotLogsDetails);
 
 // Close a trade for a given bot
 router.post('/:botId/trades/:tradeId/close', authenticate, botController.closeTrade);

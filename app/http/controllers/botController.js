@@ -10,6 +10,7 @@ const BinanceAccount = require('../../models/BinanceAccount');
 const OkxAccount     = require('../../models/OkxAccount');
 const BingxAccount   = require('../../models/BingxAccount');
 const MarketSnapshot = require('../../models/MarketSnapshot');
+const BotLog = require('../../models/BotLog');
 const BotService     = require('../../services/botService/BotService');
 const PnLService     = require('../../services/PnLService');
 const logger         = require("../../../logs/logger");
@@ -415,14 +416,9 @@ async function calculateRelatedDataToBot (bot) {
  */
 exports.getBotById = async (req, res) => {
     try {
-        const bot = await BotBase.findById(req.params.id).lean();
-        if (!bot) {
-            return res.status(404).json({ success: false, error: 'Bot not found' });
-        }
-        return res.json({ success: true, bot });
-    }
-    catch (err) {
-        console.error('getBotById error:', err);
+        // req.botBase is guaranteed to exist by the middleware
+        return res.json({ success: true, bot: req.botBase });
+    } catch (err) {
         logger.error(`getBotById error: ${err.message}`, { stack: err.stack });
         return res.status(500).json({ success: false, error: err.message });
     }
@@ -720,26 +716,59 @@ exports.userBotsList = async (req, res) => {
     return res.json({ success: true, bots: groupedBots });
 }
 
+/**
+ * Get details for a specific bot.
+ * @middleware bindBot (must be applied in route)
+ */
 exports.getBotDetails = async (req, res) => {
     try {
-        const { botId } = req.params;
+        // req.botBase is guaranteed to exist and be valid due to bindBot middleware
+        // bindBot uses .lean(), so we can pass it directly to the helper
+        const enriched = await calculateRelatedDataToBot(req.botBase);
 
-        if (!mongoose.Types.ObjectId.isValid(botId)) {
-            return res.status(400).json({ message: 'Invalid botId format.' });
-        }
+        return res.status(200).json({
+            success: true,
+            data: enriched
+        });
 
-        const botBase = await BotBase.findById(botId).lean();
-
-        if (!botBase) {
-            return res.status(404).json({ message: 'Bot not found.', success: false });
-        }
-
-        const enriched = await calculateRelatedDataToBot(botBase);
-
-        res.status(200).json({ data: enriched, success: true });
     } catch (error) {
-        logger.error('Error fetching bot details:', error);
-        console.error('Error fetching bot details:', error);
-        res.status(500).json({ message: 'Internal server error while fetching bot details.', success: false });
+        logger.error(`getBotDetails error: ${error.message}`, { stack: error.stack });
+        // console.error is redundant if logger is working, but keeping per your style
+        console.error('getBotDetails error:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Internal server error while fetching bot details.'
+        });
     }
-}
+};
+
+/**
+ * Get logs for a specific bot.
+ * @middleware bindBot (must be applied in route)
+ */
+exports.getBotLogsDetails = async (req, res) => {
+    try {
+        // req.botBase is provided by the middleware
+        const botId = req.botBase._id;
+
+        // Query 'meta.botId' because the schema defines botId inside the 'meta' Mixed type
+        const logs = await BotLog.find({ 'meta.botId': botId })
+            .sort({ timestamp: -1 }) // Sort by top-level timestamp
+            .limit(200)              // Limit to prevent massive payloads
+            .lean();
+
+        return res.status(200).json({
+            success: true,
+            botName: req.botBase.name,
+            logs: logs
+        });
+
+    } catch (error) {
+        logger.error(`getBotLogsDetails error: ${error.message}`, { stack: error.stack });
+        console.error('getBotLogsDetails error:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Internal server error while fetching bot logs details.'
+        });
+    }
+};

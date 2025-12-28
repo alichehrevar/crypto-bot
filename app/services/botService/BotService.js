@@ -10,6 +10,7 @@ const wsServer     = require('../WebSocketServer');
 const OrderExecutionService = require('./OrderExecutionService');
 const RiskManagementService = require('./RiskManagementService');
 const botLogger = require('../../../logs/botLogger');
+const BotLog    = require('../../models/BotLog'); // Import the Log Model
 
 class BotService {
     constructor() {
@@ -120,6 +121,38 @@ class BotService {
     }
 
     /**
+     * Helper: Log to both File (via Winston) and DB (via Mongoose)
+     * @param {Object} logger - The winston logger instance
+     * @param {String} level - 'info', 'warn', 'error'
+     * @param {String} message - The message
+     * @param {Object} bot - The bot object (for ID)
+     * @param {Object} meta - Additional metadata
+     */
+    async _log(logger, level, message, bot, meta = {}) {
+        // 1. Log to File/Console via Winston
+        if (logger && logger[level]) {
+            logger[level](message, meta);
+        }
+
+        // 2. Log to Database
+        try {
+            await BotLog.create({
+                timestamp: new Date(),
+                level: level,
+                message: message,
+                meta: {
+                    botId: bot._id,
+                    botName: bot.name,
+                    ...meta
+                }
+            });
+        } catch (err) {
+            // If DB logging fails, just console error so we don't crash the bot logic
+            console.error(`[BotService] Failed to write log to DB: ${err.message}`);
+        }
+    }
+
+    /**
      * Invoked on every candle (closed or updating).
      * Serializes per-bot via a promise queue so no races on save().
      */
@@ -172,7 +205,10 @@ class BotService {
         }
 
         // Log the start of processing for a closed candle
-        logger.info(`Processing closed candle. Price: ${candle.close}, Timestamp: ${candle.timestamp.toISOString()}`);
+        await this._log(logger, 'info', `Processing closed candle. Price: ${candle.close}, Timestamp: ${candle.timestamp.toISOString()}`, bot, {
+            price: candle.close,
+            candleTimestamp: candle.timestamp
+        });
 
         // ——— B) compute each indicator’s raw signal ———
         const signals = [];
@@ -215,8 +251,6 @@ class BotService {
             // grab recent
             let recent = candleStore.getLatestCandles(symbol, timeframe, needed);
 
-            // ... (Logging omitted for brevity) ...
-
             if (recent.length < needed) {
                 const more = await this._fetchHistorical(symbol, timeframe, needed - recent.length);
                 recent      = more.concat(recent);
@@ -229,7 +263,7 @@ class BotService {
 
             const Cls = Indicators[key];
             if (!Cls) {
-                logger.error(`Unknown indicator "${cfg.name}"`);
+                await this._log(logger, 'error', `Unknown indicator "${cfg.name}"`, bot);
                 signals.push('HOLD');
             } else {
                 try {
@@ -249,31 +283,36 @@ class BotService {
                     const inst = new Cls(cfg.params);
                     const signal = inst.calculateSignal(recent);
                     signals.push(signal);
-                    logger.info(`Indicator '${cfg.name}' produced signal: ${signal}`);
+
+                    await this._log(logger, 'info', `Indicator '${cfg.name}' produced signal: ${signal}`, bot, { indicator: cfg.name, signal });
+
                 } catch (err) {
-                    logger.error(`Signal error for ${cfg.name}: ${err.message}`, { stack: err.stack });
+                    await this._log(logger, 'error', `Signal error for ${cfg.name}: ${err.message}`, bot, { stack: err.stack });
                     signals.push('HOLD');
                 }
             }
         }
 
         // ——— C) aggregate across them ———
-        // ... (Rest of the function remains identical) ...
         const method     = bot.tradeInfo?.signalProcessingMethod || 'consensus';
         const finalSignal = method === 'weighted'
             ? this._aggregateWeighted(signals)
             : this._aggregateConsensus(signals);
 
-        logger.info(`Aggregated signals [${signals.join(', ')}] to final signal: ${finalSignal} using '${method}' method.`);
+        await this._log(logger, 'info', `Aggregated signals [${signals.join(', ')}] to final signal: ${finalSignal} using '${method}' method.`, bot, {
+            signals: signals,
+            finalSignal: finalSignal,
+            method: method
+        });
 
         bot.marketInfo.lastSignal = finalSignal;
 
         // ——— D) risk check and order execution ———
         const { canTrade, reason } = await RiskManagementService.checkRisk(bot);
         if (!canTrade) {
-            logger.warn(`Trade blocked by Risk Management: ${reason}`);
+            await this._log(logger, 'warn', `Trade blocked by Risk Management: ${reason}`, bot, { reason });
         } else if (finalSignal !== 'HOLD') {
-            logger.info(`Risk management passed. Executing '${finalSignal}' order.`);
+            await this._log(logger, 'info', `Risk management passed. Executing '${finalSignal}' order.`, bot);
             await OrderExecutionService.executeOrder(bot, finalSignal, candle.close, null);
         }
 
