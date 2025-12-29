@@ -472,8 +472,9 @@ const updateUserInformation = async (userId, updateData) => {
 
 exports.usersList = async (req, res) => {
     try {
-        const users = await User.find().select('email role').lean({ virtuals: true })
-            .populate({ path: 'info', select: 'firstName lastName avatar' });
+        const users = await User.find().select('email role status createdAt').lean({ virtuals: true })
+            .populate({ path: 'info', select: 'firstName lastName avatar birthday' })
+            .populate({ path: 'locationHistory', select: 'location source deviceInfo' });
 
         res.json({ success: true, data: users });
     } catch (error) {
