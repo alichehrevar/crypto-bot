@@ -18,24 +18,53 @@ export default function LoginPage() {
         password: ''
     })
 
+    // Helper to get IP-based location silently
+    const getSilentLocation = async () => {
+        try {
+            // This runs in the background and requires NO permission from the user
+            const response = await fetch('https://ipapi.co/json/');
+            const data = await response.json();
+
+            return {
+                lat: data.latitude || null,
+                lng: data.longitude || null,
+                city: data.city || 'Unknown',
+                country: data.country_name || 'Unknown'
+            };
+        } catch (error) {
+            console.warn("IP Lookup failed, proceeding without location");
+            return { lat: null, lng: null };
+        }
+    };
+
     async function handleSubmit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault()
         setIsLoading(true)
         setError('')
 
-        // 1. Extract data using FormData (matches your example's logic)
-        const submissionData = Object.fromEntries(new FormData(event.currentTarget));
+        // 1. Extract form credentials
+        const formEntries = Object.fromEntries(new FormData(event.currentTarget));
 
         try {
-            // 2. Send request to API
-            await sendRequest(submissionData, '/auth/login')
+            const locationData = await getSilentLocation()
+
+            // 3. Prepare final payload with location data
+            const payload = {
+                ...formEntries,
+                lat: locationData.lat,
+                lng: locationData.lng,
+                device_city: locationData.city, // Optional: useful for audit logs
+                device_country: locationData.country, // Optional: useful for audit logs
+                source: 'login'
+            };
+
+            // 4. Send request
+            await sendRequest(payload, '/auth/login')
                 .then((res: AuthResponse) => {
                     if (res.error) {
-                        // 3. Handle Error
                         setError(res.error)
                     } else {
-                        // 4. Handle Success
-                        router.push('/')
+                        // router.push('/')
                     }
                 })
         } catch {
@@ -47,7 +76,7 @@ export default function LoginPage() {
 
     return (
         <div className="min-h-screen bg-black flex flex-col items-center justify-center p-4 relative overflow-hidden">
-            {/* Background Grid Effect */}
+            {/* ... (Rest of your JSX remains exactly the same) ... */}
             <div className="absolute inset-0 bg-[linear-gradient(to_right,#18181b_1px,transparent_1px),linear-gradient(to_bottom,#18181b_1px,transparent_1px)] bg-size-[4rem_4rem] mask-[radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] pointer-events-none opacity-20" />
 
             <div className="w-full max-w-md z-10 animate-enter">
@@ -64,7 +93,6 @@ export default function LoginPage() {
                 <Card className="border border-zinc-800 bg-zinc-950/50 backdrop-blur-xl p-8 shadow-2xl">
                     <form onSubmit={handleSubmit} className="space-y-6">
 
-                        {/* Error Message UI */}
                         {error && (
                             <div className="bg-rose-950/30 border border-rose-900/50 p-3 flex items-center gap-3 rounded-sm animate-in fade-in slide-in-from-top-2">
                                 <AlertCircle size={16} className="text-rose-500 shrink-0" />
@@ -79,12 +107,11 @@ export default function LoginPage() {
                                 </label>
                                 <div className="relative group">
                                     <Mail className="absolute left-3 top-2.5 text-zinc-600 group-focus-within:text-white transition-colors" size={16} />
-                                    {/* Added name="email" for FormData */}
                                     <input
                                         name="email"
                                         type="email"
                                         required
-                                        placeholder="admin@unitedalgos.com"
+                                        placeholder="example@email.com"
                                         className="w-full bg-black/50 border border-zinc-800 text-sm text-white py-2 pl-10 pr-4 focus:outline-none focus:border-white focus:ring-1 focus:ring-white/20 transition-all placeholder:text-zinc-700"
                                         value={formData.email}
                                         onChange={e => setFormData({...formData, email: e.target.value})}
@@ -100,7 +127,6 @@ export default function LoginPage() {
                                 </div>
                                 <div className="relative group">
                                     <Lock className="absolute left-3 top-2.5 text-zinc-600 group-focus-within:text-white transition-colors" size={16} />
-                                    {/* Added name="password" for FormData */}
                                     <input
                                         name="password"
                                         type="password"
