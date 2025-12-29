@@ -16,6 +16,11 @@ const userSchema = new mongoose.Schema({
         enum: ['admin', 'client'],
         default: 'client'
     },
+    status: {
+        type: String,
+        enum: ['active', 'flagged', 'banned'],
+        default: 'active'
+    },
     verifiedAt: { type: Date, default: null },
     enable2FA: { type: Boolean, default: false },
     otp: { type: String, default: null },
