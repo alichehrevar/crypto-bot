@@ -17,6 +17,7 @@ export interface DeviceInfo {
 
 // 2. Nested Entity Interfaces
 export interface LocationLog {
+    _id: string; // MongoDB ObjectID
     location: GeoJSONPoint;
     source: string; // e.g., 'login', 'signup', 'device_refresh'
     deviceInfo: DeviceInfo;
@@ -50,3 +51,5 @@ export interface ApiResponse<T> {
 
 // 5. Specific Response Type for this Request
 export type UserListResponse = ApiResponse<User[]>;
+
+export type UserDetailsResponse = ApiResponse<User>;

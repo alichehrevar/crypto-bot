@@ -2,22 +2,8 @@
 'use client'
 
 import React, { useState, useMemo, useEffect, useCallback } from 'react'
-import { Card } from '@/components/common/Card'
-import { Badge } from '@/components/common/Badge'
-import { Pagination } from '@/components/common/Pagination'
-import { PremiumCheckbox } from '@/components/common/PremiumCheckbox'
-import { InteractiveChart } from '@/components/charts/InteractiveChart'
-import { SubscriptionPlan, User } from '@/types'
-import { MOCK_INVOICES, MOCK_ACTION_HISTORY } from '@/lib/data'
-import { MOCK_PNL_DATA, MOCK_EQUITY_DATA, ActivityLog } from '@/lib/mock-service'
-import { getData } from "@/actions/get"
-// 1. Remove HeroUI imports
-// import { addToast, Spinner } from "@heroui/react"
-
-// 2. Add New Imports
-import { useToast } from '@/components/providers/ToastProvider'
-import { Loader2 } from 'lucide-react'
-
+import Link from 'next/link'
+import Image from "next/image";
 import {
     ArrowLeft,
     Search,
@@ -36,14 +22,26 @@ import {
     Monitor,
     CheckCircle,
     XCircle,
-    TrendingUp,
     RefreshCw,
     FileText as InvoiceIcon,
+    Loader2, Globe, Smartphone, Laptop, ExternalLink
 } from 'lucide-react'
-import Link from 'next/link'
-import Image from "next/image";
 
-// ... [Types defined previously] ...
+// --- Custom Imports ---
+import { Card } from '@/components/common/Card'
+import { Badge } from '@/components/common/Badge'
+import { Pagination } from '@/components/common/Pagination'
+import { PremiumCheckbox } from '@/components/common/PremiumCheckbox'
+import { InteractiveChart } from '@/components/charts/InteractiveChart'
+import { useToast } from '@/components/providers/ToastProvider'
+import { getData } from "@/actions/get"
+
+// --- Data & Types ---
+import { MOCK_INVOICES, MOCK_ACTION_HISTORY } from '@/lib/data'
+import { MOCK_PNL_DATA, MOCK_EQUITY_DATA, ActivityLog } from '@/lib/mock-service'
+import { User } from "@/types/users";
+
+// --- Types ---
 type ApiBot = {
     _id: string;
     name: string;
@@ -79,47 +77,82 @@ interface UserProfileProps {
     user: User
 }
 
+// --- Mocks for sections not in User Object ---
+const MOCK_BALANCE = "12,450.00"; // Mock Balance
+const MOCK_BOT_COUNT_TOTAL = 12;  // Mock Total Count (if API doesn't provide summary)
+
 const MOCK_SUB_HISTORY = [
     { date: '2024-10-01 10:00', event: 'REJOIN', plan: 'PRO', details: 'Reactivated via Email Campaign', icon: RefreshCw, color: 'text-emerald-400', border: 'border-emerald-500' },
     { date: '2024-09-15 14:30', event: 'CANCEL', plan: 'BASIC', details: 'User requested pause', icon: XCircle, color: 'text-rose-400', border: 'border-rose-500' },
-    { date: '2024-05-12 09:15', event: 'UPGRADE', plan: 'ESSENTIAL', details: 'Upgraded from Basic', icon: TrendingUp, color: 'text-indigo-400', border: 'border-indigo-500' },
     { date: '2024-01-20 11:00', event: 'JOINED', plan: 'BASIC', details: 'Initial Sign-up', icon: CheckCircle, color: 'text-zinc-500', border: 'border-zinc-500' },
 ]
 
+const getTimestampFromId = (id: string) => {
+    try {
+        const timestamp = parseInt(id.substring(0, 8), 16) * 1000;
+        return new Date(timestamp).toLocaleString('en-US', {
+            month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+        });
+    } catch (e) {
+        return 'Unknown Date';
+    }
+};
+
 export function UserProfile({ user }: UserProfileProps) {
+    const { addToast } = useToast()
     const [tab, setTab] = useState('OVERVIEW')
 
-    // 3. Initialize Toast Hook
-    const { addToast } = useToast()
+    // --- Computed Data from Real User Object ---
+    const fullName = `${user.info?.firstName || 'Unknown'} ${user.info?.lastName || 'User'}`;
+    const locationInfo = user.locationHistory?.[0]?.deviceInfo;
+    const currentLocation = locationInfo ? `${locationInfo.city || 'Unknown'}, ${locationInfo.country || 'Unknown'}` : 'Unknown Location';
+    const currentIp = locationInfo?.ip || '0.0.0.0';
 
+    // Map Role to a UI Plan Concept
+    const userPlan = user.role === 'admin' ? 'PRO' : user.role === 'broker' ? 'ESSENTIAL' : 'BASIC';
+
+    // Merge Real Location History into Activity Log
+    const activityHistory: ActivityLog[] = useMemo(() => {
+        const realLogs = user.locationHistory?.map(log => ({
+            time: "2024-01-01 12:00", // Timestamp missing in log object, using placeholder or could format createdAt if available on log
+            action: log.source.toUpperCase(),
+            details: `Source: ${log.source} | Agent: ${log.deviceInfo.userAgent}`,
+            ip: log.deviceInfo.ip
+        })) || [];
+
+        // Add some mock trade activities to make the list look full
+        const mockTradeLogs: ActivityLog[] = [
+            { time: '2024-10-24 14:20', action: 'BOT_START', details: 'Started DCA Bot BTC/USDT', ip: currentIp },
+            { time: '2024-10-23 09:15', action: 'API_KEY_CREATE', details: 'Generated new Read-Only Key', ip: currentIp },
+        ];
+
+        return [...realLogs, ...mockTradeLogs];
+    }, [user.locationHistory, currentIp]);
+
+    // --- State ---
     const [bots, setBots] = useState<UiBot[]>([])
     const [isLoadingBots, setIsLoadingBots] = useState(false)
     const [hasLoadedBots, setHasLoadedBots] = useState(false)
-
-    // ... [Other State definitions remain exactly the same] ...
     const [botSearch, setBotSearch] = useState('')
     const [chartType, setChartType] = useState<'PNL' | 'EQUITY'>('PNL')
     const [botPage, setBotPage] = useState(1)
-    const [botStatusFilters, setBotStatusFilters] = useState({
-        RUNNING: true, PAUSED: true, STOPPED: true, ERROR: true,
-    })
-    const BOT_PAGE_SIZE = 5
+    const [botStatusFilters, setBotStatusFilters] = useState({ RUNNING: true, PAUSED: true, STOPPED: true, ERROR: true })
     const [botSort, setBotSort] = useState('DEFAULT')
     const [invoiceSearch, setInvoiceSearch] = useState('')
     const [invoicePage, setInvoicePage] = useState(1)
     const [invoiceStatusFilters, setInvoiceStatusFilters] = useState({ PAID: true, FAILED: true })
-    const INVOICE_PAGE_SIZE = 5
     const [activityPage, setActivityPage] = useState(1)
-    const ACTIVITY_PAGE_SIZE = 6
     const [actionPage, setActionPage] = useState(1)
-    const ACTION_PAGE_SIZE = 5
-    const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan>(user.plan as SubscriptionPlan)
+    const [locationPage, setLocationPage] = useState(1)
+    const [selectedPlan, setSelectedPlan] = useState<'BASIC' | 'ESSENTIAL' | 'PRO' | 'FREE'>('BASIC')
     const [customFee, setCustomFee] = useState('49.00')
 
+    // --- Bot Fetching ---
     const fetchUserBots = useCallback(async () => {
         setIsLoadingBots(true);
         try {
-            const res: DeployedBotsResponse = await getData(`/bots?userId=${user.id}`);
+            // Using user._id from the JSON structure
+            const res: DeployedBotsResponse = await getData(`/bots?userId=${user._id}`);
 
             if (res.success) {
                 const mappedBots: UiBot[] = res.bots.map((apiBot) => {
@@ -143,25 +176,15 @@ export function UserProfile({ user }: UserProfileProps) {
                 setBots(mappedBots);
                 setHasLoadedBots(true);
             } else {
-                // 4. Update Toast Usage (Error)
-                addToast({
-                    title: "Error",
-                    message: res.error || "Failed to load user bots",
-                    type: "error"
-                });
+                addToast({ title: "Error", message: res.error || "Failed to load user bots", type: "error" });
             }
         } catch (error) {
             console.error(error);
-            // 4. Update Toast Usage (Connection Error)
-            addToast({
-                title: "Network Error",
-                message: "Error connecting to server",
-                type: "error"
-            });
+            addToast({ title: "Network Error", message: "Error connecting to server", type: "error" });
         } finally {
             setIsLoadingBots(false);
         }
-    }, [user.id, addToast]); // Added addToast to dependency
+    }, [user._id, addToast]);
 
     useEffect(() => {
         if (tab === 'BOTS' && !hasLoadedBots) {
@@ -169,14 +192,7 @@ export function UserProfile({ user }: UserProfileProps) {
         }
     }, [tab, hasLoadedBots, fetchUserBots]);
 
-    // ... [Handlers remain exactly the same] ...
-    const handleBotSearch = (e: React.ChangeEvent<HTMLInputElement>) => { setBotSearch(e.target.value); setBotPage(1); }
-    const toggleBotStatus = (key: keyof typeof botStatusFilters) => { setBotStatusFilters(prev => ({ ...prev, [key]: !prev[key] })); setBotPage(1); }
-    const handleBotSort = (e: React.ChangeEvent<HTMLSelectElement>) => { setBotSort(e.target.value); setBotPage(1); }
-    const handleInvoiceSearch = (e: React.ChangeEvent<HTMLInputElement>) => { setInvoiceSearch(e.target.value); setInvoicePage(1); }
-    const toggleInvoiceStatus = (key: keyof typeof invoiceStatusFilters) => { setInvoiceStatusFilters(prev => ({ ...prev, [key]: !prev[key] })); setInvoicePage(1); }
-
-    // ... [Memos remain exactly the same] ...
+    // --- Memos & Filters ---
     const filteredBots = useMemo(() => {
         let result = bots.filter(b =>
             (b.name.toLowerCase().includes(botSearch.toLowerCase()) ||
@@ -188,6 +204,7 @@ export function UserProfile({ user }: UserProfileProps) {
         return result
     }, [bots, botSearch, botStatusFilters, botSort])
 
+    const BOT_PAGE_SIZE = 5;
     const paginatedBots = useMemo(() => {
         const start = (botPage - 1) * BOT_PAGE_SIZE
         return filteredBots.slice(start, start + BOT_PAGE_SIZE)
@@ -202,26 +219,42 @@ export function UserProfile({ user }: UserProfileProps) {
         })
     }, [invoiceSearch, invoiceStatusFilters])
 
+    const INVOICE_PAGE_SIZE = 5;
     const paginatedInvoices = useMemo(() => {
         const start = (invoicePage - 1) * INVOICE_PAGE_SIZE
         return filteredInvoices.slice(start, start + INVOICE_PAGE_SIZE)
     }, [filteredInvoices, invoicePage])
     const totalInvoicePages = Math.ceil(filteredInvoices.length / INVOICE_PAGE_SIZE)
 
+    const ACTIVITY_PAGE_SIZE = 6;
     const paginatedActivity = useMemo(() => {
         const start = (activityPage - 1) * ACTIVITY_PAGE_SIZE
-        return user.activityHistory.slice(start, start + ACTIVITY_PAGE_SIZE)
-    }, [user.activityHistory, activityPage])
-    const totalActivityPages = Math.ceil(user.activityHistory.length / ACTIVITY_PAGE_SIZE)
+        return activityHistory.slice(start, start + ACTIVITY_PAGE_SIZE)
+    }, [activityHistory, activityPage])
+    const totalActivityPages = Math.ceil(activityHistory.length / ACTIVITY_PAGE_SIZE)
 
+    const ACTION_PAGE_SIZE = 5;
     const paginatedActions = useMemo(() => {
         const start = (actionPage - 1) * ACTION_PAGE_SIZE
         return MOCK_ACTION_HISTORY.slice(start, start + ACTION_PAGE_SIZE)
     }, [actionPage])
     const totalActionPages = Math.ceil(MOCK_ACTION_HISTORY.length / ACTION_PAGE_SIZE)
 
-    const pnlData = MOCK_PNL_DATA
-    const equityData = MOCK_EQUITY_DATA
+    const LOCATION_PAGE_SIZE = 5;
+    const paginatedLocations = useMemo(() => {
+        // Safe check if locationHistory exists
+        const history = user.locationHistory || [];
+        const start = (locationPage - 1) * LOCATION_PAGE_SIZE;
+        return history.slice(start, start + LOCATION_PAGE_SIZE);
+    }, [user.locationHistory, locationPage]);
+    const totalLocationPages = Math.ceil((user.locationHistory?.length || 0) / LOCATION_PAGE_SIZE);
+
+    // --- Handlers ---
+    const handleBotSearch = (e: React.ChangeEvent<HTMLInputElement>) => { setBotSearch(e.target.value); setBotPage(1); }
+    const toggleBotStatus = (key: keyof typeof botStatusFilters) => { setBotStatusFilters(prev => ({ ...prev, [key]: !prev[key] })); setBotPage(1); }
+    const handleBotSort = (e: React.ChangeEvent<HTMLSelectElement>) => { setBotSort(e.target.value); setBotPage(1); }
+    const handleInvoiceSearch = (e: React.ChangeEvent<HTMLInputElement>) => { setInvoiceSearch(e.target.value); setInvoicePage(1); }
+    const toggleInvoiceStatus = (key: keyof typeof invoiceStatusFilters) => { setInvoiceStatusFilters(prev => ({ ...prev, [key]: !prev[key] })); setInvoicePage(1); }
 
     const getBotStatusColor = (status: string) => {
         switch (status) {
@@ -241,51 +274,53 @@ export function UserProfile({ user }: UserProfileProps) {
                 <ArrowLeft size={14} /> Return to Hub
             </Link>
 
-            {/* ... [Top Cards / Header Section remains exactly the same] ... */}
+            {/* --- Header Section (Real Data) --- */}
             <div className="flex flex-col lg:flex-row gap-6 mb-8 items-stretch">
                 <Card className="flex-1 flex flex-col md:flex-row gap-6 items-center md:items-start border-t-4 border-t-white">
                     <div className="w-24 h-24 relative">
+                        {/* Handling Avatar Path */}
                         <Image
                             fill
-                            src={user.avatar}
+                            src={user.info.avatar ? (process.env.CDN_URL! + user.info.avatar) : '/images/default-avatar.png'}
                             className="w-24 h-24 rounded-full border-2 border-zinc-800 grayscale object-contain"
-                            alt={`${user.firstName} ${user.lastName}`}
+                            alt={fullName}
                         />
                     </div>
                     <div className="flex-1 text-center md:text-left">
                         <h1 className="text-3xl font-light text-white uppercase">
-                            {user.firstName} {user.lastName}
+                            {fullName}
                         </h1>
                         <div className="flex flex-wrap justify-center md:justify-start gap-4 mt-2 text-xs font-mono text-zinc-500">
-                            <span className="flex items-center gap-1"><Hash size={12} /> {user.id}</span>
-                            <span className="flex items-center gap-1"><MapPin size={12} /> {user.country}</span>
+                            <span className="flex items-center gap-1"><Hash size={12} /> {user._id}</span>
+                            <span className="flex items-center gap-1"><MapPin size={12} /> {locationInfo?.country || 'Unknown'}</span>
                         </div>
                         <div className="mt-4 flex gap-2 justify-center md:justify-start">
-                            <Badge variant={user.status}>{user.status}</Badge>
+                            <Badge variant={user.status}>{user.status.toUpperCase()}</Badge>
                             <Badge variant="outline">KYC L2 VERIFIED</Badge>
                         </div>
                     </div>
                 </Card>
                 <div className="w-full lg:w-96 grid grid-cols-2 gap-4">
                     <Card className="flex flex-col justify-between py-4 h-full">
-                        <div className="text-[10px] uppercase text-zinc-500 font-bold mb-1">Total Equity</div>
-                        <div className="text-lg font-mono text-white truncate">${user.balance}</div>
+                        <div className="text-[10px] uppercase text-zinc-500 font-bold mb-1">Total Equity (Est.)</div>
+                        <div className="text-lg font-mono text-white truncate">${MOCK_BALANCE}</div>
                     </Card>
                     <Card className="flex flex-col justify-between py-4 h-full">
                         <div className="text-[10px] uppercase text-zinc-500 font-bold mb-1">Available Fund</div>
-                        <div className="text-lg font-mono text-zinc-400 truncate">${(parseFloat(user.balance) * 0.4).toFixed(2)}</div>
+                        <div className="text-lg font-mono text-zinc-400 truncate">${(parseFloat(MOCK_BALANCE.replace(',','')) * 0.4).toFixed(2)}</div>
                     </Card>
                     <Card className="flex flex-col justify-between py-4 h-full">
                         <div className="text-[10px] uppercase text-zinc-500 font-bold mb-1">Active bots</div>
-                        <div className="text-lg font-mono text-emerald-400">{Math.floor(user.botCount * 0.8)}</div>
+                        <div className="text-lg font-mono text-emerald-400">{Math.floor(MOCK_BOT_COUNT_TOTAL * 0.8)}</div>
                     </Card>
                     <Card className="flex flex-col justify-between py-4 h-full">
                         <div className="text-[10px] uppercase text-zinc-500 font-bold mb-1">Total Deployed</div>
-                        <div className="text-lg font-mono text-white">{user.botCount}</div>
+                        <div className="text-lg font-mono text-white">{MOCK_BOT_COUNT_TOTAL}</div>
                     </Card>
                 </div>
             </div>
 
+            {/* --- Tabs --- */}
             <div className="border-b border-zinc-800 flex overflow-x-auto">
                 {['OVERVIEW', 'BOTS', 'BILLING', 'ACTION'].map((t) => (
                     <button
@@ -301,34 +336,151 @@ export function UserProfile({ user }: UserProfileProps) {
             </div>
 
             <div className="min-h-100">
+                {/* --- Overview Tab --- */}
                 {tab === 'OVERVIEW' && (
-                    // ... [Overview content remains exactly the same] ...
                     <div key="overview" className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-enter items-stretch">
-                        <InteractiveChart data={chartType === 'PNL' ? pnlData : equityData} type={chartType} setType={setChartType} className="h-64" />
+                        <InteractiveChart data={chartType === 'PNL' ? MOCK_PNL_DATA : MOCK_EQUITY_DATA} type={chartType} setType={setChartType} className="h-64" />
+
+                        {/* Dossier Card with Real Data */}
                         <Card className="h-64 flex flex-col">
                             <h3 className="text-xs font-bold uppercase text-zinc-500 mb-6">Dossier</h3>
                             <div className="space-y-4 text-sm flex-1 overflow-y-auto pr-2 custom-scrollbar">
-                                <div className="flex justify-between border-b border-zinc-900 pb-2"><span className="text-zinc-500">Email</span><span className="text-zinc-300">{user.email}</span></div>
-                                <div className="flex justify-between border-b border-zinc-900 pb-2"><span className="text-zinc-500">Phone</span><span className="text-zinc-300">+1 202 555 0192</span></div>
-                                <div className="flex justify-between border-b border-zinc-900 pb-2"><span className="text-zinc-500">Current Plan</span><span className="text-white font-bold">{user.plan} <span className="text-zinc-500 font-normal">({user.planFreq})</span></span></div>
-                                <div className="flex justify-between border-b border-zinc-900 pb-2"><span className="text-zinc-500">Brokers</span><span className="text-zinc-300 flex gap-2">{user.brokers.map((b: string) => (<span key={b} className="bg-zinc-900 px-1 border border-zinc-800 text-[10px]">{b}</span>))}</span></div>
-                                <div className="flex justify-between border-b border-zinc-900 pb-2"><span className="text-zinc-500">2FA Status</span><span className="text-emerald-400 font-bold">ENABLED</span></div>
-                                <div className="flex flex-col border-b border-zinc-900 pb-2 gap-1"><span className="text-zinc-500">Billing Address</span><span className="text-zinc-300 text-xs">{user.billingAddress}</span></div>
-                                <div className="pt-2 mt-auto"><h4 className="text-[10px] uppercase font-bold text-zinc-500 mb-2">Last Known Session</h4><div className="flex justify-between items-center bg-zinc-900 p-3 border border-zinc-800 rounded"><div className="flex items-center gap-2"><Monitor size={14} className="text-zinc-500" /><span className="text-zinc-300 font-mono text-xs">{user.session.ip}</span></div><div className="flex items-center gap-2 text-[10px] text-zinc-500"><MapPin size={10} /> {user.session.city}, {user.session.country}</div></div></div>
+                                <div className="flex justify-between border-b border-zinc-900 pb-2">
+                                    <span className="text-zinc-500">Email</span>
+                                    <span className="text-zinc-300">{user.email}</span>
+                                </div>
+                                <div className="flex justify-between border-b border-zinc-900 pb-2">
+                                    <span className="text-zinc-500">Phone</span>
+                                    <span className="text-zinc-300">+1 202 555 0192 (Mock)</span>
+                                </div>
+                                <div className="flex justify-between border-b border-zinc-900 pb-2">
+                                    <span className="text-zinc-500">Current Plan</span>
+                                    <span className="text-white font-bold">{userPlan} <span className="text-zinc-500 font-normal">(Monthly)</span></span>
+                                </div>
+                                <div className="flex justify-between border-b border-zinc-900 pb-2">
+                                    <span className="text-zinc-500">Brokers</span>
+                                    <span className="text-zinc-300 flex gap-2">
+                                        <span className="bg-zinc-900 px-1 border border-zinc-800 text-[10px]">Binance</span>
+                                        <span className="bg-zinc-900 px-1 border border-zinc-800 text-[10px]">ByBit</span>
+                                    </span>
+                                </div>
+                                <div className="pt-2 mt-auto">
+                                    <h4 className="text-[10px] uppercase font-bold text-zinc-500 mb-2">Last Known Session</h4>
+                                    <div className="flex justify-between items-center bg-zinc-900 p-3 border border-zinc-800 rounded">
+                                        <div className="flex items-center gap-2">
+                                            <Monitor size={14} className="text-zinc-500" />
+                                            <span className="text-zinc-300 font-mono text-xs">{currentIp}</span>
+                                        </div>
+                                        <div className="flex items-center gap-2 text-[10px] text-zinc-500">
+                                            <MapPin size={10} /> {currentLocation}
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </Card>
+
+                        {/* Activity Stream using Location History + Mock */}
                         <div className="lg:col-span-2 border border-zinc-800 bg-zinc-950 p-0">
-                            <div className="p-6 pb-2"><h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500 mb-4 flex items-center gap-2"><History size={14} /> User Activity Stream</h3></div>
+                            <div className="p-6 pb-2">
+                                <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500 mb-4 flex items-center gap-2">
+                                    <History size={14} /> User Activity Stream
+                                </h3>
+                            </div>
                             <div className="space-y-4 px-6 pb-4">
-                                {paginatedActivity.map((act: ActivityLog, i: number) => (
-                                    <div key={i} className="flex items-start gap-4 border-b border-zinc-900/50 pb-3 last:border-0 last:pb-0"><div className="min-w-25 text-[10px] font-mono text-zinc-500 pt-0.5">{act.time}</div><div className="flex-1"><div className="text-xs font-bold text-white">{act.action.replace('_', ' ')}</div><div className="text-[10px] text-zinc-400">{act.details}</div></div>{act.ip && (<div className="text-[10px] font-mono text-zinc-600 bg-zinc-900 px-2 py-0.5 rounded">{act.ip}</div>)}</div>
-                                ))}
+                                {paginatedActivity.length > 0 ? paginatedActivity.map((act: ActivityLog, i: number) => (
+                                    <div key={i} className="flex items-start gap-4 border-b border-zinc-900/50 pb-3 last:border-0 last:pb-0">
+                                        <div className="min-w-25 text-[10px] font-mono text-zinc-500 pt-0.5">{act.time}</div>
+                                        <div className="flex-1">
+                                            <div className="text-xs font-bold text-white">{act.action}</div>
+                                            <div className="text-[10px] text-zinc-400">{act.details}</div>
+                                        </div>
+                                        {act.ip && (
+                                            <div className="text-[10px] font-mono text-zinc-600 bg-zinc-900 px-2 py-0.5 rounded">{act.ip}</div>
+                                        )}
+                                    </div>
+                                )) : (
+                                    <div className="text-zinc-500 text-xs text-center py-4">No activity recorded.</div>
+                                )}
                             </div>
                             <Pagination page={activityPage} setPage={setActivityPage} total={totalActivityPages} label="Activity" />
+                        </div>
+
+                        <div className="lg:col-span-2 border border-zinc-800 bg-zinc-950 p-0">
+                            <div className="p-6 pb-2">
+                                <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500 mb-4 flex items-center gap-2">
+                                    <Globe size={14} /> Global Location History
+                                </h3>
+                            </div>
+
+                            <div className="overflow-x-auto px-6 pb-4">
+                                <table className="w-full text-left text-sm">
+                                    <thead className="text-[10px] text-zinc-600 uppercase border-b border-zinc-900">
+                                    <tr>
+                                        <th className="pb-3 pl-2 font-normal text-left">Timestamp</th>
+                                        <th className="pb-3 font-normal text-left">Location</th>
+                                        <th className="pb-3 font-normal text-left">Device</th>
+                                        <th className="pb-3 font-normal text-left">Source</th>
+                                        <th className="pb-3 pr-2 font-normal text-right">Coordinates</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-zinc-900">
+                                    {paginatedLocations.length > 0 ? paginatedLocations.map((log) => {
+                                        const time = getTimestampFromId(log._id);
+                                        const isMobile = log.deviceInfo.userAgent.toLowerCase().includes('mobile');
+
+                                        return (
+                                            <tr key={log._id} className="group hover:bg-zinc-900/30 transition-colors">
+                                                <td className="py-3 pl-2 font-mono text-zinc-500 text-xs">
+                                                    {time}
+                                                </td>
+                                                <td className="py-3">
+                                                    <div className="flex flex-col">
+                                                        <span className="text-white text-xs font-bold">{log.deviceInfo.city}, {log.deviceInfo.country}</span>
+                                                        <span className="text-[10px] font-mono text-zinc-500">{log.deviceInfo.ip}</span>
+                                                    </div>
+                                                </td>
+                                                <td className="py-3">
+                                                    <div className="flex items-center gap-2">
+                                                        {isMobile ? <Smartphone size={14} className="text-zinc-600" /> : <Laptop size={14} className="text-zinc-600" />}
+                                                        <span className="text-zinc-400 text-xs truncate max-w-37.5 block" title={log.deviceInfo.userAgent}>
+                                                                {log.deviceInfo.userAgent}
+                                                            </span>
+                                                    </div>
+                                                </td>
+                                                <td className="py-3">
+                                                    <Badge variant={log.source === 'login' ? 'RUNNING' : 'BASIC'}>
+                                                        {log.source.toUpperCase()}
+                                                    </Badge>
+                                                </td>
+                                                <td className="py-3 pr-2 text-right">
+                                                    <a
+                                                        href={`https://www.google.com/maps/search/?api=1&query=${log.location.coordinates[1]},${log.location.coordinates[0]}`}
+                                                        target="_blank"
+                                                        rel="noreferrer"
+                                                        className="inline-flex items-center gap-1 text-[10px] font-mono text-zinc-500 hover:text-emerald-400 transition-colors border border-zinc-800 hover:border-emerald-500/50 rounded px-2 py-1 bg-black"
+                                                    >
+                                                        {log.location.coordinates[1].toFixed(4)}, {log.location.coordinates[0].toFixed(4)}
+                                                        <ExternalLink size={8} />
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                        )
+                                    }) : (
+                                        <tr>
+                                            <td colSpan={5} className="py-8 text-center text-zinc-500 text-xs italic">
+                                                No location history found for this user.
+                                            </td>
+                                        </tr>
+                                    )}
+                                    </tbody>
+                                </table>
+                            </div>
+                            <Pagination page={locationPage} setPage={setLocationPage} total={totalLocationPages} label="Locations" />
                         </div>
                     </div>
                 )}
 
+                {/* --- Bots Tab --- */}
                 {tab === 'BOTS' && (
                     <div key="bots" className="space-y-4 animate-enter">
                         <div className="flex flex-col md:flex-row gap-4 mb-2">
@@ -360,7 +512,6 @@ export function UserProfile({ user }: UserProfileProps) {
 
                         {isLoadingBots ? (
                             <div className="flex flex-col items-center justify-center py-16 border border-dashed border-zinc-800 rounded bg-zinc-950/50">
-                                {/* 5. Replace HeroUI Spinner with Lucide Icon */}
                                 <Loader2 className="w-8 h-8 text-white animate-spin" />
                                 <span className="text-zinc-500 mt-4 text-xs font-mono animate-pulse">Syncing User Strategies...</span>
                             </div>
@@ -379,7 +530,7 @@ export function UserProfile({ user }: UserProfileProps) {
                                             <div className="col-span-6 md:col-span-2 text-left md:text-center"><Badge variant={bot.tradingMode}>{bot.tradingMode}</Badge></div>
                                             <div className="col-span-6 md:col-span-2 text-left md:text-center"><span className="block text-[9px] uppercase text-zinc-600">Symbol</span><span className="font-mono text-xs text-zinc-300">{bot.symbol}</span></div>
                                             <div className="col-span-6 md:col-span-2 text-left md:text-center"><span className="block text-[9px] uppercase text-zinc-600">Started</span><span className="font-mono text-xs text-zinc-400">{bot.startedAt}</span></div>
-                                            <div className="col-span-6 md:col-span-2 text-right"><span className="block text-[9px] uppercase text-zinc-600">PnL</span><div className="flex items-center justify-end gap-2"><span className={`font-mono font-bold text-xs ${parseFloat(bot.pnl) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>${bot.pnl}</span><Link href={`/users/${user.id}/bot/${bot.id}`}><ChevronRight size={16} className="text-zinc-700 group-hover:text-white" /></Link></div></div>
+                                            <div className="col-span-6 md:col-span-2 text-right"><span className="block text-[9px] uppercase text-zinc-600">PnL</span><div className="flex items-center justify-end gap-2"><span className={`font-mono font-bold text-xs ${parseFloat(bot.pnl) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>${bot.pnl}</span><Link href={`/users/${user._id}/bot/${bot.id}`}><ChevronRight size={16} className="text-zinc-700 group-hover:text-white" /></Link></div></div>
                                         </div>
                                     </div>
                                 ))}
@@ -392,10 +543,9 @@ export function UserProfile({ user }: UserProfileProps) {
                     </div>
                 )}
 
-                {/* ... [Billing and Action Tabs remain exactly the same] ... */}
+                {/* --- Billing Tab (Mostly Mock) --- */}
                 {tab === 'BILLING' && (
                     <div key="billing" className="space-y-8 animate-enter">
-                        {/* ... content ... */}
                         <div className="border border-zinc-800 bg-zinc-950 p-8">
                             <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500 mb-8 flex items-center gap-2">
                                 <RefreshCw size={14} /> Subscription Lifecycle
@@ -405,24 +555,18 @@ export function UserProfile({ user }: UserProfileProps) {
                                     const Icon = item.icon
                                     return (
                                         <div key={i} className="relative group">
-                                            <div
-                                                className={`absolute -left-6.75 top-1 w-6 h-6 rounded-full bg-black border ${item.border} flex items-center justify-center z-10 shadow-[0_0_10px_rgba(0,0,0,0.5)]`}
-                                            >
+                                            <div className={`absolute -left-6.75 top-1 w-6 h-6 rounded-full bg-black border ${item.border} flex items-center justify-center z-10 shadow-[0_0_10px_rgba(0,0,0,0.5)]`}>
                                                 <Icon size={12} className={item.color} />
                                             </div>
                                             <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 pl-4">
                                                 <div>
                                                     <div className="flex items-center gap-3">
-                                                        <span className="text-sm font-bold text-white uppercase tracking-wider">
-                                                            {item.event}
-                                                        </span>
+                                                        <span className="text-sm font-bold text-white uppercase tracking-wider">{item.event}</span>
                                                         <span className="text-[10px] font-mono text-zinc-600">{item.date}</span>
                                                     </div>
                                                     <div className="text-xs text-zinc-500 mt-1">{item.details}</div>
                                                 </div>
-                                                <div>
-                                                    <Badge variant={item.plan}>{item.plan}</Badge>
-                                                </div>
+                                                <div><Badge variant={item.plan}>{item.plan}</Badge></div>
                                             </div>
                                         </div>
                                     )
@@ -443,29 +587,16 @@ export function UserProfile({ user }: UserProfileProps) {
                                                 placeholder="Search Invoices..."
                                                 className="w-full bg-black border border-zinc-800 py-2 pl-9 text-xs text-white focus:border-white outline-none placeholder-zinc-700"
                                                 value={invoiceSearch}
-                                                // UPDATED: Use Handler
                                                 onChange={handleInvoiceSearch}
                                             />
                                         </div>
                                         <div className="flex gap-4 items-center">
-                                            <PremiumCheckbox
-                                                label="Paid"
-                                                checked={invoiceStatusFilters.PAID}
-                                                // UPDATED: Use Handler
-                                                onChange={() => toggleInvoiceStatus('PAID')}
-                                            />
-                                            <PremiumCheckbox
-                                                label="Failed"
-                                                checked={invoiceStatusFilters.FAILED}
-                                                // UPDATED: Use Handler
-                                                onChange={() => toggleInvoiceStatus('FAILED')}
-                                            />
+                                            <PremiumCheckbox label="Paid" checked={invoiceStatusFilters.PAID} onChange={() => toggleInvoiceStatus('PAID')} />
+                                            <PremiumCheckbox label="Failed" checked={invoiceStatusFilters.FAILED} onChange={() => toggleInvoiceStatus('FAILED')} />
                                         </div>
                                     </div>
                                 </div>
                             </div>
-
-                            {/* ... Invoice Table (Unchanged) ... */}
                             <div className="overflow-x-auto p-8 pt-4 pb-0 flex-1">
                                 <table className="w-full text-left text-sm">
                                     <thead className="text-[10px] text-zinc-600 uppercase border-b border-zinc-900">
@@ -484,11 +615,7 @@ export function UserProfile({ user }: UserProfileProps) {
                                             <td className="py-4 text-zinc-300">{inv.date}</td>
                                             <td className="py-4 font-bold text-white">{inv.amount}</td>
                                             <td className="py-4 text-center">
-                                                {inv.status === 'PAID' ? (
-                                                    <span className="text-emerald-400 font-medium text-xs">Successful</span>
-                                                ) : (
-                                                    <span className="text-rose-400 font-medium text-xs">Unsuccessful</span>
-                                                )}
+                                                {inv.status === 'PAID' ? <span className="text-emerald-400 font-medium text-xs">Successful</span> : <span className="text-rose-400 font-medium text-xs">Unsuccessful</span>}
                                             </td>
                                             <td className="py-4 pr-4 text-right">
                                                 <button className="text-xs flex items-center gap-1 ml-auto text-zinc-500 hover:text-white transition-colors">
@@ -497,30 +624,17 @@ export function UserProfile({ user }: UserProfileProps) {
                                             </td>
                                         </tr>
                                     ))}
-                                    {paginatedInvoices.length === 0 && (
-                                        <tr>
-                                            <td colSpan={5} className="py-8 text-center text-zinc-600 italic">
-                                                No invoices found
-                                            </td>
-                                        </tr>
-                                    )}
                                     </tbody>
                                 </table>
                             </div>
-
-                            <Pagination
-                                page={invoicePage}
-                                setPage={setInvoicePage}
-                                total={totalInvoicePages}
-                                label="History"
-                            />
+                            <Pagination page={invoicePage} setPage={setInvoicePage} total={totalInvoicePages} label="History" />
                         </div>
                     </div>
                 )}
 
+                {/* --- Action Tab (Mock) --- */}
                 {tab === 'ACTION' && (
                     <div key="action" className="space-y-6 animate-enter">
-                        {/* ... Action Content ... */}
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                             <Card>
                                 <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500 mb-6 flex items-center gap-2">
@@ -534,11 +648,7 @@ export function UserProfile({ user }: UserProfileProps) {
                                                 <button
                                                     key={plan}
                                                     onClick={() => setSelectedPlan(plan as 'BASIC' | 'ESSENTIAL' | 'PRO')}
-                                                    className={`py-3 text-xs font-bold uppercase tracking-wider border rounded-sm transition-all ${
-                                                        selectedPlan === plan
-                                                            ? 'bg-white text-black border-white shadow-sm'
-                                                            : 'bg-black text-zinc-500 border-zinc-800 hover:border-zinc-600 hover:text-zinc-300'
-                                                    }`}
+                                                    className={`py-3 text-xs font-bold uppercase tracking-wider border rounded-sm transition-all ${selectedPlan === plan ? 'bg-white text-black border-white shadow-sm' : 'bg-black text-zinc-500 border-zinc-800 hover:border-zinc-600 hover:text-zinc-300'}`}
                                                 >
                                                     {plan}
                                                 </button>
@@ -546,25 +656,14 @@ export function UserProfile({ user }: UserProfileProps) {
                                         </div>
                                     </div>
                                     <div className="space-y-1">
-                                        <label className="text-[10px] font-bold text-zinc-600 uppercase">
-                                            Override Monthly Fee ($)
-                                        </label>
+                                        <label className="text-[10px] font-bold text-zinc-600 uppercase">Override Monthly Fee ($)</label>
                                         <div className="flex gap-2">
                                             <input
                                                 className="flex-1 bg-black border border-zinc-800 p-2 text-xs text-white outline-none focus:border-zinc-600 transition-colors placeholder-zinc-700"
                                                 value={customFee}
                                                 onChange={(e) => setCustomFee(e.target.value)}
                                             />
-                                            <button
-                                                disabled={selectedPlan === user.plan}
-                                                className={`text-[10px] font-bold px-4 uppercase border rounded-sm transition-colors ${
-                                                    selectedPlan !== user.plan
-                                                        ? 'bg-white text-black border-white hover:bg-zinc-200 cursor-pointer'
-                                                        : 'bg-zinc-900 text-zinc-600 border-zinc-800 cursor-not-allowed'
-                                                }`}
-                                            >
-                                                Update
-                                            </button>
+                                            <button disabled={selectedPlan === userPlan} className={`text-[10px] font-bold px-4 uppercase border rounded-sm transition-colors ${selectedPlan !== userPlan ? 'bg-white text-black border-white hover:bg-zinc-200 cursor-pointer' : 'bg-zinc-900 text-zinc-600 border-zinc-800 cursor-not-allowed'}`}>Update</button>
                                         </div>
                                     </div>
                                 </div>
@@ -575,18 +674,10 @@ export function UserProfile({ user }: UserProfileProps) {
                                     <Shield size={14} /> Account Control
                                 </h3>
                                 <div className="grid grid-cols-2 gap-3">
-                                    <button className="border border-zinc-800 p-3 text-xs text-zinc-400 hover:text-white hover:border-zinc-600 flex flex-col items-center gap-2 transition-all">
-                                        <Key size={16} /> Reset Password
-                                    </button>
-                                    <button className="border border-zinc-800 p-3 text-xs text-zinc-400 hover:text-white hover:border-zinc-600 flex flex-col items-center gap-2 transition-all">
-                                        <LogOut size={16} /> Force Logout
-                                    </button>
-                                    <button className="border border-amber-900/50 p-3 text-xs text-amber-500 hover:bg-amber-900/10 hover:text-amber-400 flex flex-col items-center gap-2 transition-all bg-transparent">
-                                        <Flag size={16} /> Flag Account
-                                    </button>
-                                    <button className="border border-rose-900/50 p-3 text-xs text-rose-500 hover:bg-rose-900/10 hover:text-rose-400 flex flex-col items-center gap-2 transition-all bg-transparent">
-                                        <UserX size={16} /> Ban User
-                                    </button>
+                                    <button className="border border-zinc-800 p-3 text-xs text-zinc-400 hover:text-white hover:border-zinc-600 flex flex-col items-center gap-2 transition-all"><Key size={16} /> Reset Password</button>
+                                    <button className="border border-zinc-800 p-3 text-xs text-zinc-400 hover:text-white hover:border-zinc-600 flex flex-col items-center gap-2 transition-all"><LogOut size={16} /> Force Logout</button>
+                                    <button className="border border-amber-900/50 p-3 text-xs text-amber-500 hover:bg-amber-900/10 hover:text-amber-400 flex flex-col items-center gap-2 transition-all bg-transparent"><Flag size={16} /> Flag Account</button>
+                                    <button className="border border-rose-900/50 p-3 text-xs text-rose-500 hover:bg-rose-900/10 hover:text-rose-400 flex flex-col items-center gap-2 transition-all bg-transparent"><UserX size={16} /> Ban User</button>
                                 </div>
                             </Card>
                         </div>
@@ -612,16 +703,10 @@ export function UserProfile({ user }: UserProfileProps) {
                                     {paginatedActions.map((act) => (
                                         <tr key={act.id} className="group hover:bg-zinc-900/30 transition-colors">
                                             <td className="py-4 pl-4 font-mono text-zinc-500 text-xs">{act.id}</td>
-                                            <td className="py-4 text-left">
-                                                <span className="text-xs font-bold text-white uppercase tracking-wider">
-                                                    {act.action.replace('_', ' ')}
-                                                </span>
-                                            </td>
+                                            <td className="py-4 text-left"><span className="text-xs font-bold text-white uppercase tracking-wider">{act.action.replace('_', ' ')}</span></td>
                                             <td className="py-4 text-zinc-300 text-xs text-left">{act.admin}</td>
                                             <td className="py-4 text-zinc-400 text-xs text-left">{act.details}</td>
-                                            <td className="py-4 pr-4 text-right font-mono text-zinc-600 text-xs">
-                                                {act.time}
-                                            </td>
+                                            <td className="py-4 pr-4 text-right font-mono text-zinc-600 text-xs">{act.time}</td>
                                         </tr>
                                     ))}
                                     </tbody>

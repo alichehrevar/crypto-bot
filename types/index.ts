@@ -17,40 +17,6 @@ export interface AdminAction {
 
 export type SubscriptionPlan = 'BASIC' | 'ESSENTIAL' | 'PRO'
 
-// Update the existing types to be more specific if needed
-export interface User {
-    id: string
-    firstName: string
-    lastName: string
-    email: string
-    country: string
-    plan: SubscriptionPlan
-    planFreq: 'MONTHLY' | 'ANNUAL'
-    botCount: number
-    birthday: string
-    joinedAt: string
-    balance: string
-    status: 'ACTIVE' | 'SUSPENDED' | 'BANNED' | 'INACTIVE'
-    avatar: string
-    brokers: string[]
-    billingAddress: string
-    session: {
-        city: string
-        region: string
-        country: string
-        timezone: string
-        ip: string
-    }
-    activityHistory: ActivityHistory[]
-}
-
-export interface ActivityHistory {
-    action: string
-    details: string
-    time: string
-    ip: string | null
-}
-
 export interface Bot {
     id: string
     name: string
