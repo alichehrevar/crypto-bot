@@ -2,7 +2,7 @@
 import { User, Bot, Trade, LogEntry, Invoice, AdminAction } from '@/types'
 
 export const MOCK_USERS: User[] = Array.from({ length: 124 }).map((_, i) => ({
-    id: `U-${1000 + i}`,
+    id: `695245fc69d0a57c59343eca`,
     firstName: ['Alexander', 'Sarah', 'James', 'Elena', 'Michael', 'David', 'Sofia', 'Lucas'][i % 8],
     lastName: ['Mercer', 'Connor', 'Bond', 'Fisher', 'Stark', 'Wu', 'Silva', 'Mueller'][i % 8],
     email: `user${1000 + i}@unitedalgos.com`,

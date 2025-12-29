@@ -2,7 +2,7 @@
 'use client'
 
 import { useState, useMemo, useEffect, useCallback } from 'react'
-import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import {
     Search,
@@ -40,6 +40,7 @@ const SortIcon = ({ column, sortConfig }: {
 }
 
 export function UserHub() {
+    const router = useRouter()
     const { addToast } = useToast()
 
     // --- State ---
@@ -403,9 +404,10 @@ export function UserHub() {
                                 <tr
                                     key={user._id}
                                     className="border-b border-zinc-900 hover:bg-zinc-900/50 cursor-pointer transition-colors group"
+                                    onClick={() => router.push(`/users/${user._id}`)}
                                 >
                                     <td className="p-4 pl-6 overflow-hidden">
-                                        <Link href={`/users/${user._id}`} className="block">
+                                        <div className="block">
                                             <div className="flex items-center gap-3">
                                                 <div className="w-8 h-8 relative rounded-full bg-zinc-800 border border-zinc-700 overflow-hidden grayscale group-hover:grayscale-0 transition-all shrink-0">
                                                     <Image fill src={avatarSrc} className="w-full h-full object-cover" alt="Avatar" />
@@ -417,49 +419,49 @@ export function UserHub() {
                                                     <div className="text-[10px] text-zinc-500 font-mono truncate">{user.email}</div>
                                                 </div>
                                             </div>
-                                        </Link>
+                                        </div>
                                     </td>
                                     <td className="p-4 text-xs text-zinc-400 text-left truncate">
-                                        <Link href={`/users/${user._id}`} className="block">
+                                        <div className="block">
                                             <div className="flex items-center gap-1">
                                                 <MapPin size={10} />
                                                 {country}
                                             </div>
-                                        </Link>
+                                        </div>
                                     </td>
                                     <td className="p-4 text-left">
-                                        <Link href={`/users/${user._id}`} className="block">
+                                        <div className="block">
                                             <Badge variant={'basic'}>basic</Badge>
-                                        </Link>
+                                        </div>
                                     </td>
                                     <td className="p-4 text-center font-mono text-white">
-                                        <Link href={`/users/${user._id}`} className="block">
+                                        <div className="block">
                                             0
-                                        </Link>
+                                        </div>
                                     </td>
                                     <td className="p-4 text-xs text-zinc-500 font-mono text-right">
-                                        <Link href={`/users/${user._id}`} className="block">
+                                        <div className="block">
                                             <div className="flex items-center justify-end gap-1">
                                                 {birthday}
                                             </div>
-                                        </Link>
+                                        </div>
                                     </td>
                                     <td className="p-4 text-xs text-zinc-500 font-mono text-right">
-                                        <Link href={`/users/${user._id}`} className="block">
+                                        <div className="block">
                                             <div className="flex items-center justify-end gap-1">
                                                 {joinedAt}
                                             </div>
-                                        </Link>
+                                        </div>
                                     </td>
                                     <td className="p-4 text-center">
-                                        <Link href={`/users/${user._id}`} className="block">
+                                        <div className="block">
                                             <Badge variant={user.status.toUpperCase()}>{user.status}</Badge>
-                                        </Link>
+                                        </div>
                                     </td>
                                     <td className="p-4 pr-6 text-right">
-                                        <Link href={`/users/${user._id}`} className="block">
+                                        <div className="block">
                                             <ChevronRight size={16} className="text-zinc-700 group-hover:text-white" />
-                                        </Link>
+                                        </div>
                                     </td>
                                 </tr>
                             )
