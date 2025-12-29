@@ -5,6 +5,8 @@ const UserInfo = require('../../models/UserInfo');
 const AuthToken = require('../../models/AuthToken');
 const logger = require("../../../logs/logger");
 const { sendOtpAndHandleFailure } = require('../../services/user/otpService');
+const LocationService = require('../../services/user/userLocationService');
+const requestIp = require('request-ip');
 
 exports.checkEmailExistence = async (req, res) => {
     try {
@@ -46,6 +48,22 @@ exports.login = async (req, res) => {
         if (!isMatch) {
             return res.status(401).json({ success: false, error: 'Invalid credentials..' });
         }
+
+        const clientIp = requestIp.getClientIp(req);
+
+        await LocationService.log(
+            user._id,
+            req.body.lat,
+            req.body.lng,
+            clientIp,
+            'login', // source
+            {
+                // Pass the data sent from frontend
+                city: req.body.device_city,
+                country: req.body.device_country,
+                userAgent: req.headers['user-agent']
+            }
+        );
 
         const tokenString = await generateToken(user, req);
 

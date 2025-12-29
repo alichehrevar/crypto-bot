@@ -30,11 +30,22 @@ userSchema.virtual('info', {
     justOne: true,
 });
 
+userSchema.virtual('locationHistory', {
+    ref: 'UserLocationHistory',
+    localField: '_id',
+    foreignField: 'userId',
+    options: { sort: { timestamp: -1 }}
+});
+
 userSchema.pre('save', async function(next) {
     if (this.isModified('password')) {
         this.password = await bcrypt.hash(this.password, 10);
     }
     next();
 });
+
+// Ensure virtuals are included when converting to JSON/Object
+userSchema.set('toObject', { virtuals: true });
+userSchema.set('toJSON', { virtuals: true });
 
 module.exports = mongoose.model('User', userSchema);

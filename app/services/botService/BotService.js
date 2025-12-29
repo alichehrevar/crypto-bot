@@ -10,7 +10,7 @@ const wsServer     = require('../WebSocketServer');
 const OrderExecutionService = require('./OrderExecutionService');
 const RiskManagementService = require('./RiskManagementService');
 const botLogger = require('../../../logs/botLogger');
-const BotLog    = require('../../models/BotLog'); // Import the Log Model
+const BotLog    = require('../../models/BotLog');
 
 class BotService {
     constructor() {
