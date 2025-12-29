@@ -193,13 +193,6 @@ export function UserHub() {
         return pages
     }
 
-    // --- Helper to render Role as Badge Variant ---
-    const getRoleVariant = (role: string) => {
-        if (role === 'admin') return 'PRO';
-        if (role === 'support') return 'ESSENTIAL';
-        return 'BASIC';
-    }
-
     // --- Loading View ---
     if (isLoading) {
         return (
