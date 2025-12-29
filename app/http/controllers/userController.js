@@ -484,6 +484,28 @@ exports.usersList = async (req, res) => {
     }
 }
 
+exports.userDetails = async (req, res) => {
+    try {
+        const user = await User.findById(req.params.id)
+            .select('email role status createdAt')
+            .lean({ virtuals: true })
+            .populate({ path: 'info', select: 'firstName lastName avatar birthday' })
+            .populate({ path: 'locationHistory', select: 'location source deviceInfo' });
+
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'User not found.' });
+        }
+
+        res.json({ success: true, data: user });
+
+    } catch (error) {
+        logger.error('Error getting user details');
+        console.error('Error getting user details');
+        res.status(500).json({ success: false, message: 'Internal server error.' });
+    }
+
+}
+
 exports.changeUserRole = async (req, res) => {
     const user = await User.findById(req.user?.id).populate('info');
     if (!user) {
