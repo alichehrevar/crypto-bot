@@ -43,14 +43,12 @@ class TelegramLogger extends Transport {
 
         const { level, message, timestamp, stack } = info;
 
-        if (process.env.NODE_ENV === 'development') return null;
-
         // Escape content to prevent Telegram parsing errors
         const safeMessage = escapeHtml(message);
 
         // Visuals
         const icon = level === 'error' ? '🚨' : '⚠️';
-        const projectTag = '#UnitedAlgos'; // Optional: Helps filtering in Telegram search
+        const projectTag = process.env.NODE_ENV === 'production' ? '#Production' : '#Development'; // Optional: Helps filtering in Telegram search
 
         // Build HTML Message
         let text = `<b>${icon} Error Report</b> ${projectTag}\n`;

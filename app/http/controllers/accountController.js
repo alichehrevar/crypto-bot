@@ -1,13 +1,11 @@
 const axios = require("axios");
 
 // app/http/controllers/accountController.js
-const UserInfo = require('../../models/UserInfo');
 const BinanceAccount = require('../../models/BinanceAccount');
 const OkxAccount = require('../../models/OkxAccount');
 const BingxAccount = require('../../models/BingxAccount');
 const AssetSnapshot = require('../../models/AssetSnapshot');
-const Trade = require('../../models/Trade');
-const BotBase = require('../../models/BotBase');
+const financeService = require('../../services/financeService');
 
 // Import services that handle the API calls for each exchange.
 const BinanceService = require('../../services/binanceWS');
@@ -28,23 +26,6 @@ const getSafeUsdtValue = (item) => {
     const val = item.usdtBalance ?? item.equity ?? item.balance ?? item.total ?? 0;
     return parseFloat(val) || 0;
 };
-
-/**
- * Helper to fetch Euro exchange rate
- */
-async function fetchExchangeRate() {
-    try {
-        const response = await axios.get('https://api.exchangerate-api.com/v4/latest/USDT');
-        return {
-            EUR: response.data.rates.EUR,
-            USD: response.data.rates.USD,
-        };
-    } catch (e) {
-        logger.error('Error fetching exchange rate, defaulting to 1:', e.message);
-        console.error('Error fetching exchange rate, defaulting to 1:', e.message);
-        return 1;
-    }
-}
 
 // --- Controllers ---
 
@@ -467,66 +448,25 @@ exports.getAssetsDistribution = async (req, res) => {
 exports.getSummary = async (req, res) => {
     try {
         const userId = req.user.id;
-
         const today = new Date();
         today.setUTCHours(0, 0, 0, 0);
 
-        // --- Step 1: Fetch the Total Balance & Funding Balance from Snapshot ---
-        const latestSnapshot = await AssetSnapshot.findOne({ userId })
-            .sort({ timestamp: -1 })
-            .lean();
+        // --- Step 1: Get Common Data via Service (Exchange Rate, Portfolio, Funds) ---
+        // Run these in parallel for better performance since they don't depend on each other
+        const [exchangeData, portfolioBalance, latestSnapshot] = await Promise.all([
+            financeService.getUserExchangeData(userId),
+            financeService.calculatePortfolioBalance(userId),
+            AssetSnapshot.findOne({ userId }).sort({ timestamp: -1 }).lean()
+        ]);
 
-        // 1. Get Total Balance
+        const { currency, rate: exchangeRate } = exchangeData;
         const totalBalance = latestSnapshot ? latestSnapshot.total : 0;
+        const fundBalance = financeService.calculateFundBalance(latestSnapshot);
 
-        // 2. Calculate "Fund" or "Funding" Balance
-        // We sum up the value of all accounts in the details array where type is 'Funding' or 'Fund'
-        let fundBalance = 0;
-        if (latestSnapshot && latestSnapshot.details) {
-            latestSnapshot.details.forEach(brokerDetail => {
-                if (brokerDetail.accounts) {
-                    brokerDetail.accounts.forEach(account => {
-                        // FIX: Added 'earn' to the exclusion list
-                        if (['funding', 'fund', 'earn'].includes(account.type.toLowerCase())) {
-                            fundBalance += (account.value || 0);
-                        }
-                    });
-                }
-            });
-        }
-
-        // --- Currency Conversion ---
-        let exchangeRate = 1;
-        const userInfo = await UserInfo.findOne({ userId: userId });
-        if (!userInfo) {
-            return res.status(404).json({ success: false, error: 'User info not found' });
-        }
-
-        const exchangeRateResponse = await fetchExchangeRate();
-        if (userInfo.currency === 'euro') {
-            exchangeRate = exchangeRateResponse.EUR
-        } else if (userInfo.currency === 'dollar') {
-            exchangeRate = exchangeRateResponse.USD;
-        }
-
-        // --- Step 2: Calculate Portfolio Balance from Closed Trades ---
-        const userBots = await BotBase.find({ userId }).select('_id').lean();
-        const botIds = userBots.map(bot => bot._id);
-
-        const closedTrades = await Trade.find({
-            bot: { $in: botIds },
-            exitPrice: { $ne: null, $gt: 0 }
-        }).lean();
-
-        const portfolioBalance = closedTrades.reduce((sum, trade) => {
-            return sum + (trade.entryPrice * trade.quantity);
-        }, 0);
-
-        // --- Step 3: Calculate Available Funds ---
-        // available = total - funding accounts - closed trades portfolio
+        // --- Step 2: Calculate Available Funds ---
         const availableFunds = totalBalance - fundBalance - portfolioBalance;
 
-        // --- Step 4: Fetch previous snapshot for Percentage Change ---
+        // --- Step 3: Fetch previous snapshot for Percentage Change ---
         const lastSnapshot = await AssetSnapshot.findOne({
             userId,
             timestamp: { $lt: today }
@@ -538,7 +478,7 @@ exports.getSummary = async (req, res) => {
             pctChange = ((totalBalance - previousBalance) / previousBalance) * 100;
         }
 
-        // --- Step 5: Fetch 7-day history for the chart ---
+        // --- Step 4: Fetch 7-day history for the chart ---
         const fiveDaysAgo = new Date();
         fiveDaysAgo.setDate(today.getDate() - 5);
         fiveDaysAgo.setHours(0, 0, 0, 0);
@@ -566,11 +506,11 @@ exports.getSummary = async (req, res) => {
             });
         }
 
-        // --- Step 6: Return Response ---
+        // --- Step 5: Return Response ---
         return res.json({
             success: true,
             data: {
-                currency: userInfo.currency,
+                currency: currency,
                 summary: {
                     portfolioBalance: parseFloat((portfolioBalance * exchangeRate).toFixed(2)),
                     availableFunds: parseFloat((availableFunds * exchangeRate).toFixed(2)),
@@ -582,6 +522,11 @@ exports.getSummary = async (req, res) => {
         });
 
     } catch (err) {
+        // Handle specific service errors if needed
+        if (err.message === 'User info not found') {
+            return res.status(404).json({ success: false, error: err.message });
+        }
+
         logger.error('getSummary controller error:', err.message);
         console.error('getSummary controller error:', err.message);
         return res.status(500).json({ success: false, error: 'Internal server error while fetching summary' });

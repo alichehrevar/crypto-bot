@@ -68,30 +68,28 @@ class BotLoggerService {
         });
 
         // Add to console in non-production environments
-        if (process.env.NODE_ENV !== 'production') {
-            botLogger.add(new transports.Console({
-                format: format.combine(
-                    format.colorize(),
-                    // A simpler format for the console
-                    format.printf(({ timestamp, level, message, botId, stack, ...meta }) => {
-                        const time = new Date(timestamp).toLocaleTimeString();
-                        let log = `${time} [${level}] (Bot: ${botId}): ${message}`;
+        botLogger.add(new transports.Console({
+            format: format.combine(
+                format.colorize(),
+                // A simpler format for the console
+                format.printf(({ timestamp, level, message, botId, stack, ...meta }) => {
+                    const time = new Date(timestamp).toLocaleTimeString();
+                    let log = `${time} [${level}] (Bot: ${botId}): ${message}`;
 
-                        // Print stack if it exists
-                        if (stack) {
-                            log += `\n${stack}`;
-                        }
+                    // Print stack if it exists
+                    if (stack) {
+                        log += `\n${stack}`;
+                    }
 
-                        // Print any other metadata
-                        const metaKeys = Object.keys(meta);
-                        if (metaKeys.length > 0) {
-                            log += `\n${JSON.stringify(meta, null, 2)}`;
-                        }
-                        return log;
-                    })
-                )
-            }));
-        }
+                    // Print any other metadata
+                    const metaKeys = Object.keys(meta);
+                    if (metaKeys.length > 0) {
+                        log += `\n${JSON.stringify(meta, null, 2)}`;
+                    }
+                    return log;
+                })
+            )
+        }));
 
         // Cache the new logger and return it
         this.loggers.set(botId, botLogger);

@@ -9,7 +9,12 @@ const FavoriteSymbol = require('../../models/FavoriteSymbol');
 const MarketService = require('../../services/marketService');
 const MarketSnapshot = require('../../models/MarketSnapshot');
 const { sendOtpAndHandleFailure } = require('../../services/user/otpService');
+
+const AssetSnapshot = require('../../models/AssetSnapshot');
+const financeService = require('../../services/financeService'); // Import the new service
+
 const logger = require("../../../logs/logger");
+const BotBase = require("../../models/BotBase");
 
 exports.userInfo = async (req, res) => {
     const user = await User.findById(req.user?.id).populate('info');
@@ -496,9 +501,43 @@ exports.userDetails = async (req, res) => {
             return res.status(404).json({ success: false, message: 'User not found.' });
         }
 
+        const userId = user._id
+        // 1. Get Exchange Rate & Currency
+        // We do this concurrently with snapshot fetch for performance if desired,
+        // but sequential is fine for clarity.
+        const { rate: exchangeRate, currency } = await financeService.getUserExchangeData(userId);
+
+        // 2. Get Latest Snapshot & Total Balance
+        const latestSnapshot = await AssetSnapshot.findOne({ userId })
+            .sort({ timestamp: -1 })
+            .lean();
 
 
-        res.json({ success: true, data: user });
+        const totalBalance = latestSnapshot ? latestSnapshot.total : 0;
+
+        // 3. Calculate Components via Service
+        const fundBalance = financeService.calculateFundBalance(latestSnapshot);
+        const portfolioBalance = await financeService.calculatePortfolioBalance(userId);
+
+        // 4. Calculate Available Funds
+        const availableFunds = totalBalance - fundBalance - portfolioBalance;
+
+        const totalBotsCount = await BotBase.countDocuments({ userId: userId });
+        const activeBotsCount = await BotBase.countDocuments({ userId: userId, active: true });
+
+        res.json({
+            success: true,
+            data: {
+                ...user,
+                totalBots: totalBotsCount,
+                activeBots: activeBotsCount,
+                summary: {
+                    currency: currency,
+                    availableFunds: parseFloat((availableFunds * exchangeRate).toFixed(2)),
+                    totalBalance: parseFloat((totalBalance * exchangeRate).toFixed(2)),
+                }
+            }
+        });
 
     } catch (error) {
         logger.error('Error getting user details');
