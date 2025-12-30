@@ -4,7 +4,7 @@ import React from "react";
 import { observer } from "mobx-react";
 import { useRouter } from "next/navigation";
 import { addToast, Avatar, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger } from "@heroui/react";
-import { Headset, LayoutDashboard, LogOut, ReceiptText, Search, Settings, UserIcon } from "lucide-react";
+import { Headset, LogOut, ReceiptText, Search, Settings, UserIcon } from "lucide-react";
 
 import { useUserStore } from '@/hooks/useUserStore';
 import { logoutAction } from "@/actions/post";
