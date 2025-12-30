@@ -7,7 +7,7 @@ import { Badge } from '@/components/common/Badge'
 import { Pagination } from '@/components/common/Pagination'
 import { PremiumCheckbox } from '@/components/common/PremiumCheckbox'
 import { MOCK_GLOBAL_TRADES } from '@/lib/mock-service'
-import { Activity, Clock, Search, Filter, TrendingUp, TrendingDown } from 'lucide-react'
+import { Activity, Clock, Filter, TrendingUp, TrendingDown } from 'lucide-react'
 
 // ... (Interface remains the same)
 
@@ -24,11 +24,6 @@ export function GlobalTradeStream() {
     const ITEMS_PER_PAGE_STREAM = 14
 
     const globalTrades = MOCK_GLOBAL_TRADES
-
-    const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setSearchTerm(e.target.value)
-        setTradeStreamPage(1) // Reset page immediately
-    }
 
     const toggleSideFilter = (key: 'buy' | 'sell') => {
         setTradeStreamFilter(prev => ({ ...prev, [key]: !prev[key] }))
@@ -63,19 +58,6 @@ export function GlobalTradeStream() {
     }, [filteredStream, tradeStreamPage])
 
     const totalStreamPages = Math.ceil(filteredStream.length / ITEMS_PER_PAGE_STREAM)
-
-    const stats = useMemo(() => {
-        if (filteredStream.length === 0) {
-            return { buyCount: 0, sellCount: 0, totalVolume: 0, avgPrice: 0 }
-        }
-
-        const buyCount = filteredStream.filter(t => t.side === 'BUY').length
-        const sellCount = filteredStream.filter(t => t.side === 'SELL').length
-        const totalVolume = filteredStream.reduce((sum, t) => sum + parseFloat(t.vol), 0)
-        const avgPrice = filteredStream.reduce((sum, t) => sum + parseFloat(t.price), 0) / filteredStream.length
-
-        return { buyCount, sellCount, totalVolume, avgPrice }
-    }, [filteredStream])
 
     const getPriceChangeColor = (price: string, index: number) => {
         if (index === 0) return 'text-white'
