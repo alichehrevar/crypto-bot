@@ -7,6 +7,7 @@ import {useCallback, useEffect, useState} from "react";
 import {getData} from "@/actions/get";
 import {UserDetails, UserDetailsResponse} from "@/types/users";
 import {useToast} from "@/components/providers/ToastProvider";
+import {UserProfileSkeleton} from "@/components/loading/UserProfileSkeleton";
 
 export default function UserProfilePage() {
     const params = useParams()
@@ -14,6 +15,7 @@ export default function UserProfilePage() {
 
     const { addToast } = useToast()
 
+    const [isLoading, setIsLoading] = useState<boolean>(true)
     const [user, setUser] = useState<UserDetails>()
 
     const fetchUserData = useCallback(async () => {
@@ -32,7 +34,14 @@ export default function UserProfilePage() {
             .catch(() => {
                 addToast({ title: "Network Error", message: "Could not connect to server", type: "error" })
             })
+            .finally(() => setIsLoading(false))
     }, [addToast, fetchUserData]);
+
+    if (isLoading) {
+        return (
+            <UserProfileSkeleton />
+        )
+    }
 
     if (!user) {
         return (
