@@ -496,6 +496,8 @@ exports.userDetails = async (req, res) => {
             return res.status(404).json({ success: false, message: 'User not found.' });
         }
 
+
+
         res.json({ success: true, data: user });
 
     } catch (error) {

@@ -34,6 +34,8 @@ exports.checkEmailExistence = async (req, res) => {
 exports.login = async (req, res) => {
     try {
         const { email, password } = req.body;
+
+        // 1. Basic Validation
         if (!email || !password) {
             return res.status(400).json({ success: false, error: 'Email and password are required.' });
         }
@@ -46,52 +48,65 @@ exports.login = async (req, res) => {
 
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
-            return res.status(401).json({ success: false, error: 'Invalid credentials..' });
+            return res.status(401).json({ success: false, error: 'Invalid credentials.' });
         }
 
-        const clientIp = requestIp.getClientIp(req);
+        // 2. Check 2FA or Verification *BEFORE* generating the main auth token
+        // (Moved this UP so it actually runs)
+        if (user.verifiedAt === null || user.enable2FA === true) {
+            const sendEmail = await sendOtpAndHandleFailure(user);
 
+            if (sendEmail.success === false) {
+                return res.status(401).json({ success: false, error: sendEmail.message });
+            }
+
+            // Return early indicating OTP is required
+            return res.status(201).json({
+                success: true,
+                data: {
+                    message: 'Please check your email for the OTP.',
+                    verified: false,
+                    // potentially send a temp token here if your 2FA flow requires it
+                }
+            });
+        }
+
+        // 3. Log Location (Only if login is successful/proceeding)
+        const clientIp = requestIp.getClientIp(req);
         await LocationService.log(
             user._id,
             req.body.lat,
             req.body.lng,
             clientIp,
-            'login', // source
+            'login',
             {
-                // Pass the data sent from frontend
                 city: req.body.device_city,
                 country: req.body.device_country,
                 userAgent: req.headers['user-agent']
             }
         );
 
+        // 4. Generate Token
         const tokenString = await generateToken(user, req);
 
-        // 4. Return the new token string to the client.
-        return res.json({ success: true, data: { token: tokenString } });
-
-        if (user.verifiedAt === null || user.enable2FA === true) {
-            const sendEmail = await sendOtpAndHandleFailure(user);
-            if (sendEmail.success === false) {
-                return res.status(401).json({success: false, error: sendEmail.message});
+        // 5. Return Token AND User Details
+        // This solves the NextAuth "User id is missing" issue
+        return res.json({
+            success: true,
+            data: {
+                token: tokenString,
+                user: {
+                    email: user.email,
+                }
             }
-
-            return res.status(201).json({ data: {
-                    message: 'Please check your email for the OTP.',
-                    verified: false
-                },
-                success: true
-            });
-        }
-
-        // const tokenString = await generateToken(user, req);
-        //
-        // // 4. Return the new token string to the client.
-        // return res.json({ success: true, data: { token: tokenString } });
+        });
 
     } catch (err) {
         console.error('Error in login:', err);
-        logger.error(`Login error: ${err.message}`, { stack: err.stack });
+        // Ensure logger exists in this scope or import it
+        if (typeof logger !== 'undefined') {
+            logger.error(`Login error: ${err.message}`, { stack: err.stack });
+        }
         return res.status(500).json({ success: false, error: 'Internal server error.' });
     }
 };

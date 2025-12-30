@@ -45,6 +45,7 @@ app.use(express.static('public'));
 const allowedOrigins = [
     'http://localhost:8080',
     'http://localhost:3005',
+    'http://localhost:3006',
     'http://localhost:3007',
     'http://localhost:3008',
     'http://localhost:8000',

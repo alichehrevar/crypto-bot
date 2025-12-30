@@ -32,6 +32,7 @@ async function seedSymbols() {
             await Currency.bulkWrite(ops);
             console.log(`✅ Seeded ${ops.length} currencies from CoinPaprika`);
         } else {
+            logger.log({level: 'warn', message: '⚠️ No currencies found to seed.'});
             console.log('⚠️ No currencies found to seed.');
         }
     } catch (err) {
