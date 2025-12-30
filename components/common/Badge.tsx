@@ -1,3 +1,5 @@
+'use client'
+
 // components/common/Badge.tsx
 import { ReactNode } from 'react'
 

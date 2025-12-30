@@ -1,435 +1,597 @@
-// components/users/BotDetails.tsx
 'use client'
 
-import React, { useState, useEffect, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
-import Link from 'next/link'
+import React, { useEffect, useMemo, useState, useCallback } from "react";
+import { useRouter } from 'next/navigation';
 import {
-    ArrowLeft, PlayCircle, PauseCircle, XCircle,
-    Settings, Activity, Terminal, Shield,
-    Loader2, Grid3X3, Layers
-} from 'lucide-react'
+    Activity, ArrowLeft, BarChart2, CheckCircle,
+    Power, Search, Settings, Terminal, XCircle, Loader2, RefreshCw
+} from "lucide-react";
 
-// --- Custom Imports ---
-import { Card } from '@/components/common/Card'
-import { Badge } from '@/components/common/Badge'
-import { InteractiveChart } from '@/components/charts/InteractiveChart'
-import { useToast } from '@/components/providers/ToastProvider'
-import { getData } from "@/actions/get"
-import { MOCK_PNL_DATA, MOCK_EQUITY_DATA } from '@/lib/mock-service'
+// Shared Components (Assuming these exist in your project based on context)
+import { PremiumCheckbox } from "@/components/common/PremiumCheckbox";
+import { Pagination } from "@/components/common/Pagination";
+import { Badge } from "@/components/common/Badge"; // Assuming you have this
+import { useToast } from "@/components/providers/ToastProvider";
+import { getData } from "@/actions/get";
 
-// --- Types (Mirrored from BotsList to ensure consistency) ---
-export type ApiBot = {
+// --- Types ---
+
+// 1. The API Response Type
+type ApiBot = {
     _id: string;
     name: string;
     symbol: string;
-    timeframe: string;
-    leverage: string;
     botType: 'indicator' | 'grid' | 'dca';
     active: boolean;
     createdAt: string;
     strategy: string;
-    marketType?: string;
+    marketType?: string; // 'SPOT' | 'FUTURES'
+    direction?: 'LONG' | 'SHORT' | 'NEUTRAL';
+    exchange?: string;
 
     // Configs
     gridConfig?: {
         lowerPrice: number;
         upperPrice: number;
         gridCount: number;
-        gridType: string;
-        takeProfitPct?: number;
-        stopLossPct?: number;
+        takeProfitPercent: number;
+        stopLossPercent: number;
     };
     baseOrderVolume?: number;
     safetyOrderVolume?: number;
     maxSafetyOrders?: number;
-    volumeScale?: number;
-    stepScale?: number;
-    priceDeviation?: number;
     takeProfitPercent?: number;
     stopLossPercent?: number;
-    direction?: string;
 
-    indicators?: { name: string; timeframe: string }[];
-    tradeInfo?: {
-        takeProfit?: number;
-        stopLoss?: number;
-        leverageLong?: number;
-        leverageShort?: number;
-    };
+    indicators?: { name: string; timeframe: string; params?: string }[];
 
     // Stats
-    pnl: {
-        pct: number;
-        total: number;
-    };
-    marketInfo?: {
-        lastSignal?: string;
-    };
+    pnl: { pct: number; total: number };
+    marketInfo?: { lastSignal?: string };
 };
 
-// UI State
-interface BotDetailState {
+// 2. The UI View Model (Merged real + mock)
+interface BotViewModel {
     id: string;
     name: string;
-    status: 'active' | 'paused';
-    type: 'indicator' | 'grid' | 'dca';
-    pair: string;
-    pnl: string;
-    pnlRaw: number;
-    roi: string;
-    uptime: string;
-    leverage: string;
-    strategy: string;
-    lastSignal: string;
-
-    // Dynamic Config Details
-    config: {
-        mode?: string; // Trading Mode (Spot/Futures)
-        takeProfit?: string;
-        stopLoss?: string;
-        // Grid Specific
-        gridLow?: string;
-        gridHigh?: string;
-        gridCount?: number;
-        // DCA Specific
-        baseOrder?: number;
-        safetyOrder?: number;
-        maxSafety?: number;
-        deviation?: string;
-        volumeScale?: number;
-        // Indicator Specific
-        indicators?: string[];
+    type: string;
+    symbol: string;
+    tradingMode: string; // Spot/Futures
+    status: 'ACTIVE' | 'PAUSED';
+    exchange: string;
+    marketType: string;
+    investment: string;
+    mode: string;
+    direction: string;
+    riskStrategy: string;
+    indicators: { name: string; tf: string; params: string }[];
+    securityIndicator: string;
+    riskParams: string;
+    botTPSL: string;
+    posTPSL: string;
+    maxLoss: string;
+    metrics: {
+        roi: string;
+        winRate: string;
+        drawdown: string;
+        profitFactor: string;
+        sharpe: string;
+        totalTrades: number;
     };
 }
 
-interface BotDetailsProps {
-    botId: string
-    userId: string
-}
+// --- Mock Data Generators (For missing API fields) ---
+const HISTORICAL_LOG_MSGS = [
+    "Analyzing market structure for entry...",
+    "Heartbeat signal received: Latency 12ms",
+    "Fetching OHLCV data for timeframe 15m",
+    "RSI Divergence detected, awaiting confirmation",
+    "Websocket connection stable: wss://stream.binance.com",
+    "Safety order trigger condition evaluating...",
+    "Syncing order book depth...",
+];
 
-const calculateRuntime = (startDate: string) => {
-    const start = new Date(startDate).getTime();
-    const now = new Date().getTime();
-    const diff = now - start;
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-    if (days > 0) return `${days}d ${hours}h`;
-    return `${hours}h`;
+const generateMockTrades = (count: number, symbol: string) => {
+    return Array.from({ length: count }).map((_, i) => {
+        const isBuy = Math.random() > 0.5;
+        const statusRandom = Math.random();
+        const status = statusRandom > 0.8 ? 'PENDING' : statusRandom > 0.1 ? 'FILLED' : 'REJECTED';
+        const pnl = status === 'FILLED' ? (Math.random() * 50 - 20).toFixed(2) : null;
+
+        return {
+            time: new Date(Date.now() - i * 1000 * 60 * 60).toLocaleTimeString(),
+            side: isBuy ? 'BUY' : 'SELL',
+            price: (Math.random() * 2000 + 1000).toFixed(2),
+            status: status,
+            pnl: pnl ? `${Number(pnl) > 0 ? '+' : ''}$${pnl}` : null
+        };
+    });
 };
 
-export default function BotDetailsPage({ botId, userId }: BotDetailsProps) {
-    const router = useRouter()
-    const { addToast } = useToast()
+// --- Component ---
 
-    const [bot, setBot] = useState<BotDetailState | null>(null)
-    const [isLoading, setIsLoading] = useState(true)
-    const [chartType, setChartType] = useState<'PNL' | 'EQUITY'>('PNL')
+interface BotDetailsPageProps {
+    botId: string;
+    userId: string;
+}
 
-    // --- Fetch Logic ---
-    const fetchBotDetails = useCallback(async () => {
+const BotDetailsPage = ({ botId, userId }: BotDetailsPageProps) => {
+    const router = useRouter();
+    const { addToast } = useToast();
+
+    // Data State
+    const [bot, setBot] = useState<BotViewModel | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+    // UI State
+    const [logSearch, setLogSearch] = useState('');
+    const [filterInfo, setFilterInfo] = useState(true);
+    const [filterWarn, setFilterWarn] = useState(true);
+    const [filterError, setFilterError] = useState(true);
+
+    const [ledgerFilter, setLedgerFilter] = useState({
+        buy: true,
+        sell: true,
+        filled: true,
+        rejected: true
+    });
+
+    const [tradePage, setTradePage] = useState(1);
+    const [logPage, setLogPage] = useState(1);
+
+    const tradesPageSize = 14;
+    const logsPageSize = 20;
+
+    // --- Data Fetching ---
+    const fetchBotData = useCallback(async () => {
         setIsLoading(true);
         try {
-            // Note: Adjust endpoint if your API supports direct ID fetching (e.g., /bots/${botId})
-            // Here we use the list endpoint and filter, similar to BotsList logic,
-            // but in a real app, a direct GET /bots/:id is better.
+            // Fetch logic based on your second example
             const res = await getData(`/bots?userId=${userId}`);
 
             if (res.success) {
-                const apiBot = res.bots.find((b: ApiBot) => b._id === botId);
+                const apiBot: ApiBot = res.bots.find((b: ApiBot) => b._id === botId);
 
                 if (!apiBot) {
                     addToast({ title: "Error", message: "Bot not found", type: "error" });
-                    router.push(`/users/${userId}`);
                     return;
                 }
 
-                // --- Mapping Logic (Identical to BotsList for consistency) ---
-                const isGrid = apiBot.botType === 'grid';
-                const isDca = apiBot.botType === 'dca';
+                // --- MAPPING LOGIC: Merge API Data with Mocks ---
 
-                // Leverage
-                let leverage = '1x';
-                if (isDca && apiBot.leverage) leverage = `${apiBot.leverage}x`;
-                else if (apiBot.tradeInfo?.leverageLong) leverage = `${apiBot.tradeInfo.leverageLong}x`;
-
-                // TP / SL
-                let tp = '-';
-                let sl = '-';
-                if (isGrid) {
-                    tp = apiBot.gridConfig?.takeProfitPct ? `${apiBot.gridConfig.takeProfitPct}%` : '-';
-                    sl = apiBot.gridConfig?.stopLossPct ? `${apiBot.gridConfig.stopLossPct}%` : '-';
-                } else if (isDca) {
-                    tp = apiBot.takeProfitPercent ? `${apiBot.takeProfitPercent}%` : '-';
-                    sl = apiBot.stopLossPercent ? `${apiBot.stopLossPercent}%` : '-';
-                } else {
-                    tp = apiBot.tradeInfo?.takeProfit ? `${apiBot.tradeInfo.takeProfit}%` : '-';
-                    sl = apiBot.tradeInfo?.stopLoss ? `${apiBot.tradeInfo.stopLoss}%` : '-';
+                // 1. Calculate Investment (Mock logic based on API data)
+                let investment = "1,000"; // Default mock
+                if (apiBot.botType === 'dca' && apiBot.baseOrderVolume) {
+                    investment = ((apiBot.baseOrderVolume + (apiBot.safetyOrderVolume || 0) * (apiBot.maxSafetyOrders || 0))).toLocaleString();
                 }
 
-                setBot({
+                // 2. Format TP/SL
+                const tp = apiBot.takeProfitPercent || apiBot.gridConfig?.takeProfitPercent || 1.5;
+                const sl = apiBot.stopLossPercent || apiBot.gridConfig?.stopLossPercent || 5.0;
+
+                // 3. Create View Model
+                const mappedBot: BotViewModel = {
                     id: apiBot._id,
                     name: apiBot.name,
-                    status: apiBot.active ? 'active' : 'paused',
-                    type: apiBot.botType,
-                    pair: apiBot.symbol,
-                    pnl: apiBot.pnl.total.toFixed(2),
-                    pnlRaw: apiBot.pnl.total,
-                    roi: `${apiBot.pnl.pct.toFixed(2)}%`,
-                    uptime: calculateRuntime(apiBot.createdAt),
-                    leverage: leverage,
-                    strategy: apiBot.strategy || 'Custom',
-                    lastSignal: apiBot.marketInfo?.lastSignal || 'WAITING',
+                    type: apiBot.botType.toUpperCase(),
+                    symbol: apiBot.symbol,
+                    tradingMode: apiBot.marketType === 'FUTURES' ? 'PERP' : 'SPOT',
+                    status: apiBot.active ? 'ACTIVE' : 'PAUSED',
+                    exchange: apiBot.exchange || 'BINANCE', // Mock if missing
+                    marketType: apiBot.marketType || 'SPOT',
+                    investment: investment,
+                    mode: apiBot.strategy || 'Manual',
+                    direction: apiBot.direction || 'LONG',
+                    riskStrategy: apiBot.botType === 'grid' ? 'Grid Step' : 'Martingale', // Mock based on type
 
-                    config: {
-                        mode: apiBot.marketType === 'FUTURES' ? 'Futures' : 'Spot',
-                        takeProfit: tp,
-                        stopLoss: sl,
+                    // Indicators: Use API or Mock
+                    indicators: apiBot.indicators?.length ? apiBot.indicators.map(i => ({
+                        name: i.name,
+                        tf: i.timeframe,
+                        params: i.params || '14, 3, 3'
+                    })) : [
+                        { name: "RSI", tf: "15m", params: "14" },
+                        { name: "Bollinger Bands", tf: "1h", params: "20, 2" }
+                    ],
 
-                        // Grid Details
-                        gridLow: isGrid ? `$${apiBot.gridConfig?.lowerPrice}` : undefined,
-                        gridHigh: isGrid ? `$${apiBot.gridConfig?.upperPrice}` : undefined,
-                        gridCount: isGrid ? apiBot.gridConfig?.gridCount : undefined,
+                    securityIndicator: "ATR Volatility Guard", // Mock
+                    riskParams: apiBot.botType === 'dca'
+                        ? `Max Orders: ${apiBot.maxSafetyOrders || 5}`
+                        : `Grid Lines: ${apiBot.gridConfig?.gridCount || 10}`,
 
-                        // DCA Details
-                        baseOrder: isDca ? apiBot.baseOrderVolume : undefined,
-                        safetyOrder: isDca ? apiBot.safetyOrderVolume : undefined,
-                        maxSafety: isDca ? apiBot.maxSafetyOrders : undefined,
-                        deviation: isDca ? `${apiBot.priceDeviation}%` : undefined,
-                        volumeScale: isDca ? apiBot.volumeScale : undefined,
+                    botTPSL: `${tp}% / ${sl}%`,
+                    posTPSL: "Dynamic",
+                    maxLoss: `-$${(Number(investment.replace(',','')) * 0.2).toFixed(0)}`, // Mock 20% max loss
 
-                        // Indicator Details
-                        indicators: apiBot.indicators?.map((i: { name: string }) => i.name)
+                    // Metrics: Mix of Real (PnL) and Mock
+                    metrics: {
+                        roi: apiBot.pnl.pct.toFixed(2),
+                        winRate: (Math.random() * (85 - 45) + 45).toFixed(1), // Mock
+                        drawdown: (Math.random() * 15).toFixed(2), // Mock
+                        profitFactor: (Math.random() * (2.5 - 1.1) + 1.1).toFixed(2), // Mock
+                        sharpe: (Math.random() * 3).toFixed(2), // Mock
+                        totalTrades: apiBot.pnl.total > 0 ? Math.floor(Math.random() * 200 + 20) : 0 // Mock count based on activity
                     }
-                });
+                };
+
+                setBot(mappedBot);
             } else {
-                addToast({ title: "Error", message: res.error || "Failed to load bot details", type: "error" });
+                addToast({ title: "Error", message: res.error || "Failed to load bot", type: "error" });
             }
-        } catch {
-            addToast({ title: "Network Error", message: "Could not connect to server", type: "error" });
+        } catch (error) {
+            console.error(error);
+            addToast({ title: "Error", message: "Network error", type: "error" });
         } finally {
             setIsLoading(false);
         }
-    }, [botId, userId, addToast, router]);
+    }, [botId, userId, addToast]);
 
     useEffect(() => {
-        fetchBotDetails();
-    }, [fetchBotDetails]);
+        fetchBotData();
+    }, [fetchBotData, refreshTrigger]);
 
-    // --- Handlers (Scaffolded) ---
-    const handleAction = (action: 'PAUSE' | 'RESUME' | 'TERMINATE') => {
-        // Implement API call here (e.g., postData('/bots/toggle', { id: botId }))
-        addToast({
-            title: "Request Sent",
-            message: `Signal to ${action.toLowerCase()} bot sent to engine.`,
-            type: "info"
+    // --- Derived Data (Logs & Trades) ---
+    // Since API doesn't return full trade/log history, we use the `useMemo` mock logic
+    // but seeded with the Bot ID/Symbol to look consistent.
+
+    const logs = useMemo(() => {
+        if (!bot) return [];
+        // Generate some "recent" logs
+        const recent = [
+            { level: 'INFO', msg: `Bot ${bot.name} initialization sequence complete.`, ts: new Date() },
+            { level: 'INFO', msg: `Connected to ${bot.exchange} websocket stream for ${bot.symbol}.`, ts: new Date(Date.now() - 1000 * 60) },
+        ];
+
+        // Generate history
+        const history = Array.from({length: 80}).map((_, i) => {
+            const d = new Date();
+            d.setMinutes(d.getMinutes() - (i + 5));
+            const randomMsg = HISTORICAL_LOG_MSGS[Math.floor(Math.random() * HISTORICAL_LOG_MSGS.length)];
+            const level = Math.random() > 0.9 ? 'WARN' : Math.random() > 0.95 ? 'ERROR' : 'INFO';
+            return {
+                level: level,
+                msg: randomMsg,
+                ts: d
+            };
         });
-    }
+
+        return [...recent, ...history].sort((a,b) => b.ts.getTime() - a.ts.getTime());
+    }, [bot]);
+
+    const filteredLogs = logs.filter(l => {
+        const matchesSearch = l.msg.toLowerCase().includes(logSearch.toLowerCase()) || l.level.toLowerCase().includes(logSearch.toLowerCase());
+        if (!matchesSearch) return false;
+        if (l.level === 'INFO' && !filterInfo) return false;
+        if (l.level === 'WARN' && !filterWarn) return false;
+        if (l.level === 'ERROR' && !filterError) return false;
+        return true;
+    });
+
+    // Mock Trades based on bot data
+    const tradeData = useMemo(() => {
+        if (!bot) return [];
+        return generateMockTrades(bot.metrics.totalTrades, bot.symbol);
+    }, [bot]);
+
+    const filteredTrades = useMemo(() => {
+        return tradeData.filter(t => {
+            if (!ledgerFilter.buy && t.side === 'BUY') return false;
+            if (!ledgerFilter.sell && t.side === 'SELL') return false;
+            const isFilled = t.status === 'FILLED';
+            if (!ledgerFilter.filled && isFilled) return false;
+            if (!ledgerFilter.rejected && !isFilled) return false;
+            return true;
+        });
+    }, [ledgerFilter, tradeData]);
+
+    // Pagination Logic
+    const paginatedTrades = useMemo(() => {
+        const start = (tradePage - 1) * tradesPageSize;
+        return filteredTrades.slice(start, start + tradesPageSize);
+    }, [filteredTrades, tradePage]);
+    const totalTradePages = Math.ceil(filteredTrades.length / tradesPageSize);
+
+    const paginatedLogs = useMemo(() => {
+        const start = (logPage - 1) * logsPageSize;
+        return filteredLogs.slice(start, start + logsPageSize);
+    }, [filteredLogs, logPage]);
+    const totalLogPages = Math.ceil(filteredLogs.length / logsPageSize);
+
+    // Reset pagination on filter change
+    useEffect(() => { setTradePage(1); }, [ledgerFilter]);
+    useEffect(() => { setLogPage(1); }, [logSearch, filterInfo, filterWarn, filterError]);
+
+
+    // --- Actions ---
+    const handleKill = () => {
+        addToast({ title: "System Alert", message: "Termination signal sent to engine.", type: "error" });
+        // Add API call here
+    };
+
+    const getLevelColor = (level: string) => {
+        switch(level) {
+            case 'ERROR': return 'text-rose-500';
+            case 'WARN': return 'text-amber-500';
+            case 'INFO': return 'text-emerald-500';
+            default: return 'text-zinc-500';
+        }
+    };
 
     if (isLoading) {
         return (
-            <div className="h-[60vh] flex flex-col items-center justify-center animate-enter">
-                <Loader2 className="w-10 h-10 text-emerald-500 animate-spin mb-4" />
-                <span className="text-zinc-500 font-mono text-sm uppercase tracking-widest">Retrieving Strategy Configuration...</span>
+            <div className="h-[80vh] flex flex-col items-center justify-center animate-enter">
+                <Loader2 className="w-8 h-8 text-emerald-500 animate-spin mb-4" />
+                <span className="text-zinc-500 font-mono text-xs uppercase tracking-widest">Synchronizing Bot Telemetry...</span>
             </div>
-        )
+        );
     }
 
     if (!bot) return null;
 
     return (
-        <div className="animate-enter space-y-6">
-            {/* Header / Nav */}
-            <div className="flex items-center justify-between">
-                <button
-                    onClick={() => router.back()}
-                    className="text-xs text-zinc-500 hover:text-white flex items-center gap-1 uppercase tracking-widest transition-colors"
-                >
-                    <ArrowLeft size={14} /> Back to User
+        <div className="animate-enter">
+            {/* --- Header --- */}
+            <div className="flex items-center gap-4 mb-8 border-b border-zinc-800 pb-6">
+                <button onClick={() => router.back()} className="p-2 border border-zinc-800 hover:bg-white hover:text-black transition-colors">
+                    <ArrowLeft size={16}/>
                 </button>
-                <div className="flex gap-2">
-                    <Link href={`/users/${userId}/bot/${botId}/logs`} className="flex items-center gap-2 px-4 py-2 border border-zinc-800 bg-zinc-950 text-zinc-400 hover:text-white hover:border-zinc-700 transition-colors text-xs font-bold uppercase">
-                        <Terminal size={14} /> Logs
-                    </Link>
-                    <button className="flex items-center gap-2 px-4 py-2 border border-zinc-800 bg-zinc-950 text-zinc-400 hover:text-white hover:border-zinc-700 transition-colors text-xs font-bold uppercase">
-                        <Settings size={14} /> Config
+                <div>
+                    <h1 className="text-xl font-mono text-white flex items-center gap-3">
+                        {bot.name}
+                        {bot.status === 'ACTIVE'
+                            ? <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.5)]"></span>
+                            : <span className="w-2 h-2 bg-amber-500 rounded-full"></span>
+                        }
+                    </h1>
+                    <div className="text-[10px] text-zinc-500 uppercase tracking-widest flex gap-2 mt-1">
+                        {bot.id} <span className="text-zinc-700">{'//'}</span>
+                        <Badge variant={bot.type}>{bot.type}</Badge> <span className="text-zinc-700">{'//'}</span>
+                        {bot.symbol} <span className="text-zinc-700">{'//'}</span>
+                        <Badge variant={bot.tradingMode}>{bot.tradingMode}</Badge>
+                    </div>
+                </div>
+                <div className="ml-auto flex gap-2">
+                    <button
+                        onClick={() => setRefreshTrigger(p => p + 1)}
+                        className="px-3 py-2 border border-zinc-800 text-zinc-400 hover:text-white transition-colors"
+                    >
+                        <RefreshCw size={14} />
+                    </button>
+                    <button
+                        onClick={handleKill}
+                        className="px-4 py-2 bg-rose-900/10 text-rose-400 border border-rose-900/50 text-xs font-bold uppercase hover:bg-rose-900 hover:text-white transition-colors flex items-center gap-2"
+                    >
+                        <Power size={12}/> Kill Process
                     </button>
                 </div>
             </div>
 
-            {/* Main Bot Header */}
-            <Card className={`border-l-4 ${bot.status === 'active' ? 'border-l-emerald-500' : 'border-l-amber-500'}`}>
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                    <div className="flex items-center gap-4">
-                        <div className={`w-12 h-12 rounded-full flex items-center justify-center border ${
-                            bot.type === 'grid' ? 'bg-blue-500/10 border-blue-500/20 text-blue-500' :
-                                bot.type === 'dca' ? 'bg-amber-500/10 border-amber-500/20 text-amber-500' :
-                                    'bg-purple-500/10 border-purple-500/20 text-purple-500'
-                        }`}>
-                            {bot.type === 'grid' ? <Grid3X3 size={24} /> :
-                                bot.type === 'dca' ? <Layers size={24} /> :
-                                    <Activity size={24} />}
+            {/* --- Info Grid --- */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                {/* Configuration DNA */}
+                <div className="border border-zinc-800 bg-zinc-950 p-6 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
+                        <Settings size={120} />
+                    </div>
+                    <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500 mb-6 flex items-center gap-2 relative z-10">
+                        <Settings size={14}/> Configuration DNA
+                    </h3>
+                    <div className="grid grid-cols-2 gap-y-4 gap-x-8 text-xs relative z-10">
+                        <div className="flex justify-between border-b border-zinc-900 pb-2">
+                            <span className="text-zinc-600">Exchange</span>
+                            <span className="text-white font-mono">{bot.exchange}</span>
                         </div>
-                        <div>
-                            <h1 className="text-2xl font-light text-white uppercase tracking-wider">{bot.name}</h1>
-                            <div className="flex items-center gap-3 text-xs font-mono text-zinc-500 mt-1">
-                                <span>{bot.id}</span>
-                                <span>•</span>
-                                <span className="text-white font-bold">{bot.pair}</span>
-                                <span>•</span>
-                                <Badge variant={bot.status === 'active' ? 'RUNNING' : 'PAUSED'}>{bot.status.toUpperCase()}</Badge>
+                        <div className="flex justify-between border-b border-zinc-900 pb-2">
+                            <span className="text-zinc-600">Market</span>
+                            <span className="text-white font-mono">{bot.marketType}</span>
+                        </div>
+                        <div className="flex justify-between border-b border-zinc-900 pb-2">
+                            <span className="text-zinc-600">Investment</span>
+                            <span className="text-white font-mono">${bot.investment}</span>
+                        </div>
+                        <div className="flex justify-between border-b border-zinc-900 pb-2">
+                            <span className="text-zinc-600">Mode</span>
+                            <span className="text-white font-mono">{bot.mode}</span>
+                        </div>
+                        <div className="flex justify-between border-b border-zinc-900 pb-2">
+                            <span className="text-zinc-600">Direction</span>
+                            <span className={`font-mono font-bold ${bot.direction === 'LONG' ? 'text-emerald-400' : bot.direction === 'SHORT' ? 'text-rose-400' : 'text-zinc-300'}`}>{bot.direction}</span>
+                        </div>
+                        <div className="flex justify-between border-b border-zinc-900 pb-2">
+                            <span className="text-zinc-600">Risk Strategy</span>
+                            <span className="text-white font-mono">{bot.riskStrategy}</span>
+                        </div>
+
+                        <div className="col-span-2 mt-2">
+                            <div className="text-[10px] text-zinc-500 uppercase font-bold mb-2">Active Indicators</div>
+                            <div className="space-y-2">
+                                {bot.indicators.map((ind, i) => (
+                                    <div key={i} className="flex justify-between bg-zinc-900 p-2 rounded-sm border border-zinc-800">
+                                        <span className="font-bold text-white">{ind.name} <span className="text-zinc-500 font-normal">({ind.tf})</span></span>
+                                        <span className="font-mono text-zinc-400">{ind.params}</span>
+                                    </div>
+                                ))}
                             </div>
                         </div>
-                    </div>
 
-                    <div className="flex gap-2">
-                        {bot.status === 'active' ? (
-                            <button onClick={() => handleAction('PAUSE')} className="p-2 hover:bg-zinc-900 rounded text-zinc-500 hover:text-amber-500 transition-colors" title="Pause">
-                                <PauseCircle size={20} />
-                            </button>
-                        ) : (
-                            <button onClick={() => handleAction('RESUME')} className="p-2 hover:bg-zinc-900 rounded text-zinc-500 hover:text-emerald-500 transition-colors" title="Resume">
-                                <PlayCircle size={20} />
-                            </button>
-                        )}
-                        <button onClick={() => handleAction('TERMINATE')} className="p-2 hover:bg-zinc-900 rounded text-zinc-500 hover:text-rose-500 transition-colors" title="Terminate">
-                            <XCircle size={20} />
-                        </button>
+                        <div className="col-span-2 flex justify-between border-b border-zinc-900 pb-2 mt-2">
+                            <span className="text-zinc-600">Security Indicator</span>
+                            <span className="text-indigo-400 font-mono">{bot.securityIndicator}</span>
+                        </div>
+
+                        <div className="col-span-2 flex justify-between border-b border-zinc-900 pb-2">
+                            <span className="text-zinc-600">Risk Params</span>
+                            <span className="text-amber-500 font-mono">{bot.riskParams}</span>
+                        </div>
+                        <div className="col-span-2 flex justify-between border-b border-zinc-900 pb-2">
+                            <span className="text-zinc-600">Bot TP/SL</span>
+                            <span className="text-zinc-300 font-mono">{bot.botTPSL}</span>
+                        </div>
+                        <div className="col-span-2 flex justify-between border-b border-zinc-900 pb-2">
+                            <span className="text-zinc-600">Position TP/SL</span>
+                            <span className="text-zinc-300 font-mono">{bot.posTPSL}</span>
+                        </div>
+                        <div className="flex justify-between border-b border-zinc-900 pb-2">
+                            <span className="text-zinc-600">Max Loss Limit</span>
+                            <span className="text-rose-400 font-bold font-mono">{bot.maxLoss}</span>
+                        </div>
                     </div>
                 </div>
-            </Card>
 
-            {/* Stats Grid */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <Card className="py-4">
-                    <div className="text-[10px] uppercase text-zinc-500 font-bold mb-1">Total PnL</div>
-                    <div className={`text-xl font-mono ${bot.pnlRaw >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                        {bot.pnlRaw >= 0 ? '+' : ''}${bot.pnl}
+                {/* Performance Matrix */}
+                <div className="border border-zinc-800 bg-zinc-950 p-6 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
+                        <BarChart2 size={120} />
                     </div>
-                </Card>
-                <Card className="py-4">
-                    <div className="text-[10px] uppercase text-zinc-500 font-bold mb-1">ROI</div>
-                    <div className={`text-xl font-mono ${parseFloat(bot.roi) >= 0 ? 'text-white' : 'text-rose-400'}`}>
-                        {bot.roi}
+                    <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500 mb-6 flex items-center gap-2 relative z-10">
+                        <BarChart2 size={14}/> Performance Matrix
+                    </h3>
+                    <div className="grid grid-cols-2 gap-4 relative z-10">
+                        <div className="bg-black border border-zinc-900 p-4 flex flex-col justify-between">
+                            <div className="text-[10px] uppercase text-zinc-600">Total ROI</div>
+                            <div className={`text-2xl font-mono ${parseFloat(bot.metrics.roi) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                {parseFloat(bot.metrics.roi) >= 0 ? '+' : ''}{bot.metrics.roi}%
+                            </div>
+                        </div>
+                        <div className="bg-black border border-zinc-900 p-4 flex flex-col justify-between">
+                            <div className="text-[10px] uppercase text-zinc-600">Win Rate</div>
+                            <div className="text-2xl font-mono text-white">
+                                {bot.metrics.winRate}%
+                            </div>
+                        </div>
+                        <div className="bg-black border border-zinc-900 p-4 flex flex-col justify-between">
+                            <div className="text-[10px] uppercase text-zinc-600">Max Drawdown</div>
+                            <div className="text-xl font-mono text-rose-400">
+                                -{bot.metrics.drawdown}%
+                            </div>
+                        </div>
+                        <div className="bg-black border border-zinc-900 p-4 flex flex-col justify-between">
+                            <div className="text-[10px] uppercase text-zinc-600">Profit Factor</div>
+                            <div className="text-xl font-mono text-indigo-400">
+                                {bot.metrics.profitFactor}
+                            </div>
+                        </div>
+                        <div className="bg-black border border-zinc-900 p-4 flex flex-col justify-between col-span-2">
+                            <div className="flex justify-between items-center">
+                                <div className="text-[10px] uppercase text-zinc-600">Sharpe Ratio</div>
+                                <div className="text-xl font-mono text-zinc-300">{bot.metrics.sharpe}</div>
+                            </div>
+                            <div className="h-1 w-full bg-zinc-900 mt-2">
+                                <div className="h-full bg-zinc-500" style={{width: `${(parseFloat(bot.metrics.sharpe)/3)*100}%`}}></div>
+                            </div>
+                        </div>
+                        <div className="bg-black border border-zinc-900 p-4 flex flex-col justify-between col-span-2">
+                            <div className="flex justify-between items-center">
+                                <div className="text-[10px] uppercase text-zinc-600">Total Trades Executed</div>
+                                <div className="text-xl font-mono text-white">{bot.metrics.totalTrades}</div>
+                            </div>
+                        </div>
                     </div>
-                </Card>
-                <Card className="py-4">
-                    <div className="text-[10px] uppercase text-zinc-500 font-bold mb-1">Uptime</div>
-                    <div className="text-xl font-mono text-zinc-300">{bot.uptime}</div>
-                </Card>
-                <Card className="py-4">
-                    <div className="text-[10px] uppercase text-zinc-500 font-bold mb-1">Leverage</div>
-                    <div className="text-xl font-mono text-amber-500">{bot.leverage}</div>
-                </Card>
+                </div>
             </div>
 
-            {/* Chart Section (Keeping Mock for now, would be replaced by bot.trades history if available) */}
-            <div className="h-80">
-                <InteractiveChart
-                    data={chartType === 'PNL' ? MOCK_PNL_DATA : MOCK_EQUITY_DATA}
-                    type={chartType}
-                    setType={setChartType}
-                />
-            </div>
+            {/* --- Tables Grid --- */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-            {/* Config/Safety Params */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Trades Table */}
+                <div className="lg:col-span-2 border border-zinc-800 bg-zinc-950 flex flex-col h-187.5">
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center p-6 pb-2 gap-4">
+                        <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500 flex items-center gap-2"><Activity size={14} /> Execution Ledger</h3>
 
-                {/* DYNAMIC CONFIG CARD */}
-                <Card>
-                    <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500 mb-4 flex items-center gap-2">
-                        <Activity size={14} /> Strategy Parameters ({bot.type.toUpperCase()})
-                    </h3>
-                    <div className="space-y-2 text-xs font-mono">
-                        <div className="flex justify-between border-b border-zinc-900 pb-2">
-                            <span className="text-zinc-500">Mode</span>
-                            <span className="text-white">{bot.config.mode}</span>
-                        </div>
-
-                        {/* GRID Specifics */}
-                        {bot.type === 'grid' && (
-                            <>
-                                <div className="flex justify-between border-b border-zinc-900 pb-2">
-                                    <span className="text-zinc-500">Range</span>
-                                    <span className="text-white">{bot.config.gridLow} - {bot.config.gridHigh}</span>
-                                </div>
-                                <div className="flex justify-between border-b border-zinc-900 pb-2">
-                                    <span className="text-zinc-500">Grid Count</span>
-                                    <span className="text-blue-400">{bot.config.gridCount}</span>
-                                </div>
-                            </>
-                        )}
-
-                        {/* DCA Specifics */}
-                        {bot.type === 'dca' && (
-                            <>
-                                <div className="flex justify-between border-b border-zinc-900 pb-2">
-                                    <span className="text-zinc-500">Base / Safety Order</span>
-                                    <span className="text-white">${bot.config.baseOrder} / ${bot.config.safetyOrder}</span>
-                                </div>
-                                <div className="flex justify-between border-b border-zinc-900 pb-2">
-                                    <span className="text-zinc-500">Max Safety Orders</span>
-                                    <span className="text-amber-400">{bot.config.maxSafety}</span>
-                                </div>
-                                <div className="flex justify-between border-b border-zinc-900 pb-2">
-                                    <span className="text-zinc-500">Deviation</span>
-                                    <span className="text-white">{bot.config.deviation}</span>
-                                </div>
-                            </>
-                        )}
-
-                        {/* Indicator Specifics */}
-                        {bot.type === 'indicator' && bot.config.indicators && (
-                            <div className="flex justify-between border-b border-zinc-900 pb-2">
-                                <span className="text-zinc-500">Indicators</span>
-                                <div className="flex gap-1">
-                                    {bot.config.indicators.map((ind, i) => (
-                                        <span key={i} className="px-1.5 py-0.5 bg-zinc-900 rounded text-purple-400">{ind}</span>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
-                        <div className="flex justify-between border-b border-zinc-900 pb-2">
-                            <span className="text-zinc-500">Take Profit</span>
-                            <span className="text-emerald-500">{bot.config.takeProfit}</span>
-                        </div>
-                        <div className="flex justify-between border-b border-zinc-900 pb-2">
-                            <span className="text-zinc-500">Stop Loss</span>
-                            <span className="text-rose-500">{bot.config.stopLoss}</span>
+                        <div className="flex gap-4">
+                            <PremiumCheckbox label="Buy" checked={ledgerFilter.buy} onChange={() => setLedgerFilter(prev => ({...prev, buy: !prev.buy}))} />
+                            <PremiumCheckbox label="Sell" checked={ledgerFilter.sell} onChange={() => setLedgerFilter(prev => ({...prev, sell: !prev.sell}))} />
+                            <div className="w-px h-3 bg-zinc-800 self-center"></div>
+                            <PremiumCheckbox label="Filled" checked={ledgerFilter.filled} onChange={() => setLedgerFilter(prev => ({...prev, filled: !prev.filled}))} />
+                            <PremiumCheckbox label="Rejected" checked={ledgerFilter.rejected} onChange={() => setLedgerFilter(prev => ({...prev, rejected: !prev.rejected}))} />
                         </div>
                     </div>
-                </Card>
 
-                {/* SYSTEM SAFETY CARD */}
-                <Card>
-                    <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500 mb-4 flex items-center gap-2">
-                        <Shield size={14} /> System Health
-                    </h3>
-                    <div className="space-y-4">
-                        <div className="grid grid-cols-2 gap-2">
-                            <div className="bg-zinc-900/50 p-2 border border-zinc-800 rounded flex items-center gap-2">
-                                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
-                                <span className="text-[10px] uppercase text-zinc-400">API Connection</span>
-                            </div>
-                            <div className="bg-zinc-900/50 p-2 border border-zinc-800 rounded flex items-center gap-2">
-                                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
-                                <span className="text-[10px] uppercase text-zinc-400">Latency: 12ms</span>
-                            </div>
+                    <div className="flex-1 overflow-y-auto custom-scrollbar p-6 pt-2">
+                        <table className="w-full text-left text-xs font-mono relative table-fixed">
+                            <thead className="text-zinc-600 font-normal uppercase sticky top-0 bg-zinc-950 z-10 shadow-sm shadow-black">
+                            <tr>
+                                <th className="pb-3 pl-2 pt-2 border-b border-zinc-800 w-[30%]">Time</th>
+                                <th className="pb-3 pt-2 border-b border-zinc-800 w-[15%]">Side</th>
+                                <th className="pb-3 pt-2 border-b border-zinc-800 w-[20%]">Price</th>
+                                <th className="pb-3 pt-2 border-b border-zinc-800 w-[20%]">Status</th>
+                                <th className="pb-3 pt-2 text-right pr-2 border-b border-zinc-800 w-[15%]">PnL</th>
+                            </tr>
+                            </thead>
+                            <tbody className="divide-y divide-zinc-900">
+                            {paginatedTrades.map((trade, i) => (
+                                <tr key={i} className="hover:bg-zinc-900/50 transition-colors">
+                                    <td className="py-3 pl-2 text-zinc-500">{trade.time}</td>
+                                    <td className={`py-3 font-bold ${trade.side === 'BUY' ? 'text-emerald-400' : 'text-rose-400'}`}>{trade.side}</td>
+                                    <td className="py-3 text-zinc-300">${Number(trade.price).toLocaleString()}</td>
+                                    <td className="py-3">
+                                        {trade.status === 'FILLED' && <span className="flex items-center gap-1 text-emerald-400"><CheckCircle size={10}/> FILLED</span>}
+                                        {trade.status === 'REJECTED' && <span className="flex items-center gap-1 text-rose-400"><XCircle size={10}/> REJECTED</span>}
+                                        {trade.status === 'PENDING' && <span className="flex items-center gap-1 text-amber-500"><Activity size={10}/> PENDING</span>}
+                                    </td>
+                                    <td className={`py-3 text-right pr-2 ${trade.pnl?.includes('+') ? 'text-emerald-400' : 'text-zinc-700'}`}>{trade.pnl || '-'}</td>
+                                </tr>
+                            ))}
+                            {filteredTrades.length === 0 && (
+                                <tr><td colSpan={5} className="py-8 text-center text-zinc-600 italic">No trades matching filter criteria</td></tr>
+                            )}
+                            </tbody>
+                        </table>
+                    </div>
+                    <Pagination page={tradePage} setPage={setTradePage} total={totalTradePages} label="Trades" />
+                </div>
+
+                {/* Logs Console */}
+                <div className="lg:col-span-1 border border-zinc-800 bg-black flex flex-col h-187.5 shadow-2xl">
+                    <div className="p-4 pb-2">
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500 flex items-center gap-2"><Terminal size={14} /> System Logs</h3>
                         </div>
 
-                        <div className="pt-2 border-t border-zinc-900">
-                            <div className="flex justify-between items-center mb-1">
-                                <span className="text-[10px] uppercase text-zinc-500">Last Engine Signal</span>
-                                <span className="text-[10px] font-mono text-white">{new Date().toLocaleTimeString()}</span>
+                        <div className="flex flex-col gap-3 mb-2">
+                            <div className="relative">
+                                <Search className="absolute left-3 top-2.5 text-zinc-500" size={12} />
+                                <input
+                                    value={logSearch}
+                                    onChange={(e) => setLogSearch(e.target.value)}
+                                    className="w-full bg-zinc-900 border border-zinc-800 py-2 pl-9 pr-4 text-[10px] text-white focus:border-zinc-600 outline-none font-mono placeholder-zinc-600 uppercase transition-colors"
+                                    placeholder="Search System Logs..."
+                                />
                             </div>
-                            <div className="bg-black p-3 border border-zinc-800 rounded font-mono text-xs text-emerald-400">
-                                {'>'} {bot.lastSignal}
+                            <div className="flex gap-4">
+                                <PremiumCheckbox label="Info" checked={filterInfo} onChange={() => setFilterInfo(!filterInfo)} />
+                                <PremiumCheckbox label="Warn" checked={filterWarn} onChange={() => setFilterWarn(!filterWarn)} />
+                                <PremiumCheckbox label="Error" checked={filterError} onChange={() => setFilterError(!filterError)} />
                             </div>
                         </div>
                     </div>
-                </Card>
+
+                    <div className="flex-1 overflow-y-auto font-mono text-[10px] space-y-2 px-4 custom-scrollbar">
+                        {paginatedLogs.map((log, i) => (
+                            <div key={i} className="grid grid-cols-12 gap-2 border-b border-zinc-900/30 pb-1 hover:bg-zinc-900/10 transition-colors">
+                                <span className="col-span-3 text-zinc-500 truncate">
+                                    {log.ts.toLocaleTimeString('en-US', { hour12: false })}
+                                </span>
+                                <span className={`col-span-2 font-bold ${getLevelColor(log.level)}`}>{log.level}</span>
+                                <span className="col-span-7 text-white wrap-break-word">{log.msg}</span>
+                            </div>
+                        ))}
+                        {filteredLogs.length === 0 && (
+                            <div className="text-zinc-600 italic text-center py-4">No logs found matching criteria</div>
+                        )}
+                    </div>
+
+                    <div className="p-4 pt-0 border-t border-zinc-900 bg-zinc-950">
+                        <Pagination page={logPage} setPage={setLogPage} total={totalLogPages} label="Logs" />
+                        <div className="mt-2 pt-2 border-t border-zinc-900">
+                            <input className="w-full bg-zinc-900 border border-zinc-800 text-xs text-white p-2 focus:outline-none focus:border-emerald-500/50 font-mono placeholder-zinc-600 transition-colors" placeholder="> Execute Command..." />
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
-    )
-}
+    );
+};
+
+export default BotDetailsPage;
