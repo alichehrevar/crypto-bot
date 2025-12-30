@@ -1,6 +1,6 @@
 module.exports = {
     apps : [{
-        name   : "tradingx-backend",
+        name   : "backend",
         script : "./server.js",
         instances : "max",
         exec_mode : "cluster",
