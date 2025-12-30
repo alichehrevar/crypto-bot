@@ -1,9 +1,11 @@
 // components/layout/Sidebar.tsx
 'use client'
 
-import { LayoutDashboard, Users, ShieldAlert, Cpu, FileText, Zap } from 'lucide-react'
+import { LayoutDashboard, Users, ShieldAlert, Cpu, FileText, Zap, LogOut } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { logout } from '@/actions/login'
+import type { User } from 'next-auth'
 
 const navItems = [
     { id: 'dashboard', icon: LayoutDashboard, label: 'Command Center', href: '/' },
@@ -13,7 +15,11 @@ const navItems = [
     { id: 'audit', icon: FileText, label: 'Audit Vault', href: '/audit-vault' },
 ]
 
-export function Sidebar() {
+interface SidebarProps {
+    user?: User
+}
+
+export function Sidebar({ user }: SidebarProps) {
     const pathname = usePathname()
 
     return (
@@ -29,7 +35,6 @@ export function Sidebar() {
             <nav className="mt-6 flex-1 space-y-1">
                 {navItems.map((item) => {
                     const Icon = item.icon
-                    // Logic handles root '/' vs nested paths like '/users/123'
                     const isActive = item.href === '/'
                         ? pathname === '/'
                         : pathname?.startsWith(item.href)
@@ -50,10 +55,31 @@ export function Sidebar() {
                 })}
             </nav>
 
-            {/* Footer / System Load
-                Use mt-auto to push to bottom, but keep padding to match original 'absolute bottom-8' look
-            */}
-            <div className="p-6 mt-auto mb-2">
+            {/* Footer Area: User Info + System Load */}
+            <div className="p-6 mt-auto border-t border-zinc-900/50 space-y-4">
+
+                {/* User Profile */}
+                <div className="flex items-center justify-between gap-3 px-1">
+                    <div className="overflow-hidden">
+                        <p className="text-xs font-bold text-white truncate">
+                            {user?.name || 'Admin User'}
+                        </p>
+                        <p className="text-[10px] text-zinc-500 truncate font-mono">
+                            {user?.email || 'unknown@system.com'}
+                        </p>
+                    </div>
+
+                    {/* Logout Trigger */}
+                    <button
+                        onClick={() => logout()}
+                        className="text-zinc-600 hover:text-red-500 transition-colors"
+                        title="Sign Out"
+                    >
+                        <LogOut size={16} />
+                    </button>
+                </div>
+
+                {/* System Load */}
                 <div className="p-4 border border-zinc-800 bg-zinc-950">
                     <div className="text-[10px] uppercase text-zinc-500 mb-1">System Load</div>
                     <div className="flex items-center gap-2 text-xs font-bold text-emerald-400">

@@ -111,10 +111,10 @@ export function UserProfile({ user }: UserProfileProps) {
     // Map Role to a UI Plan Concept
     const userPlan = user.role === 'admin' ? 'PRO' : user.role === 'broker' ? 'ESSENTIAL' : 'BASIC';
 
-    // Merge Real Location History into Activity Log
+    // Merge Real Location History into the Activity Log
     const activityHistory: ActivityLog[] = useMemo(() => {
         const realLogs = user.locationHistory?.map(log => ({
-            time: "2024-01-01 12:00", // Timestamp missing in log object, using placeholder or could format createdAt if available on log
+            time: "2024-01-01 12:00", // Timestamp missing in a log object, using placeholder or could format createdAt if available on log
             action: log.source.toUpperCase(),
             details: `Source: ${log.source} | Agent: ${log.deviceInfo.userAgent}`,
             ip: log.deviceInfo.ip
@@ -188,9 +188,9 @@ export function UserProfile({ user }: UserProfileProps) {
 
     useEffect(() => {
         if (tab === 'BOTS' && !hasLoadedBots) {
-            fetchUserBots();
+            fetchUserBots().catch(() => addToast({title: 'Error', message: 'Failed to load user bots', type: 'error'}));
         }
-    }, [tab, hasLoadedBots, fetchUserBots]);
+    }, [tab, hasLoadedBots, fetchUserBots, addToast]);
 
     // --- Memos & Filters ---
     const filteredBots = useMemo(() => {
