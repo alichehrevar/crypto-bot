@@ -255,7 +255,7 @@ exports.getAccountBalance = async (req, res) => {
         };
 
         // Call the getBalance method from the dynamically assigned service.
-        let balanceData = await service.getBalance(account, options);
+        let balanceData = await service?.getBalance(account, options);
 
         // FIX: BingX sometimes returns an empty array or undefined if a specific wallet is empty.
         // We provide a fallback structure to prevent frontend errors.
