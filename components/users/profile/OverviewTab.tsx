@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useMemo } from 'react'
-import { Monitor, MapPin, History, Globe, CheckCircle, Smartphone, Laptop, ExternalLink } from 'lucide-react'
+import { Monitor, MapPin, History, Globe, Smartphone, Laptop, ExternalLink } from 'lucide-react'
 import { Card } from '@/components/common/Card'
 import { Badge } from '@/components/common/Badge'
 import { Pagination } from '@/components/common/Pagination'
