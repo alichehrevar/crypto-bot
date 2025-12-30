@@ -8,6 +8,7 @@ import { AuthResponse } from "@/types/auth";
 
 export const { signIn, signOut, handlers } = NextAuth({
     ...authConfig,
+    trustHost: true,
     providers: [
         Credentials({
             async authorize(credentials) {
