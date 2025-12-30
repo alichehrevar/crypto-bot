@@ -20,7 +20,7 @@ export function GlobalTradeStream() {
         DCA: true,
         CUSTOM_AI: true,
     })
-    const [searchTerm, setSearchTerm] = useState('')
+    const [searchTerm] = useState('')
     const ITEMS_PER_PAGE_STREAM = 14
 
     const globalTrades = MOCK_GLOBAL_TRADES
