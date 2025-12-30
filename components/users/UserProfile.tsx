@@ -77,10 +77,6 @@ interface UserProfileProps {
     user: UserDetails
 }
 
-// --- Mocks for sections not in User Object ---
-const MOCK_BALANCE = "12,450.00"; // Mock Balance
-const MOCK_BOT_COUNT_TOTAL = 12;  // Mock Total Count (if API doesn't provide summary)
-
 const MOCK_SUB_HISTORY = [
     { date: '2024-10-01 10:00', event: 'REJOIN', plan: 'PRO', details: 'Reactivated via Email Campaign', icon: RefreshCw, color: 'text-emerald-400', border: 'border-emerald-500' },
     { date: '2024-09-15 14:30', event: 'CANCEL', plan: 'BASIC', details: 'User requested pause', icon: XCircle, color: 'text-rose-400', border: 'border-rose-500' },
