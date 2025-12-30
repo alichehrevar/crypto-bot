@@ -68,28 +68,13 @@ const UserDropDown = observer(() => {
                     <p className="font-semibold">Signed in as</p>
                     <p className="font-semibold">{userStore.userData.email}</p>
                 </DropdownItem>
-                {userStore.isAdmin ? (
-                    <DropdownItem
-                        key="admin"
-                        href="/admin"
-                        startContent={<LayoutDashboard className="w-5 h-5"/>}
-                    >
-                        Admin Dashboard
-                    </DropdownItem>
-                ) : (
-                    <></>
-                )}
-                {userStore.isAdmin ? (
-                    <DropdownItem
-                        key="dashboard"
-                        href="/my-account"
-                        startContent={<UserIcon className="w-5 h-5"/>}
-                    >
-                        Profile
-                    </DropdownItem>
-                ) : (
-                    <></>
-                )}
+                <DropdownItem
+                    key="dashboard"
+                    href="/my-account"
+                    startContent={<UserIcon className="w-5 h-5"/>}
+                >
+                    Profile
+                </DropdownItem>
                 <DropdownItem
                     key="search"
                     startContent={<Search className="w-5 h-5"/>}
