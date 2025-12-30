@@ -100,35 +100,9 @@ export function GlobalTradeStream() {
                         <Activity size={14} /> Global Trade Stream
                     </h3>
                     {/* ... Stats Section (Unchanged) ... */}
-                    <div className="hidden md:flex items-center gap-4 text-xs">
-                        <div className="flex items-center gap-1">
-                            <div className="w-2 h-2 rounded-full bg-emerald-500" />
-                            <span className="text-emerald-500">{stats.buyCount}</span>
-                            <span className="text-zinc-600">Buy</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                            <div className="w-2 h-2 rounded-full bg-rose-500" />
-                            <span className="text-rose-500">{stats.sellCount}</span>
-                            <span className="text-zinc-600">Sell</span>
-                        </div>
-                        <div className="text-zinc-500">|</div>
-                        <div className="text-zinc-400">
-                            Vol: <span className="font-mono text-white">{stats.totalVolume.toFixed(2)}</span>
-                        </div>
-                    </div>
                 </div>
 
                 <div className="flex flex-col md:flex-row gap-4 w-full lg:w-auto">
-                    <div className="relative flex-1 lg:w-48">
-                        <Search className="absolute left-3 top-2.5 text-zinc-600" size={14} />
-                        <input
-                            value={searchTerm}
-                            // 3. UPDATED ONCHANGE
-                            onChange={handleSearchChange}
-                            placeholder="Search trades..."
-                            className="w-full bg-black border border-zinc-800 py-2 pl-9 pr-4 text-xs text-white focus:border-white outline-none placeholder-zinc-700"
-                        />
-                    </div>
                     <div className="flex flex-wrap gap-4 items-center">
                         <div className="flex gap-2 border-r border-zinc-800 pr-4">
                             <PremiumCheckbox
@@ -232,31 +206,6 @@ export function GlobalTradeStream() {
                 total={totalStreamPages}
                 label="Stream"
             />
-
-            <div className="px-6 pb-2 pt-0 border-t border-zinc-900">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-[10px] text-zinc-600">
-                    <div className="flex items-center justify-between">
-                        <span>Total Trades:</span>
-                        <span className="font-mono text-zinc-400">{filteredStream.length}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                        <span>Buy/Sell Ratio:</span>
-                        <span className="font-mono text-zinc-400">
-              {(stats.buyCount / (stats.sellCount || 1)).toFixed(2)}:1
-            </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                        <span>Avg Price:</span>
-                        <span className="font-mono text-zinc-400">${stats.avgPrice.toFixed(2)}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                        <span>Active Pairs:</span>
-                        <span className="font-mono text-zinc-400">
-              {new Set(filteredStream.map(t => t.pair)).size}
-            </span>
-                    </div>
-                </div>
-            </div>
         </Card>
     )
 }
