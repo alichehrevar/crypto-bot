@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation'
 import { UserProfile } from '@/components/users/UserProfile'
 import {useCallback, useEffect, useState} from "react";
 import {getData} from "@/actions/get";
-import {User, UserDetailsResponse} from "@/types/users";
+import {UserDetails, UserDetailsResponse} from "@/types/users";
 import {useToast} from "@/components/providers/ToastProvider";
 
 export default function UserProfilePage() {
@@ -14,7 +14,7 @@ export default function UserProfilePage() {
 
     const { addToast } = useToast()
 
-    const [user, setUser] = useState<User>()
+    const [user, setUser] = useState<UserDetails>()
 
     const fetchUserData = useCallback(async () => {
         return await getData(`/admin/users/${userId}`)

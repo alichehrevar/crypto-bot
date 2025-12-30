@@ -39,7 +39,7 @@ import { getData } from "@/actions/get"
 // --- Data & Types ---
 import { MOCK_INVOICES, MOCK_ACTION_HISTORY } from '@/lib/data'
 import { MOCK_PNL_DATA, MOCK_EQUITY_DATA, ActivityLog } from '@/lib/mock-service'
-import { User } from "@/types/users";
+import {UserDetails} from "@/types/users";
 
 // --- Types ---
 type ApiBot = {
@@ -74,7 +74,7 @@ interface UiBot {
 }
 
 interface UserProfileProps {
-    user: User
+    user: UserDetails
 }
 
 // --- Mocks for sections not in User Object ---
@@ -303,19 +303,19 @@ export function UserProfile({ user }: UserProfileProps) {
                 <div className="w-full lg:w-96 grid grid-cols-2 gap-4">
                     <Card className="flex flex-col justify-between py-4 h-full">
                         <div className="text-[10px] uppercase text-zinc-500 font-bold mb-1">Total Equity (Est.)</div>
-                        <div className="text-lg font-mono text-white truncate">${MOCK_BALANCE}</div>
+                        <div className="text-lg font-mono text-white truncate">{user.summary.currency === 'dollar' ? '$' : '€'}{user.summary.totalBalance}</div>
                     </Card>
                     <Card className="flex flex-col justify-between py-4 h-full">
                         <div className="text-[10px] uppercase text-zinc-500 font-bold mb-1">Available Fund</div>
-                        <div className="text-lg font-mono text-zinc-400 truncate">${(parseFloat(MOCK_BALANCE.replace(',','')) * 0.4).toFixed(2)}</div>
+                        <div className="text-lg font-mono text-zinc-400 truncate">{user.summary.currency === 'dollar' ? '$' : '€'}{user.summary.availableFunds}</div>
                     </Card>
                     <Card className="flex flex-col justify-between py-4 h-full">
                         <div className="text-[10px] uppercase text-zinc-500 font-bold mb-1">Active bots</div>
-                        <div className="text-lg font-mono text-emerald-400">{Math.floor(MOCK_BOT_COUNT_TOTAL * 0.8)}</div>
+                        <div className="text-lg font-mono text-emerald-400">{user.activeBots}</div>
                     </Card>
                     <Card className="flex flex-col justify-between py-4 h-full">
                         <div className="text-[10px] uppercase text-zinc-500 font-bold mb-1">Total Deployed</div>
-                        <div className="text-lg font-mono text-white">{MOCK_BOT_COUNT_TOTAL}</div>
+                        <div className="text-lg font-mono text-white">{user.totalBots}</div>
                     </Card>
                 </div>
             </div>

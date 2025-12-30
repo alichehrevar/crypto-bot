@@ -52,4 +52,31 @@ export interface ApiResponse<T> {
 // 5. Specific Response Type for this Request
 export type UserListResponse = ApiResponse<User[]>;
 
-export type UserDetailsResponse = ApiResponse<User>;
+export interface UserDetailsApiResponse<T> {
+    success: boolean;
+    data: T;
+    message?: string; // Optional: good for error handling
+}
+
+export interface UserSummary {
+    currency: 'dollar' | 'euro';
+    availableFunds: number;
+    totalBalance: number;
+}
+
+export interface UserDetails {
+    _id: string;
+    email: string;
+    createdAt: string;
+    role: UserRole;
+    status: UserStatus;
+
+    info: UserProfile;
+    locationHistory: LocationLog[];
+
+    totalBots: number;
+    activeBots: number;
+    summary: UserSummary;
+}
+
+export type UserDetailsResponse = UserDetailsApiResponse<UserDetails>;
