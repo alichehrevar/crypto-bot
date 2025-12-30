@@ -8,7 +8,7 @@ module.exports = {
             args: 'start',
             port: 3006,
             env: {
-                AUTH_URL: "https://united-algos-admin.alichv.com",
+                AUTH_URL: "http://united-algos-admin.alichv.com",
                 AUTH_TRUST_HOST: "true",
                 AUTH_SECRET: "19287489274091edj1ioyf9rfydfcf"
             }
