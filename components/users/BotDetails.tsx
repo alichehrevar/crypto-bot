@@ -167,7 +167,6 @@ const BotDetailsPage = ({ botId, userId }: BotDetailsPageProps) => {
     });
 
     const [tradePage, setTradePage] = useState(1);
-    const tradesPageSize = 14;
 
     // --- Data Fetching ---
     const fetchBotData = useCallback(async () => {
