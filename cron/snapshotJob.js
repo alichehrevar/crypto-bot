@@ -11,17 +11,17 @@ const { backfillAndSyncSnapshots } = require('../app/services/AssetSnapshotServi
  */
 const scheduleSnapshots = () => {
     // This schedule runs at the beginning of every hour.
-    cron.schedule('0 0 * * *', () => {
-        console.log('[Snapshot Cron] ⏳ Running hourly snapshot job…');
+    cron.schedule('* * * * *', () => {
+        console.log('[Snapshot Cron] ⏳ Running minute snapshot job…');
         backfillAndSyncSnapshots().catch(err => {
-            console.error('[Snapshot Cron] ❌ Hourly snapshot job failed:', err);
+            console.error('[Snapshot Cron] ❌ Minute snapshot job failed:', err);
         });
     }, {
         scheduled: true,
         timezone: "Etc/UTC" // Using a consistent timezone is recommended for servers.
     });
 
-    console.log('[Snapshot Cron] ⏰ Hourly asset snapshot job scheduled.');
+    console.log('[Snapshot Cron] ⏰ Minute asset snapshot job scheduled.');
 };
 
 /**

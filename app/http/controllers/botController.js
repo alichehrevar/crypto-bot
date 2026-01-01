@@ -227,6 +227,7 @@ exports.deployBot = async (req, res) => {
             leverageLong,
             leverageShort,
             share,
+            mode,
         } = req.body;
 
         let marketSnapshot;
@@ -321,7 +322,7 @@ exports.deployBot = async (req, res) => {
             fundMode:      (marginType || 'isolated').toLowerCase(),
             positionMode:  (positionMode || 'single').toLowerCase(),
             active:        true,
-            mode:          'live',
+            mode,
             share
         });
 

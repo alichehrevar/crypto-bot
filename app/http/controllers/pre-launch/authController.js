@@ -13,7 +13,7 @@ exports.storeEarlyAccessInfo = async (req, res) => {
             promptText,
         } = req.body;
 
-        if (!email || email.toLowerCase() === 'admin@tradingx.com') {
+        if (!email || email.toLowerCase() === 'admin@unitedalgos.com') {
             return res.status(400).json({success: false, error: 'Email is required.'});
         }
 

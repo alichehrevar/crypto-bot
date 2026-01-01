@@ -10,7 +10,7 @@ const seedAdminUser = async () => {
     try {
 
         console.log('[Seeder] Ensuring default admin user…');
-        const adminEmail = 'admin@tradingx.com';
+        const adminEmail = 'admin@unitedalgos.com';
         const adminPassword = 'password123123';
 
         // 1) Hash password

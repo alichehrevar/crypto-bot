@@ -76,6 +76,88 @@ class OKXWS {
     }
 
     /**
+     * Executes a trade order on OKX via REST API.
+     * * @param {Object} orderDetails - The order parameters.
+     * @param {string} orderDetails.symbol - Market symbol (e.g., 'BTCUSDT').
+     * @param {string} orderDetails.side - 'BUY' or 'SELL'.
+     * @param {string} orderDetails.type - 'MARKET' or 'LIMIT'.
+     * @param {number} orderDetails.quantity - Amount to buy/sell.
+     * @param {number} [orderDetails.price] - Limit price (required if type is LIMIT).
+     * @param orderDetails
+     * @param {Object} account - The user's account credentials (apiKey, secretKey, passphrase).
+     * @returns {Promise<Object>} The API response data.
+     */
+    async executeOrder(orderDetails, account) {
+        const { apiKey, apiSecret, passphrase } = account;
+        const timestamp = new Date().toISOString();
+        const method = 'POST';
+        const requestPath = '/api/v5/trade/order';
+
+        // 1. Map generic bot parameters to OKX-specific fields
+        // OKX Symbols usually need hyphens (BTC-USDT), whereas your bot might send "BTCUSDT".
+        // We attempt to fix this if a hyphen is missing.
+        let instId = orderDetails.symbol;
+        if (!instId.includes('-')) {
+            // Primitive heuristic: insert hyphen before 'USDT' or 'USDC'
+            // For a production bot, it's safer to store the correct "Exchange Symbol" in the DB.
+            if (instId.endsWith('USDT')) instId = instId.replace('USDT', '-USDT');
+            else if (instId.endsWith('USDC')) instId = instId.replace('USDC', '-USDC');
+        }
+
+        // 2. Construct the Request Body
+        // tdMode: 'cash' for Spot (non-margin), 'cross'/'isolated' for Futures/Margin.
+        // For simplicity, we default to 'cash' unless it looks like a swap/future.
+        const isDerivative = instId.includes('-SWAP') || instId.includes('-FUTURES');
+        const tdMode = isDerivative ? 'cross' : 'cash';
+
+        const bodyObj = {
+            instId: instId,
+            tdMode: tdMode,
+            side: orderDetails.side.toLowerCase(), // OKX expects 'buy' or 'sell'
+            ordType: orderDetails.type.toLowerCase(), // OKX expects 'market' or 'limit'
+            sz: String(orderDetails.quantity) // Quantity must be a string
+        };
+
+        // Add price if it's a Limit order
+        if (bodyObj.ordType === 'limit') {
+            if (!orderDetails.price) throw new Error('Price is required for LIMIT orders');
+            bodyObj.px = String(orderDetails.price);
+        }
+
+        const body = JSON.stringify(bodyObj);
+
+        // 3. Generate Signature (Prehash = timestamp + method + requestPath + body)
+        const prehash = timestamp + method + requestPath + body;
+        const signature = crypto
+            .createHmac('sha256', apiSecret)
+            .update(prehash)
+            .digest('base64');
+
+        const headers = {
+            'OK-ACCESS-KEY': apiKey,
+            'OK-ACCESS-SIGN': signature,
+            'OK-ACCESS-TIMESTAMP': timestamp,
+            'OK-ACCESS-PASSPHRASE': passphrase,
+            'Content-Type': 'application/json'
+        };
+
+        try {
+            const url = `https://www.okx.com${requestPath}`;
+            const response = await axios.post(url, bodyObj, { headers });
+
+            // OKX returns 200 even on some logic errors, so check the 'code' in the body
+            if (response.data.code !== '0') {
+                throw new Error(`OKX API Error: ${response.data.msg} (Code: ${response.data.code})`);
+            }
+
+            return response.data;
+        } catch (error) {
+            console.error('[OKXWS] executeOrder failed:', error.response?.data || error.message);
+            throw error;
+        }
+    }
+
+    /**
      * @description Fetches the total account equity from OKX's balance history for a specific past date.
      * This endpoint provides a snapshot of total account value.
      * @param {object} account The user's OKX account credentials.

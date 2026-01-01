@@ -55,6 +55,8 @@ const marketInfoSchema = new Schema({
 const tradeInfoSchema = new Schema({
     takeProfit:            { type: Number },
     stopLoss:              { type: Number },
+    positionTakeProfit:    { type: Number, required: false },
+    positionStopLoss:      { type: Number, required: false },
     leverageLong:          { type: Number, default: 1 },
     leverageShort:         { type: Number, default: 1 },
     side:                  { type: String, enum: ['buy','sell'] },
