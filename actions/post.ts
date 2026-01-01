@@ -1,6 +1,6 @@
 'use server';
 import { redirect } from "next/navigation";
-import {auth} from "@/lib/auth";
+import {auth, signOut} from "@/lib/auth";
 
 export async function sendRequest(body: { [p: string]: File | string | boolean | number | null | undefined } | FormData, url: string) {
     const session = await auth();
@@ -20,7 +20,7 @@ export async function sendRequest(body: { [p: string]: File | string | boolean |
 
         if (responseJson.success === false && responseJson.error === "Token is invalid or expired.") {
             console.log("Session expired. Redirecting to login...");
-            redirect('/login');
+            await signOut({ redirectTo: '/login' });
         }
 
         return responseJson

@@ -1,6 +1,6 @@
 "use server";
 
-import { auth } from "@/lib/auth";
+import {auth, signOut} from "@/lib/auth";
 
 export async function getData (url: string, isLogFile: boolean = false) {
     const session = await auth();
@@ -24,7 +24,14 @@ export async function getData (url: string, isLogFile: boolean = false) {
 
         if (isLogFile) return response.text()
 
-        return response.json()
+        const responseJson = await response.json()
+
+        if (responseJson.success === false && responseJson.error === "Token is invalid or expired.") {
+            console.log("Session expired. Redirecting to login...");
+            await signOut({ redirectTo: '/login' });
+        }
+
+        return responseJson
     } catch (e) {
         throw e
     }
