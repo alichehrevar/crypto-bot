@@ -143,7 +143,7 @@ export interface GridBot {
     share: boolean;
     accountType: string;
     accountId: string;
-    indicators: any[]; // Empty in example, keeping generic
+    indicators: []; // Empty in example, keeping generic
     createdAt: string;
     updatedAt: string;
     __v: number;

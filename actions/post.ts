@@ -1,5 +1,4 @@
 'use server';
-import { redirect } from "next/navigation";
 import {auth, signOut} from "@/lib/auth";
 
 export async function sendRequest(body: { [p: string]: File | string | boolean | number | null | undefined } | FormData, url: string) {
