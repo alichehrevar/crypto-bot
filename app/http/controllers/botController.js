@@ -17,7 +17,6 @@ const logger         = require("../../../logs/logger");
 
 // Default indicator parameters
 const defaultStrategyParams = require('../../../config/defaultStrategyParams');
-const mongoose = require("mongoose");
 
 // --- Helper to find account by ID across collections ---
 async function findAccount(accountId) {

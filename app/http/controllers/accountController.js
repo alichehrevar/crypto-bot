@@ -111,7 +111,7 @@ exports.linkBinanceAccount = async (req, res) => {
 
         const account = await BinanceAccount.findOneAndUpdate(
             { userId },
-            { apiKey, secretKey },
+            { apiKey, secretKey, exchange: 'binance', name: 'binance' },
             { new: true, upsert: true }
         );
         res.json(account);
@@ -151,7 +151,7 @@ exports.linkOkxAccount = async (req, res) => {
 
         const account = await OkxAccount.findOneAndUpdate(
             { userId },
-            { apiKey, secretKey, passphrase },
+            { apiKey, secretKey, passphrase, exchange: 'okx', name: 'okx' },
             { new: true, upsert: true }
         );
         res.json(account);
@@ -186,13 +186,15 @@ exports.linkBingxAccount = async (req, res) => {
             bingxAccount = new BingxAccount({
                 userId: req.user.id,
                 apiKey,
-                secretKey
+                secretKey,
+                exchange: 'bingx',
+                name: 'bingx'
             });
             await bingxAccount.save();
         } else {
             await BingxAccount.updateOne(
                 { userId: req.user.id },
-                { apiKey, secretKey }
+                { apiKey, secretKey, exchange: 'bingx', name: 'bingx' }
             );
         }
 
@@ -421,9 +423,9 @@ exports.getAssetsDistribution = async (req, res) => {
 
         // 4) Build and compute percentages
         const raw = [
-            { exchange: 'Binance', total: binanceSum },
-            { exchange: 'OKX', total: okxSum },
-            { exchange: 'BingX', total: bingxSum },
+            { exchange: 'binance', total: binanceSum },
+            { exchange: 'okx', total: okxSum },
+            { exchange: 'bingx', total: bingxSum },
         ];
         const grandTotal = raw.reduce((sum, r) => sum + r.total, 0) || 1; // Avoid divide by zero
 

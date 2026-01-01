@@ -132,8 +132,13 @@ class BotManagerService {
             return botInstance;
 
         } catch (error) {
-            logger.error(`Failed to start bot instance. botId: ` + botId );
+            // FIX: Log the FULL error message and stack trace
+            logger.error(`Failed to start bot ${botId}: ${error.message}`, { stack: error.stack });
+            console.error(`❌ CRITICAL FAILURE starting bot ${botId}:`, error);
+
             await BotBase.updateOne({ _id: botId }, { status: 'ERROR' });
+            // Also try updating DcaBot collection if it's separate
+            await DcaBot.updateOne({ _id: botId }, { status: 'ERROR' });
         }
     }
 

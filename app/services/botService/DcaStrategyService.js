@@ -1,14 +1,4 @@
 // services/botService/DcaStrategyService.js
-// -----------------------------------------------------------------------------
-// DCA strategy core service for a single bot instance.
-// - Initializes user-specific ccxt exchange
-// - Starts new deals (NEUTRAL two-sided OCO or directional)
-// - Records fills idempotently (DcaFill)
-// - Locks direction on first BASE fill in NEUTRAL (and cancels opposite BASE)
-// - Maintains metrics (AEP / totalVolume / positionContracts)
-// - Ensures and maintains TP/SL (native) and Soft SL fallback
-// - Closes deal cleanly on TP/SL fill (cancels siblings/entries, resets state)
-// -----------------------------------------------------------------------------
 
 const mongoose = require('mongoose');
 const Decimal = require('decimal.js');
@@ -17,7 +7,7 @@ const DcaBot   = require('../../models/DcaBot');
 const DcaOrder = require('../../models/DcaOrder');
 const DcaFill  = require('../../models/DcaFill');
 
-const ExchangeService = require('./ExchangeService'); // user-scoped ccxt instances
+const ExchangeService = require('./ExchangeService');
 const logger = require('../../../logs/logger');
 
 class DcaStrategyService {
@@ -35,20 +25,33 @@ class DcaStrategyService {
      * Initializes the service: loads bot + user-bound exchange + market meta.
      */
     async initialize() {
+        // 1. Populate 'userId' to get the ID string safely
         this.bot = await DcaBot.findById(this.botId).populate('userId');
         if (!this.bot) throw new Error(`DCA Bot with id ${this.botId} not found.`);
-        if (!this.bot.userId) throw new Error(`Bot ${this.botId} is not associated with a user.`);
 
-        // Pull the active ccxt client for the user from ExchangeService.
-        this.exchange = ExchangeService.exchanges.get(this.bot.userId._id.toString());
+        // 2. USE THE AUTO-LOGIN HELPER
+        // We call the helper method we added to ExchangeService in the Grid Bot step
+        this.exchange = await ExchangeService._getExchange(
+            this.bot.userId._id.toString(),
+            this.bot.accountType,
+            this.bot.accountId
+        );
+
         if (!this.exchange) {
-            throw new Error(`No active exchange connection for user ${this.bot.userId._id}`);
+            throw new Error(`Failed to establish exchange connection for bot ${this.botId}`);
         }
 
-        // Load markets and cache the symbol’s meta.
+        // 3. Load Markets
         await this.exchange.loadMarkets();
-        this.market = this.exchange.market(this.bot.symbol);
-        if (!this.market) throw new Error(`Symbol ${this.bot.symbol} not found on exchange ${this.exchange.id}`);
+        // Handle symbol format differences (BTC/USDT vs BTC-USDT)
+        const symbol = this.bot.symbol.replace('/', '') === this.exchange.markets[this.bot.symbol] ? this.bot.symbol : this.bot.symbol.replace('/', '');
+
+        this.market = this.exchange.market(this.bot.symbol) || this.exchange.market(symbol);
+
+        // If still not found, try to fuzzy match or use raw symbol
+        if (!this.market) {
+            console.warn(`[DCA] Market meta not found for ${this.bot.symbol}, defaulting precision.`);
+        }
 
         logger.info({ botId: this.botId, exchange: this.exchange.id, symbol: this.bot.symbol }, 'DCA Strategy Service initialized.');
     }

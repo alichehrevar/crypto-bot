@@ -6,11 +6,11 @@ const logger = require("../../../logs/logger");
 // POST /api/dcabots
 exports.createDcaBot = async (req, res) => {
 
-    const { symbol, selectedTab } = req.body;
+    // 1. Extract accountId from request
+    const { symbol, selectedTab, accountId } = req.body;
 
     let marketSnapshot;
 
-    // check if symbol exists AND is not the string "undefined"
     if (symbol && symbol !== 'undefined') {
         marketSnapshot = await MarketSnapshot.findById(symbol);
     } else {
@@ -25,12 +25,18 @@ exports.createDcaBot = async (req, res) => {
         return res.status(400).json({ error: 'Wrong symbol is selected.' });
     }
 
+    // Validate Account ID presence
+    if (!accountId) {
+        return res.status(400).json({ error: 'Account ID is required.' });
+    }
+
     try {
         const botData = {
             ...req.body,
             symbol: marketSnapshot.symbol,
-            accountType: marketSnapshot.name.toLowerCase(),
+            accountType: 'bingx',
             userId: req.user.id,
+            accountId: accountId,
             active: true,
             direction: req.body.direction.toUpperCase(),
             marketType: 'SPOT',
@@ -40,25 +46,21 @@ exports.createDcaBot = async (req, res) => {
         const dcaBot = new DcaBot(botData);
         await dcaBot.save();
 
-        // Optional: Add to a manager service that starts/stops bots
         await BotManagerService.startBotInstance(dcaBot.id);
 
         res.status(201).json({data: dcaBot, success: true});
     } catch (error) {
-        // THIS IS THE MOST IMPORTANT PART
         console.error("--- FULL ERROR ---");
-        console.error(error); // This will print the full object
+        console.error(error);
 
         if (error.name === 'ValidationError') {
-            // Send the detailed validation errors back
             logger.error('Validation error:', error.message)
             return res.status(400).json({
                 message: "Validation failed. See 'errors' for details.",
-                errors: error.errors // 'error.errors' has the good stuff
+                errors: error.errors
             });
         }
 
-        // For any other kind of error
         return res.status(500).json({
             message: "An internal server error occurred.",
             error: error.message
@@ -103,7 +105,7 @@ exports.disableDcaBot = async (req, res) => {
         );
         if (!bot) return res.status(404).json({ message: 'Bot not found' });
 
-        BotManagerService.stopBot(bot.id);
+        BotManagerService.stopBotInstance(bot.id);
         res.status(200).json(bot);
     } catch (error) {
         res.status(500).json({ message: error.message });

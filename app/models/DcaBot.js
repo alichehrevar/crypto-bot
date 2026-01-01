@@ -3,6 +3,8 @@ const { Schema } = mongoose;
 
 const DcaBotSchema = new Schema({
     userId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+    accountId: { type: Schema.Types.ObjectId, ref: 'Account', required: true },
+    accountType: { type: String, required: true, enum: ['binance', 'okx', 'bingx', 'n8n', 'paper'] },
     status: {
         type: String,
         enum: ["RUNNING", "TERMINATED", "FENCED", "ERROR", "DISABLED"],

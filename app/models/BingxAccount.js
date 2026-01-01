@@ -1,6 +1,7 @@
 // app/models/BingxAccount.js
 const mongoose = require('mongoose');
 const { Schema } = mongoose;
+const Account = require('./Account');
 
 const BingxAccountSchema = new Schema({
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
@@ -10,4 +11,4 @@ const BingxAccountSchema = new Schema({
     createdAt: { type: Date, default: Date.now }
 });
 
-module.exports = mongoose.model('BingxAccount', BingxAccountSchema);
+module.exports = Account.discriminator('BingxAccount', BingxAccountSchema);

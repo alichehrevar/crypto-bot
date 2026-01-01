@@ -1,6 +1,7 @@
 // models/BinanceAccount.js
 const mongoose = require('mongoose');
 const { Schema } = mongoose;
+const Account = require('./Account');
 
 const binanceAccountSchema = new Schema({
     userId: { type: Schema.Types.ObjectId, ref: 'User', required: true, unique: true },
@@ -10,4 +11,4 @@ const binanceAccountSchema = new Schema({
     createdAt: { type: Date, default: Date.now }
 });
 
-module.exports = mongoose.model('BinanceAccount', binanceAccountSchema);
+module.exports = Account.discriminator('BinanceAccount', binanceAccountSchema);
