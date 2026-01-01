@@ -6,7 +6,7 @@ import { z } from 'zod';
 import { sendRequest } from "@/actions/post";
 import { AuthResponse } from "@/types/auth";
 
-export const { signIn, signOut, handlers } = NextAuth({
+export const { auth, signIn, signOut, handlers } = NextAuth({
     ...authConfig,
     trustHost: true,
     providers: [

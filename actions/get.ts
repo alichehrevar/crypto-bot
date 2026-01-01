@@ -1,13 +1,13 @@
 "use server";
 
-import {cookies} from "next/headers";
+import { auth } from "@/lib/auth";
 
 export async function getData (url: string, isLogFile: boolean = false) {
-    const nextCookies = await cookies();
+    const session = await auth();
 
     // build headers
     const headers: Record<string,string> = {
-        Authorization: `Bearer ${nextCookies?.get('token')?.value}`
+        Authorization: `Bearer ${session?.user?.accessToken}`
     };
 
     // only send JSON content‐type if *not* a log file

@@ -1,63 +1,123 @@
 'use client'
 
-import React, { useEffect, useMemo, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useRouter } from 'next/navigation';
 import {
     Activity, ArrowLeft, BarChart2, CheckCircle,
     Power, Settings, XCircle, Loader2, RefreshCw
 } from "lucide-react";
 
-// Shared Components (Assuming these exist in your project based on context)
+// Shared Components
 import { PremiumCheckbox } from "@/components/common/PremiumCheckbox";
 import { Pagination } from "@/components/common/Pagination";
-import { Badge } from "@/components/common/Badge"; // Assuming you have this
+import { Badge } from "@/components/common/Badge";
 import { useToast } from "@/components/providers/ToastProvider";
 import { getData } from "@/actions/get";
 import LogsConsole from "@/components/users/LogsConsole";
 
 // --- Types ---
 
-// 1. The API Response Type
-type ApiBot = {
+// Common fields across all bots
+interface BaseBot {
     _id: string;
     name: string;
     symbol: string;
-    botType: 'indicator' | 'grid' | 'dca';
+    botType: 'technical' | 'grid' | 'dca';
+    userId: string;
     active: boolean;
+    mode: string; // 'paper' | 'live'
+    accountType: string;
     createdAt: string;
-    strategy: string;
-    marketType?: string; // 'SPOT' | 'FUTURES'
-    direction?: 'LONG' | 'SHORT' | 'NEUTRAL';
-    exchange?: string;
+    updatedAt: string;
+    riskStrategy?: string;
+    cumulativePnL?: number;
+    userLevel?: number;
+}
 
-    // Configs
+// Technical Bot Specifics
+interface TechnicalBot extends BaseBot {
+    botType: 'technical';
+    riskParams?: {
+        positionSizingMethod?: string;
+        riskFraction?: number;
+        stopLossDistance?: number;
+    };
+    marketInfo?: {
+        baseFund?: number;
+        tradeFund?: number;
+        lastSignal?: string;
+        state?: string;
+    };
+    tradeInfo?: {
+        takeProfit?: number;
+        stopLoss?: number;
+        leverageLong?: number;
+        leverageShort?: number;
+        positionSide?: string;
+    };
+    indicators?: Array<{
+        name: string;
+        timeframe: string;
+        params?: Record<string, string | number | boolean>;
+    }>;
+}
+
+// Grid Bot Specifics
+interface GridBot extends BaseBot {
+    botType: 'grid';
     gridConfig?: {
         lowerPrice: number;
         upperPrice: number;
         gridCount: number;
-        takeProfitPercent: number;
-        stopLossPercent: number;
+        gridType?: string;
+        gridStepPercentage?: number;
+        takeProfitPct?: number;
+        stopLossPct?: number;
     };
+    marketInfo?: {
+        baseFund?: number;
+        tradeFund?: number;
+    };
+    tradeInfo?: {
+        leverageLong?: number;
+        leverageShort?: number;
+    };
+}
+
+// DCA Bot Specifics
+interface DcaBot extends BaseBot {
+    botType: 'dca';
+    marketType?: string;
+    direction?: string;
+    leverage?: number;
     baseOrderVolume?: number;
     safetyOrderVolume?: number;
     maxSafetyOrders?: number;
+    takeProfit?: number; // sometimes takeProfitPercent
     takeProfitPercent?: number;
+    stopLoss?: number;
     stopLossPercent?: number;
+    volumeScale?: number;
+    stepScale?: number;
+}
 
-    indicators?: { name: string; timeframe: string; params?: string }[];
+interface TradeViewModel {
+    time: string;
+    side: 'BUY' | 'SELL';
+    price: string;
+    status: 'FILLED' | 'REJECTED' | 'PENDING';
+    pnl: string | null;
+}
 
-    // Stats
-    pnl: { pct: number; total: number };
-    marketInfo?: { lastSignal?: string };
-};
+type ApiBot = TechnicalBot | GridBot | DcaBot;
 
-// 2. The UI View Model (Merged real + mock)
+// The UI View Model
 interface BotViewModel {
     id: string;
     name: string;
     type: string;
     symbol: string;
-    tradingMode: string; // Spot/Futures
+    tradingMode: string;
     status: 'ACTIVE' | 'PAUSED';
     exchange: string;
     marketType: string;
@@ -78,25 +138,9 @@ interface BotViewModel {
         profitFactor: string;
         sharpe: string;
         totalTrades: number;
+        pnlValue: string; // Added to show cumulative PnL
     };
 }
-
-const generateMockTrades = (count: number) => {
-    return Array.from({ length: count }).map((_, i) => {
-        const isBuy = Math.random() > 0.5;
-        const statusRandom = Math.random();
-        const status = statusRandom > 0.8 ? 'PENDING' : statusRandom > 0.1 ? 'FILLED' : 'REJECTED';
-        const pnl = status === 'FILLED' ? (Math.random() * 50 - 20).toFixed(2) : null;
-
-        return {
-            time: new Date(Date.now() - i * 1000 * 60 * 60).toLocaleTimeString(),
-            side: isBuy ? 'BUY' : 'SELL',
-            price: (Math.random() * 2000 + 1000).toFixed(2),
-            status: status,
-            pnl: pnl ? `${Number(pnl) > 0 ? '+' : ''}$${pnl}` : null
-        };
-    });
-};
 
 // --- Component ---
 
@@ -114,6 +158,7 @@ const BotDetailsPage = ({ botId, userId }: BotDetailsPageProps) => {
     const [isLoading, setIsLoading] = useState(true);
     const [refreshTrigger, setRefreshTrigger] = useState(0);
 
+    // Trade filter state
     const [ledgerFilter, setLedgerFilter] = useState({
         buy: true,
         sell: true,
@@ -122,35 +167,79 @@ const BotDetailsPage = ({ botId, userId }: BotDetailsPageProps) => {
     });
 
     const [tradePage, setTradePage] = useState(1);
-
     const tradesPageSize = 14;
 
     // --- Data Fetching ---
     const fetchBotData = useCallback(async () => {
         setIsLoading(true);
         try {
-            // Fetch logic based on your second example
-            const res = await getData(`/bots?userId=${userId}`);
+            // Updated Endpoint
+            const res = await getData(`/bots/${botId}`);
 
-            if (res.success) {
-                const apiBot: ApiBot = res.bots.find((b: ApiBot) => b._id === botId);
+            if (res.success && res.bot) {
+                const apiBot: ApiBot = res.bot;
 
-                if (!apiBot) {
-                    addToast({ title: "Error", message: "Bot not found", type: "error" });
-                    return;
+                // --- MAPPING LOGIC ---
+
+                // 1. Calculate Investment
+                let investment = "-";
+                if (apiBot.botType === 'dca') {
+                    const dca = apiBot as DcaBot;
+                    if (dca.baseOrderVolume) {
+                        const total = dca.baseOrderVolume + ((dca.safetyOrderVolume || 0) * (dca.maxSafetyOrders || 0));
+                        investment = total.toLocaleString();
+                    }
+                } else if (apiBot.botType === 'grid') {
+                    const grid = apiBot as GridBot;
+                    if (grid.marketInfo?.baseFund) {
+                        investment = grid.marketInfo.baseFund.toFixed(2);
+                    }
+                } else if (apiBot.botType === 'technical') {
+                    const tech = apiBot as TechnicalBot;
+                    if (tech.marketInfo?.baseFund) {
+                        investment = tech.marketInfo.baseFund.toLocaleString();
+                    }
                 }
 
-                // --- MAPPING LOGIC: Merge API Data with Mocks ---
+                // 2. Format TP/SL & Risk Params
+                let botTPSL = "-";
+                let riskParams = "-";
+                let direction = "-";
+                let activeIndicators: { name: string; tf: string; params: string }[] = [];
 
-                // 1. Calculate Investment (Mock logic based on API data)
-                let investment = "1,000"; // Default mock
-                if (apiBot.botType === 'dca' && apiBot.baseOrderVolume) {
-                    investment = ((apiBot.baseOrderVolume + (apiBot.safetyOrderVolume || 0) * (apiBot.maxSafetyOrders || 0))).toLocaleString();
+                if (apiBot.botType === 'technical') {
+                    const b = apiBot as TechnicalBot;
+                    const tp = b.tradeInfo?.takeProfit ?? 0;
+                    const sl = b.tradeInfo?.stopLoss ?? 0;
+                    botTPSL = `${tp}% / ${sl}%`;
+                    riskParams = `Risk Frac: ${b.riskParams?.riskFraction ?? '-'} | SL Dist: ${b.riskParams?.stopLossDistance ?? '-'}`;
+                    direction = b.tradeInfo?.positionSide?.toUpperCase() || "NEUTRAL";
+
+                    if (b.indicators && b.indicators.length > 0) {
+                        activeIndicators = b.indicators.map(ind => ({
+                            name: ind.name,
+                            tf: ind.timeframe,
+                            params: ind.params ? JSON.stringify(ind.params).replace(/[{"}]/g, '').replace(/,/g, ', ') : '-'
+                        }));
+                    }
                 }
-
-                // 2. Format TP/SL
-                const tp = apiBot.takeProfitPercent || apiBot.gridConfig?.takeProfitPercent || 1.5;
-                const sl = apiBot.stopLossPercent || apiBot.gridConfig?.stopLossPercent || 5.0;
+                else if (apiBot.botType === 'grid') {
+                    const b = apiBot as GridBot;
+                    const tp = b.gridConfig?.takeProfitPct ?? 0;
+                    const sl = b.gridConfig?.stopLossPct ?? 0;
+                    botTPSL = `${tp}% / ${sl}%`;
+                    riskParams = `Grids: ${b.gridConfig?.gridCount} | Step: ${b.gridConfig?.gridStepPercentage ?? '-'}%`;
+                    direction = "NEUTRAL"; // Grids are usually neutral/hedged unless specified
+                }
+                else if (apiBot.botType === 'dca') {
+                    const b = apiBot as DcaBot;
+                    // Check various fields for TP/SL as structure varies slightly
+                    const tp = b.takeProfit || b.takeProfitPercent || 0;
+                    const sl = b.stopLoss || b.stopLossPercent || 0;
+                    botTPSL = `${tp}% / ${sl}%`;
+                    riskParams = `Max SO: ${b.maxSafetyOrders} | Vol Scale: ${b.volumeScale}`;
+                    direction = b.direction || b.marketType || "LONG";
+                }
 
                 // 3. Create View Model
                 const mappedBot: BotViewModel = {
@@ -158,42 +247,32 @@ const BotDetailsPage = ({ botId, userId }: BotDetailsPageProps) => {
                     name: apiBot.name,
                     type: apiBot.botType.toUpperCase(),
                     symbol: apiBot.symbol,
-                    tradingMode: apiBot.marketType === 'FUTURES' ? 'PERP' : 'SPOT',
+                    tradingMode: (apiBot.botType === 'dca' && (apiBot as DcaBot).marketType) ? (apiBot as DcaBot).marketType! : 'SPOT', // Defaulting to Spot if undefined
                     status: apiBot.active ? 'ACTIVE' : 'PAUSED',
-                    exchange: apiBot.exchange || 'BINANCE', // Mock if missing
-                    marketType: apiBot.marketType || 'SPOT',
+                    exchange: apiBot.accountType ? apiBot.accountType.toUpperCase() : '-',
+                    marketType: apiBot.mode === 'live' ? 'REAL MONEY' : 'PAPER TRADING',
                     investment: investment,
-                    mode: apiBot.strategy || 'Manual',
-                    direction: apiBot.direction || 'LONG',
-                    riskStrategy: apiBot.botType === 'grid' ? 'Grid Step' : 'Martingale', // Mock based on type
+                    mode: apiBot.mode.toUpperCase(),
+                    direction: direction,
+                    riskStrategy: apiBot.riskStrategy || '-',
 
-                    // Indicators: Use API or Mock
-                    indicators: apiBot.indicators?.length ? apiBot.indicators.map(i => ({
-                        name: i.name,
-                        tf: i.timeframe,
-                        params: i.params || '14, 3, 3'
-                    })) : [
-                        { name: "RSI", tf: "15m", params: "14" },
-                        { name: "Bollinger Bands", tf: "1h", params: "20, 2" }
-                    ],
+                    indicators: activeIndicators,
 
-                    securityIndicator: "ATR Volatility Guard", // Mock
-                    riskParams: apiBot.botType === 'dca'
-                        ? `Max Orders: ${apiBot.maxSafetyOrders || 5}`
-                        : `Grid Lines: ${apiBot.gridConfig?.gridCount || 10}`,
+                    securityIndicator: "-", // Not present in provided JSON
+                    riskParams: riskParams,
+                    botTPSL: botTPSL,
+                    posTPSL: "Dynamic", // Placeholder as this specific logic isn't in JSON
+                    maxLoss: "-", // Logic not provided in JSON
 
-                    botTPSL: `${tp}% / ${sl}%`,
-                    posTPSL: "Dynamic",
-                    maxLoss: `-$${(Number(investment.replace(',','')) * 0.2).toFixed(0)}`, // Mock 20% max loss
-
-                    // Metrics: Mix of Real (PnL) and Mock
+                    // Metrics: Most are missing from the JSON examples, so we use "-"
                     metrics: {
-                        roi: apiBot.pnl.pct.toFixed(2),
-                        winRate: (Math.random() * (85 - 45) + 45).toFixed(1), // Mock
-                        drawdown: (Math.random() * 15).toFixed(2), // Mock
-                        profitFactor: (Math.random() * (2.5 - 1.1) + 1.1).toFixed(2), // Mock
-                        sharpe: (Math.random() * 3).toFixed(2), // Mock
-                        totalTrades: apiBot.pnl.total > 0 ? Math.floor(Math.random() * 200 + 20) : 0 // Mock count based on activity
+                        roi: "-",
+                        winRate: "-",
+                        drawdown: "-",
+                        profitFactor: "-",
+                        sharpe: "-",
+                        totalTrades: 0, // No trades array in provided JSON
+                        pnlValue: apiBot.cumulativePnL !== undefined ? `${apiBot.cumulativePnL.toFixed(2)}` : "-"
                     }
                 };
 
@@ -207,39 +286,16 @@ const BotDetailsPage = ({ botId, userId }: BotDetailsPageProps) => {
         } finally {
             setIsLoading(false);
         }
-    }, [botId, userId, addToast]);
+    }, [botId, addToast]); // Removed userId from dependency as it's not in the new URL
 
     useEffect(() => {
         fetchBotData();
     }, [fetchBotData, refreshTrigger]);
 
-    // Mock Trades based on bot data
-    const tradeData = useMemo(() => {
-        if (!bot) return [];
-        return generateMockTrades(bot.metrics.totalTrades);
-    }, [bot]);
-
-    const filteredTrades = useMemo(() => {
-        return tradeData.filter(t => {
-            if (!ledgerFilter.buy && t.side === 'BUY') return false;
-            if (!ledgerFilter.sell && t.side === 'SELL') return false;
-            const isFilled = t.status === 'FILLED';
-            if (!ledgerFilter.filled && isFilled) return false;
-            return !(!ledgerFilter.rejected && !isFilled);
-
-        });
-    }, [ledgerFilter, tradeData]);
-
-    // Pagination Logic
-    const paginatedTrades = useMemo(() => {
-        const start = (tradePage - 1) * tradesPageSize;
-        return filteredTrades.slice(start, start + tradesPageSize);
-    }, [filteredTrades, tradePage]);
-    const totalTradePages = Math.ceil(filteredTrades.length / tradesPageSize);
-
-    // Reset pagination on filter change
-    useEffect(() => { setTradePage(1); }, [ledgerFilter]);
-
+    // Trade Logic - NOTE: The provided API response does not contain trade history.
+    // Returning empty array to respect "no data = dash/empty" rule.
+    const paginatedTrades: TradeViewModel[] = [];
+    const totalTradePages = 0;
 
     // --- Actions ---
     const handleKill = () => {
@@ -335,12 +391,14 @@ const BotDetailsPage = ({ botId, userId }: BotDetailsPageProps) => {
                         <div className="col-span-2 mt-2">
                             <div className="text-[10px] text-zinc-500 uppercase font-bold mb-2">Active Indicators</div>
                             <div className="space-y-2">
-                                {bot.indicators.map((ind, i) => (
+                                {bot.indicators.length > 0 ? bot.indicators.map((ind, i) => (
                                     <div key={i} className="flex justify-between bg-zinc-900 p-2 rounded-sm border border-zinc-800">
                                         <span className="font-bold text-white">{ind.name} <span className="text-zinc-500 font-normal">({ind.tf})</span></span>
-                                        <span className="font-mono text-zinc-400">{ind.params}</span>
+                                        <span className="font-mono text-zinc-400 text-[10px] overflow-hidden text-ellipsis ml-2">{ind.params}</span>
                                     </div>
-                                ))}
+                                )) : (
+                                    <div className="text-zinc-600 italic font-mono">- No indicators -</div>
+                                )}
                             </div>
                         </div>
 
@@ -378,21 +436,21 @@ const BotDetailsPage = ({ botId, userId }: BotDetailsPageProps) => {
                     </h3>
                     <div className="grid grid-cols-2 gap-4 relative z-10">
                         <div className="bg-black border border-zinc-900 p-4 flex flex-col justify-between">
-                            <div className="text-[10px] uppercase text-zinc-600">Total ROI</div>
-                            <div className={`text-2xl font-mono ${parseFloat(bot.metrics.roi) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                                {parseFloat(bot.metrics.roi) >= 0 ? '+' : ''}{bot.metrics.roi}%
+                            <div className="text-[10px] uppercase text-zinc-600">Total PnL</div>
+                            <div className={`text-2xl font-mono ${!bot.metrics.pnlValue.includes('-') && parseFloat(bot.metrics.pnlValue) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                {(!bot.metrics.pnlValue.includes('-') && parseFloat(bot.metrics.pnlValue) >= 0) ? '+' : ''}{bot.metrics.pnlValue}
                             </div>
                         </div>
                         <div className="bg-black border border-zinc-900 p-4 flex flex-col justify-between">
                             <div className="text-[10px] uppercase text-zinc-600">Win Rate</div>
                             <div className="text-2xl font-mono text-white">
-                                {bot.metrics.winRate}%
+                                {bot.metrics.winRate}
                             </div>
                         </div>
                         <div className="bg-black border border-zinc-900 p-4 flex flex-col justify-between">
                             <div className="text-[10px] uppercase text-zinc-600">Max Drawdown</div>
                             <div className="text-xl font-mono text-rose-400">
-                                -{bot.metrics.drawdown}%
+                                {bot.metrics.drawdown}
                             </div>
                         </div>
                         <div className="bg-black border border-zinc-900 p-4 flex flex-col justify-between">
@@ -407,7 +465,7 @@ const BotDetailsPage = ({ botId, userId }: BotDetailsPageProps) => {
                                 <div className="text-xl font-mono text-zinc-300">{bot.metrics.sharpe}</div>
                             </div>
                             <div className="h-1 w-full bg-zinc-900 mt-2">
-                                <div className="h-full bg-zinc-500" style={{width: `${(parseFloat(bot.metrics.sharpe)/3)*100}%`}}></div>
+                                <div className="h-full bg-zinc-500" style={{width: `0%`}}></div>
                             </div>
                         </div>
                         <div className="bg-black border border-zinc-900 p-4 flex flex-col justify-between col-span-2">
@@ -462,8 +520,8 @@ const BotDetailsPage = ({ botId, userId }: BotDetailsPageProps) => {
                                     <td className={`py-3 text-right pr-2 ${trade.pnl?.includes('+') ? 'text-emerald-400' : 'text-zinc-700'}`}>{trade.pnl || '-'}</td>
                                 </tr>
                             ))}
-                            {filteredTrades.length === 0 && (
-                                <tr><td colSpan={5} className="py-8 text-center text-zinc-600 italic">No trades matching filter criteria</td></tr>
+                            {paginatedTrades.length === 0 && (
+                                <tr><td colSpan={5} className="py-8 text-center text-zinc-600 italic">No trade data available</td></tr>
                             )}
                             </tbody>
                         </table>
