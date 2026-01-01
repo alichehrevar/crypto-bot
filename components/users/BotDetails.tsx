@@ -226,7 +226,7 @@ const BotDetailsPage = ({ botId }: BotDetailsPageProps) => {
         fetchBotData();
     }, [fetchBotData, refreshTrigger]);
 
-    // Trade Logic - Placeholder
+    // Trade Logic - Placeholder (This will be fetched from an API later)
     const paginatedTrades: TradeViewModel[] = [];
     const totalTradePages = 0;
     const handleKill = () => addToast({ title: "Alert", message: "Signal sent.", type: "error" });
