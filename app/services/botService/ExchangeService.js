@@ -1,4 +1,7 @@
 const ccxt = require('ccxt');
+const BinanceAccount = require('../../models/BinanceAccount');
+const OkxAccount     = require('../../models/OkxAccount');
+const BingxAccount   = require('../../models/BingxAccount');
 
 class ExchangeService {
     constructor() {
@@ -7,7 +10,112 @@ class ExchangeService {
          *   key: userId
          *   value: ccxt exchange instance
          */
-        this.exchanges = new Map();
+        this.exchanges = new Map(); // Cache: userId -> ccxtInstance
+    }
+
+    /**
+     * INTELLIGENT GETTER:
+     * Checks cache. If missing, fetches keys from DB and connects automatically.
+     */
+    async _getExchange(userId, accountType, accountId) {
+        // 1. Check Memory Cache
+        const cacheKey = `${userId}-${accountType}`;
+        if (this.exchanges.has(cacheKey)) {
+            return this.exchanges.get(cacheKey);
+        }
+
+        // 2. Resolve Model based on type
+        let AccountModel;
+        let exchangeId = accountType.toLowerCase();
+
+        if (exchangeId === 'binance') AccountModel = BinanceAccount;
+        else if (exchangeId === 'okx') AccountModel = OkxAccount;
+        else if (exchangeId === 'bingx') AccountModel = BingxAccount;
+        else throw new Error(`Unsupported exchange: ${accountType}`);
+
+        // 3. Fetch Credentials
+        const account = await AccountModel.findById(accountId);
+        if (!account) throw new Error(`Account credentials not found for ${accountType} (ID: ${accountId})`);
+
+        // 4. Create CCXT Instance
+        const ExchangeClass = ccxt[exchangeId];
+        if (!ExchangeClass) throw new Error(`CCXT does not support ${exchangeId}`);
+
+        const exchange = new ExchangeClass({
+            apiKey: account.apiKey,
+            secret: account.secret || account.secretKey, // Handle schema variations
+            password: account.passphrase, // For OKX
+            enableRateLimit: true,
+            options: { defaultType: 'spot' } // Default to spot, adjust as needed
+        });
+
+        // 5. Save to Cache and Return
+        this.exchanges.set(cacheKey, exchange);
+        console.log(`🔌 Connected to ${accountType} for User ${userId}`);
+        return exchange;
+    }
+
+    async getTicker(userId, symbol, accountType, accountId) {
+        const exchange = await this._getExchange(userId, accountType, accountId);
+        return await exchange.fetchTicker(symbol.replace('/', ''));
+    }
+
+    /**
+     * Fetch Precision and Limits (TickSize, StepSize)
+     */
+    async getMarketFilters(userId, symbol, accountType, accountId) {
+        const exchange = await this._getExchange(userId, accountType, accountId);
+        if (!exchange.markets) await exchange.loadMarkets();
+
+        const market = exchange.market(symbol.replace('/', '')) || exchange.market(symbol);
+        if (!market) return { tickSize: 0.01, stepSize: 0.001, minNotional: 10 };
+
+        return {
+            tickSize: market.precision.price || 0.01,
+            stepSize: market.precision.amount || 0.001,
+            minNotional: market.limits.cost?.min || 10
+        };
+    }
+
+    /**
+     * Create a Limit Order
+     * @param {Object} bot - The bot document
+     * @param {Object} orderDoc - The Order model document
+     */
+    async createLimitOrder(bot, orderDoc) {
+        // Pass accountId to helper
+        const exchange = await this._getExchange(bot.userId, bot.accountType, bot.accountId);
+        const symbol = bot.symbol.replace('/', '');
+
+        const params = {};
+        if (orderDoc.reduceOnly) params.reduceOnly = true;
+
+        return await exchange.createOrder(
+            symbol,
+            'limit',
+            orderDoc.side.toLowerCase(),
+            orderDoc.quantity,
+            orderDoc.price,
+            params
+        );
+    }
+
+    /**
+     * Cancel Multiple Orders
+     */
+    async cancelMultipleOrders(bot, orderDocs) {
+        const exchange = await this._getExchange(bot.userId, bot.accountType, bot.accountId);
+        const symbol = bot.symbol.replace('/', '');
+
+        for (const order of orderDocs) {
+            if (order.exchangeOrderId) {
+                try {
+                    await exchange.cancelOrder(order.exchangeOrderId, symbol);
+                } catch (e) {
+                    console.warn(`Cancel failed: ${e.message}`);
+                }
+            }
+        }
     }
 
     /**

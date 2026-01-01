@@ -1,5 +1,7 @@
 const EventEmitter = require('events');
 const BotBase = require('../../models/BotBase'); // We'll use a base model for polymorphism
+const exchangeService = require('./ExchangeService'); // <--- Change this
+const Order = require('../../models/Order');
 const DcaBot  = require('../../models/DcaBot');
 const DcaOrder = require('../../models/DcaOrder');
 const GridStrategyService = require('./GridStrategyService');
@@ -14,7 +16,7 @@ const logger = require('../../../logs/logger');
 class BotManagerService {
     constructor() {
         this.activeBots = new Map();
-        this.exchangeService = this.getMockExchangeService(); // Using a mock for now
+        this.exchangeService = exchangeService;
     }
 
     /**
@@ -107,7 +109,7 @@ class BotManagerService {
                 case 'dca':
                     botInstance = new DcaStrategyService(botId);
                     break;
-                case 'GridBot':
+                case 'grid':
                     botInstance = new GridStrategyService(botId, this.exchangeService);
                     break;
                 default:
@@ -135,30 +137,6 @@ class BotManagerService {
         }
     }
 
-    // --- MOCK AND HELPER FUNCTIONS ---
-
-    getMockExchangeService() {
-        class MockExchangeService extends EventEmitter {}
-        const mockService = new MockExchangeService();
-
-        setInterval(() => {
-            const mockFill = {
-                tradeId: `trade-${Date.now()}`,
-                orderId: 'mock-dca-order-id-456', // A dynamic exchange ID
-                symbol: 'BTC/USDT',
-                price: 65150,
-                quantity: 0.005,
-                fee: 0.0325,
-                feeCurrency: 'USDT',
-                side: 'buy',
-                timestamp: Date.now(),
-            };
-            mockService.emit('fill', mockFill);
-        }, 15000);
-
-        return mockService;
-    }
-
     /**
      * Finds which bot an order belongs to by checking our order collections.
      */
@@ -166,20 +144,15 @@ class BotManagerService {
         // Check DCA orders first
         let order = await DcaOrder.findOne({ exchangeOrderId }).select('botId');
 
-        // If not found, check Grid orders (assuming a GridOrder model exists)
-        // if (!order) {
-        //     order = await GridOrder.findOne({ exchangeOrderId }).select('botId');
-        // }
+        // 3. UNCOMMENT AND FIX THIS for Grid Orders
+        if (!order) {
+            // Use the 'Order' model we imported, which GridStrategyService uses
+            order = await Order.findOne({ exchangeOrderId }).select('botId');
+        }
 
         if (order) {
             return order.botId.toString();
         }
-
-        // Fallback for mock testing
-        if (exchangeOrderId === 'mock-dca-order-id-456' && this.activeBots.size > 0) {
-            return this.activeBots.keys().next().value;
-        }
-
         return null;
     }
 }
