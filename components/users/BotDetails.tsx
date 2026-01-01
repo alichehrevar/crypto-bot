@@ -4,7 +4,7 @@ import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { useRouter } from 'next/navigation';
 import {
     Activity, ArrowLeft, BarChart2, CheckCircle,
-    Power, Search, Settings, Terminal, XCircle, Loader2, RefreshCw
+    Power, Settings, XCircle, Loader2, RefreshCw
 } from "lucide-react";
 
 // Shared Components (Assuming these exist in your project based on context)
@@ -13,6 +13,7 @@ import { Pagination } from "@/components/common/Pagination";
 import { Badge } from "@/components/common/Badge"; // Assuming you have this
 import { useToast } from "@/components/providers/ToastProvider";
 import { getData } from "@/actions/get";
+import LogsConsole from "@/components/users/LogsConsole";
 
 // --- Types ---
 
@@ -80,17 +81,6 @@ interface BotViewModel {
     };
 }
 
-// --- Mock Data Generators (For missing API fields) ---
-const HISTORICAL_LOG_MSGS = [
-    "Analyzing market structure for entry...",
-    "Heartbeat signal received: Latency 12ms",
-    "Fetching OHLCV data for timeframe 15m",
-    "RSI Divergence detected, awaiting confirmation",
-    "Websocket connection stable: wss://stream.binance.com",
-    "Safety order trigger condition evaluating...",
-    "Syncing order book depth...",
-];
-
 const generateMockTrades = (count: number, symbol: string) => {
     return Array.from({ length: count }).map((_, i) => {
         const isBuy = Math.random() > 0.5;
@@ -124,12 +114,6 @@ const BotDetailsPage = ({ botId, userId }: BotDetailsPageProps) => {
     const [isLoading, setIsLoading] = useState(true);
     const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-    // UI State
-    const [logSearch, setLogSearch] = useState('');
-    const [filterInfo, setFilterInfo] = useState(true);
-    const [filterWarn, setFilterWarn] = useState(true);
-    const [filterError, setFilterError] = useState(true);
-
     const [ledgerFilter, setLedgerFilter] = useState({
         buy: true,
         sell: true,
@@ -138,10 +122,8 @@ const BotDetailsPage = ({ botId, userId }: BotDetailsPageProps) => {
     });
 
     const [tradePage, setTradePage] = useState(1);
-    const [logPage, setLogPage] = useState(1);
 
     const tradesPageSize = 14;
-    const logsPageSize = 20;
 
     // --- Data Fetching ---
     const fetchBotData = useCallback(async () => {
@@ -231,43 +213,6 @@ const BotDetailsPage = ({ botId, userId }: BotDetailsPageProps) => {
         fetchBotData();
     }, [fetchBotData, refreshTrigger]);
 
-    // --- Derived Data (Logs & Trades) ---
-    // Since API doesn't return full trade/log history, we use the `useMemo` mock logic
-    // but seeded with the Bot ID/Symbol to look consistent.
-
-    const logs = useMemo(() => {
-        if (!bot) return [];
-        // Generate some "recent" logs
-        const recent = [
-            { level: 'INFO', msg: `Bot ${bot.name} initialization sequence complete.`, ts: new Date() },
-            { level: 'INFO', msg: `Connected to ${bot.exchange} websocket stream for ${bot.symbol}.`, ts: new Date(Date.now() - 1000 * 60) },
-        ];
-
-        // Generate history
-        const history = Array.from({length: 80}).map((_, i) => {
-            const d = new Date();
-            d.setMinutes(d.getMinutes() - (i + 5));
-            const randomMsg = HISTORICAL_LOG_MSGS[Math.floor(Math.random() * HISTORICAL_LOG_MSGS.length)];
-            const level = Math.random() > 0.9 ? 'WARN' : Math.random() > 0.95 ? 'ERROR' : 'INFO';
-            return {
-                level: level,
-                msg: randomMsg,
-                ts: d
-            };
-        });
-
-        return [...recent, ...history].sort((a,b) => b.ts.getTime() - a.ts.getTime());
-    }, [bot]);
-
-    const filteredLogs = logs.filter(l => {
-        const matchesSearch = l.msg.toLowerCase().includes(logSearch.toLowerCase()) || l.level.toLowerCase().includes(logSearch.toLowerCase());
-        if (!matchesSearch) return false;
-        if (l.level === 'INFO' && !filterInfo) return false;
-        if (l.level === 'WARN' && !filterWarn) return false;
-        if (l.level === 'ERROR' && !filterError) return false;
-        return true;
-    });
-
     // Mock Trades based on bot data
     const tradeData = useMemo(() => {
         if (!bot) return [];
@@ -292,30 +237,14 @@ const BotDetailsPage = ({ botId, userId }: BotDetailsPageProps) => {
     }, [filteredTrades, tradePage]);
     const totalTradePages = Math.ceil(filteredTrades.length / tradesPageSize);
 
-    const paginatedLogs = useMemo(() => {
-        const start = (logPage - 1) * logsPageSize;
-        return filteredLogs.slice(start, start + logsPageSize);
-    }, [filteredLogs, logPage]);
-    const totalLogPages = Math.ceil(filteredLogs.length / logsPageSize);
-
     // Reset pagination on filter change
     useEffect(() => { setTradePage(1); }, [ledgerFilter]);
-    useEffect(() => { setLogPage(1); }, [logSearch, filterInfo, filterWarn, filterError]);
 
 
     // --- Actions ---
     const handleKill = () => {
         addToast({ title: "System Alert", message: "Termination signal sent to engine.", type: "error" });
         // Add API call here
-    };
-
-    const getLevelColor = (level: string) => {
-        switch(level) {
-            case 'ERROR': return 'text-rose-500';
-            case 'WARN': return 'text-amber-500';
-            case 'INFO': return 'text-emerald-500';
-            default: return 'text-zinc-500';
-        }
     };
 
     if (isLoading) {
@@ -495,7 +424,7 @@ const BotDetailsPage = ({ botId, userId }: BotDetailsPageProps) => {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
                 {/* Trades Table */}
-                <div className="lg:col-span-2 border border-zinc-800 bg-zinc-950 flex flex-col h-187.5">
+                <div className="lg:col-span-3 border border-zinc-800 bg-zinc-950 flex flex-col h-187.5">
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center p-6 pb-2 gap-4">
                         <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500 flex items-center gap-2"><Activity size={14} /> Execution Ledger</h3>
 
@@ -543,52 +472,7 @@ const BotDetailsPage = ({ botId, userId }: BotDetailsPageProps) => {
                 </div>
 
                 {/* Logs Console */}
-                <div className="lg:col-span-1 border border-zinc-800 bg-black flex flex-col h-187.5 shadow-2xl">
-                    <div className="p-4 pb-2">
-                        <div className="flex justify-between items-center mb-4">
-                            <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500 flex items-center gap-2"><Terminal size={14} /> System Logs</h3>
-                        </div>
-
-                        <div className="flex flex-col gap-3 mb-2">
-                            <div className="relative">
-                                <Search className="absolute left-3 top-2.5 text-zinc-500" size={12} />
-                                <input
-                                    value={logSearch}
-                                    onChange={(e) => setLogSearch(e.target.value)}
-                                    className="w-full bg-zinc-900 border border-zinc-800 py-2 pl-9 pr-4 text-[10px] text-white focus:border-zinc-600 outline-none font-mono placeholder-zinc-600 uppercase transition-colors"
-                                    placeholder="Search System Logs..."
-                                />
-                            </div>
-                            <div className="flex gap-4">
-                                <PremiumCheckbox label="Info" checked={filterInfo} onChange={() => setFilterInfo(!filterInfo)} />
-                                <PremiumCheckbox label="Warn" checked={filterWarn} onChange={() => setFilterWarn(!filterWarn)} />
-                                <PremiumCheckbox label="Error" checked={filterError} onChange={() => setFilterError(!filterError)} />
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="flex-1 overflow-y-auto font-mono text-[10px] space-y-2 px-4 custom-scrollbar">
-                        {paginatedLogs.map((log, i) => (
-                            <div key={i} className="grid grid-cols-12 gap-2 border-b border-zinc-900/30 pb-1 hover:bg-zinc-900/10 transition-colors">
-                                <span className="col-span-3 text-zinc-500 truncate">
-                                    {log.ts.toLocaleTimeString('en-US', { hour12: false })}
-                                </span>
-                                <span className={`col-span-2 font-bold ${getLevelColor(log.level)}`}>{log.level}</span>
-                                <span className="col-span-7 text-white wrap-break-word">{log.msg}</span>
-                            </div>
-                        ))}
-                        {filteredLogs.length === 0 && (
-                            <div className="text-zinc-600 italic text-center py-4">No logs found matching criteria</div>
-                        )}
-                    </div>
-
-                    <div className="p-4 pt-0 border-t border-zinc-900 bg-zinc-950">
-                        <Pagination page={logPage} setPage={setLogPage} total={totalLogPages} label="Logs" />
-                        <div className="mt-2 pt-2 border-t border-zinc-900">
-                            <input className="w-full bg-zinc-900 border border-zinc-800 text-xs text-white p-2 focus:outline-none focus:border-emerald-500/50 font-mono placeholder-zinc-600 transition-colors" placeholder="> Execute Command..." />
-                        </div>
-                    </div>
-                </div>
+                <LogsConsole botId={botId} />
             </div>
         </div>
     );
