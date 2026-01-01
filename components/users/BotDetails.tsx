@@ -81,7 +81,7 @@ interface BotViewModel {
     };
 }
 
-const generateMockTrades = (count: number, symbol: string) => {
+const generateMockTrades = (count: number) => {
     return Array.from({ length: count }).map((_, i) => {
         const isBuy = Math.random() > 0.5;
         const statusRandom = Math.random();
@@ -216,7 +216,7 @@ const BotDetailsPage = ({ botId, userId }: BotDetailsPageProps) => {
     // Mock Trades based on bot data
     const tradeData = useMemo(() => {
         if (!bot) return [];
-        return generateMockTrades(bot.metrics.totalTrades, bot.symbol);
+        return generateMockTrades(bot.metrics.totalTrades);
     }, [bot]);
 
     const filteredTrades = useMemo(() => {
@@ -225,8 +225,8 @@ const BotDetailsPage = ({ botId, userId }: BotDetailsPageProps) => {
             if (!ledgerFilter.sell && t.side === 'SELL') return false;
             const isFilled = t.status === 'FILLED';
             if (!ledgerFilter.filled && isFilled) return false;
-            if (!ledgerFilter.rejected && !isFilled) return false;
-            return true;
+            return !(!ledgerFilter.rejected && !isFilled);
+
         });
     }, [ledgerFilter, tradeData]);
 
