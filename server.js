@@ -18,7 +18,6 @@ const syncImportedJobs = require('./app/services/dbSyncService');
 const { seedSettings } = require('./db/seeds/settingsSeeder');
 const { seedAdminUser } = require('./db/seeds/adminUserSeeder');
 const seedSymbols = require('./db/seeds/currencySeeder');
-const {fixAlgoTraderProfileIndex} = require('./db/updates/fixAlgoTraderProfileIndex');
 // const { seedN8nData } = require('./db/seeds/n8nJobResponseSeeder');
 const { logEmitter, originalConsoleLog } = require('./logs/logEmitter');
 
@@ -61,8 +60,6 @@ app.use(cors({
 
 // Connect to Mongo
 connectDB().then(async () => {
-
-    await fixAlgoTraderProfileIndex();
 
     // seed admin user
     await seedAdminUser();
