@@ -11,6 +11,13 @@ class ExchangeService extends EventEmitter {
     constructor() {
         super();
         this.exchanges = new Map();
+
+        // Tracking active polling intervals
+        // Map<"userId-symbol", IntervalID>
+        this.pollingIntervals = new Map();
+
+        // Cache last processed trade IDs to prevent duplicates
+        this.processedTradeIds = new Set();
     }
 
     /**
@@ -30,10 +37,7 @@ class ExchangeService extends EventEmitter {
         else if (exchangeId === 'bingx') AccountModel = BingxAccount;
         else AccountModel = Account;
 
-        // 1. Try finding with specific model
         let account = await AccountModel.findById(accountId);
-
-        // 2. Fallback: Try generic Account model
         if (!account && AccountModel !== Account) {
             account = await Account.findById(accountId);
         }
@@ -47,52 +51,132 @@ class ExchangeService extends EventEmitter {
             throw new Error(`CCXT does not support exchange: ${exchangeId}`);
         }
 
-        // Initialize Connection
         const exchange = new ExchangeClass({
             apiKey: account.apiKey,
             secret: account.secret || account.secretKey,
-            password: account.passphrase, // OKX specific
+            password: account.passphrase,
             enableRateLimit: true,
-            options: { defaultType: 'swap' } // Default to Swap/Futures for BingX/OKX usually
+            options: { defaultType: 'swap' } // Default to futures/swap
         });
 
         this.exchanges.set(cacheKey, exchange);
-        console.log(`🔌 Connected to ${accountType} for User ${userId}`);
+        // console.log(`🔌 Connected to ${accountType} for User ${userId}`);
         return exchange;
     }
 
     /**
      * SMART SYMBOL RESOLVER
-     * Automatically corrects "ETH" -> "ETH/USDT" for CCXT compatibility.
      */
     async _resolveSymbol(exchange, rawSymbol) {
         if (!exchange.markets) await exchange.loadMarkets();
 
-        // 1. Try Exact Match (e.g. "BTC/USDT" or "BTC-USDT")
         if (exchange.markets[rawSymbol]) return rawSymbol;
 
-        // 2. Try Standard CCXT Format (Base/Quote) -> "ETH/USDT"
-        // This fixes the issue where user entered just "ETH"
         const unified = `${rawSymbol}/USDT`;
         if (exchange.markets[unified]) return unified;
 
-        // 3. Try Binance Style (No slash) -> "ETHUSDT"
         const noSlash = rawSymbol.replace('/', '');
         if (exchange.markets[noSlash]) return noSlash;
 
-        // 4. Try Hyphenated (BingX Futures sometimes) -> "ETH-USDT"
         const hyphenated = `${rawSymbol}-USDT`;
         if (exchange.markets[hyphenated]) return hyphenated;
 
-        // 5. Return original and hope for the best (will likely throw if invalid)
+        const found = Object.keys(exchange.markets).find(m => m.startsWith(rawSymbol + '/') || m.startsWith(rawSymbol + '-'));
+        if (found) return found;
+
         return rawSymbol;
     }
 
-    // --- Public Methods ---
+    // =========================================================================
+    //  NEW: VIRTUAL WEBSOCKET (POLLING)
+    // =========================================================================
 
-    triggerFillEvent(fillData) {
-        this.emit('fill', fillData);
+    /**
+     * Subscribes to order fills via Polling (Fallback for no WS).
+     * @param {string} userId - The user ID
+     * @param {string} symbol - The symbol (e.g. BTC-USDT)
+     * @param {function} callback - Function to call when a trade is found
+     * @returns {function} unsubscribe - Call this to stop polling
+     */
+    subscribeOrderFills(userId, symbol, callback) {
+        // Unique key for this subscription
+        const key = `${userId}-${symbol}`;
+
+        if (this.pollingIntervals.has(key)) {
+            // Already polling this symbol for this user
+            return () => this._unsubscribe(key);
+        }
+
+        // console.log(`[ExchangeService] Starting Polling for ${symbol}...`);
+
+        let lastSince = Date.now() - (60 * 1000); // Look back 1 minute initially
+
+        const intervalId = setInterval(async () => {
+            try {
+                // We need to find *any* exchange instance for this user to fetch trades.
+                // In a real app, you might pass accountType/accountId to this method too.
+                // For now, we search the cache for an active connection for this user.
+                const exchange = this._findActiveExchangeForUser(userId);
+
+                if (!exchange) return; // Not connected yet
+
+                // Resolve symbol again to be safe
+                const resolvedSymbol = await this._resolveSymbol(exchange, symbol);
+
+                // Fetch Trades
+                const trades = await exchange.fetchMyTrades(resolvedSymbol, lastSince, 10);
+
+                if (trades.length > 0) {
+                    // Update 'since' to the latest timestamp to avoid re-fetching old ones deeply
+                    lastSince = trades[trades.length - 1].timestamp + 1;
+
+                    for (const trade of trades) {
+                        // Prevent duplicate processing using a Set
+                        if (!this.processedTradeIds.has(trade.id)) {
+                            this.processedTradeIds.add(trade.id);
+
+                            // Keep set size manageable
+                            if(this.processedTradeIds.size > 1000) {
+                                const it = this.processedTradeIds.values();
+                                this.processedTradeIds.delete(it.next().value);
+                            }
+
+                            // Trigger the bot's logic
+                            callback(trade);
+                        }
+                    }
+                }
+            } catch (err) {
+                // Ignore benign network errors during polling
+                // console.warn(`[Polling] Error fetching trades for ${symbol}: ${err.message}`);
+            }
+        }, 5000); // Poll every 5 seconds
+
+        this.pollingIntervals.set(key, intervalId);
+
+        // Return Unsubscribe Function
+        return () => this._unsubscribe(key);
     }
+
+    _unsubscribe(key) {
+        if (this.pollingIntervals.has(key)) {
+            clearInterval(this.pollingIntervals.get(key));
+            this.pollingIntervals.delete(key);
+            // console.log(`[ExchangeService] Stopped Polling for ${key}`);
+        }
+    }
+
+    _findActiveExchangeForUser(userId) {
+        // Iterate over connected exchanges to find one belonging to this user
+        for (const [key, exchange] of this.exchanges.entries()) {
+            if (key.startsWith(userId)) return exchange;
+        }
+        return null;
+    }
+
+    // =========================================================================
+    //  STANDARD METHODS
+    // =========================================================================
 
     async getTicker(userId, symbol, accountType, accountId) {
         const exchange = await this._getExchange(userId, accountType, accountId);
@@ -102,15 +186,13 @@ class ExchangeService extends EventEmitter {
 
     async getMarketFilters(userId, symbol, accountType, accountId) {
         const exchange = await this._getExchange(userId, accountType, accountId);
-
-        // Ensure markets are loaded before checking
         if (!exchange.markets) await exchange.loadMarkets();
 
         const resolvedSymbol = await this._resolveSymbol(exchange, symbol);
         const market = exchange.market(resolvedSymbol);
 
         if (!market) {
-            console.warn(`[ExchangeService] Market not found for ${symbol} (Resolved: ${resolvedSymbol}). Using defaults.`);
+            console.warn(`[ExchangeService] Market not found for ${symbol}. Defaults used.`);
             return { tickSize: 0.01, stepSize: 0.001, minNotional: 5 };
         }
 
@@ -128,6 +210,7 @@ class ExchangeService extends EventEmitter {
         const params = {};
         if (orderDoc.reduceOnly) params.reduceOnly = true;
 
+        // BingX/CCXT consistency: ensure side is lowercase
         return await exchange.createOrder(
             resolvedSymbol,
             'limit',
