@@ -10,11 +10,10 @@ import Tabs from "@/components/shared/ui/Tabs";
 import IndicatorsSection, { IndicatorItem } from "@/components/shared/ui/IndicatorsSection";
 import {
     ACCURACY_INTERVAL_OPTIONS,
-    BOT_ACCURACY_OPTIONS, MAIN_INDICATOR_OPTIONS,
+    BOT_ACCURACY_OPTIONS,
     OPTIMIZATION_ACCURACY_OPTIONS,
     OPTIMIZATION_METHODS,
     SIMULATED_TRADES_OPTIONS,
-    STANDARD_INDICATOR_OPTIONS
 } from "@/utils/strategyPanelData";
 import {sectionAnimationProps} from "@/utils/animations";
 
