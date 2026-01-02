@@ -1,16 +1,15 @@
 // app/services/botService/ExchangeService.js
 
-const EventEmitter = require('events'); // 1. Import EventEmitter
+const EventEmitter = require('events');
 const ccxt = require('ccxt');
 const BinanceAccount = require('../../models/BinanceAccount');
 const OkxAccount     = require('../../models/OkxAccount');
 const BingxAccount   = require('../../models/BingxAccount');
 const Account        = require('../../models/Account');
 
-// 2. Extend EventEmitter
 class ExchangeService extends EventEmitter {
     constructor() {
-        super(); // 3. Must call super() in constructor
+        super();
         this.exchanges = new Map();
     }
 
@@ -31,12 +30,11 @@ class ExchangeService extends EventEmitter {
         else if (exchangeId === 'bingx') AccountModel = BingxAccount;
         else AccountModel = Account;
 
-        // 1. Try finding with specific model (Strict Discriminator)
+        // 1. Try finding with specific model
         let account = await AccountModel.findById(accountId);
 
-        // 2. Fallback: Try generic Account model (if specific failed)
+        // 2. Fallback: Try generic Account model
         if (!account && AccountModel !== Account) {
-            // console.warn(`[ExchangeService] Specific model lookup failed for ${accountId}, trying generic Account model.`);
             account = await Account.findById(accountId);
         }
 
@@ -44,7 +42,6 @@ class ExchangeService extends EventEmitter {
             throw new Error(`Account credentials not found for ${accountType} (ID: ${accountId})`);
         }
 
-        // Check if CCXT supports this exchange
         const ExchangeClass = ccxt[exchangeId];
         if (!ExchangeClass) {
             throw new Error(`CCXT does not support exchange: ${exchangeId}`);
@@ -56,7 +53,7 @@ class ExchangeService extends EventEmitter {
             secret: account.secret || account.secretKey,
             password: account.passphrase, // OKX specific
             enableRateLimit: true,
-            options: { defaultType: 'spot' }
+            options: { defaultType: 'swap' } // Default to Swap/Futures for BingX/OKX usually
         });
 
         this.exchanges.set(cacheKey, exchange);
@@ -64,46 +61,75 @@ class ExchangeService extends EventEmitter {
         return exchange;
     }
 
+    /**
+     * SMART SYMBOL RESOLVER
+     * Automatically corrects "ETH" -> "ETH/USDT" for CCXT compatibility.
+     */
+    async _resolveSymbol(exchange, rawSymbol) {
+        if (!exchange.markets) await exchange.loadMarkets();
+
+        // 1. Try Exact Match (e.g. "BTC/USDT" or "BTC-USDT")
+        if (exchange.markets[rawSymbol]) return rawSymbol;
+
+        // 2. Try Standard CCXT Format (Base/Quote) -> "ETH/USDT"
+        // This fixes the issue where user entered just "ETH"
+        const unified = `${rawSymbol}/USDT`;
+        if (exchange.markets[unified]) return unified;
+
+        // 3. Try Binance Style (No slash) -> "ETHUSDT"
+        const noSlash = rawSymbol.replace('/', '');
+        if (exchange.markets[noSlash]) return noSlash;
+
+        // 4. Try Hyphenated (BingX Futures sometimes) -> "ETH-USDT"
+        const hyphenated = `${rawSymbol}-USDT`;
+        if (exchange.markets[hyphenated]) return hyphenated;
+
+        // 5. Return original and hope for the best (will likely throw if invalid)
+        return rawSymbol;
+    }
+
     // --- Public Methods ---
 
-    /**
-     * Helper to bridge WebSocket data to BotManager
-     * Call this from binanceWS/okxWS when a user stream order update arrives.
-     */
     triggerFillEvent(fillData) {
         this.emit('fill', fillData);
     }
 
     async getTicker(userId, symbol, accountType, accountId) {
         const exchange = await this._getExchange(userId, accountType, accountId);
-        // Helper to normalize symbol if needed
-        const s = symbol.replace('/', '');
-        return await exchange.fetchTicker(s);
+        const resolvedSymbol = await this._resolveSymbol(exchange, symbol);
+        return await exchange.fetchTicker(resolvedSymbol);
     }
 
     async getMarketFilters(userId, symbol, accountType, accountId) {
         const exchange = await this._getExchange(userId, accountType, accountId);
+
+        // Ensure markets are loaded before checking
         if (!exchange.markets) await exchange.loadMarkets();
 
-        const market = exchange.market(symbol.replace('/', '')) || exchange.market(symbol);
-        if (!market) return { tickSize: 0.01, stepSize: 0.001, minNotional: 10 };
+        const resolvedSymbol = await this._resolveSymbol(exchange, symbol);
+        const market = exchange.market(resolvedSymbol);
+
+        if (!market) {
+            console.warn(`[ExchangeService] Market not found for ${symbol} (Resolved: ${resolvedSymbol}). Using defaults.`);
+            return { tickSize: 0.01, stepSize: 0.001, minNotional: 5 };
+        }
 
         return {
             tickSize: market.precision.price || 0.01,
             stepSize: market.precision.amount || 0.001,
-            minNotional: market.limits.cost?.min || 10
+            minNotional: market.limits.cost?.min || 5
         };
     }
 
     async createLimitOrder(bot, orderDoc) {
         const exchange = await this._getExchange(bot.userId, bot.accountType, bot.accountId);
-        const symbol = bot.symbol.replace('/', '');
+        const resolvedSymbol = await this._resolveSymbol(exchange, bot.symbol);
 
         const params = {};
         if (orderDoc.reduceOnly) params.reduceOnly = true;
 
         return await exchange.createOrder(
-            symbol,
+            resolvedSymbol,
             'limit',
             orderDoc.side.toLowerCase(),
             orderDoc.quantity,
@@ -114,14 +140,14 @@ class ExchangeService extends EventEmitter {
 
     async cancelMultipleOrders(bot, orderDocs) {
         const exchange = await this._getExchange(bot.userId, bot.accountType, bot.accountId);
-        const symbol = bot.symbol.replace('/', '');
+        const resolvedSymbol = await this._resolveSymbol(exchange, bot.symbol);
 
         for (const order of orderDocs) {
             if (order.exchangeOrderId) {
                 try {
-                    await exchange.cancelOrder(order.exchangeOrderId, symbol);
+                    await exchange.cancelOrder(order.exchangeOrderId, resolvedSymbol);
                 } catch (e) {
-                    console.warn(`Cancel failed: ${e.message}`);
+                    console.warn(`Cancel failed for ${order._id}: ${e.message}`);
                 }
             }
         }

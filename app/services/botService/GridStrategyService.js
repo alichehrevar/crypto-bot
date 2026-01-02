@@ -4,8 +4,8 @@ const mongoose = require('mongoose');
 const GridBotModel = require('../../models/GridBotModel');
 const Order = require('../../models/Order');
 const Fill = require('../../models/Fill');
-const botLogger = require('../../../logs/botLogger'); // Hybrid Logger
-const ExchangeService = require('./ExchangeService'); // Self-contained dependency
+const botLogger = require('../../../logs/botLogger');
+const ExchangeService = require('./ExchangeService');
 
 class GridStrategyService {
     constructor(botId) {
@@ -36,7 +36,6 @@ class GridStrategyService {
 
         try {
             // 1. Fetch real market filters
-            // If symbol is "ETH" instead of "ETH-USDT", this will likely FAIL here.
             this.marketFilters = await this.exchangeService.getMarketFilters(
                 this.bot.userId.toString(),
                 this.bot.symbol,
@@ -55,21 +54,14 @@ class GridStrategyService {
             await this.bot.save();
 
         } catch (error) {
-            // CRITICAL: Log the initialization error
-            this._log('error', `❌ Initialization Error: ${error.message}`, {
-                suggestion: "Check your Symbol format (e.g., use ETH-USDT instead of ETH)",
-                stack: error.stack
-            });
-            throw error; // Re-throw so start() knows to abort
+            this._log('error', `❌ Initialization Error: ${error.message}`, { stack: error.stack });
+            throw error;
         }
     }
 
     async start() {
-        // Wrap start in try/catch to ensure errors are logged
         try {
             if (!this.bot) await this.initialize();
-
-            // Reload to ensure fresh state
             this.bot = await GridBotModel.findById(this.botId);
 
             this.isRunning = true;
@@ -85,8 +77,7 @@ class GridStrategyService {
                 this._log('info', `♻️ Resuming Session`, { existingOrders });
             }
         } catch (error) {
-            this._log('error', `❌ Failed to Start Grid Bot`, { error: error.message });
-            // Do not swallow the error completely, let BotService handle it too
+            this._log('error', `❌ Failed to Start: ${error.message}`);
             throw error;
         }
     }
@@ -96,13 +87,10 @@ class GridStrategyService {
         this.bot.status = 'STOPPED';
         await this.bot.save();
 
-        this._log('warn', `⏹️ Stop Command Received.`);
         this._log('warn', `⏹️ Stopping Grid Bot...`);
 
         const openOrders = await Order.find({ botId: this.botId, status: { $in: ['OPEN', 'PARTIALLY_FILLED'] } });
         if (openOrders.length > 0) {
-            this._log('info', `🧹 Cancelling ${openOrders.length} Open Orders...`);
-
             await this.exchangeService.cancelMultipleOrders(this.bot, openOrders);
 
             await Order.updateMany(
@@ -110,14 +98,13 @@ class GridStrategyService {
                 { status: 'CANCELED' }
             );
 
-            this._log('info', `✅ Cleanup Complete`, { canceledCount: openOrders.length });
+            this._log('info', `✅ Cancelled ${openOrders.length} orders during stop.`);
         }
     }
 
     async processFill(fillData) {
         if (!this.isRunning) return;
 
-        // Log the Raw Event
         this._log('info', `⚡ Fill Detected: ${fillData.side} ${fillData.quantity} @ ${fillData.price}`, {
             orderId: fillData.orderId,
             tradeId: fillData.tradeId
@@ -175,11 +162,10 @@ class GridStrategyService {
                 const currentIdx = parentOrder.lineIndex;
                 const nextIdx = parentOrder.side === 'BUY' ? currentIdx + 1 : currentIdx - 1;
 
-                this._log('info', `🔄 Grid Cycle Triggered`, {
+                this._log('info', `🔄 Cycle Triggered`, {
                     filledLevel: currentIdx,
-                    filledSide: parentOrder.side,
                     nextLevel: nextIdx,
-                    nextSide: childSide
+                    action: `Placing ${childSide}`
                 });
 
                 if (nextIdx >= 0 && nextIdx < this.gridLines.length) {
@@ -199,11 +185,7 @@ class GridStrategyService {
                     });
                     await childOrderToPlace.save({ session });
                 } else {
-                    this._log('warn', `⚠️ Grid Boundary Reached`, {
-                        nextIdx,
-                        maxIdx: this.gridLines.length - 1,
-                        message: "Price is outside grid range. Waiting for price to return."
-                    });
+                    this._log('warn', `⚠️ Grid Boundary Reached. Waiting for price to return.`);
                 }
             }
 
@@ -211,10 +193,7 @@ class GridStrategyService {
 
             if (childOrderToPlace) {
                 try {
-                    this._log('info', `🚀 Placing Reaction Order: ${childOrderToPlace.side} @ ${childOrderToPlace.price}`, {
-                        qty: childOrderToPlace.quantity,
-                        level: childOrderToPlace.lineIndex
-                    });
+                    this._log('info', `🚀 Placing Reaction Order: ${childOrderToPlace.side} @ ${childOrderToPlace.price}`);
 
                     const result = await this.exchangeService.createLimitOrder(this.bot, childOrderToPlace);
 
@@ -223,7 +202,6 @@ class GridStrategyService {
                     await childOrderToPlace.save();
 
                     this._log('info', `✅ Reaction Order Open`, { exchangeId: result.id });
-
                 } catch (err) {
                     this._log('error', `❌ Failed to place reaction order`, { error: err.message });
                     childOrderToPlace.status = 'FAILED_PLACEMENT';
@@ -233,7 +211,7 @@ class GridStrategyService {
 
         } catch (error) {
             console.error(`Error processing fill:`, error);
-            this._log('error', `ProcessFill Exception`, { error: error.message, stack: error.stack });
+            this._log('error', `ProcessFill Exception`, { error: error.message });
             await session.abortTransaction();
         } finally {
             session.endSession();
@@ -251,12 +229,9 @@ class GridStrategyService {
             for (let i = 0; i <= gridCount; i++) this.gridLines.push(lowerPrice * Math.pow(ratio, i));
         }
 
-        // --- RICH LOGGING: CALCULATION ---
         this._log('info', `🧮 Grid Calculation Complete`, {
-            mode: gridMode,
             range: `${lowerPrice} - ${upperPrice}`,
-            count: this.gridLines.length,
-            preview: this.gridLines.slice(0, 5)
+            lines: this.gridLines.length
         });
     }
 
@@ -271,14 +246,16 @@ class GridStrategyService {
         );
         const currentPrice = ticker.last;
 
-        // --- RICH LOGGING: SEEDING START ---
-        this._log('info', `🌱 Seeding Grid`, {
-            currentMarketPrice: currentPrice,
-            investment: this.bot.investment,
-            gridRange: `${this.bot.gridConfig.lowerPrice} - ${this.bot.gridConfig.upperPrice}`
-        });
+        this._log('info', `🌱 Seeding Grid. Market Price: ${currentPrice}`);
 
+        // --- CRITICAL FIX: Ensure quantity is a valid number ---
         const quantityPerOrder = this._calculateOrderQuantity();
+
+        if (isNaN(quantityPerOrder) || quantityPerOrder <= 0) {
+            this._log('error', `❌ Invalid Order Quantity calculated: ${quantityPerOrder}. Check investment amount.`);
+            return;
+        }
+
         const ordersToPlace = [];
 
         for (let i = 0; i < this.gridLines.length; i++) {
@@ -305,19 +282,11 @@ class GridStrategyService {
         }
 
         if (ordersToPlace.length === 0) {
-            this._log('warn', `⚠️ No Seed Orders Generated`, {
-                reason: "All grid lines are too close to current price or invalid for Spot.",
-                currentPrice
-            });
+            this._log('warn', `⚠️ No Seed Orders Generated. Grid lines too close to price.`);
             return;
         }
 
-        // --- RICH LOGGING: GENERATION ---
-        this._log('info', `📦 Generated ${ordersToPlace.length} Initial Orders`, {
-            buyCount: ordersToPlace.filter(o => o.side === 'BUY').length,
-            sellCount: ordersToPlace.filter(o => o.side === 'SELL').length,
-            avgQty: quantityPerOrder
-        });
+        this._log('info', `📦 Generated ${ordersToPlace.length} Initial Orders`);
 
         const createdOrders = await Order.insertMany(ordersToPlace);
         this._log('info', `🚀 Executing Batch...`);
@@ -333,27 +302,29 @@ class GridStrategyService {
             } catch (e) {
                 await Order.updateOne({ _id: order._id }, { status: 'FAILED_PLACEMENT' });
                 failCount++;
-                // Log detailed failure for debugging
-                // this._log('warn', `Seed Order Failed`, { side: order.side, price: order.price, error: e.message });
             }
         }
 
-        // --- RICH LOGGING: RESULT ---
-        this._log('info', `✅ Seeding Complete`, {
-            success: successCount,
-            failed: failCount,
-            totalActive: successCount
-        });
+        this._log('info', `✅ Seeding Complete`, { success: successCount, failed: failCount });
     }
 
     _calculateOrderQuantity() {
-        const { investment } = this.bot;
+        // FIX: The controller saves investment in marketInfo.tradeFund, not root .investment
+        const investment = this.bot.investment || this.bot.marketInfo?.tradeFund || 0;
+
         const { gridCount, lowerPrice, upperPrice } = this.bot.gridConfig;
-        if (this.bot.marketType === 'SPOT') {
-            const avgPrice = (lowerPrice + upperPrice) / 2;
-            return (investment / gridCount) / avgPrice;
+
+        if (!investment || investment <= 0) {
+            this._log('warn', `⚠️ Investment amount is 0 or missing. Cannot calculate grid quantity.`);
+            return 0;
         }
-        return (investment / gridCount) / ((lowerPrice + upperPrice) / 2);
+
+        const avgPrice = (lowerPrice + upperPrice) / 2;
+
+        // Avoid division by zero
+        if (avgPrice === 0) return 0;
+
+        return (investment / gridCount) / avgPrice;
     }
 
     _roundToTick(price) {
