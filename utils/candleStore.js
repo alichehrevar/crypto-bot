@@ -1,4 +1,4 @@
-// app/utils/candleStore.js
+// utils/candleStore.js
 
 const Candle = require('../app/models/Candle');
 const logger = require("../logs/logger");
@@ -32,7 +32,7 @@ function isCandleClosed(candle, timeframe) {
 
 /**
  * Update memory AND database safely.
- * Uses updateOne to reduce locking overhead and race conditions.
+ * Uses updateOne to avoid "Plan executor" errors on upserts.
  *
  * @param {string} symbol - e.g., "BTC/USDT"
  * @param {string} timeframe - e.g., "1m"
@@ -81,7 +81,7 @@ async function updateCandle(symbol, timeframe, candle) {
         };
 
         // FIX: Use updateOne instead of findOneAndUpdate.
-        // It is lighter and handles high-frequency upserts better.
+        // updateOne is atomic for upserts and handles unique index collisions gracefully.
         await Candle.updateOne(query, update, { upsert: true });
 
     } catch (error) {
@@ -102,8 +102,7 @@ async function updateCandle(symbol, timeframe, candle) {
                         }}
                 );
             } catch (retryErr) {
-                // Squelch this error, it's usually benign (record already up to date)
-                // console.warn(`Candle update retry skipped: ${retryErr.message}`);
+                // If this fails, it's likely benign (data already exists), so we suppress it to keep logs clean.
             }
         } else {
             // Log genuine DB errors (connection lost, disk full, etc.)
