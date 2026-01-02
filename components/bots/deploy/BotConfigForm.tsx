@@ -15,7 +15,7 @@ import {BotProps} from '@/types/bots/StrategyParams';
 import NumericInput from "@/components/shared/ui/NumericInput";
 import Combobox from "@/components/shared/ui/Combobox";
 import IndicatorsSection, {IndicatorItem} from "@/components/shared/ui/IndicatorsSection";
-import {MAIN_INDICATOR_OPTIONS, STANDARD_INDICATOR_OPTIONS} from "@/utils/strategyPanelData";
+import {STANDARD_INDICATOR_OPTIONS} from "@/utils/strategyPanelData";
 import SecurityIndicator from "@/components/shared/ui/SecurityIndicator";
 import MarginModal from "@/components/shared/modals/MarginModal";
 import {ChevronRightIcon} from "@/utils/icons";

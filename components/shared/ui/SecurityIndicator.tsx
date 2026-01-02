@@ -3,7 +3,6 @@ import React, {useState} from "react";
 
 import Switcher from "@/components/shared/ui/Switcher";
 import IndicatorsSection from "@/components/shared/ui/IndicatorsSection";
-import {MAIN_INDICATOR_OPTIONS, STANDARD_INDICATOR_OPTIONS} from "@/utils/strategyPanelData";
 import {IndicatorItem} from "@/components/shared/ui/IndicatorRow";
 import {sectionAnimationProps} from "@/utils/animations";
 
