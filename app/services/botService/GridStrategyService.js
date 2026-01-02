@@ -4,19 +4,20 @@ const mongoose = require('mongoose');
 const GridBotModel = require('../../models/GridBotModel');
 const Order = require('../../models/Order');
 const Fill = require('../../models/Fill');
-const botLogger = require('../../../logs/botLogger'); // Import the detailed logger
+const botLogger = require('../../../logs/botLogger'); // Hybrid Logger
+const ExchangeService = require('./ExchangeService'); // Self-contained dependency
 
 class GridStrategyService {
-    constructor(botId, exchangeService) {
+    constructor(botId) {
         this.botId = botId;
-        this.exchangeService = exchangeService;
+        this.exchangeService = ExchangeService;
         this.bot = null;
         this.marketFilters = null;
         this.gridLines = [];
         this.isRunning = false;
     }
 
-    // --- Helper for safe, unified logging ---
+    // --- Helper for Safe Logging ---
     _log(level, message, meta = {}) {
         const logger = botLogger.getLogger(this.botId.toString());
         if (logger && logger[level]) {
@@ -28,41 +29,65 @@ class GridStrategyService {
         this.bot = await GridBotModel.findById(this.botId);
         if (!this.bot) throw new Error(`Bot ${this.botId} not found.`);
 
-        this._log('info', `Initializing Grid Bot ${this.bot.name}...`, { symbol: this.bot.symbol });
+        this._log('info', `🤖 Initializing Grid Bot: ${this.bot.name}`, {
+            symbol: this.bot.symbol,
+            accountType: this.bot.accountType
+        });
 
-        // 1. Fetch real market filters
-        this.marketFilters = await this.exchangeService.getMarketFilters(
-            this.bot.userId.toString(),
-            this.bot.symbol,
-            this.bot.accountType,
-            this.bot.accountId
-        );
+        try {
+            // 1. Fetch real market filters
+            // If symbol is "ETH" instead of "ETH-USDT", this will likely FAIL here.
+            this.marketFilters = await this.exchangeService.getMarketFilters(
+                this.bot.userId.toString(),
+                this.bot.symbol,
+                this.bot.accountType,
+                this.bot.accountId
+            );
 
-        this._log('info', `Market Filters Loaded`, this.marketFilters);
+            this._log('info', `📏 Market Filters Applied`, {
+                tickSize: this.marketFilters.tickSize,
+                stepSize: this.marketFilters.stepSize
+            });
 
-        this._calculateGridLines();
+            this._calculateGridLines();
 
-        this.bot.status = 'PAUSED';
-        await this.bot.save();
+            this.bot.status = 'PAUSED';
+            await this.bot.save();
+
+        } catch (error) {
+            // CRITICAL: Log the initialization error
+            this._log('error', `❌ Initialization Error: ${error.message}`, {
+                suggestion: "Check your Symbol format (e.g., use ETH-USDT instead of ETH)",
+                stack: error.stack
+            });
+            throw error; // Re-throw so start() knows to abort
+        }
     }
 
     async start() {
-        if (!this.bot || this.bot.status !== 'PAUSED') {
+        // Wrap start in try/catch to ensure errors are logged
+        try {
+            if (!this.bot) await this.initialize();
+
+            // Reload to ensure fresh state
             this.bot = await GridBotModel.findById(this.botId);
-        }
 
-        this.isRunning = true;
-        this.bot.status = 'RUNNING';
-        await this.bot.save();
+            this.isRunning = true;
+            this.bot.status = 'RUNNING';
+            await this.bot.save();
 
-        this._log('info', `▶️ Grid Bot Started`);
+            this._log('info', `▶️ Grid Bot Started`);
 
-        // Check if we already have orders (resume scenario)
-        const existingOrders = await Order.countDocuments({ botId: this.botId, status: 'OPEN' });
-        if (existingOrders === 0) {
-            await this._seedInitialOrders();
-        } else {
-            this._log('info', `Resuming with ${existingOrders} existing orders.`);
+            const existingOrders = await Order.countDocuments({ botId: this.botId, status: 'OPEN' });
+            if (existingOrders === 0) {
+                await this._seedInitialOrders();
+            } else {
+                this._log('info', `♻️ Resuming Session`, { existingOrders });
+            }
+        } catch (error) {
+            this._log('error', `❌ Failed to Start Grid Bot`, { error: error.message });
+            // Do not swallow the error completely, let BotService handle it too
+            throw error;
         }
     }
 
@@ -71,11 +96,13 @@ class GridStrategyService {
         this.bot.status = 'STOPPED';
         await this.bot.save();
 
-        this._log('warn', `⏹️ Stop Command Received. Cancelling open orders...`);
+        this._log('warn', `⏹️ Stop Command Received.`);
+        this._log('warn', `⏹️ Stopping Grid Bot...`);
 
-        // Cancel all open orders on Exchange
         const openOrders = await Order.find({ botId: this.botId, status: { $in: ['OPEN', 'PARTIALLY_FILLED'] } });
         if (openOrders.length > 0) {
+            this._log('info', `🧹 Cancelling ${openOrders.length} Open Orders...`);
+
             await this.exchangeService.cancelMultipleOrders(this.bot, openOrders);
 
             await Order.updateMany(
@@ -83,16 +110,17 @@ class GridStrategyService {
                 { status: 'CANCELED' }
             );
 
-            this._log('info', `Cancelled ${openOrders.length} orders during stop.`);
+            this._log('info', `✅ Cleanup Complete`, { canceledCount: openOrders.length });
         }
     }
 
     async processFill(fillData) {
         if (!this.isRunning) return;
 
-        // Log the raw event immediately
+        // Log the Raw Event
         this._log('info', `⚡ Fill Detected: ${fillData.side} ${fillData.quantity} @ ${fillData.price}`, {
-            orderId: fillData.orderId
+            orderId: fillData.orderId,
+            tradeId: fillData.tradeId
         });
 
         const session = await mongoose.startSession();
@@ -102,14 +130,12 @@ class GridStrategyService {
             const existingFill = await Fill.findOne({ botId: this.botId, exchangeTradeId: fillData.tradeId }).session(session);
             if (existingFill) {
                 await session.abortTransaction();
-                this._log('warn', `Duplicate fill ignored`, { tradeId: fillData.tradeId });
                 return;
             }
 
             const parentOrder = await Order.findOne({ botId: this.botId, exchangeOrderId: fillData.orderId }).session(session);
             if (!parentOrder) {
                 await session.abortTransaction();
-                this._log('error', `Fill received for unknown order`, { orderId: fillData.orderId });
                 return;
             }
 
@@ -131,29 +157,31 @@ class GridStrategyService {
 
             // Update Parent
             parentOrder.filledQuantity += fillData.quantity;
-            const isFilled = parentOrder.filledQuantity >= parentOrder.quantity * 0.99; // 1% tolerance
+            const isFilled = parentOrder.filledQuantity >= parentOrder.quantity * 0.99;
             parentOrder.status = isFilled ? 'FILLED' : 'PARTIALLY_FILLED';
             await parentOrder.save({ session });
 
-            // Update Bot Position (Futures)
             if (this.bot.marketType === 'FUTURES') {
                 const posChange = parentOrder.side === 'BUY' ? fillData.quantity : -fillData.quantity;
                 await GridBotModel.updateOne({ _id: this.botId }, { $inc: { positionContracts: posChange } }).session(session);
             }
 
-            // --- THE CORE GRID LOGIC ---
+            // --- REACTION LOGIC ---
             let childOrderToPlace = null;
             if (isFilled) {
                 const { v4: uuidv4 } = await import('uuid');
                 const childSide = parentOrder.side === 'BUY' ? 'SELL' : 'BUY';
 
-                // Get next grid level
                 const currentIdx = parentOrder.lineIndex;
                 const nextIdx = parentOrder.side === 'BUY' ? currentIdx + 1 : currentIdx - 1;
 
-                this._log('info', `🔄 Cycle Triggered: Level ${currentIdx} Filled (${parentOrder.side}). Next Target: Level ${nextIdx} (${childSide})`);
+                this._log('info', `🔄 Grid Cycle Triggered`, {
+                    filledLevel: currentIdx,
+                    filledSide: parentOrder.side,
+                    nextLevel: nextIdx,
+                    nextSide: childSide
+                });
 
-                // Ensure boundaries
                 if (nextIdx >= 0 && nextIdx < this.gridLines.length) {
                     const childPrice = this.gridLines[nextIdx];
 
@@ -164,23 +192,29 @@ class GridStrategyService {
                         symbol: this.bot.symbol,
                         side: childSide,
                         price: this._roundToTick(childPrice),
-                        quantity: this._floorToStep(parentOrder.quantity), // maintain size
+                        quantity: this._floorToStep(parentOrder.quantity),
                         status: 'PENDING_PLACEMENT',
                         reduceOnly: this.bot.marketType === 'FUTURES',
                         lineIndex: nextIdx,
                     });
                     await childOrderToPlace.save({ session });
                 } else {
-                    this._log('warn', `⚠️ Grid Out of Bounds! Next index ${nextIdx} is outside range [0, ${this.gridLines.length - 1}]`);
+                    this._log('warn', `⚠️ Grid Boundary Reached`, {
+                        nextIdx,
+                        maxIdx: this.gridLines.length - 1,
+                        message: "Price is outside grid range. Waiting for price to return."
+                    });
                 }
             }
 
             await session.commitTransaction();
 
-            // Execute Child Order on Exchange
             if (childOrderToPlace) {
                 try {
-                    this._log('info', `🚀 Placing Next Grid Order: ${childOrderToPlace.side} @ ${childOrderToPlace.price}`);
+                    this._log('info', `🚀 Placing Reaction Order: ${childOrderToPlace.side} @ ${childOrderToPlace.price}`, {
+                        qty: childOrderToPlace.quantity,
+                        level: childOrderToPlace.lineIndex
+                    });
 
                     const result = await this.exchangeService.createLimitOrder(this.bot, childOrderToPlace);
 
@@ -188,9 +222,10 @@ class GridStrategyService {
                     childOrderToPlace.status = 'OPEN';
                     await childOrderToPlace.save();
 
-                    this._log('info', `✅ Grid Order Placed Successfully`, { exchangeId: result.id });
+                    this._log('info', `✅ Reaction Order Open`, { exchangeId: result.id });
+
                 } catch (err) {
-                    this._log('error', `❌ Failed to place grid order`, { error: err.message });
+                    this._log('error', `❌ Failed to place reaction order`, { error: err.message });
                     childOrderToPlace.status = 'FAILED_PLACEMENT';
                     await childOrderToPlace.save();
                 }
@@ -198,7 +233,7 @@ class GridStrategyService {
 
         } catch (error) {
             console.error(`Error processing fill:`, error);
-            this._log('error', `Critical Error in ProcessFill`, { error: error.message });
+            this._log('error', `ProcessFill Exception`, { error: error.message, stack: error.stack });
             await session.abortTransaction();
         } finally {
             session.endSession();
@@ -207,31 +242,27 @@ class GridStrategyService {
 
     _calculateGridLines() {
         const { lowerPrice, upperPrice, gridCount, gridMode } = this.bot.gridConfig;
-
         this.gridLines = [];
         if (gridMode === 'arithmetic') {
             const step = (upperPrice - lowerPrice) / gridCount;
-            for (let i = 0; i <= gridCount; i++) {
-                this.gridLines.push(lowerPrice + i * step);
-            }
+            for (let i = 0; i <= gridCount; i++) this.gridLines.push(lowerPrice + i * step);
         } else {
             const ratio = Math.pow(upperPrice / lowerPrice, 1 / gridCount);
-            for (let i = 0; i <= gridCount; i++) {
-                this.gridLines.push(lowerPrice * Math.pow(ratio, i));
-            }
+            for (let i = 0; i <= gridCount; i++) this.gridLines.push(lowerPrice * Math.pow(ratio, i));
         }
 
-        this._log('info', `🧮 Grid Lines Calculated`, {
+        // --- RICH LOGGING: CALCULATION ---
+        this._log('info', `🧮 Grid Calculation Complete`, {
             mode: gridMode,
+            range: `${lowerPrice} - ${upperPrice}`,
             count: this.gridLines.length,
-            range: `${lowerPrice} - ${upperPrice}`
+            preview: this.gridLines.slice(0, 5)
         });
     }
 
     async _seedInitialOrders() {
         const { v4: uuidv4 } = await import('uuid');
 
-        // Fetch current price
         const ticker = await this.exchangeService.getTicker(
             this.bot.userId.toString(),
             this.bot.symbol,
@@ -240,7 +271,12 @@ class GridStrategyService {
         );
         const currentPrice = ticker.last;
 
-        this._log('info', `🌱 Seeding Grid. Current Market Price: ${currentPrice}`);
+        // --- RICH LOGGING: SEEDING START ---
+        this._log('info', `🌱 Seeding Grid`, {
+            currentMarketPrice: currentPrice,
+            investment: this.bot.investment,
+            gridRange: `${this.bot.gridConfig.lowerPrice} - ${this.bot.gridConfig.upperPrice}`
+        });
 
         const quantityPerOrder = this._calculateOrderQuantity();
         const ordersToPlace = [];
@@ -252,10 +288,7 @@ class GridStrategyService {
             if (price < currentPrice) side = 'BUY';
             else if (price > currentPrice) side = 'SELL';
 
-            // Skip placing orders too close to current price (spread protection)
             if (!side || Math.abs(price - currentPrice) / currentPrice < 0.002) continue;
-
-            // Spot: Only place BUYs below price. Futures: Can place SELLS above price.
             if (this.bot.marketType === 'SPOT' && side === 'SELL') continue;
 
             ordersToPlace.push({
@@ -272,15 +305,23 @@ class GridStrategyService {
         }
 
         if (ordersToPlace.length === 0) {
-            this._log('warn', `No initial orders generated. Check grid range vs current price.`);
+            this._log('warn', `⚠️ No Seed Orders Generated`, {
+                reason: "All grid lines are too close to current price or invalid for Spot.",
+                currentPrice
+            });
             return;
         }
 
-        this._log('info', `Generated ${ordersToPlace.length} initial orders. Executing batch...`);
+        // --- RICH LOGGING: GENERATION ---
+        this._log('info', `📦 Generated ${ordersToPlace.length} Initial Orders`, {
+            buyCount: ordersToPlace.filter(o => o.side === 'BUY').length,
+            sellCount: ordersToPlace.filter(o => o.side === 'SELL').length,
+            avgQty: quantityPerOrder
+        });
 
         const createdOrders = await Order.insertMany(ordersToPlace);
+        this._log('info', `🚀 Executing Batch...`);
 
-        // Execute Batch
         let successCount = 0;
         let failCount = 0;
 
@@ -290,19 +331,24 @@ class GridStrategyService {
                 await Order.updateOne({ _id: order._id }, { status: 'OPEN', exchangeOrderId: res.id });
                 successCount++;
             } catch (e) {
-                // this._log('error', `Failed to place seed order ${order.side} @ ${order.price}`, { error: e.message });
                 await Order.updateOne({ _id: order._id }, { status: 'FAILED_PLACEMENT' });
                 failCount++;
+                // Log detailed failure for debugging
+                // this._log('warn', `Seed Order Failed`, { side: order.side, price: order.price, error: e.message });
             }
         }
 
-        this._log('info', `Seeding Complete. Success: ${successCount}, Failed: ${failCount}`);
+        // --- RICH LOGGING: RESULT ---
+        this._log('info', `✅ Seeding Complete`, {
+            success: successCount,
+            failed: failCount,
+            totalActive: successCount
+        });
     }
 
     _calculateOrderQuantity() {
         const { investment } = this.bot;
         const { gridCount, lowerPrice, upperPrice } = this.bot.gridConfig;
-
         if (this.bot.marketType === 'SPOT') {
             const avgPrice = (lowerPrice + upperPrice) / 2;
             return (investment / gridCount) / avgPrice;
