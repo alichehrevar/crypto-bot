@@ -8,7 +8,7 @@ const DcaOrder = require('../../models/DcaOrder');
 const DcaFill  = require('../../models/DcaFill');
 
 const ExchangeService = require('./ExchangeService');
-const logger = require('../../../logs/logger');
+const botLogger = require('../../../logs/botLogger'); // Import the detailed logger
 
 class DcaStrategyService {
     /**
@@ -21,16 +21,24 @@ class DcaStrategyService {
         this.market = null;   // market meta (precision/limits)
     }
 
+    // --- HELPER: Unified Bot Logging ---
+    _log(level, message, meta = {}) {
+        const logger = botLogger.getLogger(this.botId.toString());
+        if (logger && logger[level]) {
+            logger[level](message, meta);
+        }
+    }
+
     /**
      * Initializes the service: loads bot + user-bound exchange + market meta.
      */
     async initialize() {
-        // 1. Populate 'userId' to get the ID string safely
         this.bot = await DcaBot.findById(this.botId).populate('userId');
         if (!this.bot) throw new Error(`DCA Bot with id ${this.botId} not found.`);
 
+        this._log('info', `Initializing DCA Strategy for ${this.bot.name} (${this.bot.symbol})`);
+
         // 2. USE THE AUTO-LOGIN HELPER
-        // We call the helper method we added to ExchangeService in the Grid Bot step
         this.exchange = await ExchangeService._getExchange(
             this.bot.userId._id.toString(),
             this.bot.accountType,
@@ -43,17 +51,15 @@ class DcaStrategyService {
 
         // 3. Load Markets
         await this.exchange.loadMarkets();
-        // Handle symbol format differences (BTC/USDT vs BTC-USDT)
         const symbol = this.bot.symbol.replace('/', '') === this.exchange.markets[this.bot.symbol] ? this.bot.symbol : this.bot.symbol.replace('/', '');
 
         this.market = this.exchange.market(this.bot.symbol) || this.exchange.market(symbol);
 
-        // If still not found, try to fuzzy match or use raw symbol
         if (!this.market) {
-            console.warn(`[DCA] Market meta not found for ${this.bot.symbol}, defaulting precision.`);
+            this._log('warn', `Market meta not found for ${this.bot.symbol}, defaulting precision.`);
         }
 
-        logger.info({ botId: this.botId, exchange: this.exchange.id, symbol: this.bot.symbol }, 'DCA Strategy Service initialized.');
+        this._log('info', 'DCA Strategy Service initialized.');
     }
 
     async start() {
@@ -65,39 +71,39 @@ class DcaStrategyService {
         } else {
             // If a deal is already active, ensure exits exist (useful on process restart)
             try {
+                this._log('info', 'Resuming active deal. Checking exit protection...');
                 const session = await mongoose.startSession();
                 await session.withTransaction(async () => {
                     await this.ensureExitProtection(session);
                 });
                 await session.endSession();
             } catch (e) {
-                logger.warn({ botId: this.botId, err: e.message }, 'ensureExitProtection on start() warned.');
+                this._log('warn', 'ensureExitProtection on start() warned.', { error: e.message });
             }
         }
 
-        // 2) Subscribe to trade fills for this symbol (via your ExchangeService, or ccxt stream)
-        // Pseudo API: adapt to how you emit trades in ExchangeService (WS/polling)
+        // 2) Subscribe to trade fills
         if (typeof ExchangeService.subscribeOrderFills === 'function') {
             this._unsubFills = ExchangeService.subscribeOrderFills(this.bot.userId._id.toString(), this.bot.symbol, async (trade) => {
                 try {
                     await this.processFill(trade);
                 } catch (err) {
-                    logger.error({ botId: this.botId, err: err.message }, 'processFill from WS failed');
+                    this._log('error', 'processFill from WS failed', { error: err.message });
                 }
             });
-            logger.info({ botId: this.botId }, 'Subscribed to order fills.');
+            this._log('info', 'Subscribed to order fills via WebSocket.');
         } else {
-            logger.warn({ botId: this.botId }, 'No subscribeOrderFills available; ensure processFill is called elsewhere.');
+            this._log('warn', 'No subscribeOrderFills available; ensure processFill is called elsewhere.');
         }
 
         // 3) Soft SL watchdog (every 3–5s)
         this._softSlTimer = setInterval(() => {
             this.softStopWatcher().catch(err =>
-                logger.error({ botId: this.botId, err: err.message }, 'softStopWatcher tick failed')
+                this._log('error', 'softStopWatcher tick failed', { error: err.message })
             );
         }, 4000);
 
-        logger.info({ botId: this.botId }, 'DCA bot started (listeners + soft SL active).');
+        this._log('info', 'DCA bot started (listeners + soft SL active).');
     }
 
     async stop() {
@@ -110,9 +116,9 @@ class DcaStrategyService {
                 this._unsubFills();
                 this._unsubFills = null;
             }
-            logger.info({ botId: this.botId }, 'DCA bot stopped (listeners cleared).');
+            this._log('info', 'DCA bot stopped (listeners cleared).');
         } catch (e) {
-            logger.warn({ botId: this.botId, err: e.message }, 'stop() cleanup warned.');
+            this._log('warn', 'stop() cleanup warned.', { error: e.message });
         }
     }
 
@@ -120,21 +126,15 @@ class DcaStrategyService {
     // Deal lifecycle
     // -----------------------------------------------------------------------------
 
-    /**
-     * Prepares and executes the initial entry orders to start a new trading cycle.
-     * - NEUTRAL: place two BASE limit orders around reference price (OCO behavior)
-     * - Directional: single BASE (limit near ref or market if configured)
-     * Uses a DB transaction to create orders + set activeDeal atomically.
-     */
     async startNewDeal() {
         if (!this.bot) await this.initialize();
         if (this.bot.activeDeal) {
-            logger.warn({ botId: this.botId }, 'startNewDeal called but activeDeal is already true.');
+            this._log('warn', 'startNewDeal called but activeDeal is already true.');
             return;
         }
 
-        logger.info({ botId: this.botId }, 'Starting new DCA deal cycle.');
         const referencePrice = (await this.exchange.fetchTicker(this.bot.symbol)).last;
+        this._log('info', `🚀 Starting New Deal. Ref Price: ${referencePrice}`);
 
         const session = await mongoose.startSession();
         const preparedOrderIds = [];
@@ -144,28 +144,28 @@ class DcaStrategyService {
                 const baseOrderVolume = this.bot.baseOrderVolume;
 
                 if (this.bot.direction === 'NEUTRAL') {
-                    // Two-sided NEUTRAL entry (like OCO):
                     const deviation = (this.bot.neutralEntryDeviation || 0) / 100;
-                    const longPrice  = referencePrice * (1 - deviation); // BUY below ref
-                    const shortPrice = referencePrice * (1 + deviation); // SELL above ref
+                    const longPrice  = referencePrice * (1 - deviation);
+                    const shortPrice = referencePrice * (1 + deviation);
+
+                    this._log('info', `Calculating NEUTRAL Entry`, { longPrice, shortPrice, deviation });
 
                     const longBase  = await this.prepareOrder(session, 'BASE', baseOrderVolume, longPrice,  'buy');
                     const shortBase = await this.prepareOrder(session, 'BASE', baseOrderVolume, shortPrice, 'sell');
 
                     preparedOrderIds.push(longBase.id, shortBase.id);
-                    logger.info({ botId: this.botId, orders: preparedOrderIds }, 'Prepared NEUTRAL entry orders.');
                 } else {
-                    // Directional entry:
                     const side = this.bot.direction === 'LONG' ? 'buy' : 'sell';
                     const price = this.bot.useMarketForEntry ? null : referencePrice;
+                    this._log('info', `Calculating Directional Entry (${this.bot.direction})`, { price: price || 'MARKET' });
+
                     const entry = await this.prepareOrder(session, 'BASE', baseOrderVolume, price, side);
                     preparedOrderIds.push(entry.id);
-                    logger.info({ botId: this.botId, orders: preparedOrderIds }, 'Prepared directional entry order.');
                 }
 
                 // Reset deal state atomically.
                 this.bot.activeDeal = true;
-                this.bot.activeDirection = null; // will be locked on first fill if NEUTRAL
+                this.bot.activeDirection = null;
                 this.bot.averageEntryPrice = 0;
                 this.bot.totalVolume = 0;
                 this.bot.positionContracts = 0;
@@ -173,14 +173,13 @@ class DcaStrategyService {
                 await this.bot.save({ session });
             });
 
-            logger.info({ botId: this.botId, count: preparedOrderIds.length }, 'New deal transaction committed. Placing entry orders...');
+            this._log('info', 'Transaction Committed. Placing Orders...', { count: preparedOrderIds.length });
 
-            // After commit, place the orders on the exchange (side-effect).
             for (const id of preparedOrderIds) {
                 await this.executeOrder(id);
             }
         } catch (error) {
-            logger.error({ botId: this.botId, error: error.message, stack: error.stack }, 'Failed to start new deal.');
+            this._log('error', 'Failed to start new deal.', { error: error.message, stack: error.stack });
             throw error;
         } finally {
             await session.endSession();
@@ -191,35 +190,25 @@ class DcaStrategyService {
     // Exchange events → fills
     // -----------------------------------------------------------------------------
 
-    /**
-     * Processes a trade fill payload (from ccxt WS/polling, shape may vary).
-     * Responsibilities:
-     * - find the DcaOrder by exchangeOrderId
-     * - record fill idempotently (DcaFill, unique on trade.id)
-     * - if NEUTRAL and first BASE fills, lock direction and cancel opposite BASE
-     * - update metrics (AEP, totalVolume, positionContracts)
-     * - ensure TP/SL exist or are updated (after entry fills)
-     * - if TP/SL filled, close the deal (cancel siblings/entries, reset bot)
-     */
     async processFill(trade) {
         if (!this.bot) await this.initialize();
-        logger.info({ botId: this.botId, trade }, 'Processing fill.');
 
         const session = await mongoose.startSession();
         try {
             await session.withTransaction(async () => {
-                // 1) Locate the order using exchangeOrderId
                 const order = await DcaOrder.findOne({
                     botId: this.botId,
                     exchangeOrderId: trade.orderId
                 }).session(session);
 
                 if (!order) {
-                    logger.warn({ botId: this.botId, tradeId: trade.id, orderId: trade.orderId }, 'Fill received for unknown order. Ignoring.');
+                    // Reduce log spam for unknown orders
+                    // this._log('warn', 'Fill received for unknown order', { tradeId: trade.id });
                     return;
                 }
 
-                // 2) Idempotent fill recording (unique by exchangeTradeId)
+                this._log('info', `⚡ Fill Detected: ${order.type} ${order.side} ${trade.amount} @ ${trade.price}`);
+
                 try {
                     const fillDoc = new DcaFill({
                         exchangeTradeId: trade.id,
@@ -231,29 +220,28 @@ class DcaStrategyService {
                     await fillDoc.save({ session });
                 } catch (e) {
                     if ((e && e.message || '').includes('E11000')) {
-                        logger.info({ botId: this.botId, tradeId: trade.id }, 'Duplicate fill ignored (already processed).');
+                        // Duplicate ignored
                         return;
                     }
                     throw e;
                 }
 
-                // 3) Mark order as FILLED (simplified; could be PARTIALLY_FILLED if needed)
                 if (order.status !== 'FILLED') {
                     order.status = 'FILLED';
                     await order.save({ session });
                 }
 
-                // 4) NEUTRAL OCO: lock direction on first BASE fill and cancel the opposite BASE
+                // 4) NEUTRAL OCO Logic
                 const isBase = order.type === 'BASE';
                 const isNeutral = this.bot.direction === 'NEUTRAL';
                 const directionLocked = !!this.bot.activeDirection;
 
                 if (isBase && isNeutral && !directionLocked) {
-                    // Side in DB is normalized to lowercase
                     const lockedDirection = order.side === 'buy' ? 'LONG' : 'SHORT';
                     this.bot.activeDirection = lockedDirection;
 
-                    // Cancel the other BASE side, if still open/pending.
+                    this._log('info', `🔒 NEUTRAL Direction Locked: ${lockedDirection}`);
+
                     const oppositeSide = order.side === 'buy' ? 'sell' : 'buy';
                     const opposite = await DcaOrder.findOne({
                         botId: this.botId,
@@ -265,73 +253,70 @@ class DcaStrategyService {
                     if (opposite) {
                         opposite.status = 'PENDING_CANCEL';
                         await opposite.save({ session });
-                        // Defer exchange cancel until after commit (side-effect):
                         session._oppositeToCancel = opposite._id;
                     }
 
                     await this.bot.save({ session });
-                    logger.info({ botId: this.botId, lockedDirection }, 'Direction locked after first BASE fill (NEUTRAL).');
                 }
 
-                // 5) Metrics: update AEP / volume / contracts for ENTRY types (BASE or SAFETY)
+                // 5) Metrics: Update AEP (Average Entry Price)
                 const isEntry = order.type === 'BASE' || order.type === 'SAFETY';
                 if (isEntry) {
                     const curQty = new Decimal(this.bot.positionContracts || 0);
                     const fillQty = new Decimal(trade.amount || 0);
-                    const aep     = new Decimal(this.bot.averageEntryPrice || 0);
+                    const oldAep  = new Decimal(this.bot.averageEntryPrice || 0);
 
                     const newQty  = curQty.plus(fillQty);
                     const newAep  = newQty.gt(0)
-                        ? aep.mul(curQty).plus(new Decimal(trade.price).mul(fillQty)).div(newQty)
-                        : aep;
+                        ? oldAep.mul(curQty).plus(new Decimal(trade.price).mul(fillQty)).div(newQty)
+                        : oldAep;
+
+                    this._log('info', `🧮 Recalculating AEP`, {
+                        oldAep: oldAep.toNumber(),
+                        fillPrice: trade.price,
+                        newAep: newAep.toNumber(),
+                        totalSize: newQty.toNumber()
+                    });
 
                     this.bot.positionContracts   = Number(newQty.toNumber());
                     this.bot.totalVolume         = Number(new Decimal(this.bot.totalVolume || 0).plus(fillQty).toNumber());
                     this.bot.averageEntryPrice   = Number(newAep.toNumber());
 
                     await this.bot.save({ session });
-                    logger.info({
-                        botId: this.botId,
-                        positionContracts: this.bot.positionContracts,
-                        averageEntryPrice: this.bot.averageEntryPrice,
-                        totalVolume: this.bot.totalVolume
-                    }, 'Updated metrics after ENTRY fill.');
                 }
 
-                // 6) After entry fills, place/refresh exit protection (TP/SL)
+                // 6) After entry fills, refresh TP/SL
                 if (isEntry) {
-                    await this.ensureExitProtection(session); // queues orders to place after commit
+                    await this.ensureExitProtection(session);
                 }
 
-                // 7) If an EXIT filled (TP/SL), close the deal cleanly
+                // 7) Exit Filled
                 if (order.type === 'TAKE_PROFIT' || order.type === 'STOP_LOSS') {
+                    this._log('info', `💰 Deal Closed via ${order.type}`);
                     await this.closeDealCleanup(session);
-                    logger.info({ botId: this.botId, exitType: order.type }, 'Exit filled → deal closed.');
                 }
             });
 
             // --- Post-commit side-effects ---
-            // Cancel opposite BASE after commit (if any)
             if (session._oppositeToCancel) {
                 const opp = await DcaOrder.findById(session._oppositeToCancel);
                 if (opp && opp.exchangeOrderId) {
-                    await this.cancelOrder(opp); // updates to CANCELED
-                    logger.info({ botId: this.botId, orderId: opp._id }, 'Opposite BASE canceled post-commit.');
+                    await this.cancelOrder(opp);
                 }
             }
 
-            // Place queued TP/SL (or others) after commit
             if (session._ordersToPlace?.length) {
+                this._log('info', `Placing ${session._ordersToPlace.length} queued orders (TP/SL)...`);
                 for (const id of session._ordersToPlace) {
                     try {
                         await this.executeOrder(id);
                     } catch (e) {
-                        logger.error({ botId: this.botId, orderId: id, err: e.message }, 'Failed to place queued order after commit.');
+                        this._log('error', `Failed to place queued order`, { orderId: id, error: e.message });
                     }
                 }
             }
         } catch (error) {
-            logger.error({ botId: this.botId, error: error.message, stack: error.stack }, 'processFill failed.');
+            this._log('error', 'processFill transaction failed', { error: error.message });
             throw error;
         } finally {
             await session.endSession();
@@ -339,26 +324,14 @@ class DcaStrategyService {
     }
 
     // -----------------------------------------------------------------------------
-    // Order creation / execution / cancellation
+    // Order execution
     // -----------------------------------------------------------------------------
 
-    /**
-     * Creates an order doc within a txn; does not place it on the exchange.
-     * @param {ClientSession} session
-     * @param {'BASE'|'SAFETY'|'TAKE_PROFIT'|'STOP_LOSS'} type
-     * @param {number} volume - quote volume budget (USDT etc.) for entry; for exits we will set qty directly
-     * @param {number|null} price - limit price (null => market)
-     * @param {'buy'|'sell'} side
-     */
     async prepareOrder(session, type, volume, price, side) {
         const { v4: uuidv4 } = await import('uuid');
         const clientOrderId = uuidv4();
-
-        // Normalize side to lowercase for consistency everywhere.
         const normSide = (side || '').toLowerCase();
 
-        // Determine quantity with exchange precision (for entries).
-        // For limit: qty = volume / price; for market: use current price
         let qty;
         if (price) {
             qty = this.exchange.amountToPrecision(this.bot.symbol, volume / price);
@@ -368,7 +341,6 @@ class DcaStrategyService {
             qty = this.exchange.amountToPrecision(this.bot.symbol, volume / currentPrice);
         }
 
-        // Apply leverage for futures positions (qty scales by leverage).
         if (this.bot.marketType === 'FUTURES') {
             qty = parseFloat(qty) * this.bot.leverage;
             qty = this.exchange.amountToPrecision(this.bot.symbol, qty);
@@ -385,23 +357,16 @@ class DcaStrategyService {
         });
 
         await order.save({ session });
-        logger.info({ botId: this.botId, orderId: order.id, type, side: normSide, price, qty: order.qty }, 'Prepared order doc.');
+        // this._log('info', `Prepared ${type} Order`, { side: normSide, qty: order.qty, price: price || 'MARKET' });
         return order;
     }
 
-    /**
-     * Places a prepared order on the exchange; updates order with exchangeOrderId + status.
-     * Supports BASE/SAFETY (limit/market), TAKE_PROFIT (limit), STOP_LOSS (stop-market style).
-     */
     async executeOrder(orderId) {
         const order = await DcaOrder.findById(orderId);
-        if (!order || order.status !== 'PENDING_PLACEMENT') {
-            logger.warn({ orderId }, 'Execute called on an invalid or already processed order.');
-            return;
-        }
+        if (!order || order.status !== 'PENDING_PLACEMENT') return;
 
         try {
-            const side = order.side; // lowercase
+            const side = order.side;
             const params = {};
             if (this.bot.marketType === 'FUTURES' && order.reduceOnly) {
                 params.reduceOnly = true;
@@ -409,93 +374,75 @@ class DcaStrategyService {
 
             const amount = parseFloat(this.quantizeAmount(order.qty));
 
+            this._log('info', `🚀 Executing ${order.type} Order`, {
+                side,
+                amount,
+                price: order.price || 'MARKET'
+            });
+
             // TAKE_PROFIT → limit at tp
             if (order.type === 'TAKE_PROFIT') {
                 const price = parseFloat(this.quantizePrice(order.price));
-                logger.info({ botId: this.botId, orderId, type: order.type, side, amount, price }, 'Placing TAKE_PROFIT limit order...');
-                const exOrder = await this.exchange.createOrder(
-                    this.bot.symbol,
-                    'limit',
-                    side,
-                    amount,
-                    price,
-                    params
-                );
+                const exOrder = await this.exchange.createOrder(this.bot.symbol, 'limit', side, amount, price, params);
                 order.exchangeOrderId = exOrder.id;
                 order.status = 'OPEN';
                 await order.save();
-                logger.info({ botId: this.botId, orderId: order.id, exchangeOrderId: exOrder.id }, 'TAKE_PROFIT placed.');
+                this._log('info', `✅ TP Placed`, { exchangeId: exOrder.id, price });
                 return;
             }
 
-            // STOP_LOSS → try stop-market (params.stopPrice). Mapping may vary by exchange.
+            // STOP_LOSS
             if (order.type === 'STOP_LOSS') {
-                const stopPrice = parseFloat(this.quantizePrice(order.price)); // stored as trigger
+                const stopPrice = parseFloat(this.quantizePrice(order.price));
                 const slParams = { ...params, stopPrice };
-                logger.info({ botId: this.botId, orderId, type: order.type, side, amount, stopPrice }, 'Placing STOP_LOSS (stop-market) ...');
-
                 let exOrder;
                 try {
-                    // default attempt: 'market' + stopPrice param (supported on many ccxt ids)
                     exOrder = await this.exchange.createOrder(this.bot.symbol, 'market', side, amount, undefined, slParams);
                 } catch (e) {
-                    // If your exchange needs special params (e.g., Binance/OKX), adapt in ExchangeService.
-                    logger.warn({ botId: this.botId, orderId, err: e.message }, 'Native stop failed. Consider Soft SL or exchange-specific mapping.');
+                    this._log('warn', `Native SL Failed, fallback to Soft SL`, { error: e.message });
                     throw e;
                 }
 
                 order.exchangeOrderId = exOrder.id;
                 order.status = 'OPEN';
                 await order.save();
-                logger.info({ botId: this.botId, orderId: order.id, exchangeOrderId: exOrder.id }, 'STOP_LOSS placed.');
+                this._log('info', `✅ SL Placed`, { exchangeId: exOrder.id, stopPrice });
                 return;
             }
 
-            // BASE/SAFETY entries:
+            // BASE/SAFETY entries
             const orderType = order.price ? 'limit' : 'market';
             const price = order.price ? parseFloat(this.quantizePrice(order.price)) : undefined;
 
-            logger.info({ botId: this.botId, orderId, type: order.type, side, amount, price }, 'Placing entry order...');
-            const exOrder = await this.exchange.createOrder(
-                this.bot.symbol,
-                orderType,
-                side,
-                amount,
-                price,
-                params
-            );
+            const exOrder = await this.exchange.createOrder(this.bot.symbol, orderType, side, amount, price, params);
 
             order.exchangeOrderId = exOrder.id;
             order.status = 'OPEN';
             await order.save();
-            logger.info({ botId: this.botId, orderId: order.id, exchangeOrderId: exOrder.id }, 'Entry order placed.');
+            this._log('info', `✅ Entry Placed`, { exchangeId: exOrder.id });
+
         } catch (err) {
             order.status = 'FAILED_PLACEMENT';
             await order.save();
-            logger.error({ botId: this.botId, orderId, error: err.message }, 'Failed to place order on exchange.');
+            this._log('error', `❌ Execution Failed`, { orderId, error: err.message });
             throw err;
         }
     }
 
-    /**
-     * Cancel an OPEN order on the exchange and mark as CANCELED in DB.
-     */
     async cancelOrder(order) {
         try {
             await this.exchange.cancelOrder(order.exchangeOrderId, this.bot.symbol);
-            logger.info({ botId: this.botId, orderId: order._id }, 'Exchange cancel sent.');
+            this._log('info', `Canceled Order`, { orderId: order._id });
         } catch (e) {
-            // Ignore "already canceled/not found"; log as warn for postmortem.
-            logger.warn({ botId: this.botId, orderId: order._id, err: e.message }, 'Cancel order raised (ignored if benign).');
+            // this._log('warn', `Cancel failed (benign)`, { orderId: order._id, error: e.message });
         } finally {
             order.status = 'CANCELED';
             await order.save();
-            logger.info({ botId: this.botId, orderId: order._id }, 'Order marked CANCELED.');
         }
     }
 
     // -----------------------------------------------------------------------------
-    // Helpers: direction/quantization/targets
+    // Helpers
     // -----------------------------------------------------------------------------
 
     getEntryExitSides(direction) {
@@ -504,20 +451,9 @@ class DcaStrategyService {
         throw new Error('Invalid direction');
     }
 
-    quantizePrice(p) {
-        return this.exchange.priceToPrecision(this.bot.symbol, p);
-    }
+    quantizePrice(p) { return this.exchange.priceToPrecision(this.bot.symbol, p); }
+    quantizeAmount(a) { return this.exchange.amountToPrecision(this.bot.symbol, a); }
 
-    quantizeAmount(a) {
-        return this.exchange.amountToPrecision(this.bot.symbol, a);
-    }
-
-    /**
-     * Compute TP/SL absolute prices from current AEP and activeDirection.
-     * Uses bot config:
-     *  - enableTakeProfit / enableStopLoss (Booleans)
-     *  - takeProfitPercent / stopLossPercent (Numbers in %)
-     */
     computeExitTargets() {
         const aep = new Decimal(this.bot.averageEntryPrice || 0);
         if (aep.lte(0)) return { tp: null, sl: null };
@@ -537,16 +473,6 @@ class DcaStrategyService {
         return { tp: null, sl: null };
     }
 
-    // -----------------------------------------------------------------------------
-    // Exit protection (TP/SL) management
-    // -----------------------------------------------------------------------------
-
-    /**
-     * Ensure TP/SL orders exist and are aligned with the latest AEP/position.
-     * - If TP exists and trackTpWithAep is true, cancel & recreate at new price
-     * - SL always cancels & recreates (safer across venues) with new trigger
-     * - Orders are queued for placement after the txn commit via session._ordersToPlace
-     */
     async ensureExitProtection(session = null) {
         if (!this.bot.activeDeal || !this.bot.activeDirection) return;
 
@@ -556,7 +482,13 @@ class DcaStrategyService {
         const { exit } = this.getEntryExitSides(this.bot.activeDirection);
         const { tp, sl } = this.computeExitTargets();
 
-        // 1) TAKE PROFIT (limit at tp)
+        this._log('info', `🛡️ Checking Exit Protection`, {
+            AEP: this.bot.averageEntryPrice,
+            TP_Target: tp || 'Disabled',
+            SL_Target: sl || 'Disabled'
+        });
+
+        // 1) TAKE PROFIT
         if (tp) {
             const existingTp = await DcaOrder.findOne({
                 botId: this.botId,
@@ -567,18 +499,16 @@ class DcaStrategyService {
             const mustReplace = this.bot.trackTpWithAep || !existingTp;
 
             if (mustReplace && existingTp && existingTp.exchangeOrderId) {
+                // this._log('info', `Replacing TP to adjust for new AEP`);
                 try {
                     await this.exchange.cancelOrder(existingTp.exchangeOrderId, this.bot.symbol);
-                    logger.info({ botId: this.botId, orderId: existingTp._id }, 'Canceled existing TP (tracking AEP).');
-                } catch (_) {
-                    logger.warn({ botId: this.botId, orderId: existingTp._id }, 'Cancel existing TP raised (ignored).');
-                }
+                } catch (_) {}
                 existingTp.status = 'CANCELED';
                 await existingTp.save({ session });
             }
 
             if (!existingTp || mustReplace) {
-                const qty = this.quantizeAmount(positionQty.toNumber()); // full position size
+                const qty = this.quantizeAmount(positionQty.toNumber());
                 const price = this.quantizePrice(tp);
                 const tpDoc = new DcaOrder({
                     botId: this.botId,
@@ -591,11 +521,10 @@ class DcaStrategyService {
                 });
                 await tpDoc.save({ session });
                 session && (session._ordersToPlace = [...(session._ordersToPlace || []), tpDoc._id]);
-                logger.info({ botId: this.botId, orderId: tpDoc._id, price: tp }, 'Prepared TAKE_PROFIT.');
             }
         }
 
-        // 2) STOP LOSS (stop-market with stopPrice trigger)
+        // 2) STOP LOSS
         if (sl) {
             const existingSl = await DcaOrder.findOne({
                 botId: this.botId,
@@ -606,10 +535,7 @@ class DcaStrategyService {
             if (existingSl && existingSl.exchangeOrderId) {
                 try {
                     await this.exchange.cancelOrder(existingSl.exchangeOrderId, this.bot.symbol);
-                    logger.info({ botId: this.botId, orderId: existingSl._id }, 'Canceled existing SL (realign with new AEP).');
-                } catch (_) {
-                    logger.warn({ botId: this.botId, orderId: existingSl._id }, 'Cancel existing SL raised (ignored).');
-                }
+                } catch (_) {}
                 existingSl.status = 'CANCELED';
                 await existingSl.save({ session });
             }
@@ -622,54 +548,31 @@ class DcaStrategyService {
                 type: 'STOP_LOSS',
                 side: exit,
                 qty: parseFloat(qty),
-                // Using .price as "triggerPrice" for simplicity; if you have a dedicated field, use it.
                 price: parseFloat(stopPrice),
                 reduceOnly: this.bot.marketType === 'FUTURES',
                 status: 'PENDING_PLACEMENT'
             });
             await slDoc.save({ session });
             session && (session._ordersToPlace = [...(session._ordersToPlace || []), slDoc._id]);
-            logger.info({ botId: this.botId, orderId: slDoc._id, stopPrice: sl }, 'Prepared STOP_LOSS.');
         }
     }
 
-    /**
-     * Close the active deal after a TP/SL fill or soft-SL exit:
-     * - Cancel any remaining exits and entries
-     * - Reset bot state
-     * - Increment completedDeals
-     */
     async closeDealCleanup(session) {
-        // Cancel exits
-        const openExits = await DcaOrder.find({
+        // Cancel all open orders for this bot
+        const openOrders = await DcaOrder.find({
             botId: this.botId,
-            type: { $in: ['TAKE_PROFIT', 'STOP_LOSS'] },
             status: { $in: ['PENDING_PLACEMENT', 'OPEN', 'PARTIALLY_FILLED'] }
         }).session(session);
 
-        for (const ex of openExits) {
-            if (ex.exchangeOrderId) {
-                try { await this.exchange.cancelOrder(ex.exchangeOrderId, this.bot.symbol); }
-                catch (e) { logger.warn({ botId: this.botId, orderId: ex._id, err: e.message }, 'Cancel exit error'); }
-            }
-            ex.status = 'CANCELED';
-            await ex.save({ session });
-        }
+        this._log('info', `🧹 Cleaning up ${openOrders.length} open orders...`);
 
-        // Cancel entries
-        const openEntries = await DcaOrder.find({
-            botId: this.botId,
-            type: { $in: ['BASE', 'SAFETY'] },
-            status: { $in: ['PENDING_PLACEMENT', 'OPEN', 'PARTIALLY_FILLED'] }
-        }).session(session);
-
-        for (const e of openEntries) {
-            if (e.exchangeOrderId) {
-                try { await this.exchange.cancelOrder(e.exchangeOrderId, this.bot.symbol); }
-                catch (er) { logger.warn({ botId: this.botId, orderId: e._id, err: er.message }, 'Cancel entry error'); }
+        for (const order of openOrders) {
+            if (order.exchangeOrderId) {
+                try { await this.exchange.cancelOrder(order.exchangeOrderId, this.bot.symbol); }
+                catch (e) { }
             }
-            e.status = 'CANCELED';
-            await e.save({ session });
+            order.status = 'CANCELED';
+            await order.save({ session });
         }
 
         // Reset bot
@@ -681,21 +584,9 @@ class DcaStrategyService {
         this.bot.completedDeals = (this.bot.completedDeals || 0) + 1;
         await this.bot.save({ session });
 
-        logger.info({ botId: this.botId }, 'Deal closed and bot state reset.');
+        this._log('info', `✅ Deal Cycle Complete. Total Deals: ${this.bot.completedDeals}`);
     }
 
-    // -----------------------------------------------------------------------------
-    // Soft SL safety net
-    // -----------------------------------------------------------------------------
-
-    /**
-     * Soft SL monitor for exchanges that lack native stops or when native stops fail.
-     * - Check current price vs computed SL trigger
-     * - If triggered: market-exit the entire position and close the deal via cleanup
-     *
-     * Call this periodically from your BotManager loop (e.g., every 3–5s).
-     * It is a no-op if deal is inactive or SL disabled/not reached.
-     */
     async softStopWatcher() {
         try {
             if (!this.bot) await this.initialize();
@@ -716,25 +607,22 @@ class DcaStrategyService {
             const { exit } = this.getEntryExitSides(this.bot.activeDirection);
             const amount = parseFloat(this.quantizeAmount(qtyNum));
 
-            logger.warn({ botId: this.botId, price, sl, direction: this.bot.activeDirection, amount }, 'Soft SL triggered → market exit.');
+            this._log('warn', `🚨 Soft SL Triggered! Market Exiting...`, { price, slLevel: sl });
 
-            // Market exit, reduce-only in futures to avoid flipping.
             await this.exchange.createOrder(this.bot.symbol, 'market', exit, amount, undefined, {
                 ...(this.bot.marketType === 'FUTURES' ? { reduceOnly: true } : {})
             });
 
-            // Close deal in a small txn.
             const session = await mongoose.startSession();
             try {
                 await session.withTransaction(async () => {
                     await this.closeDealCleanup(session);
                 });
-                logger.info({ botId: this.botId }, 'Soft SL cleanup completed.');
             } finally {
                 await session.endSession();
             }
         } catch (e) {
-            logger.error({ botId: this.botId, err: e.message, stack: e.stack }, 'softStopWatcher error');
+            this._log('error', 'Soft SL Watcher failed', { error: e.message });
         }
     }
 }
