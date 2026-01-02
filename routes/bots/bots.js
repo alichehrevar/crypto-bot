@@ -38,6 +38,7 @@ router.delete('/:id', authenticate, botController.stopBot);
 
 // bot logs
 router.get('/:id/logs', authenticate, bindBot, botController.getBotLogsDetails);
+router.get('/:id/logs/download', authenticate, bindBot, botController.downloadBotLogs);
 
 // Close a trade for a given bot
 router.post('/:botId/trades/:tradeId/close', authenticate, botController.closeTrade);

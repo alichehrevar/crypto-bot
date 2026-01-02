@@ -15,6 +15,10 @@ const BotService     = require('../../services/botService/BotService');
 const PnLService     = require('../../services/PnLService');
 const logger         = require("../../../logs/logger");
 
+const fs = require('fs');
+const path = require('path');
+const archiver = require('archiver');
+
 // Default indicator parameters
 const defaultStrategyParams = require('../../../config/defaultStrategyParams');
 
@@ -749,13 +753,20 @@ exports.getBotDetails = async (req, res) => {
 exports.getBotLogsDetails = async (req, res) => {
     try {
         // req.botBase is provided by the middleware
-        const botId = req.botBase._id;
+        const botIdStr = req.botBase._id.toString();
 
         // Query 'meta.botId' because the schema defines botId inside the 'meta' Mixed type
-        const logs = await BotLog.find({ 'meta.botId': botId })
-            .sort({ timestamp: -1 }) // Sort by top-level timestamp
-            .limit(200)              // Limit to prevent massive payloads
-            .lean();
+        // UPDATED: Removed .limit(200) to load ALL logs available in MongoDB.
+        // Note: MongoDB has a TTL index that keeps logs for 3 days.
+        // For older history, check the server file system (logs/reports/bots/).
+        const logs = await BotLog.find({
+            $or: [
+                { 'meta.metadata.botId': botIdStr },
+                { 'meta.botId': botIdStr }
+            ]
+        })
+            .sort({ timestamp: -1 }) // Newest first
+            .lean();                 // Performance optimization for large datasets
 
         return res.status(200).json({
             success: true,
@@ -770,5 +781,70 @@ exports.getBotLogsDetails = async (req, res) => {
             success: false,
             message: 'Internal server error while fetching bot logs details.'
         });
+    }
+};
+
+/**
+ * DOWNLOAD LOGS
+ * Zips all log files (current + rotated history) for a specific bot.
+ * Route: GET /api/bots/:id/logs/download
+ * Middleware: bindBot (recommended)
+ */
+exports.downloadBotLogs = async (req, res) => {
+    try {
+        // Use req.botBase from middleware, or fallback to params
+        const botId = req.botBase ? req.botBase._id.toString() : req.params.id;
+        const botName = req.botBase ? req.botBase.name.replace(/[^a-z0-9]/gi, '_') : 'bot';
+
+        // Path to the logs directory defined in botLogger.js
+        const logDir = path.join(__dirname, '../../../logs/reports/bots');
+
+        // 1. Validate Directory Exists
+        if (!fs.existsSync(logDir)) {
+            return res.status(404).json({ success: false, error: 'Log directory not found.' });
+        }
+
+        // 2. Find all files belonging to this Bot ID
+        // Matches: "ID.log", "ID-2024-01-01.log", "ID-2024-01-01.log.gz"
+        const files = fs.readdirSync(logDir).filter(file => file.startsWith(botId));
+
+        if (files.length === 0) {
+            return res.status(404).json({ success: false, error: 'No log files found for this bot.' });
+        }
+
+        // 3. Set Response Headers for Download
+        res.attachment(`${botName}_logs.zip`);
+
+        // 4. Create Zip Stream
+        const archive = archiver('zip', {
+            zlib: { level: 9 } // Maximum compression
+        });
+
+        // Handle archiving errors
+        archive.on('error', (err) => {
+            logger.error(`Zip download failed for bot ${botId}: ${err.message}`);
+            res.status(500).end();
+        });
+
+        // Pipe the zip stream to the user's response
+        archive.pipe(res);
+
+        // 5. Append each log file to the zip
+        for (const file of files) {
+            // We give it a pretty name inside the zip (remove the ID prefix if you want, or keep it)
+            // Keeping it simple: verify path and append
+            const filePath = path.join(logDir, file);
+            archive.file(filePath, { name: file });
+        }
+
+        // 6. Finalize (sends the data)
+        await archive.finalize();
+
+    } catch (err) {
+        console.error('downloadBotLogs error:', err);
+        logger.error(`downloadBotLogs error: ${err.message}`, { stack: err.stack });
+        if (!res.headersSent) {
+            res.status(500).json({ success: false, error: err.message });
+        }
     }
 };

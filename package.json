@@ -14,6 +14,7 @@
     "@debut/indicators": "^1.3.22",
     "@tensorflow/tfjs-node": "^4.22.0",
     "@types/express-validator": "^2.20.33",
+    "archiver": "^7.0.1",
     "axios": "1.8.2",
     "bayesian-optimizer": "^1.2.0",
     "bcryptjs": "^2.4.3",

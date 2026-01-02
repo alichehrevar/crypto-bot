@@ -1,21 +1,24 @@
 const { createLogger, format, transports } = require('winston');
-// Import the new transport
+// Import MongoDB transport
 require('winston-mongodb');
+// Import Daily Rotate File transport (Critical for file management)
+require('winston-daily-rotate-file');
 
-// Import our dedicated log database connection
+const path = require('path');
+const fs = require('fs');
 const logDbConnection = require('../config/logDb');
 
-// No longer need fs or path for file logging
-// const path = require('path');
-// const fs = require('fs');
-// const logDir = path.join(__dirname, 'reports', 'bots');
-// if (!fs.existsSync(logDir)) {
-//     fs.mkdirSync(logDir, { recursive: true });
-// }
+// Ensure the log directory exists for the File Transport
+// This creates: /logs/reports/bots/
+const logBaseDir = path.join(__dirname, 'reports', 'bots');
+if (!fs.existsSync(logBaseDir)) {
+    fs.mkdirSync(logBaseDir, { recursive: true });
+}
 
 class BotLoggerService {
     constructor() {
         // Cache for logger instances <botId, logger>
+        // Prevents creating multiple loggers for the same bot
         this.loggers = new Map();
     }
 
@@ -25,78 +28,80 @@ class BotLoggerService {
      * @returns {import('winston').Logger} A Winston logger instance.
      */
     getLogger(botId) {
-        // If a logger for this bot is already cached, return it
+        // If a logger for this bot is already cached, return it to save resources
         if (this.loggers.has(botId)) {
             return this.loggers.get(botId);
         }
 
         // --- Create a new logger instance for this specific bot ---
         const botLogger = createLogger({
-            level: 'info',
+            level: 'info', // Default logging level
 
-            // --- CRITICAL ---
-            // Add the botId to *every single log message* automatically.
+            // Adds { botId: ... } to every log automatically
             defaultMeta: { botId: botId },
 
-            // We now use format.json() to store logs as structured objects.
-            // This is *much* better than printf, as it preserves
-            // data types and allows you to log objects.
-            // e.g., logger.info("Candles fetched", { count: 16, symbol: "BTCUSDT" })
-            format: format.combine(
-                format.timestamp(),
-                // This is for logging Error objects
-                format.errors({ stack: true }),
-                // This is the magic. It will combine `message`, `level`, `timestamp`,
-                // and your `defaultMeta` into a single JSON object.
-                format.json()
-            ),
-
             transports: [
-                // --- NEW: MongoDB Transport ---
+
+                // 1. MONGODB TRANSPORT (Hot Data)
+                // - Used by Frontend Dashboard
+                // - Relies on the TTL Index in BotLog model to auto-delete old logs
                 new transports.MongoDB({
-                    level: 'info',
-                    // Pass our dedicated Mongoose connection
-                    db: logDbConnection,
-                    // Collection name must match our model
+                    db: logDbConnection, // Uses your dedicated log DB connection
                     collection: 'botlogs',
-                    // We use a capped collection, as defined in the model
-                    capped: true,
-                    // This ensures meta data (like our botId) is properly stored
+                    options: { useUnifiedTopology: true },
+                    metaKey: 'meta', // Puts extra data (botId, prices) into the 'meta' field
                     format: format.combine(format.metadata()),
                 }),
-            ],
+
+                // 2. FILE TRANSPORT (Cold Data / Backup)
+                // - Keeps 14 days of history
+                // - Auto-rotates files daily
+                // - Zips old files to save disk space
+                // - Path: logs/reports/bots/654a...-2026-01-02.log
+                new transports.DailyRotateFile({
+                    filename: path.join(logBaseDir, `${botId}-%DATE%.log`),
+                    datePattern: 'YYYY-MM-DD',
+                    zippedArchive: true, // Compress old logs
+                    maxSize: '20m',      // Rotate if a single file hits 20MB
+                    maxFiles: '14d',     // Delete files older than 14 days
+                    format: format.combine(
+                        format.timestamp(),
+                        format.json()    // Save as JSON for easier parsing/debugging later
+                    )
+                }),
+
+                // 3. CONSOLE TRANSPORT (Live Debugging)
+                // - Prints to your terminal so you can see what's happening real-time
+                new transports.Console({
+                    format: format.combine(
+                        format.colorize(),
+                        format.printf(({ timestamp, level, message, botId, stack, ...meta }) => {
+                            // Only print timestamp if it exists, else use current time
+                            const ts = timestamp ? new Date(timestamp).toLocaleTimeString() : new Date().toLocaleTimeString();
+
+                            let log = `${ts} [${level}] (Bot: ${botId}): ${message}`;
+
+                            // Print stack trace if error
+                            if (stack) log += `\n${stack}`;
+
+                            // Print any extra metadata (like price, signal details)
+                            const metaKeys = Object.keys(meta);
+                            if (metaKeys.length > 0) {
+                                // Exclude Mongo metadata if it leaks here
+                                delete meta._id;
+                                log += `\n${JSON.stringify(meta)}`;
+                            }
+                            return log;
+                        })
+                    )
+                })
+            ]
         });
 
-        // Add to console in non-production environments
-        botLogger.add(new transports.Console({
-            format: format.combine(
-                format.colorize(),
-                // A simpler format for the console
-                format.printf(({ timestamp, level, message, botId, stack, ...meta }) => {
-                    const time = new Date(timestamp).toLocaleTimeString();
-                    let log = `${time} [${level}] (Bot: ${botId}): ${message}`;
-
-                    // Print stack if it exists
-                    if (stack) {
-                        log += `\n${stack}`;
-                    }
-
-                    // Print any other metadata
-                    const metaKeys = Object.keys(meta);
-                    if (metaKeys.length > 0) {
-                        log += `\n${JSON.stringify(meta, null, 2)}`;
-                    }
-                    return log;
-                })
-            )
-        }));
-
-        // Cache the new logger and return it
+        // Cache the new logger
         this.loggers.set(botId, botLogger);
         return botLogger;
     }
 }
 
-// Export a singleton instance
 module.exports = new BotLoggerService();
-
