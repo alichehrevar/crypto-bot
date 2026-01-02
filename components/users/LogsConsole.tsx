@@ -247,7 +247,7 @@ export default function LogsConsole({ botId }: LogsConsoleProps) {
                                 </span>
 
                                 {/* Message */}
-                                <div className="col-span-7 sm:col-span-9 text-zinc-300 break-words leading-tight">
+                                <div className="col-span-7 sm:col-span-9 text-zinc-300 wrap-break-word leading-tight">
                                     <span>{log.message}</span>
                                     {hasContext && (
                                         <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1 opacity-70 group-hover:opacity-100 transition-opacity">
