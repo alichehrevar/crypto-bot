@@ -45,13 +45,7 @@ export default function StrategyPanel() {
                 <Tabs activeTab={activeStrategy} setActiveTab={setActiveStrategy} tabs={STRATEGY_TABS}/>
             </motion.div>
             <IndicatorsSection
-                defaultNewTimeframe="1h"
-                initialIndicators={[
-                    { id: 1, indicator: STANDARD_INDICATOR_OPTIONS[0], timeFrame: "1h" },
-                ]}
-                mainOptions={MAIN_INDICATOR_OPTIONS}
                 showAddIndicatorButton={true}
-                standardOptions={STANDARD_INDICATOR_OPTIONS}
                 onChange={setSelectedIndicators}
             />
             <motion.div layout className="flex flex-col mb-6">
@@ -64,12 +58,6 @@ export default function StrategyPanel() {
                     {securityIndicatorEnabled && (
                         <motion.div {...sectionAnimationProps} className="pt-2">
                             <IndicatorsSection
-                                defaultNewTimeframe="1h"
-                                initialIndicators={[
-                                    { id: 1, indicator: STANDARD_INDICATOR_OPTIONS[0], timeFrame: "1h" },
-                                ]}
-                                mainOptions={MAIN_INDICATOR_OPTIONS}
-                                standardOptions={STANDARD_INDICATOR_OPTIONS}
                                 onChange={setSelectedIndicators}
                             />
                         </motion.div>
