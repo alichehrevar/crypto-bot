@@ -1,7 +1,7 @@
 const WebSocket = require('ws');
 const crypto = require('crypto');
 const zlib = require('zlib');
-const Candle = require('../models/Candle');
+const candleStore = require('../../utils/candleStore');
 const axios = require("axios");
 const logger = require("../../logs/logger");
 
@@ -174,7 +174,7 @@ class BingXWS {
             .every(key => Number.isFinite(candleData[key]));
 
         if (isValid) {
-            await this.upsertCandle(candleData);
+            await candleStore.updateCandle(candleData.symbol, candleData.timeframe, candleData);
         } else {
             console.warn('[BingXWS] Invalid candle data:', candleData);
         }
@@ -191,33 +191,6 @@ class BingXWS {
             '12h': '12h', '1d': '1d', '3d': '3d', '1w': '1w', '1M': '1M'
         };
         return mapping[interval] || interval;
-    }
-
-    async upsertCandle(candleData) {
-        try {
-            await Candle.findOneAndUpdate(
-                {
-                    symbol: candleData.symbol,
-                    timeframe: candleData.timeframe,
-                    timestamp: candleData.timestamp
-                },
-                {
-                    $set: {
-                        open: candleData.open,
-                        high: candleData.high,
-                        low: candleData.low,
-                        close: candleData.close,
-                        volume: candleData.volume,
-                        trades: candleData.trades,
-                        isClosed: candleData.isClosed
-                    }
-                },
-                { upsert: true, new: true }
-            );
-        } catch (err) {
-            console.error('[BingXWS] Candle upsert failed:', err);
-            throw err;
-        }
     }
 
     subscribe(symbol, interval) {

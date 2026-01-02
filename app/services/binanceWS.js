@@ -3,12 +3,10 @@
 const WebSocket = require('ws');
 const axios     = require('axios');
 const crypto    = require('crypto'); // for signature generation
-const Candle    = require('../models/Candle');
 const BotBase   = require('../models/BotBase');       // updated: use the discriminator‐based model
+const candleStore = require('../../utils/candleStore');
 const wsServer  = require('./WebSocketServer');
 const BotService = require('./botService/BotService');
-// If you ever want to use TradingViewWS instead, you can uncomment:
-// const tradingViewWS = require('./TradingViewWS');
 
 class BinanceWS {
     constructor() {
@@ -61,21 +59,10 @@ class BinanceWS {
             await Promise.all(
                 tickers.map(async (ticker) => {
                     try {
-                        // Ensure all required fields exist
-                        if (
-                            !ticker.s || // symbol
-                            !ticker.o || // open
-                            !ticker.h || // high
-                            !ticker.l || // low
-                            !ticker.c || // close
-                            !ticker.v || // volume
-                            !ticker.E    // eventTime
-                        ) {
-                            console.warn(`Ticker data missing required fields: ${JSON.stringify(ticker)}`);
+                        if (!ticker.s || !ticker.o || !ticker.h || !ticker.l || !ticker.c || !ticker.v || !ticker.E) {
                             return;
                         }
 
-                        // Normalize the symbol from Binance (e.g. "BTCUSDT" → "BTC/USDT")
                         let symbol;
                         const upperTickerSymbol = ticker.s.toUpperCase();
                         if (upperTickerSymbol.endsWith('USDT')) {
@@ -83,78 +70,38 @@ class BinanceWS {
                         } else if (upperTickerSymbol.endsWith('USDC')) {
                             symbol = `${upperTickerSymbol.slice(0, -4)}/USDC`;
                         } else {
-                            // If it's some other pair (e.g. “ETHBTC”), you may want to split differently.
-                            // For now, we assume “BASEQUOTE” and leave it uppercase.
                             symbol = upperTickerSymbol;
                         }
                         symbol = symbol.toUpperCase();
 
-                        // If no active bot is watching this symbol, skip entirely
                         if (!activeSymbolsSet.has(symbol.replaceAll('/USDT', ''))) {
                             return;
                         }
 
-                        // Build a 1m‐candle from this miniTicker data
-                        const timestamp = new Date(ticker.E); // event time in ms
+                        const timestamp = new Date(ticker.E);
                         const timeframe = '1m';
 
-                        // Upsert a Candle document with this timestamp window:
-                        // → we look for any 1m‐candle whose timestamp is within [timestamp − 60s, timestamp)
-                        const candle = await Candle.findOneAndUpdate(
-                            {
-                                symbol,
-                                timeframe,
-                                timestamp: {
-                                    $gte: new Date(timestamp.getTime() - 60000),
-                                    $lt:  timestamp
-                                }
-                            },
-                            {
-                                // If inserting new:
-                                $setOnInsert: {
-                                    symbol,
-                                    timeframe,
-                                    timestamp,
-                                    open:   parseFloat(ticker.o),
-                                    volume: parseFloat(ticker.v),
-                                    isClosed: ticker.x  // whether this tick closes the candle
-                                },
-                                // Always update high/low/close
-                                $set: {
-                                    high:    Math.max(parseFloat(ticker.h), parseFloat(ticker.o)),
-                                    low:     Math.min(parseFloat(ticker.l), parseFloat(ticker.o)),
-                                    close:   parseFloat(ticker.c),
-                                    isClosed: ticker.x
-                                }
-                            },
-                            {
-                                upsert: true,
-                                new:    true,
-                                sort:   { timestamp: -1 }
-                            }
-                        );
+                        // Construct Candle Data Object
+                        const candleData = {
+                            symbol,
+                            timeframe,
+                            timestamp,
+                            open: parseFloat(ticker.o),
+                            high: parseFloat(ticker.h), // Trust ticker's high/low
+                            low: parseFloat(ticker.l),
+                            close: parseFloat(ticker.c),
+                            volume: parseFloat(ticker.v),
+                            isClosed: ticker.x // Use Binance's Explicit Close Flag
+                        };
 
-                        // Broadcast the updated/inserted candle to all connected WebSocket clients
-                        wsServer.broadcastCandle({
-                            symbol:    candle.symbol,
-                            timeframe: candle.timeframe,
-                            timestamp: candle.timestamp,
-                            open:      candle.open,
-                            high:      candle.high,
-                            low:       candle.low,
-                            close:     candle.close,
-                            volume:    candle.volume
-                        });
+                        // FIX: Use Safe Candle Store (Update DB + Memory)
+                        await candleStore.updateCandle(symbol, timeframe, candleData);
 
-                        // (Optional) If you want to broadcast to TradingViewWS:
-                        // tradingViewWS.broadcastCandleUpdate({
-                        //   symbol: candle.symbol,
-                        //   timeframe: candle.timeframe,
-                        //   candle
-                        // });
+                        // Broadcast to UI
+                        wsServer.broadcastCandle(candleData);
 
-                        // Finally, let BotService handle this new candle (it will route to any bots using it)
-                        await BotService.processCandle(candle.symbol, candle.timeframe, candle);
+                        // Trigger Bots
+                        await BotService.processCandle(symbol, timeframe, candleData);
                     }
                     catch (error) {
                         console.error(`Error processing ticker ${ticker.s}:`, error);
