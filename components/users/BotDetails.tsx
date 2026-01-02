@@ -257,10 +257,10 @@ const BotDetailsPage = ({ botId }: BotDetailsPageProps) => {
                     </div>
                 </div>
                 <div className="ml-auto flex gap-2">
-                    <button onClick={() => setRefreshTrigger(p => p + 1)} className="px-3 py-2 border border-zinc-800 text-zinc-400 hover:text-white transition-colors">
+                    <button onClick={() => setRefreshTrigger(p => p + 1)} className="px-3 py-2 border border-zinc-800 text-zinc-400 hover:text-white transition-colors cursor-pointer">
                         <RefreshCw size={14} />
                     </button>
-                    <button onClick={handleKill} className="px-4 py-2 bg-rose-900/10 text-rose-400 border border-rose-900/50 text-xs font-bold uppercase hover:bg-rose-900 hover:text-white transition-colors flex items-center gap-2">
+                    <button onClick={handleKill} className="px-4 py-2 bg-rose-900/10 text-rose-400 border border-rose-900/50 text-xs font-bold uppercase hover:bg-rose-900 hover:text-white transition-colors flex items-center gap-2 cursor-pointer">
                         <Power size={12}/> Kill Process
                     </button>
                 </div>
