@@ -2,7 +2,7 @@
 
 const Trade          = require('../../models/Trade');
 const RiskStrategy   = require('../../strategies/moneyManagement/RiskManagement');
-const ExchangeService = require('./ExchangeService'); // Use Unified Service
+const ExchangeService = require('./ExchangeService'); // Unified Service
 const botLogger      = require('../../../logs/botLogger');
 
 class OrderExecutionService {
@@ -16,12 +16,12 @@ class OrderExecutionService {
 
         _log('info', `🏁 Starting Execution Phase: ${signal} @ ${price}`);
 
-        // 1) Check for existing open trade (One trade per bot logic)
+        // 1) Check for existing open trade
         const openTrade = await Trade.findOne({ bot: bot._id, exitPrice: null });
 
         // 2) Determine Quantity (Position Sizing)
         let quantity = 0;
-        let executedPrice = price; // Default to signal price (Paper/Backtest)
+        let executedPrice = price;
 
         if (signal === 'BUY') {
             if (openTrade) {
@@ -29,26 +29,37 @@ class OrderExecutionService {
                 return;
             }
 
-            // --- SELECT FUND SOURCE ---
-            // Live: Use baseFund (or real balance if you add fetchBalance logic)
-            // Paper: Use paperBalance (Simulated compounding)
-            let fund = bot.marketInfo.baseFund;
-            if (bot.mode === 'paper') {
-                fund = bot.paperBalance || bot.marketInfo.baseFund;
+            let fundToUse = 0;
+            const mode = bot.mode || 'paper'; // Default to paper if missing
+
+            if (mode === 'live') {
+                // --- LIVE MODE: Use Full Trade Fund ---
+                // Example: If tradeFund is 1.2, we use $1.20
+                fundToUse = bot.marketInfo.tradeFund || 0;
+
+                if (fundToUse <= 0) {
+                    _log('error', `❌ Live Trade Blocked: tradeFund is 0 or missing.`);
+                    return;
+                }
+
+                _log('info', `🧮 Live Mode: Using Full Trade Fund ($${fundToUse})`);
+            }
+            else {
+                // --- PAPER MODE: Use 1% of Paper Balance ---
+                // Example: 1% of 10,000 = $100
+                const currentBalance = bot.paperBalance || 10000;
+                fundToUse = currentBalance * 0.01;
+
+                _log('info', `🧮 Paper Mode: Using 1% of Balance ($${fundToUse})`, { balance: currentBalance });
             }
 
-            // --- CALCULATE QUANTITY ---
-            if (riskStrategyInstance?.calculatePositionSize) {
-                quantity = riskStrategyInstance.calculatePositionSize(fund, price);
-            } else {
-                const pct = bot.marketInfo.tradeFund || 100; // Percent of capital to use
-                quantity = (fund * (pct / 100)) / price;
-            }
+            // Calculate Quantity: Amount / Price
+            quantity = fundToUse / price;
 
-            // Sanitize quantity (Prevent tiny decimals issues)
-            quantity = parseFloat(quantity.toFixed(6));
+            // Sanitize quantity (avoid extremely long decimals)
+            quantity = parseFloat(quantity.toFixed(8)); // 8 decimals standard for crypto
 
-            _log('info', `🧮 Calculated Qty: ${quantity}`, { fundUsed: fund, strategyPct: bot.marketInfo.tradeFund });
+            _log('info', `⚖️ Position Size Calculated: ${quantity} ${bot.symbol.replace('/','').replace('USDT','')}`);
         }
         else if (signal === 'SELL') {
             if (!openTrade) {
@@ -63,7 +74,6 @@ class OrderExecutionService {
 
         // 3) Execution (Live vs Paper)
         if (bot.mode === 'live') {
-            // --- LIVE EXECUTION ---
             if (!bot.accountType || !bot.accountId) {
                 _log('error', `❌ Missing Account Config for Live Bot`);
                 return;
@@ -72,19 +82,17 @@ class OrderExecutionService {
             try {
                 _log('info', `🚀 Sending LIVE ${signal} Order to ${bot.accountType}...`);
 
-                // Use Unified Exchange Service
                 const exchange = await ExchangeService._getExchange(
                     bot.userId.toString(),
                     bot.accountType,
                     bot.accountId
                 );
 
-                const side = signal.toLowerCase(); // 'buy' or 'sell'
+                const side = signal.toLowerCase();
 
                 // Execute Market Order
                 const order = await exchange.createOrder(bot.symbol, 'market', side, quantity);
 
-                // Capture actual fill price from exchange
                 if (order) {
                     executedPrice = order.average || order.price || price;
                 }
@@ -96,8 +104,7 @@ class OrderExecutionService {
                 return; // Do not record trade if broker failed
             }
         } else {
-            // --- PAPER EXECUTION ---
-            // No broker call. Just log and use the signal price.
+            // Paper Execution
             _log('info', `📝 Executing PAPER ${signal} @ ${price}`);
         }
 
@@ -122,9 +129,6 @@ class OrderExecutionService {
             openTrade.exitPrice = executedPrice;
             openTrade.timestamp = new Date(); // Close time
 
-            // Profit: (Exit - Entry) * Qty
-            // Assuming Long only for simple Indicator bots.
-            // If Shorting is added, logic: (Entry - Exit) * Qty
             const profit = (executedPrice - openTrade.entryPrice) * openTrade.quantity;
             openTrade.profit = profit;
 
@@ -142,7 +146,7 @@ class OrderExecutionService {
                 profit
             });
 
-            // Check Bot-Level Stop Conditions (Hard Stop)
+            // Check Bot-Level Stop Conditions
             if ((bot.botTP && bot.cumulativePnL >= bot.botTP) || (bot.botSL && bot.cumulativePnL <= bot.botSL)) {
                 _log('warn', `🏁 Bot PnL Limit Reached. Stopping.`, { pnl: bot.cumulativePnL });
                 bot.active = false;

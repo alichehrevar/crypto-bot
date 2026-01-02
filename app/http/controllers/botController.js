@@ -689,11 +689,70 @@ exports.botProps = async (_, res) => {
             'SimpleStrategy'
         ],
         indicatorOptions: [
-            'RSI','MACD','MA_Crossover','Donchian','Volume',
-            'Heikin_Ashi','Combined_RSI_MACD','Bollinger_Bands','Stochastic_RSI'
+            {
+                name: 'Chat-GPT',
+                logo: 'https://img.icons8.com/?size=100&id=FBO05Dys9QCg&format=png&color=C1C1C1'
+            },
+            {
+                name: 'Google Gemini',
+                logo: 'https://img.icons8.com/?size=100&id=iBkBIBWE6tfT&format=png&color=000000'
+            },
+            {
+                name: 'Grok',
+                logo: 'https://img.icons8.com/?size=100&id=USGXKHXKl9X7&format=png&color=C1C1C1'
+            },
+            { // Represents a separator
+                name: '',
+                logo: ''
+            },
+            {
+                name: 'RSI',
+                logo: 'https://img.icons8.com/?size=100&id=61Ir6g5hzrHL&format=png&color=000000'
+            },
+            {
+                name: 'MACD',
+                logo: 'https://img.icons8.com/?size=100&id=61Ir6g5hzrHL&format=png&color=000000'
+            },
+            {
+                name: 'MA_Crossover',
+                logo: 'https://img.icons8.com/?size=100&id=61Ir6g5hzrHL&format=png&color=000000'
+            },
+            {
+                name: 'Donchian',
+                logo: 'https://img.icons8.com/?size=100&id=61Ir6g5hzrHL&format=png&color=000000'
+            },
+            {
+                name: 'Volume',
+                logo: 'https://img.icons8.com/?size=100&id=61Ir6g5hzrHL&format=png&color=000000'
+            },
+            {
+                name: 'Heikin_Ashi',
+                logo: 'https://img.icons8.com/?size=100&id=61Ir6g5hzrHL&format=png&color=000000'
+            },
+            {
+                name: 'Combined_RSI_MACD',
+                logo: 'https://img.icons8.com/?size=100&id=61Ir6g5hzrHL&format=png&color=000000'
+            },
+            {
+                name: 'Bollinger_Bands',
+                logo: 'https://img.icons8.com/?size=100&id=61Ir6g5hzrHL&format=png&color=000000'
+            },
+            {
+                name: 'Stochastic_RSI',
+                logo: 'https://img.icons8.com/?size=100&id=61Ir6g5hzrHL&format=png&color=000000'
+            }
         ],
         OptMethod: ['grid', 'bayesian', 'ann'],
-        timeframeOptions: ['1m','5m','15m','30m','1h','4h','1d','1w'],
+        timeframeOptions: [
+            {name: '1m'},
+            {name: '5m'},
+            {name: '15m'},
+            {name: '30m'},
+            {name: '1h'},
+            {name: '4h'},
+            {name: '1d'},
+            {name: '1w'}
+        ],
         defaultStrategyParams
     };
     return res.json({ success: true, props });
