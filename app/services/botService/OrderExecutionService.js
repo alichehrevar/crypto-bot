@@ -6,57 +6,60 @@ const BinanceService = require('../binanceWS');
 const OkxService     = require('../okxWS');
 const BingxService   = require('../bingXWS');
 
-// Models for fetching account credentials
 const BinanceAccount = require('../../models/BinanceAccount');
 const OkxAccount     = require('../../models/OkxAccount');
 const BingxAccount   = require('../../models/BingxAccount');
 
+const botLogger = require('../../../logs/botLogger');
+
 class OrderExecutionService {
-    /**
-     * Execute a BUY or SELL for a bot, either paper‐trade or via a broker API.
-     *
-     * @param {Document} bot                    Mongoose Bot document
-     * @param {'BUY'|'SELL'} signal            Trading signal
-     * @param {number} price                    Execution price
-     * @param {Object} [riskStrategyInstance]   Instance with calculatePositionSize()
-     */
+
     async executeOrder(bot, signal, price, riskStrategyInstance) {
+        const logger = botLogger.getLogger(bot._id.toString());
+
+        await this._log(logger, 'info', `🏁 Starting Execution Phase: ${signal} @ ${price}`, bot);
+
         // 1) See if there's already an open trade
         const openTrade = await Trade.findOne({ bot: bot._id, exitPrice: null });
 
-        // 2) Determine quantity
+        // 2) Determine quantity (CALCULATION TRACKING)
         let quantity;
         if (signal === 'BUY') {
             if (openTrade) {
-                console.log(`🔒 Bot "${bot.name}" tried to BUY but already has an open trade.`);
+                await this._log(logger, 'warn', `Block: Already has open trade during BUY signal`, bot);
                 return;
             }
-            // use custom risk strategy or default % of base fund
+
+            // --- TRACK CALCULATION ---
+            const fund = bot.paperBalance ?? bot.marketInfo.baseFund;
+
             if (riskStrategyInstance?.calculatePositionSize) {
-                quantity = riskStrategyInstance.calculatePositionSize(
-                    bot.paperBalance ?? bot.marketInfo.baseFund,
-                    price
-                );
+                await this._log(logger, 'info', `🧮 Calculating Position Size (Custom Strategy)`, bot, { fund, price });
+                quantity = riskStrategyInstance.calculatePositionSize(fund, price);
             } else {
-                const fund = bot.paperBalance ?? bot.marketInfo.baseFund;
-                quantity = (fund * (bot.marketInfo.tradeFund / 100)) / price;
+                const pct = bot.marketInfo.tradeFund || 100;
+                await this._log(logger, 'info', `🧮 Calculating Position Size (Fixed %)`, bot, { fund, percent: pct, price });
+                quantity = (fund * (pct / 100)) / price;
             }
+
+            await this._log(logger, 'info', `🧮 Calculation Result: Qty = ${quantity}`, bot, { quantity });
         }
         else if (signal === 'SELL') {
             if (!openTrade) {
-                console.log(`🔒 Bot "${bot.name}" received SELL but no open trade exists.`);
+                await this._log(logger, 'warn', `Block: Received SELL but no open trade exists`, bot);
                 return;
             }
             quantity = openTrade.quantity;
+            await this._log(logger, 'info', `Closing Position: Qty = ${quantity}`, bot);
         }
         else {
-            console.log(`⚪️ HOLD for "${bot.name}", skipping.`);
+            await this._log(logger, 'info', `Signal is HOLD. Skipping execution.`, bot);
             return;
         }
 
         const isPaper = bot.mode === 'paper';
         const orderDetails = {
-            symbol:   bot.symbol.replace('/', ''),  // e.g. "BTCUSDT"
+            symbol:   bot.symbol.replace('/', ''),
             side:     signal,
             type:     'MARKET',
             quantity
@@ -64,41 +67,36 @@ class OrderExecutionService {
 
         // 3) Execute (paper or real)
         if (isPaper) {
-            console.log(`✏️ Paper ${signal} for "${bot.name}" qty=${quantity} @${price}`);
+            await this._log(logger, 'info', `📝 Executing PAPER ${signal}`, bot, orderDetails);
         } else {
-            // --- live execution path ---
+            // --- LIVE EXECUTION PATH ---
             if (!bot.accountType || !bot.accountId) {
-                console.warn(`⚠️ Bot "${bot.name}" missing accountType or accountId — falling back to paper.`);
+                await this._log(logger, 'error', `Missing Account Config. Falling back to paper.`, bot);
             } else {
                 let svcModel, brokerService;
                 switch (bot.accountType) {
-                    case 'binance':
-                        svcModel      = BinanceAccount;
-                        brokerService = BinanceService;
-                        break;
-                    case 'okx':
-                        svcModel      = OkxAccount;
-                        brokerService = OkxService;
-                        break;
-                    case 'bingx':
-                        svcModel      = BingxAccount;
-                        brokerService = BingxService;
-                        break;
+                    case 'binance': svcModel = BinanceAccount; brokerService = BinanceService; break;
+                    case 'okx':     svcModel = OkxAccount;     brokerService = OkxService;     break;
+                    case 'bingx':   svcModel = BingxAccount;   brokerService = BingxService;   break;
                     default:
-                        console.error(`🚫 Unsupported broker type: ${bot.accountType}`);
+                        await this._log(logger, 'error', `Unsupported broker: ${bot.accountType}`, bot);
                 }
 
                 if (brokerService && svcModel) {
-                    // fetch the account document to get API keys, etc.
                     const account = await svcModel.findById(bot.accountId);
                     if (!account) {
-                        console.warn(`⚠️ Bot "${bot.name}" has no credentials stored for ${bot.accountType} accountId ${bot.accountId}. Paper-trading instead.`);
+                        await this._log(logger, 'error', `Credentials not found for ${bot.accountType}`, bot);
                     } else {
                         try {
+                            // LOG REQUEST
+                            await this._log(logger, 'info', `🚀 Sending Order to Broker...`, bot, orderDetails);
+
                             const resp = await brokerService.executeOrder(orderDetails, account);
-                            console.log(`✅ Broker ${signal} response for "${bot.name}":`, resp);
+
+                            // LOG RESPONSE
+                            await this._log(logger, 'info', `✅ Broker Response Success`, bot, { response: resp });
                         } catch (err) {
-                            console.error(`❌ Broker ${signal} error for "${bot.name}":`, err);
+                            await this._log(logger, 'error', `❌ Broker Execution Failed`, bot, { error: err.message });
                         }
                     }
                 }
@@ -107,7 +105,6 @@ class OrderExecutionService {
 
         // 4) Record the trade in our DB
         if (signal === 'BUY') {
-            // compute TP/SL levels
             const { TP, SL } = RiskStrategy.calculateTPSL(bot.strategyParams, price);
             const t = new Trade({
                 bot:        bot._id,
@@ -120,28 +117,40 @@ class OrderExecutionService {
                 timestamp:  new Date()
             });
             await t.save();
-            console.log(`📝 Saved BUY trade for "${bot.name}" @${price} qty=${quantity}`);
+            await this._log(logger, 'info', `💾 DB: Saved BUY Trade`, bot, { price, qty: quantity, TP, SL });
         }
-        else {  // SELL closes an open trade
+        else {  // SELL
             openTrade.exitPrice = price;
             openTrade.timestamp = new Date();
             openTrade.profit    = (price - openTrade.entryPrice) * openTrade.quantity;
             await openTrade.save();
-            console.log(`📝 Closed trade for "${bot.name}" @${price}, profit=${openTrade.profit}`);
+
+            await this._log(logger, 'info', `💾 DB: Closed Trade`, bot, {
+                entry: openTrade.entryPrice,
+                exit: price,
+                profit: openTrade.profit
+            });
 
             // update balances & PnL
             if (bot.mode === 'paper')   bot.paperBalance += openTrade.profit;
             bot.cumulativePnL = (bot.cumulativePnL || 0) + openTrade.profit;
 
             // check bot‐level TP/SL thresholds
-            if (
-                (bot.botTP && bot.cumulativePnL >= bot.botTP) ||
-                (bot.botSL && bot.cumulativePnL <= bot.botSL)
-            ) {
-                console.log(`🏁 Bot-level threshold reached for "${bot.name}", deactivating bot.`);
+            if ((bot.botTP && bot.cumulativePnL >= bot.botTP) || (bot.botSL && bot.cumulativePnL <= bot.botSL)) {
+                await this._log(logger, 'warn', `🏁 Bot-level PnL threshold reached. Deactivating bot.`, bot, {
+                    cumulativePnL: bot.cumulativePnL,
+                    tp: bot.botTP,
+                    sl: bot.botSL
+                });
                 bot.active = false;
             }
             await bot.save();
+        }
+    }
+
+    async _log(logger, level, message, bot, meta = {}) {
+        if (logger && logger[level]) {
+            logger[level](message, meta);
         }
     }
 }
