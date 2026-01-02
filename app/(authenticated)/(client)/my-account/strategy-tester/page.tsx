@@ -266,13 +266,7 @@ export default function StrategyTesterPage() {
                             </div>
 
                             <IndicatorsSection
-                                defaultNewTimeframe="1h"
-                                initialIndicators={[
-                                    { id: 1, indicator: STANDARD_INDICATOR_OPTIONS[0], timeFrame: "1h" },
-                                ]}
-                                mainOptions={STANDARD_INDICATOR_OPTIONS}
                                 showAddIndicatorButton={true}
-                                standardOptions={STANDARD_INDICATOR_OPTIONS}
                                 onChange={setSelectedIndicators}
                             />
 
