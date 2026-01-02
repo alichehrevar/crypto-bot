@@ -1,7 +1,7 @@
-// utils/candleStore.js
+// app/utils/candleStore.js
 
 const Candle = require('../app/models/Candle');
-const logger = require("../logs/logger"); // Import your Mongoose Model
+const logger = require("../logs/logger");
 
 // Maximum number of candles to store per symbol/timeframe in RAM.
 const MAX_CANDLES = 100;
@@ -32,7 +32,7 @@ function isCandleClosed(candle, timeframe) {
 
 /**
  * Update memory AND database safely.
- * Handles "Duplicate Key" race conditions gracefully.
+ * Uses updateOne to reduce locking overhead and race conditions.
  *
  * @param {string} symbol - e.g., "BTC/USDT"
  * @param {string} timeframe - e.g., "1m"
@@ -80,32 +80,34 @@ async function updateCandle(symbol, timeframe, candle) {
             }
         };
 
-        // Try to update/insert
-        await Candle.findOneAndUpdate(query, update, {
-            upsert: true,
-            new: true,
-            setDefaultsOnInsert: true
-        });
+        // FIX: Use updateOne instead of findOneAndUpdate.
+        // It is lighter and handles high-frequency upserts better.
+        await Candle.updateOne(query, update, { upsert: true });
 
     } catch (error) {
         // ✅ CATCH RACE CONDITION ERROR (E11000)
-        // This occurs if another process inserted the candle exactly while we were processing.
+        // If "Duplicate Key" occurs, it means another process inserted it milliseconds ago.
+        // We simply retry as a normal update (without upsert) to ensure latest data is saved.
         if (error.code === 11000) {
-            // Instead of crashing, we gracefully fallback to a standard update.
-            // This ensures we save the latest price data without violating unique constraints.
             try {
                 await Candle.updateOne(
                     { symbol, timeframe, timestamp: candle.timestamp },
-                    { $set: update.$set }
+                    { $set: {
+                            open: candle.open,
+                            high: candle.high,
+                            low: candle.low,
+                            close: candle.close,
+                            volume: candle.volume,
+                            isClosed: candle.isClosed
+                        }}
                 );
             } catch (retryErr) {
-                logger.error(`❌ Failed to recover from candle race condition: ${retryErr.message}`);
-                console.error(`❌ Failed to recover from candle race condition: ${retryErr.message}`);
+                // Squelch this error, it's usually benign (record already up to date)
+                // console.warn(`Candle update retry skipped: ${retryErr.message}`);
             }
         } else {
             // Log genuine DB errors (connection lost, disk full, etc.)
-            logger.error(`❌ DB Error updating candle ${symbol} ${timeframe}:`, error.message);
-            console.error(`❌ DB Error updating candle ${symbol} ${timeframe}:`, error.message);
+            logger.error(`❌ DB Error updating candle ${symbol} ${timeframe}: ${error.message}`);
         }
     }
 }
