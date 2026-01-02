@@ -27,12 +27,6 @@ export default function SecurityIndicator({
                 {securityIndicatorEnabled && (
                     <motion.div {...sectionAnimationProps} className="pt-2">
                         <IndicatorsSection
-                            defaultNewTimeframe="1h"
-                            initialIndicators={[
-                                { id: 1, indicator: STANDARD_INDICATOR_OPTIONS[0], timeFrame: "1h" },
-                            ]}
-                            mainOptions={MAIN_INDICATOR_OPTIONS}
-                            standardOptions={STANDARD_INDICATOR_OPTIONS}
                             onChange={onChange}
                         />
                     </motion.div>

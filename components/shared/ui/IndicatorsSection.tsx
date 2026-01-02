@@ -6,12 +6,28 @@ import { motion, AnimatePresence } from "framer-motion";
 import { DropdownOption } from "@/types/ui/DropdownOption";
 import Combobox from "@/components/shared/ui/Combobox";
 import { PlusCircleIcon } from "@/utils/icons";
+import { getData } from "@/actions/get";
+import {addToast} from "@heroui/react";
 
 // =====================================================================
-// IndicatorsSection (stateful)
-// - Owns its internal indicators list and the add/remove/change handlers
-// - Notifies parent of the *current* selections via onChange callback
-// - Keeps the same UI/animations as the original inline block
+// API Response Types
+// =====================================================================
+
+export interface BotPropsResponse {
+    success: boolean;
+    props: BotPropsData;
+}
+
+export interface BotPropsData {
+    riskStrategyOptions: string[];
+    indicatorOptions: DropdownOption[]; // Matches { name: string, logo?: string }
+    OptMethod: string[];
+    timeframeOptions: DropdownOption[]; // Matches { name: string }
+    defaultStrategyParams: Record<string, any>; // You can type this strictly if needed
+}
+
+// =====================================================================
+// Component Types
 // =====================================================================
 
 export type IndicatorItem = {
@@ -20,21 +36,17 @@ export type IndicatorItem = {
     timeFrame: string;
 };
 
-const TIME_FRAMES: DropdownOption[] = [
-    { name: "1m" },
-    { name: "5m" },
-    { name: "15m" },
-    { name: "1h" },
-    { name: "4h" },
-    { name: "1d" },
-];
+// =====================================================================
+// Local Sub-components
+// =====================================================================
 
-// Local row renderer to mirror the original structure
+// Now accepts timeframeOptions dynamically instead of using a constant
 const IndicatorRowLocal: React.FC<{
     indicatorData: IndicatorItem;
-    onChange: (value: any) => void;
+    onChange: (value: Partial<IndicatorItem>) => void;
     indicatorOptions: DropdownOption[];
-}> = ({ indicatorData, onChange, indicatorOptions }) => (
+    timeframeOptions: DropdownOption[];
+}> = ({ indicatorData, onChange, indicatorOptions, timeframeOptions }) => (
     <div className="grid grid-cols-3 gap-x-2">
         <div className="col-span-2">
             <Combobox
@@ -48,64 +60,103 @@ const IndicatorRowLocal: React.FC<{
         </div>
         <Combobox
             label="Timeframe"
-            options={TIME_FRAMES}
+            options={timeframeOptions}
             selected={indicatorData.timeFrame}
             setSelected={(timeFrame) => onChange({ ...indicatorData, timeFrame })}
         />
     </div>
 );
 
+// =====================================================================
+// Main Component
+// =====================================================================
+
 export default function IndicatorsSection(props: {
-    /** Optional initial rows; if omitted, one default row is created */
+    /** Optional initial rows */
     initialIndicators?: IndicatorItem[];
-    /** Options list for the first row (AI/LLM + standards) */
-    mainOptions: DropdownOption[];
-    /** Options for subsequent rows */
-    standardOptions: DropdownOption[];
-    /** Called whenever the list changes (add/remove/edit). Receives full list. */
+    /** Called whenever the list changes */
     onChange?: (list: IndicatorItem[]) => void;
     /** Defaults for new rows */
-    defaultNewTimeframe?: string; // e.g., "1h",
+    defaultNewTimeframe?: string;
     /** Show add indicator button */
     showAddIndicatorButton?: boolean
 }) {
     const {
         initialIndicators,
-        mainOptions,
-        standardOptions,
         onChange,
         defaultNewTimeframe = "1h",
         showAddIndicatorButton
     } = props;
 
     // -----------------------------
-    // Local state for indicators
+    // State: API Data
+    // -----------------------------
+    const [availIndicators, setAvailIndicators] = useState<DropdownOption[]>([]);
+    const [availTimeframes, setAvailTimeframes] = useState<DropdownOption[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    // -----------------------------
+    // State: Local Indicators List
     // -----------------------------
     const [indicators, setIndicators] = useState<IndicatorItem[]>(() => {
         if (initialIndicators && initialIndicators.length > 0) return initialIndicators;
 
+        // Default initial state (will be updated once API loads if names are empty)
         return [
             {
                 id: 1,
-                indicator: standardOptions?.[0] ?? { name: "" },
+                indicator: { name: "" },
                 timeFrame: defaultNewTimeframe,
             },
         ];
     });
 
-    // Notify parent on mount with the initial state
+    // -----------------------------
+    // Effect: Fetch Data
+    // -----------------------------
     useEffect(() => {
-        onChange?.(indicators);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+        const fetchBotProps = async () => {
+            try {
+                // Explicitly typing the response ensures type safety
+                const response = await getData('/bots/botProps') as BotPropsResponse;
+
+                if (response.success && response.props) {
+                    setAvailIndicators(response.props.indicatorOptions);
+                    setAvailTimeframes(response.props.timeframeOptions);
+
+                    // Optional: If you want to auto-select the first indicator for existing empty rows
+                    if (indicators.length === 1 && indicators[0].indicator.name === "" && response.props.indicatorOptions.length > 0) {
+                        const firstOpt = response.props.indicatorOptions[0];
+
+                        setIndicators(prev => [{ ...prev[0], indicator: firstOpt }]);
+                    }
+                }
+            } catch (error) {
+                addToast({title: `Failed to fetch bot props: ${error}`, color: 'danger'})
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchBotProps();
     }, []);
 
     // -----------------------------
-    // Handlers moved inside component
+    // Effect: Notify Parent
     // -----------------------------
-    const handleIndicatorChange = (id: number, newValue: any) => {
+    useEffect(() => {
+        onChange?.(indicators);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [indicators]); // Added dependency to trigger on changes, or keep empty if only strictly on mount
+
+    // -----------------------------
+    // Handlers
+    // -----------------------------
+    const handleIndicatorChange = (id: number, newValue: Partial<IndicatorItem>) => {
         const next = indicators.map((ind) => (ind.id === id ? { ...ind, ...newValue } : ind));
 
         setIndicators(next);
+        // onChange called via effect or explicitly here:
         onChange?.(next);
     };
 
@@ -114,7 +165,8 @@ export default function IndicatorsSection(props: {
             ...indicators,
             {
                 id: Date.now(),
-                indicator: standardOptions?.[0] ?? { name: "" },
+                // Default to first available option or empty
+                indicator: availIndicators?.[0] ?? { name: "" },
                 timeFrame: defaultNewTimeframe,
             },
         ];
@@ -144,16 +196,18 @@ export default function IndicatorsSection(props: {
                             initial={{ opacity: 0, height: 0 }}
                             transition={{ type: "spring", stiffness: 300, damping: 30 }}
                         >
-                            {index > 0 &&
+                            {index > 0 && (
                                 <span className="block mt-3 mb-2 font-extrabold uppercase text-transparent bg-clip-text bg-gradient-to-r from-white/80 to-white/30">
-                                  And
+                                    And
                                 </span>
-                            }
+                            )}
                             <div className="flex items-center gap-x-2">
                                 <div className="flex-grow">
                                     <IndicatorRowLocal
                                         indicatorData={indicator}
-                                        indicatorOptions={index === 0 ? mainOptions : standardOptions}
+                                        // Pass the fetched API data
+                                        indicatorOptions={availIndicators}
+                                        timeframeOptions={availTimeframes}
                                         onChange={(newValue) => handleIndicatorChange(indicator.id, newValue)}
                                     />
                                 </div>
@@ -192,7 +246,7 @@ export default function IndicatorsSection(props: {
                 </AnimatePresence>
             </div>
 
-            {showAddIndicatorButton &&
+            {showAddIndicatorButton && !isLoading && (
                 <motion.div layout className="mb-6">
                     <button
                         className="flex items-center gap-x-2 text-sm text-gray-400 hover:text-white transition-colors"
@@ -203,7 +257,7 @@ export default function IndicatorsSection(props: {
                         Add Indicator
                     </button>
                 </motion.div>
-            }
+            )}
         </>
     );
 }
