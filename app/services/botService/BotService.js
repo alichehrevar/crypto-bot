@@ -1,232 +1,208 @@
 // app/services/botService/BotService.js
 
-const axios = require('axios');
-const BotBase = require('../../models/BotBase');
+const axios  = require('axios');
+const BotBase    = require('../../models/BotBase');
 const { N8nJobResponse_CustomAiDB } = require('../../models/N8nJobResponse');
 const Indicators = require('../../strategies/technical');
 const candleStore = require('../../../utils/candleStore');
-const wsServer = require('../WebSocketServer');
+const wsServer     = require('../WebSocketServer');
 const OrderExecutionService = require('./OrderExecutionService');
 const RiskManagementService = require('./RiskManagementService');
 const botLogger = require('../../../logs/botLogger');
 
-// --- IMPORT STRATEGY SERVICES ---
-// These handle the event-driven logic for Grid and DCA bots
-const GridStrategyService = require('./GridStrategyService');
-const DcaStrategyService = require('./DcaStrategyService');
-
 class BotService {
     constructor() {
-        // 1. INDICATOR BOTS
         // Map<"SYMBOL-TIMEFRAME", BotDoc[]>
-        // Used for the "Tick Loop" (processCandle)
         this.activeBots = new Map();
+        // promise-locks so each bot’s save is serialized
+        this._locks     = new Map();
 
-        // 2. STRATEGY BOTS (Grid / DCA)
-        // Map<botIdString, ServiceInstance>
-        // Used to keep the class instance alive so we can call .stop() later
-        this.activeStrategies = new Map();
+        // CACHE: Store N8n code strings in memory to avoid DB hits every candle
+        this._n8nCodeCache = new Map();
 
-        // UTILS
-        this._locks = new Map(); // Promise locks for saving
-        this._n8nCodeCache = new Map(); // Cache for N8N code
-        this._processedCandles = new Map(); // Prevent log spam
+        // CACHE: Track the last processed candle timestamp per bot to prevent log spam
+        // Map<botId, lastTimestamp>
+        this._processedCandles = new Map();
     }
 
-    /** * Load all active bots at startup
-     */
+    /** Load all active bots at startup */
     async initialize() {
+        const bots = await BotBase.find({ active: true });
+        for (const bot of bots) this.registerBot(bot);
+    }
+
+    /** Register a brand-new bot in memory */
+    registerBot(bot) {
+        const key = `${bot.symbol.toUpperCase()}-${bot.timeframe.toLowerCase()}`;
+        if (!this.activeBots.has(key)) this.activeBots.set(key, []);
+        this.activeBots.get(key).push(bot);
+    }
+
+    /** Update an existing bot in memory */
+    updateBot(updated) {
+        const key = `${updated.symbol.toUpperCase()}-${updated.timeframe.toLowerCase()}`;
+        if (!this.activeBots.has(key)) return;
+        const arr = this.activeBots.get(key);
+        this.activeBots.set(key,
+            arr.map(b => b._id.equals(updated._id) ? updated : b)
+        );
+    }
+
+    /** Deactivate a bot */
+    deactivateBot(bot) {
+        const key = `${bot.symbol.toUpperCase()}-${bot.timeframe.toLowerCase()}`;
+        if (!this.activeBots.has(key)) return;
+        this.activeBots.set(
+            key,
+            this.activeBots.get(key).filter(b => !b._id.equals(bot._id))
+        );
+        // Clear cache
+        this._processedCandles.delete(bot._id.toString());
+    }
+
+    /** Consensus aggregation */
+    _aggregateConsensus(signals) {
+        if (!signals.length)        return 'HOLD';
+        if (signals.every(s => s==='BUY'))  return 'BUY';
+        if (signals.every(s => s==='SELL')) return 'SELL';
+        return 'HOLD';
+    }
+
+    /** Weighted aggregation */
+    _aggregateWeighted(signals) {
+        if (!signals.length) return 'HOLD';
+        let sum=0, totalW=0;
+        for (const s of signals) {
+            totalW += 1;
+            if (s==='BUY')  sum += 1;
+            if (s==='SELL') sum -= 1;
+        }
+        const avg = sum/totalW;
+        return avg>0.5 ? 'BUY' : avg< -0.5 ? 'SELL' : 'HOLD';
+    }
+
+    /** Simple REST backfill via Binance */
+    async _fetchHistorical(symbol, timeframe, count) {
         try {
-            const bots = await BotBase.find({ active: true });
-            console.log(`[BotService] Found ${bots.length} active bots. Initializing...`);
-            for (const bot of bots) {
-                await this.registerBot(bot);
-            }
-        } catch (err) {
-            console.error('[BotService] Initialization failed:', err);
+            const resp = await axios.get('https://api.binance.com/api/v3/klines', {
+                params: {
+                    symbol:   symbol.replace('/',''),
+                    interval: timeframe,
+                    limit:    count
+                }
+            });
+
+            return resp.data.map(k => ({
+                timestamp: new Date(k[0]),
+                open:      +k[1],
+                high:      +k[2],
+                low:       +k[3],
+                close:     +k[4],
+                volume:    +k[5],
+                isClosed:  true
+            }));
+        } catch (error) {
+            console.error(`[BotService] Error fetching history: ${error.message}`);
+            return [];
         }
     }
 
-    /** * Register and START a bot
-     * This directs the bot to the correct handler based on its type.
-     */
-    async registerBot(bot) {
-        const botIdStr = bot._id.toString();
-        const logger = botLogger.getLogger(botIdStr);
-
+    /** Helper: Fetch and Cache N8n Code */
+    async _getN8nCode(jobId) {
+        if (this._n8nCodeCache.has(jobId)) {
+            return this._n8nCodeCache.get(jobId);
+        }
         try {
-            // --- A. GRID BOTS ---
-            if (bot.botType === 'grid') {
-                if (this.activeStrategies.has(botIdStr)) return; // Already running
-
-                console.log(`[BotService] Starting GRID Strategy for ${bot.name}...`);
-                const strategy = new GridStrategyService(botIdStr);
-
-                // Start the strategy (Seeds orders, connects WS, etc.)
-                await strategy.start();
-
-                // Save instance so we can stop it later
-                this.activeStrategies.set(botIdStr, strategy);
-                return;
+            const job = await N8nJobResponse_CustomAiDB.findById(jobId);
+            if (!job || !job.generatedCode || !job.generatedCode.fullCode) {
+                return null;
             }
-
-            // --- B. DCA BOTS ---
-            if (bot.botType === 'dca') {
-                if (this.activeStrategies.has(botIdStr)) return; // Already running
-
-                console.log(`[BotService] Starting DCA Strategy for ${bot.name}...`);
-                const strategy = new DcaStrategyService(botIdStr);
-
-                await strategy.start();
-
-                this.activeStrategies.set(botIdStr, strategy);
-                return;
-            }
-
-            // --- C. INDICATOR BOTS (Standard Loop) ---
-            // These rely on processCandle(), so we add them to the activeBots map.
-            const tf = bot.timeframe || '1m';
-            const sym = bot.symbol ? bot.symbol.toUpperCase() : null;
-
-            if (!sym) {
-                console.warn(`[BotService] Bot ${bot.name} (${bot._id}) has no symbol. Skipping.`);
-                return;
-            }
-
-            const key = `${sym}-${tf.toLowerCase()}`;
-            if (!this.activeBots.has(key)) this.activeBots.set(key, []);
-
-            const list = this.activeBots.get(key);
-            // Prevent duplicates
-            if (!list.find(b => b._id.toString() === botIdStr)) {
-                list.push(bot);
-                console.log(`[BotService] Registered INDICATOR Bot ${bot.name} on ${key}`);
-            }
-
+            const code = job.generatedCode.fullCode;
+            this._n8nCodeCache.set(jobId, code);
+            return code;
         } catch (err) {
-            console.error(`[BotService] Failed to register/start bot ${bot.name}:`, err);
-            await this._log(logger, 'error', `Startup Failed: ${err.message}`, bot, { stack: err.stack });
+            console.error(`[BotService] Failed to fetch N8n Job ${jobId}:`, err);
+            return null;
         }
     }
 
-    /** * Stop and Unregister a bot
-     */
-    async unregisterBot(botId) {
-        const botIdStr = botId.toString();
-
-        // 1. Check if it's a Strategy Bot (Grid/DCA)
-        if (this.activeStrategies.has(botIdStr)) {
-            const strategy = this.activeStrategies.get(botIdStr);
-            console.log(`[BotService] Stopping Strategy for ${botIdStr}...`);
-
-            // Graceful shutdown (cancel orders, etc.)
-            if (strategy.stop) {
-                await strategy.stop();
-            }
-
-            this.activeStrategies.delete(botIdStr);
-            this._cleanupCaches(botIdStr);
-            return;
+    async _log(mongoLogger, level, message, bot, meta = {}) {
+        // Only log to Mongo if the logger exists
+        if (mongoLogger) {
+            mongoLogger.log({
+                level,
+                message,
+                // --- FIX: Convert ObjectId to String for consistency ---
+                botId: bot._id.toString(),
+                ...meta
+            });
         }
-
-        // 2. Check if it's an Indicator Bot
-        for (const [key, list] of this.activeBots.entries()) {
-            const idx = list.findIndex(b => b._id.toString() === botIdStr);
-            if (idx !== -1) {
-                list.splice(idx, 1);
-                if (list.length === 0) this.activeBots.delete(key);
-
-                console.log(`[BotService] Unregistered Indicator Bot ${botIdStr}`);
-                this._cleanupCaches(botIdStr);
-                return;
-            }
+        // Optional: Keep console log for critical errors only to keep console clean
+        if (level === 'error') {
+            console.error(`[Bot ${bot.name}] ${message}`);
         }
     }
 
-    _cleanupCaches(botIdStr) {
-        this._processedCandles.delete(botIdStr);
-        this._n8nCodeCache.delete(botIdStr);
-    }
-
-    // --- ALIASES FOR CONTROLLER COMPATIBILITY ---
-    deactivateBot(bot) { return this.unregisterBot(bot._id); }
-    updateBot(bot) { this.unregisterBot(bot._id); this.registerBot(bot); }
-    removeBot(bot) { this.unregisterBot(bot._id); }
-
-
-    // =========================================================================
-    //  SECTION: INDICATOR BOT LOOP (processCandle)
-    //  This logic only applies to bots in 'this.activeBots' (Indicator Type)
-    // =========================================================================
-
-    /**
-     * Called by WebSocketServer when a new ticker/candle arrives.
-     * Only processes Indicator Bots. Grid/DCA bots handle their own streams.
-     */
     async processCandle(symbol, timeframe, candle) {
-        // Normalize Key: "BTC/USDT" -> "BTC-1m"
+        // Normalize Key
         const key = `${symbol.toUpperCase().replaceAll('/USDT', '')}-${timeframe.toLowerCase()}`;
         const bots = this.activeBots.get(key) || [];
 
         if (!bots.length) return;
 
-        // Update central candle store
+        // Update memory store
         candleStore.updateCandle(symbol, timeframe, candle);
 
-        // Run logic for each bot in parallel (with lock protection)
         for (const bot of bots) {
-            // DOUBLE CHECK: Ensure no Grid/DCA bots slipped into this list
-            if (bot.botType === 'grid' || bot.botType === 'dca') continue;
-
             const botId = bot._id.toString();
-            const prev = this._locks.get(botId) || Promise.resolve();
+            const prev  = this._locks.get(botId) || Promise.resolve();
 
             const next = prev
-                .catch(() => {}) // Ignore previous errors
-                .then(() => this._handleIndicatorBot(bot, candle, symbol, timeframe));
+                .catch(() => {})
+                .then(() => this._handleBot(bot, candle, symbol, timeframe));
 
             this._locks.set(botId, next);
         }
     }
 
-    /**
-     * The Logic Loop for Indicator Bots
-     */
-    async _handleIndicatorBot(bot, candle, symbol, timeframe) {
+    async _handleBot(bot, candle, symbol, timeframe) {
         const logger = botLogger.getLogger(bot._id.toString());
         const botIdStr = bot._id.toString();
 
-        // --- 1. NEW CANDLE DETECTION (Log Once per Timeframe) ---
+        if (bot.botType === 'dca') return;
+
+        // ——— 1. CHECK IF NEW CANDLE (Log Once per Timeframe) ———
         const lastSeenTime = this._processedCandles.get(botIdStr);
         const currentCandleTime = new Date(candle.timestamp).getTime();
         const isNewCandleInterval = lastSeenTime !== currentCandleTime;
 
-        // Update UI Memory
+        // Update local memory for UI display (Live Price)
         bot.marketInfo = bot.marketInfo || {};
         bot.marketInfo.currentCandle = { price: candle.close };
 
+        // ——— 2. LOGGING CONTROL ———
         if (isNewCandleInterval) {
             await this._log(logger, 'info', `📊 New ${timeframe} Candle Started. Open: ${candle.open}, Date: ${candle.timestamp.toISOString()}`, bot);
             this._processedCandles.set(botIdStr, currentCandleTime);
         }
 
-        // --- 2. WAIT FOR CANDLE CLOSE ---
+        // ——— 3. IF CANDLE IS NOT CLOSED ———
         if (!candle.isClosed) {
-            // Just broadcast live price to UI
             wsServer.broadcastBotUpdate(bot.toObject());
             return;
         }
 
-        // --- 3. EXECUTE STRATEGY (On Close) ---
+        // ——— 4. CANDLE IS CLOSED (Process Logic Now) ———
         bot.marketInfo.lastCandle = { ...candle };
+
         await this._log(logger, 'info', `🏁 Candle Closed. Price: ${candle.close}. Calculating Indicators...`, bot, {
             price: candle.close,
             volume: candle.volume
         });
 
-        // Compute Indicators
+        // ——— Compute Indicators ———
         const signals = [];
-        const indicatorResults = {};
+        const indicatorResults = {}; // For detailed logging
 
         for (const cfg of bot.indicators || []) {
             if (!cfg.name || cfg.timeframe.toLowerCase() !== timeframe.toLowerCase()) {
@@ -234,25 +210,35 @@ class BotService {
                 continue;
             }
 
-            const p = cfg.params || {};
+            const p = cfg.params||{};
             let needed = 50;
 
-            // Simple lookback logic
-            if (cfg.name === 'N8nStrategy' || cfg.name === 'N8NBotRunner') {
-                needed = (p.windowSize || 100) + 20;
-            } else {
-                needed = 100; // Safe default
+            // Determine needed history based on config
+            switch (cfg.name) {
+                case 'RSI':            needed = (p.period||14)+2; break;
+                case 'MACD':           needed = (p.longPeriod||26)+(p.signalPeriod||9)+1; break;
+                case 'MA_Crossover':   needed = Math.max(p.shortPeriod||5,p.longPeriod||20)+1; break;
+                case 'Donchian':       needed = (p.period||20)+1; break;
+                case 'Volume':         needed = (p.period||14)+1; break;
+                case 'Heikin_Ashi':    needed = 2; break;
+                case 'Combined_RSI_MACD': needed = 35; break;
+                case 'Bollinger_Bands':needed = (p.period||20)+1; break;
+                case 'Stochastic_RSI': needed = (p.period||14) + (p.kPeriod||3) + (p.dPeriod||3) + 1; break;
+                case 'N8NBotRunner':
+                case 'N8nStrategy':    needed = (p.windowSize || 100) + 20; break;
             }
 
-            // Fetch History
+            // Fetch Candles
             let recent = candleStore.getLatestCandles(symbol, timeframe, needed);
+
             if (recent.length < needed) {
+                // Fetch historical only if absolutely needed (expensive op)
                 const more = await this._fetchHistorical(symbol, timeframe, needed - recent.length);
                 recent = more.concat(recent);
             }
 
-            // Indicator Calculation
-            let key = cfg.name.replace(/-/g, '');
+            // Run Calculation
+            let key = cfg.name.replace(/-/g,'');
             if (key === 'N8nStrategy') key = 'N8NBotRunner';
 
             const Cls = Indicators[key];
@@ -263,15 +249,19 @@ class BotService {
             }
 
             try {
-                // N8N Code Handling
-                if (key === 'N8NBotRunner' && cfg.params.jobId) {
-                    const code = await this._getN8nCode(cfg.params.jobId);
-                    if (code) cfg.params.generatedCode = code;
+                // N8N Code Injection
+                if (key === 'N8NBotRunner') {
+                    const jobId = cfg.params.jobId;
+                    if (jobId) {
+                        const code = await this._getN8nCode(jobId);
+                        if (code) cfg.params.generatedCode = code;
+                    }
                 }
 
                 const inst = new Cls(cfg.params);
                 const signal = inst.calculateSignal(recent);
                 signals.push(signal);
+
                 indicatorResults[cfg.name] = signal;
 
             } catch (err) {
@@ -280,7 +270,7 @@ class BotService {
             }
         }
 
-        // Aggregation
+        // ——— Aggregation ———
         const method = bot.tradeInfo?.signalProcessingMethod || 'consensus';
         const finalSignal = method === 'weighted'
             ? this._aggregateWeighted(signals)
@@ -294,7 +284,7 @@ class BotService {
             method: method
         });
 
-        // Execution
+        // ——— Execution ———
         if (finalSignal !== 'HOLD') {
             const { canTrade, reason } = await RiskManagementService.checkRisk(bot);
             if (!canTrade) {
@@ -307,76 +297,9 @@ class BotService {
             await this._log(logger, 'info', `Signal is HOLD. No action taken.`, bot);
         }
 
-        // Save & Update UI
+        // ——— E) SAVE TO DB (Only done on Candle Close) ———
         await bot.save();
         wsServer.broadcastBotUpdate(bot.toObject());
-    }
-
-    // --- HELPERS ---
-
-    async _log(mongoLogger, level, message, bot, meta = {}) {
-        if (mongoLogger && mongoLogger[level]) {
-            mongoLogger[level](message, { botId: bot._id, ...meta });
-        } else if (level === 'error') {
-            console.error(`[Bot ${bot.name}] ${message}`);
-        }
-    }
-
-    _aggregateConsensus(signals) {
-        if (!signals.length) return 'HOLD';
-        if (signals.every(s => s === 'BUY')) return 'BUY';
-        if (signals.every(s => s === 'SELL')) return 'SELL';
-        return 'HOLD';
-    }
-
-    _aggregateWeighted(signals) {
-        if (!signals.length) return 'HOLD';
-        let sum = 0, totalW = 0;
-        for (const s of signals) {
-            totalW += 1;
-            if (s === 'BUY') sum += 1;
-            if (s === 'SELL') sum -= 1;
-        }
-        const avg = sum / totalW;
-        return avg > 0.5 ? 'BUY' : avg < -0.5 ? 'SELL' : 'HOLD';
-    }
-
-    async _fetchHistorical(symbol, timeframe, count) {
-        try {
-            const resp = await axios.get('https://api.binance.com/api/v3/klines', {
-                params: {
-                    symbol: symbol.replace('/', ''),
-                    interval: timeframe,
-                    limit: count
-                }
-            });
-            return resp.data.map(k => ({
-                timestamp: new Date(k[0]),
-                open: +k[1], high: +k[2], low: +k[3], close: +k[4], volume: +k[5],
-                isClosed: true
-            }));
-        } catch (error) {
-            console.error(`[BotService] Error fetching history: ${error.message}`);
-            return [];
-        }
-    }
-
-    async _getN8nCode(jobId) {
-        if (this._n8nCodeCache.has(jobId)) {
-            return this._n8nCodeCache.get(jobId);
-        }
-        try {
-            const job = await N8nJobResponse_CustomAiDB.findById(jobId);
-            if (job && job.generatedCode && job.generatedCode.fullCode) {
-                const code = job.generatedCode.fullCode;
-                this._n8nCodeCache.set(jobId, code);
-                return code;
-            }
-            return null;
-        } catch (err) {
-            console.error(`[BotService] Failed to fetch N8n Job ${jobId}:`, err);
-            return null;
-        }
     }
 }
 
