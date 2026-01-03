@@ -30,7 +30,11 @@ class BotFactoryDeployment {
             marketSnapshot = await MarketSnapshot.findById(symbolStr);
         } else {
             // Fallback default
-            marketSnapshot = await MarketSnapshot.findOne({ name: "Binance", symbol: "BTC", category: "Spot" });
+            marketSnapshot = await MarketSnapshot.findOne({
+                name: "Binance",
+                symbol: "BTC",
+                category: "Spot"
+            });
         }
         if (!marketSnapshot) throw new Error('Invalid symbol selected.');
 
@@ -39,7 +43,6 @@ class BotFactoryDeployment {
             case 'grid':
                 return this._createGridBot(payload, userId, account, accountType, marketSnapshot);
             case 'technical':
-            case 'indicator': // Support legacy name
                 return this._createTechnicalBot(payload, userId, account, accountType, marketSnapshot);
             case 'dca':
                 return this._createDcaBot(payload, userId, account, accountType, marketSnapshot);
@@ -51,55 +54,56 @@ class BotFactoryDeployment {
     // --- Builders ---
 
     static async _createGridBot(data, userId, account, accountType, marketSnapshot) {
-        // Validation logic extracted from your original createGridBot
-        const gridConfig = {
+        // Validate Price Range
+        if (Number(data.lowerPrice) >= Number(data.upperPrice)) {
+            throw new Error('Lower price must be less than Upper price.');
+        }
+
+        // FIXED: Flattening the object.
+        // Previously these might have been nested in 'gridConfig' or missing 'exchange'.
+        return await GridBotModel.create({
+            botType: 'grid',
+            name: data.name,
+            symbol: marketSnapshot.symbol,
+            timeframe: '1h',
+            userId,
+            active: true,
+
+            // --- Account & Exchange Info ---
+            accountId: account._id,
+            accountType,
+            // FIX 1: Explicitly map 'exchange'.
+            // The Schema requires 'exchange', but data.exchange might be missing if relying on accountType.
+            exchange: data.exchange || accountType,
+            marketType: data.marketType || 'SPOT',
+
+            // --- Grid Strategy Config (Root Level) ---
+            // FIX 2: These must be at the ROOT level, not inside an object
             lowerPrice: Number(data.lowerPrice),
             upperPrice: Number(data.upperPrice),
             grids: Number(data.grids || data.gridCount),
             investment: Number(data.investment),
             gridMode: (data.gridMode || 'arithmetic').toUpperCase(),
-            gridStepPercentage: 0.01,
-            stopLossPct: 0,
-            takeProfitPct: 0,
-            flattenOnExit: data.flattenOnExit === true || data.flattenOnExit === 'true'
-        };
 
-        if (gridConfig.lowerPrice >= gridConfig.upperPrice) {
-            throw new Error('Lower price must be less than Upper price.');
-        }
+            // --- Financials ---
+            baseFund: Number(data.baseFund) || 0, // Wallet snapshot
 
-        return await GridBotModel.create({
-            botType: 'grid',
-            name: data.name,
-            symbol: marketSnapshot.symbol,
-            timeframe: '1h', // Required field by BotBase
-            userId,
-            accountType,
-            accountId: account._id,
-            active: true,
-            marketType: data.marketType || 'SPOT', // Default to SPOT if missing
-
-            // Configs
-            marketInfo: {
-                baseFund: Number(data.baseFund) || 10000,
-                tradeFund: Number(data.investment) || 50
-            },
-            tradeInfo: {
-                leverageLong: 1,
-                leverageShort: 1,
-                botTakeProfit: Number(data.takeProfitPrice) || null,
-                botStopLoss: Number(data.stopLossPrice) || null,
-            },
-            gridConfig,
-            riskStrategy: 'SimpleStrategy',
-            mode: 'live', // Default to live as per your form, or toggle via payload
-
-            // Extra Grid Fields
+            // --- Advanced ---
             triggerPrice: data.triggerPrice ? Number(data.triggerPrice) : null,
-            trailingUp: data.trailingUp === true,
-            direction: data.direction, // Futures specific
-            leverage: data.leverage,
-            marginMode: data.marginMode
+            trailingUp: data.trailingUp === true || data.trailingUp === 'true',
+            flattenOnExit: data.flattenOnExit === true || data.flattenOnExit === 'true',
+
+            // --- TP/SL ---
+            stopLossPrice: data.stopLossPrice ? Number(data.stopLossPrice) : null,
+            takeProfitPrice: data.takeProfitPrice ? Number(data.takeProfitPrice) : null,
+
+            // --- Futures Specific ---
+            direction: data.direction || 'NEUTRAL',
+            leverage: Number(data.leverage) || 1,
+            marginMode: data.marginMode || 'ISOLATED',
+            openOnCreation: data.openOnCreation === true,
+
+            status: 'INITIALIZING'
         });
     }
 
@@ -131,11 +135,12 @@ class BotFactoryDeployment {
             accountType,
             accountId: account._id,
             active: true,
-            marketType: data.marketType || 'SPOT',
+            marketType: data.marketType.toUpperCase() || 'SPOT',
 
             riskStrategy: 'SimpleStrategy',
             riskParams: {
-                positionSizingMethod: data.compoundPositionSizing ? 'compound' : 'simple'
+                // positionSizingMethod: data.compoundPositionSizing ? 'compound' : 'simple'
+                positionSizingMethod: 'simple' // simply pass 'simple' for now
             },
             marketInfo: {
                 baseFund: Number(data.baseFund) || 10000,
@@ -158,38 +163,59 @@ class BotFactoryDeployment {
     }
 
     static async _createDcaBot(data, userId, account, accountType, marketSnapshot) {
-        // Using the DcaBotModel we defined earlier
+        // Helper to handle optional numbers from React forms (avoids NaN)
+        const parseOpt = (val, defaultVal = null) => {
+            if (val === undefined || val === null || val === '') return defaultVal;
+            const num = Number(val);
+            return isNaN(num) ? defaultVal : num;
+        };
+
+        // Helper for required numbers
+        const parseReq = (val, fieldName) => {
+            const num = Number(val);
+            if (isNaN(num)) throw new Error(`${fieldName} must be a valid number.`);
+            return num;
+        };
+
         return await DcaBotModel.create({
+            // --- BotBase Fields ---
             botType: 'dca',
             name: data.name,
             userId,
             accountType,
             accountId: account._id,
-            symbol: marketSnapshot.symbol, // BotBase requires symbol string
-            marketType: 'SPOT', // Defaulting to Spot for DCA usually
-            active: true,
+            symbol: marketSnapshot.symbol,
+            marketType: 'SPOT', // DCA default
+            active: true,       // Auto-start on deploy
+            mode: 'live',       // Form implies live deployment
 
-            // Map Payload
-            direction: data.direction, // 'LONG' or 'SHORT'
-            priceDeviation: Number(data.priceDeviation),
-            takeProfit: Number(data.takeProfit),
-            baseOrderVolume: Number(data.baseOrderVolume),
-            safetyOrderVolume: Number(data.safetyOrderVolume),
-            maxSafetyOrders: Number(data.maxSafetyOrders),
+            // --- DcaBot Specific Fields ---
 
-            // Advanced
-            triggerPrice: Number(data.triggerPrice),
-            stepScale: Number(data.stepScale),
-            volumeScale: Number(data.volumeScale),
-            lowerPrice: Number(data.lowerPrice),
-            upperPrice: Number(data.upperPrice),
-            stopLoss: Number(data.stopLoss),
-            terminateOnStopLoss: data.terminateOnStopLoss,
+            // Core Config
+            direction: data.direction, // 'long' or 'short'
+            priceDeviation: parseReq(data.priceDeviation, 'Price Deviation'),
+            takeProfit: parseReq(data.takeProfit, 'Take Profit'),
+            baseOrderVolume: parseReq(data.baseOrderVolume, 'Base Order Volume'),
+            safetyOrderVolume: parseReq(data.safetyOrderVolume, 'Safety Order Volume'),
+            maxSafetyOrders: parseReq(data.maxSafetyOrders, 'Max Safety Orders'),
+
+            // Advanced / Optional
+            // We use parseOpt here so empty fields become null/default rather than NaN
+            triggerPrice: parseOpt(data.triggerPrice, null),
+            stepScale: parseOpt(data.stepScale, 1),
+            volumeScale: parseOpt(data.volumeScale, 1),
+
+            lowerPrice: parseOpt(data.lowerPrice, null),
+            upperPrice: parseOpt(data.upperPrice, null),
+
+            stopLoss: parseOpt(data.stopLoss, null),
+            terminateOnStopLoss: data.terminateOnStopLoss === true || data.terminateOnStopLoss === 'true',
 
             // Initialize Metrics
             averageEntryPrice: 0,
             totalVolume: 0,
-            completedDeals: 0
+            completedDeals: 0,
+            status: 'RUNNING'
         });
     }
 

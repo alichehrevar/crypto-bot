@@ -33,7 +33,7 @@ class BotService {
 
     /** Register a brand-new bot in memory */
     registerBot(bot) {
-        const key = `${bot.symbol.toUpperCase()}-${bot.timeframe.toLowerCase()}`;
+        const key = `${bot.symbol.toUpperCase()}-${bot._id}`;
         if (!this.activeBots.has(key)) this.activeBots.set(key, []);
         this.activeBots.get(key).push(bot);
     }
