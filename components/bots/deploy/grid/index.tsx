@@ -10,7 +10,6 @@ import { GridFuturesConfig } from "./GridFuturesConfig";
 import { GridSpotAdvanced } from "./GridSpotAdvanced";
 import { GridTPSL } from "./GridTPSL";
 
-import { MarketListItem } from "@/types/MarketList";
 import {AccountsResponse, ExchangeAccount} from "@/types/profile/AccountType";
 import { BotProps } from "@/types/bots/StrategyParams";
 import {RawBalanceResponse} from "@/types/profile/WalletBalanceType";
@@ -31,7 +30,6 @@ export default function GridConfigForm({
     //
     // ─── STATE MANAGEMENT (Remains in the parent container) ──────────────────
     //
-    const [botProps, setBotProps] = useState<BotProps>();
     const [accounts, setAccounts] = useState<ExchangeAccount[]>([]);
     const [balanceLoading, setBalanceLoading] = useState<boolean>(false);
     const [selectedAccountId, setSelectedAccountId] = useState<Key>();
@@ -229,8 +227,6 @@ export default function GridConfigForm({
                 takeProfitPrice: enableTPSL && takeProfitPrice ? parseFloat(takeProfitPrice) : null,
             };
         }
-
-        console.log(payload.investment)
 
         try {
             // Send the raw payload object to the new endpoint
