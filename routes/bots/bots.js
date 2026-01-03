@@ -14,8 +14,10 @@ router.post('/grid/:id/stop', authenticate, botController.stopGridBot);
 // Get lookup props (risk strategies, etc.)
 router.get('/botProps', authenticate, botController.botProps);
 
-// Deploy a new bot (indicator or grid)
-router.post('/deploy', authenticate, botController.deployBot);
+// Deploy a new bot (technical, grid or dca)
+router.post('/deploy', authenticate, botController.createBot);
+// // Deploy a new bot (indicator or grid)
+// router.post('/deploy', authenticate, botController.deployBot);
 
 // Upsert indicator bots for a symbol/timeframe
 router.get('/select', botController.selectBots);

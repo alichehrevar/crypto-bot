@@ -1,5 +1,6 @@
 // app/http/controllers/botController.js
 
+const BotFactoryDeployment = require('../../services/botService/BotFactoryDeployment');
 const BotBase        = require('../../models/BotBase');
 const IndicatorBot   = require('../../models/IndicatorBot');
 const GridBotModel   = require('../../models/GridBotModel');
@@ -37,6 +38,45 @@ async function findAccount(accountId) {
 }
 
 /**
+ * Unified Bot Creation Endpoint
+ * Handles 'technical', 'grid', and 'dca' bots dynamically.
+ */
+exports.createBot = async (req, res) => {
+    try {
+        const userId = req.user?.id;
+        if (!userId) {
+            return res.status(401).json({ error: 'User not found.' });
+        }
+
+        // 1. Determine Bot Type
+        // We expect req.body.botType to be 'grid', 'dca', or 'technical'
+        const botType = req.body.botType;
+        if (!botType) {
+            return res.status(400).json({ error: 'botType is required (grid, dca, technical).' });
+        }
+
+        // 2. Delegate creation to Factory
+        const newBot = await BotFactoryDeployment.createBot(botType, req.body, userId);
+
+        // 3. Register in Memory Service (Start the bot)
+        if (newBot.active) {
+            BotService.registerBot(newBot);
+        }
+
+        return res.status(201).json({
+            success: true,
+            message: `${botType} bot created successfully.`,
+            bot: newBot
+        });
+
+    } catch (err) {
+        console.error('createBot error:', err);
+        logger.error(`createBot error: ${err.message}`, { stack: err.stack });
+        return res.status(500).json({ success: false, error: err.message });
+    }
+};
+
+/**
  * NEW: Controller to create and start an advanced grid bot.
  * Extracts logic previously found in deployBot into a dedicated handler.
  */
@@ -47,11 +87,14 @@ exports.createGridBot = async (req, res) => {
             return res.status(401).json({ error: 'User not found.' });
         }
 
+        console.log(req.body)
+
         const {
             name,
             accountId,
             // accountType, // We will derive this from the DB to be safe
             symbol,
+            marketType,
             lowerPrice,
             upperPrice,
             grids, // Frontend sends 'grids', DB expects 'gridCount'
@@ -105,8 +148,9 @@ exports.createGridBot = async (req, res) => {
         const gridConfig = {
             lowerPrice: Number(lowerPrice),
             upperPrice: Number(upperPrice),
-            gridCount: Number(grids),
-            gridMode: gridMode || 'arithmetic', // Default to arithmetic if missing
+            grids: Number(grids),
+            investment: Number(investment),
+            gridMode: (gridMode || 'arithmetic').toUpperCase(), // Default to arithmetic if missing
             gridStepPercentage: 0.01, // Default or calculate based on range
             stopLossPct: 0,
             takeProfitPct: 0,
@@ -114,7 +158,7 @@ exports.createGridBot = async (req, res) => {
         };
 
         // Basic validation
-        if (!name || !gridConfig.lowerPrice || !gridConfig.upperPrice || !gridConfig.gridCount) {
+        if (!name || !gridConfig.lowerPrice || !gridConfig.upperPrice || !gridConfig.grids) {
             return res.status(400).json({ error: 'Name, symbol, lowerPrice, upperPrice, and grids are required.' });
         }
 
@@ -133,6 +177,7 @@ exports.createGridBot = async (req, res) => {
             accountId:     account._id,
             active:        true,
             mode:          'live', // or 'paper' based on req.body
+            marketType,
 
             riskStrategy:  'SimpleStrategy',
             riskParams:    {},
@@ -184,7 +229,6 @@ exports.stopGridBot = async (req, res) => {
         return res.status(500).json({ success: false, error: err.message });
     }
 };
-
 
 /**
  * Deploy a new Indicator Bot.

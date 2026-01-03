@@ -1,68 +1,110 @@
 const mongoose = require('mongoose');
 const { Schema } = mongoose;
+const BotBase = require('./BotBase');
 
+/**
+ * DcaBotModel Schema
+ * Stores configuration for Dollar Cost Averaging bots.
+ */
 const DcaBotSchema = new Schema({
-    userId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
-    accountId: { type: Schema.Types.ObjectId, ref: 'Account', required: true },
-    accountType: { type: String, required: true, enum: ['binance', 'okx', 'bingx', 'n8n', 'paper'] },
+    // --- Core Strategy Config (From Payload) ---
+
+    // Form sends 'long'/'short', we uppercase it for consistency
+    direction: {
+        type: String,
+        enum: ['LONG', 'SHORT', 'NEUTRAL'],
+        required: true,
+        set: (v) => v ? v.toUpperCase() : v
+    },
+
+    // Price deviation to open safety orders (%)
+    priceDeviation: {
+        type: Number,
+        required: true
+    },
+
+    // Target profit (%)
+    takeProfit: {
+        type: Number,
+        required: true
+    },
+
+    // Base order size (USDT)
+    baseOrderVolume: {
+        type: Number,
+        required: true
+    },
+
+    // Safety order size (USDT)
+    safetyOrderVolume: {
+        type: Number,
+        required: true
+    },
+
+    // Max number of safety orders
+    maxSafetyOrders: {
+        type: Number,
+        required: true
+    },
+
+    // --- Advanced / Optional Config ---
+    triggerPrice: { type: Number }, // Optional start price
+
+    // Multipliers
+    stepScale:   { type: Number, default: 1 }, // Scales price deviation
+    volumeScale: { type: Number, default: 1 }, // Scales safety order volume
+
+    // Range filters
+    lowerPrice: { type: Number },
+    upperPrice: { type: Number },
+
+    // Stop Loss
+    stopLoss: { type: Number },
+    terminateOnStopLoss: { type: Boolean, default: false },
+
+    // --- Internal State & Metrics ---
     status: {
         type: String,
         enum: ["RUNNING", "TERMINATED", "FENCED", "ERROR", "DISABLED"],
         default: "DISABLED"
     },
-    marketType: { type: String, enum: ['SPOT', 'FUTURES'], required: true },
-    direction: { type: String, enum: ['LONG', 'SHORT', 'NEUTRAL'], required: true },
-    activeDirection: { type: String, enum: ['LONG', 'SHORT', null], default: null },
-    leverage: { type: Number, default: 1 },
-    baseOrderVolume: { type: Number, required: true }, // base order size
-    safetyOrderVolume: { type: Number, required: true }, // dca order size
-    maxSafetyOrders: { type: Number, required: true }, // max dca orders
-    priceDeviation: { type: Number, required: true }, // As a percentage
-    volumeScale: { type: Number, default: 1 }, // DCA order size multiplier
-    stepScale: { type: Number, default: 1 }, // Price deviation multiplier
-    takeProfit: { type: Number, required: true }, // As a percentage
-    stopLoss: { type: Number }, // As a percentage
-    triggerPrice: { type: Number },
-    neutralEntryDeviation: { type: Number }, // For NEUTRAL strategy
-    useMarketForEntry: { type: Boolean, default: false },
+
+    // Used to track the current state of the DCA cycle
     activeDeal: { type: Boolean, default: false },
+    activeDirection: { type: String, enum: ['LONG', 'SHORT', null], default: null },
 
-    // --- Exit config (add these) ---
-    enableTakeProfit: { type: Boolean, default: true },
-    enableStopLoss: { type: Boolean, default: false },
-
-    // Percent targets, expressed as e.g. 1.2 = +1.2%; -0.8 = -0.8%
-    // Always interpreted relative to AEP (Average Entry Price)
-    takeProfitPercent: { type: Number, default: 1.0 }, // +1.0% over AEP for LONG; -1.0% under AEP for SHORT
-    stopLossPercent:   { type: Number, default: 3.0 }, // -3.0% under AEP for LONG; +3.0% over AEP for SHORT
-
-    // Whether TP should "track" AEP after every DCA fill (cancel/replace TP)
-    trackTpWithAep: { type: Boolean, default: true },
-
-    lowerPrice: {
-        type: Number,
-    },
-    upperPrice: {
-        type: Number,
-    },
-
-    // Metrics
+    // Metrics for ROI calculation
     averageEntryPrice: { type: Number, default: 0 },
-    totalVolume: { type: Number, default: 0 },
-    positionContracts: { type: Number, default: 0 }, // For futures
-    completedDeals: { type: Number, default: 0 },
-    terminateOnStopLoss: { type: Boolean, default: false },
-    // Timestamps
-    createdAt: { type: Date, default: Date.now },
-    updatedAt: { type: Date, default: Date.now },
+    totalVolume:       { type: Number, default: 0 }, // Total USDT currently invested
+    completedDeals:    { type: Number, default: 0 },
+
+    // Futures specific (Defaulted for now as form is Spot-focused)
+    leverage: { type: Number, default: 1 },
+    positionContracts: { type: Number, default: 0 }
+
 }, {
     timestamps: true,
     toJSON: { virtuals: true },
     toObject: { virtuals: true }
 });
 
-// Link to the base bot model if you have one
-const BotBase = require('./BotBase');
-const DcaBot = BotBase.discriminator('dca', DcaBotSchema);
+// PRE-SAVE HOOK: Enforce defaults for DCA
+DcaBotSchema.pre('validate', function(next) {
+    // 1. DCA is typically Spot in this context, so we auto-fill marketType
+    //    to satisfy BotBase's 'required' check.
+    if (!this.marketType) {
+        this.marketType = 'SPOT';
+    }
 
-module.exports = DcaBot;
+    // 2. Map frontend "Buy"/"Sell" tab logic if sent loosely
+    if (this.direction) {
+        if (this.direction === 'BUY') this.direction = 'LONG';
+        if (this.direction === 'SELL') this.direction = 'SHORT';
+    }
+
+    next();
+});
+
+const DcaBotModel = BotBase.discriminator('dca', DcaBotSchema);
+
+module.exports = DcaBotModel;
