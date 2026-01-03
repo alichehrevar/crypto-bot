@@ -8,14 +8,13 @@ import {
 
 import GridConfigForm from "@/components/bots/deploy/grid/index";
 import {parentTabs} from "@/utils/BotType";
-import {MarketListItem} from "@/types/MarketList";
 
 export default function TechnicalDeployBotSection({
   onSuccessAction,
   selectedSymbol
 }: {
     onSuccessAction: () => void,
-    selectedSymbol?: MarketListItem | null
+    selectedSymbol?: string | undefined
 }) {
 
     const [selectedParentTab, setSelectedParentTab] = React.useState<"spot" | "futures">("spot");

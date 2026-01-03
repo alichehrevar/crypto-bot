@@ -184,11 +184,13 @@ export default function BotConfigForm({mode, selectedParentTab, onCloseAction, s
         setLoading(true);
 
         const payload: {
+            botType: string;
             name: string;
             accountId: string;
             symbol: string | undefined;
             baseFund: number;
             tradeFund: number;
+            marketType: string;
             // leverage: number;
             compoundPositionSizing: boolean;
             takeProfit: number;
@@ -211,11 +213,13 @@ export default function BotConfigForm({mode, selectedParentTab, onCloseAction, s
             mode: string; // paper or live trade
             share: boolean;
         } = {
+            botType: 'technical',
             name,
             accountId: selectedAccountId?.toString() || '',
             symbol: selectedSymbol,
             baseFund,
             tradeFund: parseFloat(tradeFund),
+            marketType: selectedParentTab,
             // leverage: 1,
             compoundPositionSizing: false,
             takeProfit,

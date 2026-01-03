@@ -130,6 +130,7 @@ export default function DcaConfigForm({
 
         const payload: any = {
             direction: selectedTab === 'buy' ? 'long' : 'short',
+            botType: 'dca',
             name: botName,
             accountId: selectedAccountId,
             accountType: selectedAccount.name, // e.g., 'bingx'
@@ -151,7 +152,7 @@ export default function DcaConfigForm({
 
         try {
             // Send the raw payload object to the new endpoint
-            const res = await sendRequest(payload, "/bots/dca");
+            const res = await sendRequest(payload, "/bots/deploy");
 
             if (res.success) {
                 addToast({title: "DCA Bot deployed!", color: "success"});

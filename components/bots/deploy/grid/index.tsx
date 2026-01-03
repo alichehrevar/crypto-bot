@@ -20,7 +20,7 @@ import {sendRequest} from "@/actions/post";
 export interface GridConfigFormProps {
     selectedParentTab: "spot" | "futures";
     onCloseAction: () => void;
-    selectedSymbol?: MarketListItem | null;
+    selectedSymbol?: string | undefined;
 }
 
 export default function GridConfigForm({
@@ -175,12 +175,13 @@ export default function GridConfigForm({
 
         if (selectedParentTab === 'spot') {
             payload = {
+                botType: 'grid',
                 name,
                 accountId: selectedAccountId,
                 accountType: selectedAccount.name, // e.g., 'bingx'
-                exchange: selectedSymbol?.broker, // e.g., 'binance'
-                symbol: selectedSymbol?.id,
-                marketType: 'SPOT',
+                exchange: selectedAccount.name, // e.g., 'bingx'
+                symbol: selectedSymbol,
+                marketType: selectedParentTab.toUpperCase(),
 
                 // Grid Parameters
                 lowerPrice: parseFloat(lowerPrice),
@@ -195,19 +196,19 @@ export default function GridConfigForm({
                 stopLossPrice: enableTPSL && stopLossPrice ? parseFloat(stopLossPrice) : null,
                 flattenOnExit: sellBaseOnStop,
 
-                // NOTE: TrailingUp and TriggerPrice are advanced features.
-                // The current backend model needs to be updated to support them.
-                // trailingUp: trailingUp,
-                // triggerPrice: triggerPriceSpot ? parseFloat(triggerPriceSpot) : null,
+                // TrailingUp and TriggerPrice are advanced features.
+                trailingUp: trailingUp,
+                triggerPrice: triggerPriceSpot ? parseFloat(triggerPriceSpot) : null,
             };
         } else { // Futures
             payload = {
+                botType: 'grid',
                 name,
                 accountId: selectedAccountId,
                 accountType: selectedAccount.name, // e.g., 'bingx'
-                exchange: selectedSymbol?.broker, // e.g., 'binance'
-                symbol: selectedSymbol?.symbol,
-                marketType: 'FUTURES',
+                exchange: selectedAccount.name, // e.g., 'bingx'
+                symbol: selectedSymbol,
+                marketType: selectedParentTab.toUpperCase(),
 
                 // Futures Grid Parameters
                 direction: direction.toUpperCase(), // NEUTRAL, LONG, or SHORT [cite: 409]
@@ -229,9 +230,11 @@ export default function GridConfigForm({
             };
         }
 
+        console.log(payload.investment)
+
         try {
             // Send the raw payload object to the new endpoint
-            const res = await sendRequest(payload, "/bots/grid/create");
+            const res = await sendRequest(payload, "/bots/deploy");
 
             if (res.success) {
                 addToast({ title: "Grid Bot deployed!", color: "success" });

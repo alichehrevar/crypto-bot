@@ -42,7 +42,7 @@ export default function TechnicalBotsPage() {
 
                 {/* --- Right Column --- */}
                 <div className="w-full lg:w-[24%] ua-card">
-                    <GridDeployBotSection selectedSymbol={selectedSymbol} onSuccessAction={() => setRefreshBotsList(true)}/>
+                    <GridDeployBotSection selectedSymbol={selectedSymbol?.id} onSuccessAction={() => setRefreshBotsList(true)}/>
                 </div>
             </div>
         </div>

@@ -22,7 +22,7 @@ export default function DcaTabsList({
 
     return (
         <div
-            className="flex w-full flex-col backdrop-blur-md pt-1 rounded-xl">
+            className="flex w-full flex-col backdrop-blur-md pt-1 rounded-xl relative">
             <Tabs
                 fullWidth
                 aria-label="Options"
