@@ -78,7 +78,7 @@ const BotDetailsPage = ({ botId }: BotDetailsPageProps) => {
     // State
     const [bot, setBot] = useState<BotViewModel | null>(null);
     const [tradesList, setTradesList] = useState<TradeViewModel[]>([]); // Typed Ledger
-    const [strategyParams, setStrategyParams] = useState<StrategyConfig>()
+    const [, setStrategyParams] = useState<StrategyConfig>()
     const [isLoading, setIsLoading] = useState(true);
     const [refreshTrigger, setRefreshTrigger] = useState(0);
 
