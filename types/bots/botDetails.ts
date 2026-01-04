@@ -1,8 +1,10 @@
 // 1. Shared / Utility Types
+import {StrategyConfig} from "@/types/bots/defaultStrategyParams";
+
 type Timeframe = '1m' | '3m' | '5m' | '15m' | '1h' | '4h' | '1d'; // Expand as needed
 type TradeSignal = 'HOLD' | 'BUY' | 'SELL';
 type BotState = 'active' | 'inactive' | 'error';
-type AccountType = 'bingx' | 'binance' | 'bybit'; // Expand based on brokers you use
+type AccountType = 'bingx' | 'binance' | 'okx'; // Expand based on brokers you use
 
 // 2. Nested Object Interfaces
 
@@ -202,8 +204,33 @@ export interface DcaBot {
 
 export type TradingBotUnion = TradingBot | GridBot | DcaBot;
 
+export interface Trade {
+    _id: string;
+    bot: string; // ObjectId string
+    symbol: string;
+    type: 'BUY' | 'SELL';
+    entryPrice: number;
+    exitPrice?: number; // Optional as open trades might not have it yet
+    quantity: number;
+    profit?: number;
+    duration?: number;
+    timestamp: string; // Date comes as ISO string from JSON
+}
+
 // 4. API Response Wrapper
 export interface BotApiResponse {
     success: boolean;
-    bot: TradingBot;
+    bot: TradingBotUnion;
+    metrics?: {
+        roi: string;
+        winRate: string;
+        drawdown: string;
+        profitFactor: string;
+        sharpe: string;
+        totalTrades: number;
+        pnlValue: string;
+    };
+    // UPDATED: No more 'any', specific Trade type
+    trades?: Trade[];
+    defaultStrategyParams: StrategyConfig
 }

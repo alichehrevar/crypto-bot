@@ -16,19 +16,24 @@ import { getData } from "@/actions/get";
 import LogsConsole from "@/components/users/LogsConsole";
 
 // --- Types ---
-import {BotApiResponse, TradingBot as TechnicalBot} from "@/types/bots/botDetails";
-import type { GridBot } from "@/types/bots/botDetails";
-import type { DcaBot } from "@/types/bots/botDetails"; // Imported the new type
+import {
+    BotApiResponse,
+    TradingBotUnion,
+    TradingBot as TechnicalBot,
+    GridBot,
+    DcaBot,
+    Trade
+} from "@/types/bots/botDetails";
+import {StrategyConfig} from "@/types/bots/defaultStrategyParams";
 
-// Discriminated Union
-type ApiBot = TechnicalBot | GridBot | DcaBot;
+// --- View Models for UI ---
 
 interface TradeViewModel {
     time: string;
     side: 'BUY' | 'SELL';
     price: string;
     status: 'FILLED' | 'REJECTED' | 'PENDING';
-    pnl: string | null;
+    pnl: string;
 }
 
 interface BotViewModel {
@@ -44,7 +49,7 @@ interface BotViewModel {
     mode: string;
     direction: string;
     riskStrategy: string;
-    indicators: { name: string; tf: string; params: string }[];
+    indicators: { name: string; tf: string; params: Record<string, string | number> }[];
     securityIndicator: string;
     riskParams: string;
     botTPSL: string;
@@ -61,8 +66,6 @@ interface BotViewModel {
     };
 }
 
-// --- Component ---
-
 interface BotDetailsPageProps {
     botId: string;
     userId: string;
@@ -72,39 +75,48 @@ const BotDetailsPage = ({ botId }: BotDetailsPageProps) => {
     const router = useRouter();
     const { addToast } = useToast();
 
+    // State
     const [bot, setBot] = useState<BotViewModel | null>(null);
+    const [tradesList, setTradesList] = useState<TradeViewModel[]>([]); // Typed Ledger
+    const [strategyParams, setStrategyParams] = useState<StrategyConfig>()
     const [isLoading, setIsLoading] = useState(true);
     const [refreshTrigger, setRefreshTrigger] = useState(0);
 
+    // Filters & Pagination
     const [ledgerFilter, setLedgerFilter] = useState({
         buy: true,
         sell: true,
         filled: true,
         rejected: true
     });
-
     const [tradePage, setTradePage] = useState(1);
+    const ITEMS_PER_PAGE = 10;
 
     const fetchBotData = useCallback(async () => {
         setIsLoading(true);
         try {
+            // GENERIC TYPE ENFORCEMENT
             const res: BotApiResponse = await getData(`/bots/${botId}`);
 
             if (res.success && res.bot) {
-                const apiBot: ApiBot = res.bot as ApiBot;
+                const apiBot: TradingBotUnion = res.bot;
+                const metrics = res.metrics;
 
-                // --- MAPPING VARIABLES ---
+                setStrategyParams(res.defaultStrategyParams)
+
+                // --- MAPPING LOGIC ---
                 let investment = "-";
                 let botTPSL = "-";
                 let posTPSL = "Dynamic";
                 let riskParams = "-";
                 let direction = "-";
-                let activeIndicators: { name: string; tf: string; params: string }[] = [];
+                let activeIndicators: { name: string; tf: string; params: Record<string, string | number> }[] = [];
                 let botTypeLabel = "UNKNOWN";
                 let tradingMode = "SPOT";
 
                 // 1. Technical / Indicator Bot
-                if (apiBot.botType === 'indicator') {
+                if (apiBot.botType === 'indicator' || apiBot.botType === 'technical') {
+                    // Cast is safe due to discriminated union check
                     const b = apiBot as TechnicalBot;
                     botTypeLabel = "TECHNICAL";
 
@@ -117,9 +129,19 @@ const BotDetailsPage = ({ botId }: BotDetailsPageProps) => {
 
                     if (b.indicators && b.indicators.length > 0) {
                         activeIndicators = b.indicators.map((ind) => {
-                            const indicatorWithParams = ind as typeof ind & { params?: Record<string, unknown> };
-                            const p = indicatorWithParams.params ? JSON.stringify(indicatorWithParams.params) : '-';
-                            return { name: ind.name, tf: ind.timeframe, params: p };
+                            // 1. Define strict type for the strategy params lookup
+                            const strategies = res.defaultStrategyParams as unknown as Record<string, Record<string, string | number>>;
+
+                            // 2. Look for params in the strategy defaults matching the indicator name
+                            // (Fallback to empty object if not found)
+                            const matchedParams = strategies[ind.name] || {};
+
+                            return {
+                                name: ind.name,
+                                tf: ind.timeframe,
+                                // 3. Assign the object directly
+                                params: matchedParams
+                            };
                         });
                     }
                 }
@@ -144,12 +166,10 @@ const BotDetailsPage = ({ botId }: BotDetailsPageProps) => {
 
                     direction = "NEUTRAL";
                 }
-                // 3. DCA Bot (UPDATED)
+                // 3. DCA Bot
                 else if (apiBot.botType === 'dca') {
                     const b = apiBot as DcaBot;
                     botTypeLabel = "DCA";
-
-                    // Mode
                     tradingMode = b.marketType || '-';
 
                     // Investment: Base + (Safety * MaxSafety)
@@ -160,17 +180,15 @@ const BotDetailsPage = ({ botId }: BotDetailsPageProps) => {
                     investment = totalInv > 0 ? `$${totalInv.toLocaleString()}` : '-';
 
                     // TP/SL
-                    // Prioritize percentage, fallback to absolute, then dash
                     const tp = b.takeProfitPercent ?? b.takeProfit ?? '-';
                     const sl = b.stopLossPercent ?? '-';
                     botTPSL = `${tp}% / ${sl}%`;
 
-                    // Risk Params: Max Safety Orders | Volume Scale | Step Scale
+                    // Risk Params
                     const volScale = b.volumeScale ?? '-';
                     const stepScale = b.stepScale ?? '-';
                     riskParams = `Max SO: ${maxSafety} | Vol: ${volScale} | Step: ${stepScale}`;
 
-                    // Direction
                     direction = b.direction || "LONG";
                 }
 
@@ -181,7 +199,6 @@ const BotDetailsPage = ({ botId }: BotDetailsPageProps) => {
                     type: botTypeLabel,
                     symbol: apiBot.symbol,
                     tradingMode: tradingMode,
-                    // Map active boolean to string status, checking for specific string status in DCA
                     status: apiBot.active ? 'ACTIVE' : 'PAUSED',
                     exchange: apiBot.accountType ? apiBot.accountType.toUpperCase() : '-',
                     marketType: apiBot.mode === 'live' ? 'REAL MONEY' : 'PAPER TRADING',
@@ -198,17 +215,28 @@ const BotDetailsPage = ({ botId }: BotDetailsPageProps) => {
                     maxLoss: "-",
 
                     metrics: {
-                        roi: "-",
-                        winRate: "-",
-                        drawdown: "-",
-                        profitFactor: "-",
-                        sharpe: "-",
-                        totalTrades: 0,
-                        pnlValue: apiBot.cumulativePnL !== undefined
-                            ? `${apiBot.cumulativePnL.toFixed(2)}`
-                            : "0.00"
+                        roi: metrics?.roi ? `${metrics.roi}%` : "0.00%",
+                        winRate: metrics?.winRate ? `${metrics.winRate}%` : "0.00%",
+                        drawdown: metrics?.drawdown ? `${metrics.drawdown}%` : "0.00%",
+                        profitFactor: metrics?.profitFactor || "0.00",
+                        sharpe: metrics?.sharpe || "0.00",
+                        totalTrades: metrics?.totalTrades || 0,
+                        pnlValue: metrics?.pnlValue || "0.00"
                     }
                 };
+
+                // --- TRADE LEDGER MAPPING ---
+                // Strictly typed mapping from res.trades (Trade[])
+                if (res.trades && Array.isArray(res.trades)) {
+                    const mappedTrades: TradeViewModel[] = res.trades.map((t: Trade) => ({
+                        time: new Date(t.timestamp).toLocaleString(),
+                        side: t.type, // 'BUY' | 'SELL'
+                        price: t.entryPrice.toFixed(2),
+                        status: t.exitPrice ? 'FILLED' : 'PENDING',
+                        pnl: t.profit !== undefined ? t.profit.toFixed(2) : '0.00'
+                    }));
+                    setTradesList(mappedTrades);
+                }
 
                 setBot(mappedBot);
             } else {
@@ -226,10 +254,11 @@ const BotDetailsPage = ({ botId }: BotDetailsPageProps) => {
         fetchBotData();
     }, [fetchBotData, refreshTrigger]);
 
-    // Trade Logic - Placeholder (This will be fetched from an API later)
-    const paginatedTrades: TradeViewModel[] = [];
-    const totalTradePages = 0;
     const handleKill = () => addToast({ title: "Alert", message: "Signal sent.", type: "error" });
+
+    // Client-side Pagination
+    const totalTradePages = Math.ceil(tradesList.length / ITEMS_PER_PAGE);
+    const paginatedTrades = tradesList.slice((tradePage - 1) * ITEMS_PER_PAGE, tradePage * ITEMS_PER_PAGE);
 
     if (isLoading) return <div className="h-[80vh] flex items-center justify-center"><Loader2 className="animate-spin" /></div>;
     if (!bot) return null;
@@ -251,9 +280,9 @@ const BotDetailsPage = ({ botId }: BotDetailsPageProps) => {
                     </h1>
                     <div className="text-[10px] text-zinc-500 uppercase tracking-widest flex gap-2 mt-1">
                         {bot.id} <span className="text-zinc-700">{'//'}</span>
-                        <Badge variant={bot.type.toLowerCase() as string}>{bot.type}</Badge> <span className="text-zinc-700">{'//'}</span>
+                        <Badge variant={bot.type.toLowerCase()}>{bot.type}</Badge> <span className="text-zinc-700">{'//'}</span>
                         {bot.symbol} <span className="text-zinc-700">{'//'}</span>
-                        <Badge variant={bot.tradingMode.toLowerCase() as string}>{bot.tradingMode}</Badge>
+                        <Badge variant={bot.tradingMode.toLowerCase()}>{bot.tradingMode}</Badge>
                     </div>
                 </div>
                 <div className="ml-auto flex gap-2">
@@ -286,11 +315,34 @@ const BotDetailsPage = ({ botId }: BotDetailsPageProps) => {
                             <div className="text-[10px] text-zinc-500 uppercase font-bold mb-2">Active Indicators</div>
                             <div className="space-y-2">
                                 {bot.indicators.length > 0 ? bot.indicators.map((ind, i) => (
-                                    <div key={i} className="flex justify-between bg-zinc-900 p-2 rounded-sm border border-zinc-800">
-                                        <span className="font-bold text-white">{ind.name} <span className="text-zinc-500 font-normal">({ind.tf})</span></span>
-                                        <span className="font-mono text-zinc-400 text-[10px] overflow-hidden text-ellipsis ml-2">{ind.params}</span>
+                                    <div key={i} className="flex flex-col bg-zinc-900 p-1.5 rounded-sm border border-zinc-800 gap-2">
+                                        {/* Indicator Header */}
+                                        <div className="flex justify-between items-center">
+                                            <span className="font-bold text-white text-xs">
+                                                {ind.name} <span className="text-zinc-500 font-normal">({ind.tf})</span>
+                                            </span>
+                                            <div className="flex items-center">
+                                                {Object.entries(ind.params).length > 0 ? (
+                                                    Object.entries(ind.params).map(([key, value], j) => (
+                                                        <div key={j} className="flex items-center text-[10px] bg-black/40 border border-zinc-800 rounded px-1.5 py-0.5">
+                                                            <span className="text-zinc-500 mr-1.5 capitalize">
+                                                                {/* Format camelCase to spaces (optional, looks cleaner) */}
+                                                                {key.replace(/([A-Z])/g, ' $1').trim()}:
+                                                            </span>
+                                                            <span className="font-mono text-emerald-400">
+                                                                {value}
+                                                            </span>
+                                                        </div>
+                                                    ))
+                                                ) : (
+                                                    <span className="text-zinc-600 italic text-[10px]">- Default Config -</span>
+                                                )}
+                                            </div>
+                                        </div>
                                     </div>
-                                )) : <div className="text-zinc-600 italic font-mono">- No indicators -</div>}
+                                )) : (
+                                    <div className="text-zinc-600 italic font-mono">- No indicators -</div>
+                                )}
                             </div>
                         </div>
 
@@ -361,8 +413,24 @@ const BotDetailsPage = ({ botId }: BotDetailsPageProps) => {
                             </tr>
                             </thead>
                             <tbody className="divide-y divide-zinc-900">
-                            {paginatedTrades.length === 0 && (
+                            {paginatedTrades.length === 0 ? (
                                 <tr><td colSpan={5} className="py-8 text-center text-zinc-600 italic">No trade data available</td></tr>
+                            ) : (
+                                paginatedTrades.map((trade, idx) => (
+                                    <tr key={idx} className="hover:bg-zinc-900/50 transition-colors">
+                                        <td className="py-3 pl-2 border-b border-zinc-900/50 text-zinc-400">{trade.time}</td>
+                                        <td className="py-3 border-b border-zinc-900/50">
+                                            <span className={`text-[10px] px-1.5 py-0.5 rounded-sm font-bold ${trade.side === 'BUY' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}`}>
+                                                {trade.side}
+                                            </span>
+                                        </td>
+                                        <td className="py-3 border-b border-zinc-900/50 text-white">{trade.price}</td>
+                                        <td className="py-3 border-b border-zinc-900/50 text-zinc-500 text-[10px] uppercase">{trade.status}</td>
+                                        <td className={`py-3 pr-2 border-b border-zinc-900/50 text-right font-bold ${parseFloat(trade.pnl) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                            {parseFloat(trade.pnl) >= 0 ? '+' : ''}{trade.pnl}
+                                        </td>
+                                    </tr>
+                                ))
                             )}
                             </tbody>
                         </table>
