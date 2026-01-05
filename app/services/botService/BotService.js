@@ -27,12 +27,18 @@ class BotService {
 
     /** Load all active bots at startup */
     async initialize() {
+        console.log('[BotService] Initializing...');
         const bots = await BotBase.find({ active: true });
+        console.log(`[BotService] Found ${bots.length} active bots.`);
         for (const bot of bots) this.registerBot(bot);
+        console.log('[BotService] Initialization complete.');
     }
 
     /** Register a brand-new bot in memory */
     registerBot(bot) {
+        const logger = botLogger.getLogger(bot._id.toString());
+        this._log(logger, 'info', `Registering bot ${bot.name} (${bot.symbol})`, bot).catch(err => console.error(err));
+
         const key = `${bot.symbol.toUpperCase()}-${bot._id}`;
         if (!this.activeBots.has(key)) this.activeBots.set(key, []);
         this.activeBots.get(key).push(bot);
@@ -40,6 +46,9 @@ class BotService {
 
     /** Update an existing bot in memory */
     updateBot(updated) {
+        const logger = botLogger.getLogger(updated._id.toString());
+        this._log(logger, 'info', `Updating bot ${updated.name} (${updated.symbol})`, updated).catch(err => console.error(err));
+
         const key = `${updated.symbol.toUpperCase()}-${updated.timeframe.toLowerCase()}`;
         if (!this.activeBots.has(key)) return;
         const arr = this.activeBots.get(key);
@@ -50,6 +59,9 @@ class BotService {
 
     /** Deactivate a bot */
     deactivateBot(bot) {
+        const logger = botLogger.getLogger(bot._id.toString());
+        this._log(logger, 'info', `Deactivating bot ${bot.name} (${bot.symbol})`, bot).catch(err => console.error(err));
+
         const key = `${bot.symbol.toUpperCase()}-${bot.timeframe.toLowerCase()}`;
         if (!this.activeBots.has(key)) return;
         this.activeBots.set(
@@ -127,6 +139,7 @@ class BotService {
     }
 
     async _log(mongoLogger, level, message, bot, meta = {}) {
+
         // Only log to Mongo if the logger exists
         if (mongoLogger) {
             mongoLogger.log({
@@ -171,6 +184,8 @@ class BotService {
 
         if (bot.botType === 'dca') return;
 
+        console.log(bot, '48917328974013971')
+
         // ——— 1. CHECK IF NEW CANDLE (Log Once per Timeframe) ———
         const lastSeenTime = this._processedCandles.get(botIdStr);
         const currentCandleTime = new Date(candle.timestamp).getTime();
@@ -204,11 +219,15 @@ class BotService {
         const signals = [];
         const indicatorResults = {}; // For detailed logging
 
+        await this._log(logger, 'info', `Starting indicator calculations for ${bot.indicators?.length || 0} indicators`, bot);
+
         for (const cfg of bot.indicators || []) {
             if (!cfg.name || cfg.timeframe.toLowerCase() !== timeframe.toLowerCase()) {
                 signals.push('HOLD');
                 continue;
             }
+
+            await this._log(logger, 'debug', `Processing indicator: ${cfg.name}`, bot);
 
             const p = cfg.params||{};
             let needed = 50;
@@ -232,6 +251,7 @@ class BotService {
             let recent = candleStore.getLatestCandles(symbol, timeframe, needed);
 
             if (recent.length < needed) {
+                await this._log(logger, 'debug', `Fetching historical data for ${cfg.name}. Needed: ${needed}, Available: ${recent.length}`, bot);
                 // Fetch historical only if absolutely needed (expensive op)
                 const more = await this._fetchHistorical(symbol, timeframe, needed - recent.length);
                 recent = more.concat(recent);
@@ -263,6 +283,7 @@ class BotService {
                 signals.push(signal);
 
                 indicatorResults[cfg.name] = signal;
+                await this._log(logger, 'info', `Indicator ${cfg.name} result: ${signal}`, bot);
 
             } catch (err) {
                 await this._log(logger, 'error', `Calc Error [${cfg.name}]: ${err.message}`, bot);
@@ -272,6 +293,8 @@ class BotService {
 
         // ——— Aggregation ———
         const method = bot.tradeInfo?.signalProcessingMethod || 'consensus';
+        await this._log(logger, 'debug', `Aggregating signals using method: ${method}`, bot);
+
         const finalSignal = method === 'weighted'
             ? this._aggregateWeighted(signals)
             : this._aggregateConsensus(signals);
