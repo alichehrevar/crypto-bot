@@ -234,3 +234,47 @@ export interface BotApiResponse {
     trades?: Trade[];
     defaultStrategyParams: StrategyConfig
 }
+
+
+export interface TradeViewModel {
+    time: string;
+    side: 'BUY' | 'SELL';
+    price: string;
+    status: 'FILLED' | 'REJECTED' | 'PENDING';
+    pnl: string;
+}
+
+export interface BotViewModel {
+    id: string;
+    name: string;
+    type: string;
+    symbol: string;
+    tradingMode: string;
+    status: 'ACTIVE' | 'PAUSED';
+    exchange: string;
+    marketType: string;
+    investment: string;
+    mode: string;
+    direction: string;
+    riskStrategy: string;
+    indicators: { name: string; tf: string; params: Record<string, string | number> }[];
+    securityIndicator: string;
+    riskParams: string;
+    botTPSL: string;
+    posTPSL: string;
+    maxLoss: string;
+    metrics: {
+        roi: string;
+        winRate: string;
+        drawdown: string;
+        profitFactor: string;
+        sharpe: string;
+        totalTrades: number;
+        pnlValue: string;
+    };
+}
+
+export interface BotDetailsPageProps {
+    botId: string;
+    userId: string;
+}

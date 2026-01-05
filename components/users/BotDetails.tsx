@@ -22,54 +22,9 @@ import {
     TradingBot as TechnicalBot,
     GridBot,
     DcaBot,
-    Trade
+    Trade, BotViewModel, BotDetailsPageProps, TradeViewModel
 } from "@/types/bots/botDetails";
 import {StrategyConfig} from "@/types/bots/defaultStrategyParams";
-
-// --- View Models for UI ---
-
-interface TradeViewModel {
-    time: string;
-    side: 'BUY' | 'SELL';
-    price: string;
-    status: 'FILLED' | 'REJECTED' | 'PENDING';
-    pnl: string;
-}
-
-interface BotViewModel {
-    id: string;
-    name: string;
-    type: string;
-    symbol: string;
-    tradingMode: string;
-    status: 'ACTIVE' | 'PAUSED';
-    exchange: string;
-    marketType: string;
-    investment: string;
-    mode: string;
-    direction: string;
-    riskStrategy: string;
-    indicators: { name: string; tf: string; params: Record<string, string | number> }[];
-    securityIndicator: string;
-    riskParams: string;
-    botTPSL: string;
-    posTPSL: string;
-    maxLoss: string;
-    metrics: {
-        roi: string;
-        winRate: string;
-        drawdown: string;
-        profitFactor: string;
-        sharpe: string;
-        totalTrades: number;
-        pnlValue: string;
-    };
-}
-
-interface BotDetailsPageProps {
-    botId: string;
-    userId: string;
-}
 
 const BotDetailsPage = ({ botId }: BotDetailsPageProps) => {
     const router = useRouter();
@@ -120,8 +75,11 @@ const BotDetailsPage = ({ botId }: BotDetailsPageProps) => {
                     const b = apiBot as TechnicalBot;
                     botTypeLabel = "TECHNICAL";
 
-                    const totalFund = (b.marketInfo?.baseFund || 0) + (b.marketInfo?.tradeFund || 0);
-                    investment = `$${totalFund.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                    investment =
+                        b.mode === 'paper'
+                            ? `$${b.paperBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                            : `$${b.marketInfo?.tradeFund.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                    ;
                     botTPSL = `${b.tradeInfo?.takeProfit ?? '-'}% / ${b.tradeInfo?.stopLoss ?? '-'}%`;
                     posTPSL = `${b.tradeInfo?.positionTakeProfit ?? '-'}% / ${b.tradeInfo?.positionStopLoss ?? '-'}%`;
                     riskParams = b.riskParams?.positionSizingMethod ? `Sizing: ${b.riskParams.positionSizingMethod}` : '-';
