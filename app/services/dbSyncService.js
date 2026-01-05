@@ -50,7 +50,6 @@ function startPollingFallback() {
                 lastId = job._id;
             }
         } catch (err) {
-            logger.error('Polling Error:', err.message);
             console.error('Polling Error:', err.message);
         }
     }, 5000);
