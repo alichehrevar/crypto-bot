@@ -149,8 +149,10 @@ class BotFactoryDeployment {
             tradeInfo: {
                 takeProfit: Number(data.takeProfit),
                 stopLoss: Number(data.stopLoss),
-                leverageLong: Number(data.leverageLong) || 1,
-                leverageShort: Number(data.leverageShort) || 1,
+                positionTakeProfit: Number(data.positionTakeProfit),
+                positionStopLoss: Number(data.positionStopLoss),
+                leverageLong: data.marketType.toLowerCase() === 'futures' ? (Number(data.leverageLong) || 1) : 1,
+                leverageShort: data.marketType.toLowerCase() === 'futures' ? (Number(data.leverageShort) || 1) : 1,
                 // Add optimization fields if needed from payload
             },
             indicators: formattedIndicators,

@@ -2,6 +2,7 @@
 
 const BotFactoryDeployment = require('../../services/botService/BotFactoryDeployment');
 const BotBase        = require('../../models/BotBase');
+const BotMetrics        = require('../../metrics/BotMetrics');
 const IndicatorBot   = require('../../models/IndicatorBot');
 const GridBotModel   = require('../../models/GridBotModel');
 const User           = require('../../models/User');
@@ -464,10 +465,29 @@ async function calculateRelatedDataToBot (bot) {
  */
 exports.getBotById = async (req, res) => {
     try {
-        // req.botBase is guaranteed to exist by the middleware
-        return res.json({ success: true, bot: req.botBase });
+        const bot = req.botBase; // Provided by bindBot middleware
+
+        // Fetch trades strictly matching the schema
+        // Sorted by timestamp ascending for correct metric calculation logic
+        const trades = await Trade.find({ bot: bot._id })
+            .sort({ timestamp: 1 })
+            .lean();
+
+        const metrics = BotMetrics.calculateBotMetrics(bot, trades);
+
+        // Reverse for display (Newest first in the UI table)
+        const displayTrades = [...trades].reverse();
+
+        return res.json({
+            success: true,
+            bot: bot,
+            metrics: metrics,
+            trades: displayTrades,
+            defaultStrategyParams
+        });
+
     } catch (err) {
-        logger.error(`getBotById error: ${err.message}`, { stack: err.stack });
+        // Log logic...
         return res.status(500).json({ success: false, error: err.message });
     }
 };
@@ -951,3 +971,5 @@ exports.downloadBotLogs = async (req, res) => {
         }
     }
 };
+
+
