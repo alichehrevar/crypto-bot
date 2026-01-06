@@ -54,7 +54,7 @@ class BotLoggerService {
                 }),
 
                 // 2. FILE TRANSPORT (Cold Data / Backup)
-                // - Keeps 14 days of history
+                // - Keeps 4 hours of history
                 // - Auto-rotates files daily
                 // - Zips old files to save disk space
                 // - Path: logs/reports/bots/654a...-2026-01-02.log
@@ -63,7 +63,7 @@ class BotLoggerService {
                     datePattern: 'YYYY-MM-DD',
                     zippedArchive: true, // Compress old logs
                     maxSize: '20m',      // Rotate if a single file hits 20MB
-                    maxFiles: '14d',     // Delete files older than 14 days
+                    maxFiles: '4h',     // Delete files older than 4 hours
                     format: format.combine(
                         format.timestamp(),
                         format.json()    // Save as JSON for easier parsing/debugging later
