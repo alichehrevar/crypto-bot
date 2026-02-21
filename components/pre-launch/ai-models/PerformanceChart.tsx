@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Activity, Bot, Sparkles, Zap, MessageSquare, Box } from 'lucide-react';
+import { Activity, Bot, Sparkles, Zap, MessageSquare, Box, Clock, Coins, RefreshCw, Banknote } from 'lucide-react';
 
 // --- Types ---
 type MetricType = 'returns' | 'equity' | 'win_rate';
@@ -21,7 +21,7 @@ const models: ModelData[] = [
         id: 'deepseek',
         name: 'DeepSeek',
         version: 'V5',
-        color: 'bg-indigo-500',
+        color: 'bg-emerald-400',
         returns: 46.31,
         equity: 14.631,
         winRate: 30.31,
@@ -30,8 +30,8 @@ const models: ModelData[] = [
         id: 'qwen',
         name: 'Qwen',
         version: '3 Max',
-        color: 'bg-violet-600',
-        returns: 68.20, // inferred positive
+        color: 'bg-emerald-400',
+        returns: 68.20,
         equity: 16.5,
         winRate: 35.0,
     },
@@ -75,15 +75,15 @@ const models: ModelData[] = [
 
 // --- Icons Component ---
 const ModelIcon = ({ id }: { id: string }) => {
-    const commonClasses = "w-5 h-5 text-white";
+    const commonClasses = "w-4 h-4 text-white";
 
     switch (id) {
-        case 'deepseek': return <div className="bg-blue-600 p-1 rounded-full"><Bot className={commonClasses} /></div>;
-        case 'qwen': return <div className="bg-violet-600 p-1 rounded-full"><Zap className={commonClasses} /></div>;
-        case 'claude': return <div className="bg-orange-700 p-1 rounded-full"><MessageSquare className={commonClasses} /></div>;
-        case 'grok': return <div className="bg-gray-700 p-1 rounded-full"><Box className={commonClasses} /></div>;
-        case 'gemini': return <div className="bg-blue-400 p-1 rounded-full"><Sparkles className={commonClasses} /></div>;
-        case 'gpt': return <div className="bg-emerald-600 p-1 rounded-full"><Activity className={commonClasses} /></div>;
+        case 'deepseek': return <div className="bg-blue-600 p-1.5 rounded-full"><Bot className={commonClasses} /></div>;
+        case 'qwen': return <div className="bg-violet-600 p-1.5 rounded-full"><Zap className={commonClasses} /></div>;
+        case 'claude': return <div className="bg-orange-700 p-1.5 rounded-full"><MessageSquare className={commonClasses} /></div>;
+        case 'grok': return <div className="bg-gray-700 p-1.5 rounded-full"><Box className={commonClasses} /></div>;
+        case 'gemini': return <div className="bg-linear-to-tr from-blue-400 to-purple-400 p-1.5 rounded-full"><Sparkles className={commonClasses} /></div>;
+        case 'gpt': return <div className="bg-emerald-600 p-1.5 rounded-full"><Activity className={commonClasses} /></div>;
         default: return <Bot className={commonClasses} />;
     }
 };
@@ -117,7 +117,8 @@ export default function PerformanceChart() {
         win_rate: {
             label: 'Win rate',
             unit: '%',
-            yAxisSteps: [40, 25, 15, 5, 0],
+            // FIXED: Standardized the linear scale to map height calculations correctly
+            yAxisSteps: [40, 30, 20, 10, 0],
             formatter: (val: number) => `${val.toFixed(2)}%`,
             dataKey: 'winRate' as keyof ModelData,
             title: 'Win rate (%)',
@@ -130,30 +131,17 @@ export default function PerformanceChart() {
 
     // --- Helper to calculate bar height and position ---
     const getBarStyle = (value: number) => {
-        // Normalization logic
         const max = currentConfig.scaleMax;
 
         if (activeMetric === 'returns') {
             const percentage = (Math.abs(value) / 80) * 50;
-
             if (value >= 0) {
-                // Positive: Start from middle (50%), grow up
-                return {
-                    height: `${percentage}%`,
-                    bottom: '50%',
-                    top: 'auto' // Explicitly unset top
-                };
+                return { height: `${percentage}%`, bottom: '50%', top: 'auto' };
             } else {
-                // Negative: Start from middle (50%), grow down
-                return {
-                    height: `${percentage}%`,
-                    top: '50%',
-                    bottom: 'auto' // Explicitly unset bottom
-                };
+                return { height: `${percentage}%`, top: '50%', bottom: 'auto' };
             }
         }
 
-        // For Equity and Win Rate (Standard bottom-up)
         const percentage = (value / max) * 100;
 
         return {
@@ -164,146 +152,168 @@ export default function PerformanceChart() {
     };
 
     return (
-        <div className="text-gray-300 flex items-center justify-center font-sans">
-            <div className="w-full bg-[#121212] rounded-2xl p-8 shadow-2xl relative overflow-hidden">
+        <div className="flex items-center justify-center font-sans">
+            <div className="w-full bg-[#121212] rounded-2xl p-8 md:p-10 shadow-2xl flex flex-col lg:flex-row gap-12 lg:gap-20">
 
-                {/* Header */}
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-12">
-                    <h1 className="text-2xl font-medium text-white mb-6 md:mb-0">Performance</h1>
+                {/* Left Column: Info & Settings */}
+                <div className="w-full lg:w-1/3 flex flex-col">
+                    <h1 className="text-[22px] font-medium text-white mb-6">Performance</h1>
 
-                    {/* Tabs */}
-                    <div className="flex items-center space-x-1">
-                        {(['returns', 'equity', 'win_rate'] as MetricType[]).map((key) => (
-                            <button
-                                key={key}
-                                className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all duration-200 ${activeMetric === key
-                                    ? 'bg-[#F2F3F733] text-white shadow-sm'
-                                    : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50'}
-                                `}
-                                onClick={() => setActiveMetric(key)}
-                            >
-                                {config[key].label}
-                            </button>
-                        ))}
+                    <p className="text-[14px] text-zinc-400 mb-10 leading-relaxed pr-4">
+                        This chart shows how different AI models responded to real historical crypto market conditions — not a forecast of future results.
+                    </p>
+
+                    <div className="space-y-4">
+                        <div className="flex items-center text-[13px]">
+                            <Clock className="w-4 h-4 text-zinc-300 mr-3" strokeWidth={2} />
+                            <span className="font-medium text-zinc-100 mr-2">Performance period:</span>
+                            <span className="text-zinc-500">30 days trailing</span>
+                        </div>
+                        <div className="flex items-center text-[13px]">
+                            <Coins className="w-4 h-4 text-zinc-300 mr-3" strokeWidth={2} />
+                            <span className="font-medium text-zinc-100 mr-2">Base asset:</span>
+                            <span className="text-zinc-500">USDT</span>
+                        </div>
+                        <div className="flex items-center text-[13px]">
+                            <RefreshCw className="w-4 h-4 text-zinc-300 mr-3" strokeWidth={2} />
+                            <span className="font-medium text-zinc-100 mr-2">Rebalance frequency:</span>
+                            <span className="text-zinc-500">Daily</span>
+                        </div>
+                        <div className="flex items-center text-[13px]">
+                            <Banknote className="w-4 h-4 text-zinc-300 mr-3" strokeWidth={2} />
+                            <span className="font-medium text-zinc-100 mr-2">Trading fees:</span>
+                            <span className="text-zinc-500">Included</span>
+                        </div>
                     </div>
                 </div>
 
-                {/* Chart Label */}
-                <div className="text-xs font-medium text-zinc-400 mb-8">
-                    {currentConfig.title}
-                </div>
+                {/* Right Column: Chart & Tabs */}
+                <div className="w-full lg:w-2/3 flex flex-col">
 
-                {/* Chart Area */}
-                <div className="relative w-full h-[400px]">
+                    {/* Header Row for Chart (Title + Tabs) */}
+                    <div className="flex justify-between items-end mb-8 relative z-20">
+                        <div className="text-[13px] font-medium text-zinc-200">
+                            {currentConfig.title}
+                        </div>
 
-                    {/* Y-Axis Grid Lines & Labels */}
-                    <div className="absolute inset-0 flex flex-col justify-between pointer-events-none">
-                        {currentConfig.yAxisSteps.map((step, index) => (
-                            <div key={index} className="relative w-full flex items-center group">
-                                {/* Y-Axis Label */}
-                                <span className="absolute -left-10 text-xs text-zinc-500 font-mono w-8 text-right">
-                                    {step === 0 && activeMetric === 'returns' ? '' : step}
-                                </span>
-
-                                {/* Dashed Line (Only for 0 in Returns, or all base lines) */}
-                                <div
-                                    className={`w-full h-px ${
-                                        activeMetric === 'returns' && step === 0
-                                            ? 'bg-zinc-600 border-t border-dashed border-zinc-500 opacity-50'
-                                            : 'bg-zinc-800/0' // Hidden grid lines to match clean screenshot look, except baseline
-                                    }`}
-                                />
-
-                                {/* Little tick mark for labels */}
-                                <div className="absolute left-0 w-2 h-px bg-zinc-800" />
-                            </div>
-                        ))}
-                    </div>
-
-                    {/* Zero Line for Returns (Center) - Visual Aid */}
-                    {activeMetric === 'returns' && (
-                        <div className="absolute top-1/2 left-0 w-full h-px border-t border-dashed border-zinc-700/50" />
-                    )}
-
-                    {/* Bars Container */}
-                    <div className="absolute inset-0 flex justify-around items-end px-4 z-10">
-                        {models.map((model) => {
-                            const value = model[currentConfig.dataKey] as number;
-                            const style = getBarStyle(value);
-                            const isNegative = value < 0;
-                            const barColor = isNegative ? 'bg-[#ef4444]' : model.color; // Red if negative, else model color
-                            const isHovered = hoveredModel === model.id;
-
-                            // Dynamic Rounding:
-                            // Positive bars round the TOP.
-                            // Negative bars round the BOTTOM.
-                            // Standard bars (Equity/WinRate) always round TOP.
-                            let roundingClass = 'rounded-t-md rounded-b-none';
-
-                            if (activeMetric === 'returns' && isNegative) {
-                                roundingClass = 'rounded-b-md rounded-t-none';
-                            }
-
-                            return (
-                                <div
-                                    key={model.id}
-                                    className="flex flex-col items-center justify-end h-full w-full group relative"
-                                    onMouseEnter={() => setHoveredModel(model.id)}
-                                    onMouseLeave={() => setHoveredModel(null)}
+                        {/* Tabs */}
+                        <div className="flex items-center space-x-1 bg-transparent">
+                            {(['returns', 'equity', 'win_rate'] as MetricType[]).map((key) => (
+                                <button
+                                    key={key}
+                                    className={`px-4 py-1.5 rounded-full text-[13px] font-medium transition-all duration-200 ${activeMetric === key
+                                        ? 'bg-zinc-200 text-black shadow-sm'
+                                        : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50'}
+                                    `}
+                                    onClick={() => setActiveMetric(key)}
                                 >
-                                    {/* Tooltip Popup */}
+                                    {config[key].label}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Chart Area */}
+                    <div className="relative w-full h-80 mt-4">
+
+                        {/* Y-Axis Grid Lines & Labels */}
+                        <div className="absolute inset-0 flex flex-col justify-between pointer-events-none">
+                            {currentConfig.yAxisSteps.map((step, index) => (
+                                <div key={index} className="relative w-full flex items-center group">
+                                    <span className="absolute -left-8 text-[11px] text-zinc-500 font-mono w-6 text-right">
+                                        {step === 0 && activeMetric === 'returns' ? '' : step}
+                                    </span>
+
+                                    {/* FIXED: We now render the 0 baseline explicitly for all tabs to anchor the bars visually */}
                                     <div
-                                        className={`
-                                           absolute z-50 bg-zinc-900 border border-white/10 p-3 rounded-lg shadow-xl w-48
-                                           transition-all duration-200 pointer-events-none mb-4
-                                           ${isHovered ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}
-                                        `}
-                                        style={{
-                                            // Smart positioning for negative vs positive bars
-                                            bottom: activeMetric === 'returns' && isNegative ? 'auto' : `calc(${style.bottom === '50%' ? '50%' : '0%'} + ${parseFloat(style.height)}% + 15px)`,
-                                            top: activeMetric === 'returns' && isNegative ? `calc(50% + ${parseFloat(style.height)}% + 15px)` : 'auto'
-                                        }}
+                                        className={`w-full h-px ${
+                                            step === 0
+                                                ? 'bg-zinc-600 border-t border-dashed border-zinc-600 opacity-50'
+                                                : 'bg-zinc-800/0'
+                                        }`}
+                                    />
+
+                                    <div className="absolute -left-2 w-1.5 h-px bg-zinc-700" />
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Bars Container */}
+                        <div className="absolute inset-0 flex justify-around items-end ml-4 z-10">
+                            {models.map((model) => {
+                                const value = model[currentConfig.dataKey] as number;
+                                const style = getBarStyle(value);
+                                const isNegative = value < 0;
+                                const barColor = isNegative ? 'bg-[#ef4444]' : model.color;
+                                const isHovered = hoveredModel === model.id;
+
+                                let roundingClass = 'rounded-t-lg rounded-b-none';
+
+                                if (activeMetric === 'returns' && isNegative) {
+                                    roundingClass = 'rounded-b-lg rounded-t-none';
+                                }
+
+                                return (
+                                    <div
+                                        key={model.id}
+                                        className="flex flex-col items-center justify-end h-full w-full group relative"
+                                        onMouseEnter={() => setHoveredModel(model.id)}
+                                        onMouseLeave={() => setHoveredModel(null)}
                                     >
-                                        <div className="font-semibold text-white mb-1">{model.name}</div>
-                                        <div className="text-xs text-zinc-400 font-mono">
-                                            {currentConfig.title.split('(')[0]}: <span className={value > 0 ? "text-green-400" : "text-red-400"}>{currentConfig.formatter(value)}</span>
-                                        </div>
-                                    </div>
-
-                                    {/* The Bar Track */}
-                                    <div className="relative w-12 md:w-16 h-full mx-2 flex flex-col justify-end">
-
-                                        {/* The Actual Bar */}
+                                        {/* Tooltip Popup */}
                                         <div
                                             className={`
-                                                w-full transition-all duration-500 ease-out overflow-hidden group-hover:brightness-110 group-hover:cursor-context-menu
-                                                ${barColor}
-                                                ${roundingClass}
-                                                ${activeMetric === 'returns' ? 'absolute left-0 right-0' : 'relative'}
+                                               absolute z-50 bg-[#121212] border border-white/10 p-3 rounded-xl shadow-xl w-40
+                                               transition-all duration-200 pointer-events-none
+                                               ${isHovered ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}
                                             `}
-                                            style={style}
+                                            style={{
+                                                bottom: activeMetric === 'returns' && isNegative ? 'auto' : `calc(${style.bottom === '50%' ? '50%' : '0%'} + ${parseFloat(style.height)}% + 15px)`,
+                                                top: activeMetric === 'returns' && isNegative ? `calc(50% + ${parseFloat(style.height)}% + 15px)` : 'auto'
+                                            }}
                                         >
-                                            {/* Gradient sheen effect */}
-                                            <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
+                                            <div className="font-semibold text-white text-[13px] mb-1">{model.name}</div>
+                                            <div className="text-[11px] text-zinc-400">
+                                                {currentConfig.title.split('(')[0]}: <span className={value > 0 ? "text-white font-medium" : "text-white font-medium"}>{currentConfig.formatter(value)}</span>
+                                            </div>
                                         </div>
-                                    </div>
 
-                                    {/* X-Axis Label (Logo + Name) - Positioned below the chart area */}
-                                    <div className="absolute -bottom-20 flex flex-col items-center space-y-2 opacity-80 group-hover:opacity-100 transition-opacity z-20">
-                                        <ModelIcon id={model.id} />
-                                        <div className="text-center">
-                                            <div className="text-xs font-medium text-zinc-300">{model.name}</div>
-                                            <div className="text-[10px] text-zinc-500 font-mono">{model.version}</div>
+                                        {/* The Bar */}
+                                        <div className="relative w-10 md:w-14 h-full mx-1 flex flex-col justify-end">
+                                            <div
+                                                className={`
+                                                    w-full transition-all duration-500 ease-out overflow-hidden cursor-pointer
+                                                    ${barColor}
+                                                    ${roundingClass}
+                                                    ${activeMetric === 'returns' ? 'absolute left-0 right-0' : 'relative'}
+                                                `}
+                                                style={style}
+                                            >
+                                                {isHovered && activeMetric === 'returns' && (
+                                                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-50">
+                                                        <div className="w-0 h-0 border-t-[6px] border-t-transparent border-l-10 border-l-white border-b-[6px] border-b-transparent ml-1" />
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {/* FIXED: Changed from absolute -bottom-16 to absolute top-full pt-4 to strictly enforce the gap below the bars */}
+                                        <div className="absolute top-full pt-4 flex flex-col items-center space-y-2.5 z-20">
+                                            <ModelIcon id={model.id} />
+                                            <div className="text-center">
+                                                <div className="text-[11px] font-medium text-zinc-300">{model.name}</div>
+                                                <div className="text-[10px] text-zinc-500">{model.version}</div>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            );
-                        })}
+                                );
+                            })}
+                        </div>
                     </div>
-                </div>
 
-                {/* Legend/Footer Area (Spacer for labels) */}
-                <div className="h-16 w-full border-t border-white/5" />
+                    {/* Adjusted margin to safely contain the relocated labels */}
+                    <div className="w-full h-px bg-zinc-800/60 mt-25" />
+                </div>
 
             </div>
         </div>
