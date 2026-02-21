@@ -3,7 +3,7 @@
 const axios  = require('axios');
 const BotBase    = require('../../models/BotBase');
 const Trade      = require('../../models/Trade'); // ADDED: Required for DB updates
-const { N8nJobResponse_CustomAiDB } = require('../../models/N8nJobResponse');
+const { CustomAIWorkflowJob_DefaultDB } = require('../../models/N8nWorkflowJob');
 const Indicators = require('../../strategies/technical');
 const candleStore = require('../../../utils/candleStore');
 const wsServer     = require('../WebSocketServer');
@@ -330,60 +330,36 @@ class BotService {
     /** Helper: Fetch and Cache N8n Code */
     async _getN8nCode(jobId) {
         const serviceLogger = botLogger.getLogger('BotService');
-        await this._log(serviceLogger, 'info', 'Fetching N8N code from cache or database', null, {
-            jobId: jobId
-        });
+        await this._log(serviceLogger, 'info', 'Fetching N8N code from cache or database', null, { jobId });
 
         if (this._n8nCodeCache.has(jobId)) {
-            await this._log(serviceLogger, 'debug', 'N8N code found in cache', null, {
-                jobId: jobId,
-                cacheSize: this._n8nCodeCache.size
-            });
             return this._n8nCodeCache.get(jobId);
         }
 
-        await this._log(serviceLogger, 'debug', 'N8N code not in cache, querying database', null);
-
         try {
-            const job = await N8nJobResponse_CustomAiDB.findById(jobId);
+            // 1. Fetch from the DEFAULT DB where dbSyncService saved it
+            const job = await CustomAIWorkflowJob_DefaultDB.findById(jobId);
 
             if (!job) {
-                await this._log(serviceLogger, 'warn', 'N8N job not found in database', null, {
-                    jobId: jobId
-                });
+                await this._log(serviceLogger, 'warn', 'N8N job not found in Default DB', null, { jobId });
                 return null;
             }
 
-            if (!job.generatedCode || !job.generatedCode.fullCode) {
-                await this._log(serviceLogger, 'warn', 'N8N job found but no generated code available', null, {
-                    jobId: jobId,
-                    hasGeneratedCode: !!job.generatedCode,
-                    hasFullCode: !!(job.generatedCode?.fullCode)
-                });
+            // 2. Safely extract the code (Handling both 'code' and 'fullCode' keys)
+            const generatedCode = job.responsePayload?.generatedCode;
+            const code = generatedCode?.code || generatedCode?.fullCode;
+
+            if (!code) {
+                await this._log(serviceLogger, 'warn', 'Job found but no generated code available', null, { jobId });
                 return null;
             }
-
-            const code = job.generatedCode.fullCode;
-            await this._log(serviceLogger, 'debug', 'N8N code retrieved from database, adding to cache', null, {
-                jobId: jobId,
-                codeLength: code.length
-            });
 
             this._n8nCodeCache.set(jobId, code);
-
-            await this._log(serviceLogger, 'info', 'N8N code successfully cached', null, {
-                jobId: jobId,
-                newCacheSize: this._n8nCodeCache.size
-            });
+            await this._log(serviceLogger, 'info', 'N8N code successfully cached', null, { jobId });
 
             return code;
         } catch (err) {
-            await this._log(serviceLogger, 'error', `Failed to fetch N8N Job ${jobId}: ${err.message}`, null, {
-                jobId: jobId,
-                error: err.message,
-                stack: err.stack
-            });
-            console.error(`[BotService] Failed to fetch N8n Job ${jobId}:`, err);
+            await this._log(serviceLogger, 'error', `Failed to fetch N8N Job ${jobId}: ${err.message}`);
             return null;
         }
     }

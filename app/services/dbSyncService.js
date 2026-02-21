@@ -113,11 +113,20 @@ async function autoDeployBot(n8nJob) {
         const inputParams = n8nJob.requestPayload || {};
 
         let symbol = inputParams.backtestSymbol || "BTC/USDT";
+
+        // --- Symbol Normalization Fix ---
+        // AI returns "BTCUSDT". We must convert it to "BTC/USDT" for the WebSockets.
+        if (!symbol.includes('/') && symbol.endsWith('USDT')) {
+            symbol = symbol.replace('USDT', '/USDT');
+        } else if (!symbol.includes('/') && symbol.endsWith('USDC')) {
+            symbol = symbol.replace('USDC', '/USDC');
+        }
+
         const timeframe = inputParams.backtestInterval || "15m";
         const requestID = n8nJob.responsePayload?.requestID || Date.now();
         const botName = `AI-Bot-${requestID}`;
 
-        console.log(`🚀 Auto-Deploying Bot: ${botName}...`);
+        console.log(`🚀 Auto-Deploying Bot: ${botName} for ${symbol}...`);
 
         let accountId;
         let accountType = 'n8n';
