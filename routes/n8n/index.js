@@ -26,4 +26,6 @@ router.get('/status/:id', authenticate, n8nController.getJobStatus);
 
 router.post('/simulate-import', n8nController.simulateImport);
 
+router.post('/webhook/ai-completed', n8nController.aiWebhookCallback);
+
 module.exports = router;

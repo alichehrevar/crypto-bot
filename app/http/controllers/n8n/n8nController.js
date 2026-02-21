@@ -1,6 +1,8 @@
 const mongoose = require('mongoose');
 const { N8nWorkflowJob_CustomAiDB } = require('../../../models/N8nWorkflowJob');
 const n8nService = require('../../../services/n8nService');
+const BotFactoryDeployment = require('../../../services/botService/BotFactoryDeployment');
+const BotService = require('../../../services/botService/BotService');
 const logger = require("../../../../logs/logger");
 
 async function triggerAsync(req, res) {
@@ -134,4 +136,95 @@ async function simulateImport (req, res) {
     }
 }
 
-module.exports = { triggerAsync, promptSubmission, getJobStatus, simulateImport };
+/**
+ * NEW: Webhook receiver for N8N.
+ * N8N sends a POST request here when it finishes a job.
+ */
+async function aiWebhookCallback(req, res) {
+    const { jobId, responsePayload, accountId, marketType } = req.body;
+
+    if (!jobId || !responsePayload) {
+        return res.status(400).json({ error: 'jobId and responsePayload are required.' });
+    }
+
+    try {
+        logger.info(`[N8N Webhook] Received completion payload for job ${jobId}`);
+
+        // 1. Process and save the AI response using your existing service
+        const job = await n8nService.completeJob(jobId, responsePayload);
+
+        // 2. Fetch the newly saved response to extract parameters
+        const aiResponse = await CustomAIJobResponse_DefaultDB.findById(job.response);
+        if (!aiResponse) {
+            throw new Error('AI response not found in default DB after saving.');
+        }
+
+        // Extract settings from the AI's parsed input
+        const symbol = aiResponse.input?.backtestSymbol || 'BTC/USDT';
+        const timeframe = aiResponse.input?.backtestInterval || '15m';
+
+        // Ensure we have the user ID who initiated the job
+        const userId = job.user || req.user?.id;
+
+        if (!userId) throw new Error('Cannot deploy bot: Missing User ID association.');
+
+        // 3. Build the Bot Configuration dynamically
+        // Note: accountId and marketType should ideally be passed back by N8N
+        // (which you can pass to N8N when you first trigger the workflow)
+        const botPayload = {
+            name: `AI Bot - ${symbol} (${new Date().toISOString().split('T')[0]})`,
+            symbol: symbol,
+            timeframe: timeframe,
+            botType: 'technical',
+            // FALLBACKS: You must ensure an accountId is provided either in req.body or job metadata
+            accountId: accountId || job.metadata?.accountId,
+            marketType: marketType || 'SPOT',
+            mode: 'paper', // Default to paper for safety on auto-deployment
+            paperBalance: 10000,
+            active: true, // Start immediately
+            indicators: [
+                {
+                    name: 'N8NBotRunner',
+                    timeframe: timeframe,
+                    params: {
+                        jobId: aiResponse._id.toString(), // Link to the exact code response
+                        windowSize: 100
+                    }
+                }
+            ],
+            riskStrategy: 'SimpleStrategy',
+            riskParams: { positionSizeType: 'percentage', positionSizeValue: 1 },
+            marketInfo: { state: 'active', tradeFund: 50 },
+            tradeInfo: { signalProcessingMethod: 'consensus' }
+        };
+
+        if (!botPayload.accountId) {
+            throw new Error('Cannot deploy bot: Missing Exchange accountId. Pass accountId to the webhook.');
+        }
+
+        logger.info(`[N8N Webhook] Deploying new AI bot for ${symbol}...`);
+
+        // 4. Delegate creation to Factory (Saves to DB)
+        const newBot = await BotFactoryDeployment.createBot('technical', botPayload, userId);
+
+        // 5. Inject into Live Memory (No server restart required!)
+        if (newBot.active) {
+            BotService.registerBot(newBot);
+
+            // Note: If you are using OKX or BingX, you should trigger their WS subscriptions here
+            // e.g., bingXWS.subscribe(newBot.symbol.replace('/', '-'), newBot.timeframe);
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: 'AI Workflow completed and Bot successfully deployed!',
+            bot: newBot
+        });
+
+    } catch (error) {
+        logger.error(`[N8N Webhook] Auto-Deployment Error: ${error.message}`);
+        return res.status(500).json({ success: false, error: error.message });
+    }
+}
+
+module.exports = { triggerAsync, promptSubmission, getJobStatus, simulateImport, aiWebhookCallback };
