@@ -1,3 +1,5 @@
+// app/services/dbSyncService.js
+
 const mongoose = require('mongoose');
 const {
     CustomAIWorkflowJob_DefaultDB,
@@ -5,13 +7,17 @@ const {
 } = require('../models/N8nWorkflowJob');
 
 const BotBase = require('../models/BotBase');
-const TechnicalBotModel = require('../models/TechnicalBotModel'); // ADDED: Specific model for validation
+const TechnicalBotModel = require('../models/TechnicalBotModel');
 const BotService = require('./botService/BotService');
 const Account = require('../models/Account');
 const logger = require("../../logs/logger");
 
 const customDbConnection = N8nWorkflowJob_CustomAiDB.db;
-let lastId = null;
+
+// Dynamically create a model for AiModel collection using strict: false
+// so we can read it without needing a strict schema file
+const AiModelSchema = new mongoose.Schema({}, { strict: false, collection: 'AiModel' });
+const AiModel_CustomAiDB = customDbConnection.model('AiModel', AiModelSchema);
 
 async function syncImportedJobs() {
     console.log('🔄 Sync Service: Initializing...');
@@ -21,44 +27,53 @@ async function syncImportedJobs() {
         console.log('✅ Sync Service: CustomAiDB Connected!');
     }
 
-    const latestDoc = await N8nWorkflowJob_CustomAiDB.findOne().sort({ _id: -1 });
-    if (latestDoc) {
-        lastId = latestDoc._id;
-        console.log(`📍 Sync Service: Starting from ID ${lastId}`);
-    } else {
-        lastId = new mongoose.Types.ObjectId("000000000000000000000000");
-    }
-
-    try {
-        const changeStream = N8nWorkflowJob_CustomAiDB.watch([{ $match: { operationType: 'insert' } }]);
-        changeStream.on('change', async (next) => await processNewRecord(next.fullDocument));
-        changeStream.on('error', () => startPollingFallback());
-    } catch (error) {
-        startPollingFallback();
-    }
+    // Initialize watchers for BOTH collections
+    setupWatcher(N8nWorkflowJob_CustomAiDB, 'N8nWorkflowJob');
+    setupWatcher(AiModel_CustomAiDB, 'AiModel');
 }
 
-function startPollingFallback() {
-    if (global.isPollingActive) return;
-    global.isPollingActive = true;
-    console.log('🕰️ Sync Service: Polling Mode Activated.');
-    setInterval(async () => {
+/**
+ * Reusable function to set up Change Streams or Polling for any collection
+ */
+function setupWatcher(Model, collectionName) {
+    let lastId = null;
+
+    async function init() {
+        const latestDoc = await Model.findOne().sort({ _id: -1 });
+        lastId = latestDoc ? latestDoc._id : new mongoose.Types.ObjectId("000000000000000000000000");
+        console.log(`📍 Sync Service: [${collectionName}] Starting from ID ${lastId}`);
+
         try {
-            const query = { _id: { $gt: lastId } };
-            const newJobs = await N8nWorkflowJob_CustomAiDB.find(query).sort({ _id: 1 });
-            for (const job of newJobs) {
-                await processNewRecord(job);
-                lastId = job._id;
-            }
-        } catch (err) {
-            console.error('Polling Error:', err.message);
+            const changeStream = Model.watch([{ $match: { operationType: 'insert' } }]);
+            changeStream.on('change', async (next) => await processNewRecord(next.fullDocument, collectionName));
+            changeStream.on('error', () => startPolling());
+        } catch (error) {
+            startPolling();
         }
-    }, 5000);
+    }
+
+    function startPolling() {
+        console.log(`🕰️ Sync Service: [${collectionName}] Polling Mode Activated.`);
+        setInterval(async () => {
+            try {
+                const query = { _id: { $gt: lastId } };
+                const newJobs = await Model.find(query).sort({ _id: 1 });
+                for (const job of newJobs) {
+                    await processNewRecord(job, collectionName);
+                    lastId = job._id;
+                }
+            } catch (err) {
+                console.error(`[${collectionName}] Polling Error:`, err.message);
+            }
+        }, 5000);
+    }
+
+    init();
 }
 
-async function processNewRecord(sourceDoc) {
+async function processNewRecord(sourceDoc, collectionName) {
     try {
-        const requestId = sourceDoc.response?.requestID;
+        const requestId = sourceDoc.response?.requestID || `auto-${Date.now()}`;
         const sourceId = sourceDoc._id.toString();
 
         // 1. Check for duplicates
@@ -66,11 +81,11 @@ async function processNewRecord(sourceDoc) {
             'responsePayload.n8nSourceId': sourceId
         });
         if (exists) {
-            console.log(`⚠️ Skipped Duplicate: ${requestId}`);
+            console.log(`⚠️ Skipped Duplicate: ${requestId} from ${collectionName}`);
             return;
         }
 
-        console.log(`✨ Processing New Record: ${requestId}`);
+        console.log(`✨ Processing New Record from [${collectionName}]: ${requestId}`);
 
         // 2. Safely handle User ID
         let validUserId;
@@ -89,6 +104,7 @@ async function processNewRecord(sourceDoc) {
             responsePayload: {
                 n8nSourceId: sourceId,
                 generatedCode: sourceDoc.response?.generatedCode,
+                strategy: sourceDoc.response?.strategy, // CRITICAL: Save Native Strategy
                 backtest: sourceDoc.response?.backtest,
                 status: sourceDoc.response?.status,
                 requestID: requestId
@@ -103,31 +119,27 @@ async function processNewRecord(sourceDoc) {
         await autoDeployBot(newDoc);
 
     } catch (err) {
-        logger.error('❌ Error saving to Main DB:', err.message);
-        console.error('❌ Error saving to Main DB:', err.message);
+        logger.error(`❌ Error saving to Main DB: ${err.message}`);
     }
 }
 
 async function autoDeployBot(n8nJob) {
     try {
         const inputParams = n8nJob.requestPayload || {};
+        const responsePayload = n8nJob.responsePayload || {};
 
-        let symbol = inputParams.backtestSymbol || "BTC/USDT";
+        // 1. Normalize Symbol (Fixes "BTCUSDT" -> "BTC/USDT")
+        let symbol = inputParams.backtestSymbol || inputParams.symbol || "BTC/USDT";
+        if (!symbol.includes('/') && symbol.endsWith('USDT')) symbol = symbol.replace('USDT', '/USDT');
+        else if (!symbol.includes('/') && symbol.endsWith('USDC')) symbol = symbol.replace('USDC', '/USDC');
 
-        // --- Symbol Normalization Fix ---
-        // AI returns "BTCUSDT". We must convert it to "BTC/USDT" for the WebSockets.
-        if (!symbol.includes('/') && symbol.endsWith('USDT')) {
-            symbol = symbol.replace('USDT', '/USDT');
-        } else if (!symbol.includes('/') && symbol.endsWith('USDC')) {
-            symbol = symbol.replace('USDC', '/USDC');
-        }
-
-        const timeframe = inputParams.backtestInterval || "15m";
-        const requestID = n8nJob.responsePayload?.requestID || Date.now();
+        const timeframe = inputParams.backtestInterval || inputParams.timeframe || "15m";
+        const requestID = responsePayload.requestID || Date.now();
         const botName = `AI-Bot-${requestID}`;
 
         console.log(`🚀 Auto-Deploying Bot: ${botName} for ${symbol}...`);
 
+        // 2. Find Real Account
         let accountId;
         let accountType = 'n8n';
 
@@ -156,8 +168,33 @@ async function autoDeployBot(n8nJob) {
             console.log(`⚠️ Using Paper Account: ${accountId}`);
         }
 
-        // 3. Create Bot with FULL Configuration
-        // CHANGED: Use TechnicalBotModel instead of BotBase to prevent fields from being stripped
+        // 3. Dynamic Indicator Routing
+        let dynamicIndicators = [];
+
+        // Scenario A: AI generated Custom JavaScript Code
+        if (responsePayload.generatedCode && (responsePayload.generatedCode.code || responsePayload.generatedCode.fullCode)) {
+            dynamicIndicators = [{
+                name: "N8NBotRunner",
+                timeframe: timeframe,
+                params: {
+                    jobId: n8nJob._id.toString(),
+                    windowSize: 100
+                }
+            }];
+        }
+        // Scenario B: AI selected Native Indicators (AiModel format)
+        else if (responsePayload.strategy && responsePayload.strategy.selectedIndicators) {
+            dynamicIndicators = responsePayload.strategy.selectedIndicators.map(ind => ({
+                name: ind.name, // e.g., 'SmoothedHA' or 'BBands'
+                timeframe: timeframe,
+                params: ind     // e.g., { period: 20, stdDev: 2 }
+            }));
+        }
+        else {
+            throw new Error('AI payload does not contain generatedCode or selectedIndicators.');
+        }
+
+        // 4. Create Bot with FULL Configuration
         const newBot = new TechnicalBotModel({
             name: botName,
             symbol: symbol,
@@ -166,8 +203,7 @@ async function autoDeployBot(n8nJob) {
             active: true,
             mode: 'paper',
 
-            marketType: 'SPOT', // CRITICAL FIX: This field is required by base schema
-
+            marketType: 'SPOT', // Required by base schema
             botType: "technical",
             accountType: accountType,
             accountId: accountId,
@@ -198,16 +234,7 @@ async function autoDeployBot(n8nJob) {
                 lastSignal: "HOLD"
             },
 
-            indicators: [
-                {
-                    name: "N8NBotRunner",
-                    timeframe: timeframe,
-                    params: {
-                        jobId: n8nJob._id.toString(),
-                        windowSize: 100
-                    }
-                }
-            ]
+            indicators: dynamicIndicators
         });
 
         const savedBot = await newBot.save();
@@ -217,12 +244,8 @@ async function autoDeployBot(n8nJob) {
         console.log(`✅ Bot Registered Live!`);
 
     } catch (err) {
-        // ENHANCED LOGGING: Will print the specific Mongoose validation paths that failed
         logger.error(`❌ Auto-Deploy Failed: ${err.message}`);
         console.error(`❌ Auto-Deploy Failed: ${err.message}`);
-        if (err.errors) {
-            console.error("Validation Details:", err.errors);
-        }
     }
 }
 
