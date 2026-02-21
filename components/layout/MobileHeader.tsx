@@ -9,6 +9,7 @@ import { usePathname } from 'next/navigation'
 const mobileNavItems = [
     { id: 'dashboard', label: 'Command Center', href: '/' },
     { id: 'users', label: 'User Hub', href: '/users' },
+    { id: 'bots', label: 'Bots', href: '/bots' },
     { id: 'risk', label: 'Risk Control', href: '/risk-control' },
     { id: 'strategy', label: 'Strategy Foundry', href: '/strategy-foundry' },
     { id: 'audit', label: 'Audit Vault', href: '/audit-vault' },

@@ -1,7 +1,7 @@
 // components/layout/Sidebar.tsx
 'use client'
 
-import { LayoutDashboard, Users, ShieldAlert, Cpu, FileText, Zap, LogOut } from 'lucide-react'
+import { LayoutDashboard, Users, Bot, ShieldAlert, Cpu, FileText, Zap, LogOut } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { logout } from '@/actions/login'
@@ -10,6 +10,7 @@ import type { User } from 'next-auth'
 const navItems = [
     { id: 'dashboard', icon: LayoutDashboard, label: 'Command Center', href: '/' },
     { id: 'users', icon: Users, label: 'User Hub', href: '/users' },
+    { id: 'bots', icon: Bot, label: 'Bots', href: '/bots' },
     { id: 'risk', icon: ShieldAlert, label: 'Risk Control', href: '/risk-control' },
     { id: 'strategy', icon: Cpu, label: 'Strategy Foundry', href: '/strategy-foundry' },
     { id: 'audit', icon: FileText, label: 'Audit Vault', href: '/audit-vault' },
