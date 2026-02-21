@@ -1,21 +1,20 @@
 // app/services/dbSyncService.js
 
 const mongoose = require('mongoose');
-const {
-    CustomAIWorkflowJob_DefaultDB,
-    N8nWorkflowJob_CustomAiDB
-} = require('../models/N8nWorkflowJob');
-
+const { CustomAIWorkflowJob_DefaultDB } = require('../models/N8nWorkflowJob');
 const BotBase = require('../models/BotBase');
 const TechnicalBotModel = require('../models/TechnicalBotModel');
 const BotService = require('./botService/BotService');
 const Account = require('../models/Account');
 const logger = require("../../logs/logger");
 
-const customDbConnection = N8nWorkflowJob_CustomAiDB.db;
+// 🚀 FIX: Import the connection directly
+const customDbConnection = require('../../config/customAiDb');
 
-// Dynamically create a model for AiModel collection using strict: false
-// so we can read it without needing a strict schema file
+// 🚀 FIX: Use strict: false for BOTH collections so Mongoose stops destroying the nested AI data!
+const N8nRawSchema = new mongoose.Schema({}, { strict: false, collection: 'N8nWorkflowJob' });
+const N8nWorkflowJob_CustomAiDB = customDbConnection.model('N8nWorkflowJob_Raw', N8nRawSchema);
+
 const AiModelSchema = new mongoose.Schema({}, { strict: false, collection: 'AiModel' });
 const AiModel_CustomAiDB = customDbConnection.model('AiModel', AiModelSchema);
 
@@ -40,21 +39,18 @@ function setupWatcher(Model, collectionName) {
         console.log(`📍 Sync Service: [${collectionName}] Watching for inserts and updates...`);
 
         try {
-            // 1. Watch for BOTH Inserts and Updates
+            // Watch for BOTH Inserts and Updates, requesting the full document
             const changeStream = Model.watch(
                 [{ $match: { operationType: { $in: ['insert', 'update', 'replace'] } } }],
-                { fullDocument: 'updateLookup' } // Crucial: forces Mongo to return the full doc on update
+                { fullDocument: 'updateLookup' }
             );
 
             changeStream.on('change', async (next) => {
                 const doc = next.fullDocument;
                 if (!doc) return;
 
-                // 2. GUARD CLAUSE: Wait until N8N has actually attached the 'response' object!
-                // If this is just the initial 'pending' insert from Node, ignore it.
-                if (!doc.response) {
-                    return;
-                }
+                // GUARD CLAUSE: Wait until N8N has actually attached the 'response' object
+                if (!doc.response) return;
 
                 await processNewRecord(doc, collectionName);
             });
@@ -73,8 +69,6 @@ function setupWatcher(Model, collectionName) {
                 const query = { response: { $exists: true, $ne: null } };
                 const recentJobs = await Model.find(query).sort({ updatedAt: -1 }).limit(10);
 
-                // Process oldest first among the recent 10.
-                // processNewRecord already protects against duplicates.
                 for (const job of recentJobs.reverse()) {
                     await processNewRecord(job, collectionName);
                 }
@@ -120,7 +114,7 @@ async function processNewRecord(sourceDoc, collectionName) {
             responsePayload: {
                 n8nSourceId: sourceId,
                 generatedCode: sourceDoc.response?.generatedCode,
-                strategy: sourceDoc.response?.strategy, // CRITICAL: Save Native Strategy
+                strategy: sourceDoc.response?.strategy,
                 backtest: sourceDoc.response?.backtest,
                 status: sourceDoc.response?.status,
                 requestID: requestId
@@ -132,13 +126,12 @@ async function processNewRecord(sourceDoc, collectionName) {
         const newDoc = await CustomAIWorkflowJob_DefaultDB.create(payloadToSave);
         console.log(`✅ Synced Record ID: ${newDoc._id}`);
 
-        // 👇 Pass the raw payload to autoDeployBot instead of newDoc.
-        // This prevents Mongoose from stripping the 'strategy' object!
+        // 🚀 FIX: Pass the raw un-stripped payload to autoDeployBot
         const deploymentPayload = {
             _id: newDoc._id,
             userId: payloadToSave.userId,
             requestPayload: payloadToSave.requestPayload,
-            responsePayload: payloadToSave.responsePayload // Contains the un-stripped strategy
+            responsePayload: payloadToSave.responsePayload
         };
 
         await autoDeployBot(deploymentPayload);
@@ -177,7 +170,6 @@ async function autoDeployBot(n8nJob) {
         if (realAccount) {
             accountId = realAccount._id;
             accountType = realAccount.exchange;
-            console.log(`✅ Using Real Account: ${accountType} (${accountId})`);
         } else {
             let paperAccount = await Account.findOne({ userId: n8nJob.userId, exchange: 'n8n' });
             if (!paperAccount) {
@@ -190,16 +182,14 @@ async function autoDeployBot(n8nJob) {
                 });
             }
             accountId = paperAccount._id;
-            console.log(`⚠️ Using Paper Account: ${accountId}`);
         }
 
         // 3. Dynamic Indicator Routing
         let dynamicIndicators = [];
 
-        // 👇 Dictionary to translate AI shorthand to exact Schema names
         const aiIndicatorDictionary = {
             'BBands': 'Bollinger_Bands',
-            'SmoothedHA': 'SmoothedHeikinAshi', // Or 'Heikin_Ashi' depending on your file
+            'SmoothedHA': 'SmoothedHeikinAshi',
             'MA': 'SMA',
             'EMA': 'SMA',
             'StochRSI': 'Stochastic_RSI',
@@ -208,7 +198,6 @@ async function autoDeployBot(n8nJob) {
             'ATR': 'ATR'
         };
 
-        // List of exactly what your TechnicalBotModel allows
         const validSchemaEnums = [
             'RSI', 'MACD', 'MA_Crossover', 'Donchian',
             'Volume', 'Heikin_Ashi', 'Combined_RSI_MACD',
@@ -229,28 +218,20 @@ async function autoDeployBot(n8nJob) {
         }
         // Scenario B: AI selected Native Indicators (AiModel format)
         else if (responsePayload.strategy && responsePayload.strategy.selectedIndicators) {
-
-            // Loop through AI indicators and securely translate them
             responsePayload.strategy.selectedIndicators.forEach(ind => {
                 const mappedName = aiIndicatorDictionary[ind.name] || ind.name;
-
-                // Only add it if it strictly matches your database enum
                 if (validSchemaEnums.includes(mappedName)) {
                     dynamicIndicators.push({
                         name: mappedName,
                         timeframe: timeframe,
                         params: ind
                     });
-                } else {
-                    console.warn(`⚠️ Warning: AI suggested indicator '${ind.name}' which is not mapped or supported. Skipping to prevent crash.`);
                 }
             });
 
-            // Ensure the bot still has at least one valid indicator to run
             if (dynamicIndicators.length === 0) {
-                throw new Error('AI provided indicators, but none of them matched supported system indicators.');
+                throw new Error('AI provided indicators, but none matched supported system indicators.');
             }
-
         }
         else {
             throw new Error('AI payload does not contain generatedCode or selectedIndicators.');
@@ -264,8 +245,7 @@ async function autoDeployBot(n8nJob) {
             userId: n8nJob.userId,
             active: true,
             mode: 'paper',
-
-            marketType: 'SPOT', // Required by base schema
+            marketType: 'SPOT',
             botType: "technical",
             accountType: accountType,
             accountId: accountId,
