@@ -36,16 +36,29 @@ async function syncImportedJobs() {
  * Reusable function to set up Change Streams or Polling for any collection
  */
 function setupWatcher(Model, collectionName) {
-    let lastId = null;
-
     async function init() {
-        const latestDoc = await Model.findOne().sort({ _id: -1 });
-        lastId = latestDoc ? latestDoc._id : new mongoose.Types.ObjectId("000000000000000000000000");
-        console.log(`📍 Sync Service: [${collectionName}] Starting from ID ${lastId}`);
+        console.log(`📍 Sync Service: [${collectionName}] Watching for inserts and updates...`);
 
         try {
-            const changeStream = Model.watch([{ $match: { operationType: 'insert' } }]);
-            changeStream.on('change', async (next) => await processNewRecord(next.fullDocument, collectionName));
+            // 1. Watch for BOTH Inserts and Updates
+            const changeStream = Model.watch(
+                [{ $match: { operationType: { $in: ['insert', 'update', 'replace'] } } }],
+                { fullDocument: 'updateLookup' } // Crucial: forces Mongo to return the full doc on update
+            );
+
+            changeStream.on('change', async (next) => {
+                const doc = next.fullDocument;
+                if (!doc) return;
+
+                // 2. GUARD CLAUSE: Wait until N8N has actually attached the 'response' object!
+                // If this is just the initial 'pending' insert from Node, ignore it.
+                if (!doc.response) {
+                    return;
+                }
+
+                await processNewRecord(doc, collectionName);
+            });
+
             changeStream.on('error', () => startPolling());
         } catch (error) {
             startPolling();
@@ -56,11 +69,14 @@ function setupWatcher(Model, collectionName) {
         console.log(`🕰️ Sync Service: [${collectionName}] Polling Mode Activated.`);
         setInterval(async () => {
             try {
-                const query = { _id: { $gt: lastId } };
-                const newJobs = await Model.find(query).sort({ _id: 1 });
-                for (const job of newJobs) {
+                // Fallback: Check the 10 most recently updated docs that HAVE a response
+                const query = { response: { $exists: true, $ne: null } };
+                const recentJobs = await Model.find(query).sort({ updatedAt: -1 }).limit(10);
+
+                // Process oldest first among the recent 10.
+                // processNewRecord already protects against duplicates.
+                for (const job of recentJobs.reverse()) {
                     await processNewRecord(job, collectionName);
-                    lastId = job._id;
                 }
             } catch (err) {
                 console.error(`[${collectionName}] Polling Error:`, err.message);
