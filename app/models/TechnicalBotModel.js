@@ -94,12 +94,7 @@ const indicatorConfigSchema = new Schema({
  * Extends BotBase with strategy, indicators, and detailed risk settings.
  */
 const TechnicalBotSchema = new Schema({
-    // Timeframe is specific to Technical bots (Grid/DCA don't necessarily use candles)
-    timeframe: {
-        type: String,
-        required: true,
-        enum: ['1m','5m','15m','30m','1h','4h','1d','1w']
-    },
+    // timeframe is now inherited from BotBase
 
     indicators:   [indicatorConfigSchema],
 

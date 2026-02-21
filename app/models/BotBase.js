@@ -41,6 +41,12 @@ const baseBotSchema = new Schema({
         // 'technical' corresponds to the new model
         enum: ['grid', 'dca', 'technical']
     },
+    // Moved up from TechnicalBotModel to ensure Grid/DCA bots don't crash the BotService key generation
+    timeframe: {
+        type: String,
+        enum: ['1m','5m','15m','30m','1h','4h','1d','1w'],
+        default: '1m'
+    },
     active: {
         type: Boolean,
         default: false

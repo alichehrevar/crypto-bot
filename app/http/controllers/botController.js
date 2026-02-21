@@ -2,6 +2,8 @@
 
 const BotFactoryDeployment = require('../../services/botService/BotFactoryDeployment');
 const BotBase        = require('../../models/BotBase');
+const okxWS = require('../../services/okxWS');
+const bingXWS = require('../../services/bingXWS');
 const BotMetrics        = require('../../metrics/BotMetrics');
 const IndicatorBot   = require('../../models/IndicatorBot');
 const GridBotModel   = require('../../models/GridBotModel');
@@ -49,19 +51,41 @@ exports.createBot = async (req, res) => {
             return res.status(401).json({ error: 'User not found.' });
         }
 
-        // 1. Determine Bot Type
-        // We expect req.body.botType to be 'grid', 'dca', or 'technical'
         const botType = req.body.botType;
         if (!botType) {
             return res.status(400).json({ error: 'botType is required (grid, dca, technical).' });
         }
 
-        // 2. Delegate creation to Factory
+        // Delegate creation to Factory
         const newBot = await BotFactoryDeployment.createBot(botType, req.body, userId);
 
-        // 3. Register in Memory Service (Start the bot)
+        // Register in Memory Service (Start the bot)
         if (newBot.active) {
             BotService.registerBot(newBot);
+
+            // ==========================================
+            // DYNAMIC WEBSOCKET SUBSCRIPTIONS
+            // ==========================================
+            const timeframe = newBot.timeframe || '1m';
+
+            if (newBot.accountType === 'okx') {
+                // Format to OKX standard (BTC-USDT)
+                let okxSymbol = newBot.symbol.toUpperCase().replace('/', '-');
+                if (!okxSymbol.includes('-')) {
+                    okxSymbol = okxSymbol.replace('USDT', '-USDT').replace('USDC', '-USDC');
+                }
+                okxWS.subscribeCandles(okxSymbol, timeframe);
+            }
+            else if (newBot.accountType === 'bingx') {
+                // BingX format (BTC-USDT)
+                let bingxSymbol = newBot.symbol.toUpperCase().replace('/', '-');
+                if (!bingxSymbol.includes('-')) {
+                    bingxSymbol = bingxSymbol.replace('USDT', '-USDT').replace('USDC', '-USDC');
+                }
+                // bingXWS already has a subscribe method
+                bingXWS.subscribe(bingxSymbol, timeframe);
+            }
+            // Note: Binance uses a global miniTicker stream, so it doesn't need explicit symbol subscriptions.
         }
 
         return res.status(201).json({
@@ -72,7 +96,7 @@ exports.createBot = async (req, res) => {
 
     } catch (err) {
         console.error('createBot error:', err);
-        logger.error(`createBot error: ${err.message}`, { stack: err.stack });
+        // logger.error(`createBot error: ${err.message}`, { stack: err.stack });
         return res.status(500).json({ success: false, error: err.message });
     }
 };

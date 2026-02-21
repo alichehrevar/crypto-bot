@@ -87,8 +87,57 @@ class ExchangeService extends EventEmitter {
         return rawSymbol;
     }
 
+    /**
+     * Conditional Take Profit and Stop Loss market orders.
+     */
+    async placeTPSLOrders(bot, entrySide, quantity, tpPrice, slPrice) {
+        if (!tpPrice && !slPrice) return;
+
+        const exchange = await this._getExchange(bot.userId.toString(), bot.accountType, bot.accountId);
+        const resolvedSymbol = await this._resolveSymbol(exchange, bot.symbol);
+
+        // If we entered LONG ('buy'), we exit via SELL.
+        // If we entered SHORT ('sell'), we exit via BUY.
+        const closeSide = entrySide.toLowerCase() === 'buy' ? 'sell' : 'buy';
+
+        // Futures need reduceOnly to prevent accidental reverse positions
+        const isFutures = bot.marketType === 'FUTURES';
+        const promises = [];
+
+        try {
+            // 1. Place Stop Loss
+            if (slPrice) {
+                const slParams = { triggerPrice: slPrice };
+                if (isFutures) slParams.reduceOnly = true;
+
+                promises.push(
+                    exchange.createOrder(resolvedSymbol, 'market', closeSide, quantity, undefined, slParams)
+                        .then(res => console.log(`[ExchangeService] ✅ SL Placed: ${bot.symbol} @ ${slPrice}`))
+                        .catch(err => console.error(`[ExchangeService] ❌ SL Failed: ${err.message}`))
+                );
+            }
+
+            // 2. Place Take Profit
+            if (tpPrice) {
+                const tpParams = { triggerPrice: tpPrice };
+                if (isFutures) tpParams.reduceOnly = true;
+
+                promises.push(
+                    exchange.createOrder(resolvedSymbol, 'market', closeSide, quantity, undefined, tpParams)
+                        .then(res => console.log(`[ExchangeService] ✅ TP Placed: ${bot.symbol} @ ${tpPrice}`))
+                        .catch(err => console.error(`[ExchangeService] ❌ TP Failed: ${err.message}`))
+                );
+            }
+
+            // Execute both concurrently
+            await Promise.allSettled(promises);
+        } catch (error) {
+            console.error(`[ExchangeService] Fatal error placing TP/SL orders: ${error.message}`);
+        }
+    }
+
     // =========================================================================
-    //  NEW: VIRTUAL WEBSOCKET (POLLING)
+    //  VIRTUAL WEBSOCKET (POLLING)
     // =========================================================================
 
     /**

@@ -2,12 +2,14 @@
 
 const axios  = require('axios');
 const BotBase    = require('../../models/BotBase');
+const Trade      = require('../../models/Trade'); // ADDED: Required for DB updates
 const { N8nJobResponse_CustomAiDB } = require('../../models/N8nJobResponse');
 const Indicators = require('../../strategies/technical');
 const candleStore = require('../../../utils/candleStore');
 const wsServer     = require('../WebSocketServer');
 const OrderExecutionService = require('./OrderExecutionService');
 const RiskManagementService = require('./RiskManagementService');
+const ExchangeService       = require('./ExchangeService'); // ADDED: To listen to fills
 const botLogger = require('../../../logs/botLogger');
 
 class BotService {
@@ -64,7 +66,8 @@ class BotService {
             timeframe: bot.timeframe
         }).catch(err => console.error(err));
 
-        const key = `${bot.symbol.toUpperCase()}-${bot._id}`;
+        const timeframe = bot.timeframe || '1m';
+        const key = `${bot.symbol.toUpperCase().replaceAll('/USDT', '')}-${timeframe.toLowerCase()}`;
         this._log(logger, 'debug', `Generated bot key: ${key}`, bot);
 
         if (!this.activeBots.has(key)) {
@@ -73,12 +76,70 @@ class BotService {
         }
 
         const botArray = this.activeBots.get(key);
-        botArray.push(bot);
 
-        this._log(logger, 'info', `Bot ${bot.name} successfully registered`, bot, {
-            totalBotsForKey: botArray.length,
-            key: key
-        });
+        const exists = botArray.some(b => b._id.equals(bot._id));
+        if (!exists) {
+            botArray.push(bot);
+            this._log(logger, 'info', `Bot ${bot.name} successfully registered`, bot, {
+                totalBotsForKey: botArray.length,
+                key: key
+            });
+
+            // ==============================================================
+            // NEW: EXCHANGE LISTENER FOR LIVE BOTS (TP/SL Fills)
+            // ==============================================================
+            if (bot.mode === 'live') {
+                this._log(logger, 'info', `📡 Attaching Exchange Fill listener for ${bot.symbol}`, bot);
+
+                ExchangeService.subscribeOrderFills(
+                    bot.userId.toString(),
+                    bot.symbol,
+                    async (tradeUpdate) => {
+                        try {
+                            // 1. Check if bot has an open trade
+                            const openTrade = await Trade.findOne({ bot: bot._id, exitPrice: null });
+                            if (!openTrade) return;
+
+                            // 2. Validate if the exchange action closes our direction
+                            const isClosingTrade = (openTrade.type === 'BUY' && tradeUpdate.side.toUpperCase() === 'SELL') ||
+                                (openTrade.type === 'SELL' && tradeUpdate.side.toUpperCase() === 'BUY');
+
+                            if (isClosingTrade) {
+                                await this._log(logger, 'info', `🔔 Exchange auto-closed trade for ${bot.name} via TP/SL!`, bot, { tradePrice: tradeUpdate.price });
+
+                                // 3. Update Trade
+                                openTrade.exitPrice = tradeUpdate.price;
+                                openTrade.timestamp = new Date(tradeUpdate.timestamp || Date.now());
+
+                                const multiplier = openTrade.type === 'BUY' ? 1 : -1;
+                                openTrade.profit = (tradeUpdate.price - openTrade.entryPrice) * openTrade.quantity * multiplier;
+
+                                await openTrade.save();
+
+                                // 4. Update Bot PnL
+                                bot.cumulativePnL = (bot.cumulativePnL || 0) + openTrade.profit;
+
+                                // 5. Check Bot Hard Limits
+                                if ((bot.botTP && bot.cumulativePnL >= bot.botTP) || (bot.botSL && bot.cumulativePnL <= bot.botSL)) {
+                                    await this._log(logger, 'warn', `🏁 Bot PnL Limit Reached via Exchange Fill. Stopping.`, bot);
+                                    bot.active = false;
+                                    this.deactivateBot(bot); // Remove from memory mapping
+                                }
+
+                                await bot.save();
+                                wsServer.broadcastBotUpdate(bot.toObject());
+                            }
+                        } catch (err) {
+                            await this._log(logger, 'error', `Failed handling exchange fill callback: ${err.message}`, bot);
+                        }
+                    }
+                );
+            }
+            // ==============================================================
+
+        } else {
+            this._log(logger, 'warn', `Bot ${bot.name} is already registered under key ${key}`, bot);
+        }
     }
 
     /** Update an existing bot in memory */
@@ -88,7 +149,8 @@ class BotService {
             previousState: 'active in memory'
         }).catch(err => console.error(err));
 
-        const key = `${updated.symbol.toUpperCase()}-${updated.timeframe.toLowerCase()}`;
+        const timeframe = updated.timeframe || '1m';
+        const key = `${updated.symbol.toUpperCase().replaceAll('/USDT', '')}-${timeframe.toLowerCase()}`;
         this._log(logger, 'debug', `Looking for bot with key: ${key}`, updated);
 
         if (!this.activeBots.has(key)) {
@@ -119,7 +181,8 @@ class BotService {
             reason: 'manual deactivation'
         }).catch(err => console.error(err));
 
-        const key = `${bot.symbol.toUpperCase()}-${bot.timeframe.toLowerCase()}`;
+        const timeframe = bot.timeframe || '1m';
+        const key = `${bot.symbol.toUpperCase().replaceAll('/USDT', '')}-${timeframe.toLowerCase()}`;
 
         if (!this.activeBots.has(key)) {
             return;
@@ -462,7 +525,7 @@ class BotService {
 
         // ——— 2. LOGGING CONTROL ———
         if (isNewCandleInterval) {
-            await this._log(logger, 'info', `📊 New ${timeframe} Candle Started. Open: ${candle.open}, Date: ${candle.timestamp.toISOString()}`, bot);
+            await this._log(logger, 'info', `📊 New ${timeframe} Candle Started. Open: ${candle.open}, Date: ${new Date(candle.timestamp).toISOString()}`, bot);
             this._processedCandles.set(botIdStr, currentCandleTime);
 
             await this._log(logger, 'debug', `Updated processedCandles cache for bot ${botIdStr}`, bot, {

@@ -3,6 +3,7 @@ const crypto = require('crypto');
 const zlib = require('zlib');
 const candleStore = require('../../utils/candleStore');
 const axios = require("axios");
+const BotService = require('./botService/BotService');
 const logger = require("../../logs/logger");
 
 class BingXWS {
@@ -151,32 +152,65 @@ class BingXWS {
         }
     }
 
+    getIntervalMs(interval) {
+        const map = {
+            '1m': 60000, '5m': 300000, '15m': 900000, '30m': 1800000,
+            '1h': 3600000, '4h': 14400000, '1d': 86400000, '1w': 604800000
+        };
+        return map[interval] || 60000;
+    }
+
     async processKlineMessage(msg) {
         const klineData = msg.data;
         if (!klineData) return;
 
-        const [symbol, interval] = msg.topic.split('@');
+        const [rawSymbol, interval] = msg.topic.split('@');
+        const symbol = rawSymbol.toUpperCase().replace('-', '/');
+        const timeframe = this.mapInterval(interval.replace('kline_', ''));
 
-        const candleData = {
-            symbol: symbol.toUpperCase(),
-            timeframe: this.mapInterval(interval.replace('kline_', '')),
-            timestamp: klineData.t,
+        // 1. Calculate the exact immutable Open Time boundary
+        const tfMs = this.getIntervalMs(timeframe);
+        const updateTime = parseInt(klineData.t, 10) || Date.now();
+        const openTime = Math.floor(updateTime / tfMs) * tfMs; // Snaps down to the exact minute/hour
+
+        // Initialize local memory cache if it doesn't exist
+        if (!this.candleCache) this.candleCache = {};
+        const cacheKey = `${symbol}-${timeframe}`;
+
+        // 2. Determine if the PREVIOUS candle just closed
+        if (this.candleCache[cacheKey] && this.candleCache[cacheKey].timestamp < openTime) {
+
+            // The timestamp moved forward a full block. The old candle is definitively closed.
+            const closedCandle = { ...this.candleCache[cacheKey], isClosed: true };
+
+            await candleStore.updateCandle(symbol, timeframe, closedCandle);
+            await BotService.processCandle(symbol, timeframe, closedCandle); // 🚀 THIS WILL TRIGGER THE BOT
+        }
+
+        // 3. Build the CURRENT open candle
+        const currentCandle = {
+            symbol: symbol,
+            timeframe: timeframe,
+            timestamp: openTime, // Use the immutable snapped time
             open: parseFloat(klineData.o),
             high: parseFloat(klineData.h),
             low: parseFloat(klineData.l),
             close: parseFloat(klineData.c),
             volume: parseFloat(klineData.v),
-            trades: parseInt(klineData.n, 10),
-            isClosed: klineData.x
+            isClosed: false
         };
 
-        const isValid = ['open', 'high', 'low', 'close', 'volume']
-            .every(key => Number.isFinite(candleData[key]));
+        const isValid = ['open', 'high', 'low', 'close', 'volume'].every(key => Number.isFinite(currentCandle[key]));
 
         if (isValid) {
-            await candleStore.updateCandle(candleData.symbol, candleData.timeframe, candleData);
+            // Update the cache for the next cycle check
+            this.candleCache[cacheKey] = currentCandle;
+
+            // Trigger bot engine for the open candle (Updates UI without trading)
+            await candleStore.updateCandle(symbol, timeframe, currentCandle);
+            await BotService.processCandle(symbol, timeframe, currentCandle);
         } else {
-            console.warn('[BingXWS] Invalid candle data:', candleData);
+            console.warn('[BingXWS] Invalid candle data:', currentCandle);
         }
     }
 

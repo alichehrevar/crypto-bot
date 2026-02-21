@@ -1,10 +1,13 @@
 const WebSocket = require('ws');
 const axios = require('axios');
 const crypto = require('crypto');
+const BotService = require('./botService/BotService');
+const candleStore = require('../../utils/candleStore');
 
 class OKXWS {
     constructor() {
         this.ws = null;
+        this.publicWs = null;
         // Default credentials can be provided via environment variables if needed.
         this.apiKey = process.env.OKX_API_KEY;
         this.apiSecret = process.env.OKX_API_SECRET;
@@ -48,6 +51,9 @@ class OKXWS {
             this.ws = null;
             // Optionally add reconnect logic here.
         });
+
+        // Also initialize the public connection for market data
+        this.connectPublic();
     }
 
     /**
@@ -73,6 +79,76 @@ class OKXWS {
     generateSignature(timestamp, method, requestPath, body = '') {
         const prehash = timestamp + method + requestPath + body;
         return crypto.createHmac('sha256', this.apiSecret).update(prehash).digest('base64');
+    }
+
+    connectPublic() {
+        // OKX Public WebSocket endpoint for market data
+        const endpoint = 'wss://ws.okx.com:8443/ws/v5/public';
+        this.publicWs = new WebSocket(endpoint);
+
+        this.publicWs.on('open', () => {
+            console.log('[OKXWS] Connected to OKX Public WebSocket');
+            // NOTE: You must call this.subscribeCandles('BTC-USDT', '1m') for active bot symbols
+            // exactly like how Binance loops through activeSymbolsSet in binanceWS.js.
+        });
+
+        this.publicWs.on('message', async (data) => {
+            try {
+                const message = JSON.parse(data);
+                // Check if the message is from a candle channel
+                if (message.arg && message.arg.channel && message.arg.channel.startsWith('candle') && message.data) {
+                    await this.processCandleMessage(message);
+                }
+            } catch (error) {
+                console.error('[OKXWS] Failed to parse message:', error);
+            }
+        });
+
+        this.publicWs.on('error', (error) => console.error('[OKXWS] Public WS error:', error));
+    }
+
+    subscribeCandles(symbol, interval) {
+        if (!this.publicWs || this.publicWs.readyState !== WebSocket.OPEN) return;
+
+        // e.g., interval "1m" becomes "candle1m"
+        const channel = `candle${interval}`;
+
+        const payload = {
+            op: "subscribe",
+            args: [{
+                channel: channel,
+                instId: symbol // Format must be OKX standard, e.g., "BTC-USDT"
+            }]
+        };
+
+        this.publicWs.send(JSON.stringify(payload));
+    }
+
+    async processCandleMessage(message) {
+        // OKX candle data shape: [ts, o, h, l, c, vol, volCcy, volCcyQuote, confirm]
+        const { arg, data } = message;
+
+        // Normalize "BTC-USDT" to "BTC/USDT" to map correctly in BotService
+        const symbol = arg.instId.toUpperCase().replace('-', '/');
+        const timeframe = arg.channel.replace('candle', '');
+
+        for (const kline of data) {
+            const candleData = {
+                symbol: symbol,
+                timeframe: timeframe,
+                timestamp: parseInt(kline[0], 10),
+                open: parseFloat(kline[1]),
+                high: parseFloat(kline[2]),
+                low: parseFloat(kline[3]),
+                close: parseFloat(kline[4]),
+                volume: parseFloat(kline[5]),
+                isClosed: kline[8] === "1" // "1" means the candle is closed/confirmed
+            };
+
+            // Update the store and trigger the bot engine
+            await candleStore.updateCandle(symbol, timeframe, candleData);
+            await BotService.processCandle(symbol, timeframe, candleData);
+        }
     }
 
     /**
