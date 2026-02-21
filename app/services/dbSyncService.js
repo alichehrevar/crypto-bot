@@ -116,7 +116,16 @@ async function processNewRecord(sourceDoc, collectionName) {
         const newDoc = await CustomAIWorkflowJob_DefaultDB.create(payloadToSave);
         console.log(`✅ Synced Record ID: ${newDoc._id}`);
 
-        await autoDeployBot(newDoc);
+        // 👇 Pass the raw payload to autoDeployBot instead of newDoc.
+        // This prevents Mongoose from stripping the 'strategy' object!
+        const deploymentPayload = {
+            _id: newDoc._id,
+            userId: payloadToSave.userId,
+            requestPayload: payloadToSave.requestPayload,
+            responsePayload: payloadToSave.responsePayload // Contains the un-stripped strategy
+        };
+
+        await autoDeployBot(deploymentPayload);
 
     } catch (err) {
         logger.error(`❌ Error saving to Main DB: ${err.message}`);

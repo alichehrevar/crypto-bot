@@ -1,5 +1,4 @@
 const mongoose = require('mongoose');
-
 const customAiDbConnection = require('../../config/customAiDb');
 
 const N8nWorkflowJobSchema = new mongoose.Schema(
@@ -44,10 +43,16 @@ const N8nWorkflowJobSchema = new mongoose.Schema(
         },
         /**
          * The final response received from the n8n workflow.
+         * UPDATED: Explicitly defined keys to ensure Mongoose accurately
+         * stores and retrieves the nested AI 'strategy' and 'generatedCode'.
          */
         responsePayload: {
-            type: mongoose.Schema.Types.Mixed,
-            default: null,
+            n8nSourceId: { type: String },
+            generatedCode: { type: mongoose.Schema.Types.Mixed },
+            strategy: { type: mongoose.Schema.Types.Mixed }, // CRITICAL for native indicator bots
+            backtest: { type: mongoose.Schema.Types.Mixed },
+            status: { type: String },
+            requestID: { type: String }
         },
         /**
          * A reference to the document holding the full response.
@@ -73,6 +78,7 @@ const N8nWorkflowJobSchema = new mongoose.Schema(
 
 const CustomAIWorkflowJob_DefaultDB = mongoose.model('N8nWorkflowJob', N8nWorkflowJobSchema);
 
+// Explicitly define the collection name to prevent Mongoose from pluralizing it incorrectly
 const N8nWorkflowJob_CustomAiDB = customAiDbConnection.model('N8nWorkflowJob', N8nWorkflowJobSchema, 'N8nWorkflowJob');
 
 module.exports = {
