@@ -464,7 +464,7 @@ async function calculateRelatedDataToBot (bot) {
     const price = bot.marketInfo?.currentCandle?.price;
     let pnl = {realized: 0, unrealized: 0, total: 0};
     if (typeof price === 'number') {
-        pnl = await PnLService.getBotPnL(bot._id, price);
+        pnl = await PnLService.getBotPnL(bot._id, price || 0);
     }
     const base = bot.marketInfo?.baseFund || 1;
     const pct = base > 0 ? (pnl.total / base * 100) : 0;
@@ -993,6 +993,51 @@ exports.downloadBotLogs = async (req, res) => {
         if (!res.headersSent) {
             res.status(500).json({ success: false, error: err.message });
         }
+    }
+};
+
+exports.getAllBots = async (req, res) => {58
+
+    console.log('308970912785')
+
+    try {
+        // Fetch all bots and populate the user details (name and email)
+        const bots = await BotBase.find({})
+            .populate('userId', 'name email') // Adjust fields based on your User model
+            .sort({ createdAt: -1 })
+            .lean();
+
+        // Map the bots to standardize the output for the frontend
+        const mappedBots = bots.map(bot => {
+            return {
+                _id: bot._id,
+                name: bot.name,
+                symbol: bot.symbol,
+                botType: bot.botType,
+                active: bot.active,
+                createdAt: bot.createdAt,
+                marketType: bot.marketType,
+                pnl: {
+                    total: bot.cumulativePnL || 0,
+                    pct: 0 // Calculate if needed, or leave as placeholder
+                },
+                // Include user details for the admin view
+                user: bot.userId ? {
+                    id: bot.userId._id,
+                    name: bot.userId.name || 'Unknown',
+                    email: bot.userId.email || 'No email'
+                } : null
+            };
+        });
+
+        return res.status(200).json({
+            success: true,
+            bots: mappedBots
+        });
+
+    } catch (err) {
+        console.error('getAllBots error:', err);
+        return res.status(500).json({ success: false, error: err.message });
     }
 };
 

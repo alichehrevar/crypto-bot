@@ -4,6 +4,7 @@ const router = express.Router();
 const botController = require('../../app/http/controllers/botController');
 const logController = require('../../app/http/controllers/admin/logController');
 const authenticate = require('../../app/http/middleware/auth');
+const authorize = require('../../app/http/middleware/authorize');
 
 /**
  * GET /api/bots
@@ -12,6 +13,14 @@ const authenticate = require('../../app/http/middleware/auth');
  *
  */
 router.get('/', authenticate, botController.botsList);
+
+/**
+ * GET /api/bots/list
+ *
+ * Retrieves a list of bots.
+ *
+ */
+router.get('/list', authorize(['admin']), botController.getAllBots);
 
 /**
  * GET /api/bots/:userId
