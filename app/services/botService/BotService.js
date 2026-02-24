@@ -577,6 +577,10 @@ class BotService {
                 case 'Stochastic_RSI': needed = (p.period||14) + (p.kPeriod||3) + (p.dPeriod||3) + 1; break;
                 case 'N8NBotRunner':
                 case 'N8nStrategy':    needed = (p.windowSize || 100) + 20; break;
+
+                case 'SMA':            needed = (p.period||200)+1; break;
+                case 'ATR':            needed = (p.period||14)+1; break;
+                case 'SmoothedHeikinAshi': needed = (p.period||5)+5; break;
                 default:
                     await this._log(logger, 'debug', `Using default needed candles (50) for ${cfg.name}`, bot);
             }

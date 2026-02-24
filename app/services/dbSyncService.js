@@ -201,14 +201,15 @@ async function autoDeployBot(n8nJob) {
             'StochRSI': 'Stochastic_RSI',
             'MACD': 'MACD',
             'RSI': 'RSI',
-            'ATR': 'ATR'
+            'ATR': 'ATR',
+            'SMA': 'SMA'
         };
 
         const validSchemaEnums = [
             'RSI', 'MACD', 'MA_Crossover', 'Donchian',
             'Volume', 'Heikin_Ashi', 'Combined_RSI_MACD',
             'Bollinger_Bands', 'Stochastic_RSI',
-            'N8NBotRunner', 'N8nStrategy', 'SmoothedHeikinAshi', 'ATR'
+            'N8NBotRunner', 'N8nStrategy', 'SmoothedHeikinAshi', 'ATR', 'SMA'
         ];
 
         // Scenario A: AI generated Custom JavaScript Code
@@ -226,12 +227,35 @@ async function autoDeployBot(n8nJob) {
         else if (responsePayload.strategy && responsePayload.strategy.selectedIndicators) {
             responsePayload.strategy.selectedIndicators.forEach(ind => {
                 const mappedName = aiIndicatorDictionary[ind.name] || ind.name;
+
                 if (validSchemaEnums.includes(mappedName)) {
+                    // 👇 NEW: Parameter Translation Logic 👇
+                    let formattedParams = { ...ind };
+
+                    if (mappedName === 'MACD') {
+                        // AI uses fast/slow/signal, System uses shortPeriod/longPeriod/signalPeriod
+                        if (ind.fast) formattedParams.shortPeriod = ind.fast;
+                        if (ind.slow) formattedParams.longPeriod = ind.slow;
+                        if (ind.signal) formattedParams.signalPeriod = ind.signal;
+
+                        // Clean up AI keys
+                        delete formattedParams.fast;
+                        delete formattedParams.slow;
+                        delete formattedParams.signal;
+                    }
+                    else if (mappedName === 'Bollinger_Bands') {
+                        // AI uses stdDev, System uses stdDevMultiplier
+                        if (ind.stdDev) formattedParams.stdDevMultiplier = ind.stdDev;
+                        delete formattedParams.stdDev;
+                    }
+
                     dynamicIndicators.push({
                         name: mappedName,
                         timeframe: timeframe,
-                        params: ind
+                        params: formattedParams
                     });
+                } else {
+                    console.warn(`⚠️ Skipping unmapped indicator: ${ind.name}`);
                 }
             });
 

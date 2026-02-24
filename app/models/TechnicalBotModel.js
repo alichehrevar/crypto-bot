@@ -76,7 +76,7 @@ const indicatorConfigSchema = new Schema({
             'Volume', 'Heikin_Ashi', 'Combined_RSI_MACD',
             'Bollinger_Bands', 'Stochastic_RSI',
             'N8NBotRunner', 'N8nStrategy',
-            'SmoothedHeikinAshi', 'ATR'
+            'SmoothedHeikinAshi', 'ATR', 'SMA'
         ]
     },
     timeframe: {
