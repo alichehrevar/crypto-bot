@@ -61,85 +61,32 @@ class BotService {
     /** Register a brand-new bot in memory */
     registerBot(bot) {
         const logger = botLogger.getLogger(bot._id.toString());
-        this._log(logger, 'info', `Starting registration for bot ${bot.name} (${bot.symbol})`, bot, {
-            botType: bot.botType,
-            timeframe: bot.timeframe
-        }).catch(err => console.error(err));
+        this._log(logger, 'info', `Starting registration for bot ${bot.name} (${bot.symbol})`, bot).catch(err => console.error(err));
 
-        const timeframe = bot.timeframe || '1m';
-        const key = `${bot.symbol.toUpperCase().replaceAll('/USDT', '')}-${timeframe.toLowerCase()}`;
-        this._log(logger, 'debug', `Generated bot key: ${key}`, bot);
-
-        if (!this.activeBots.has(key)) {
-            this._log(logger, 'debug', `Creating new array for key: ${key}`, bot);
-            this.activeBots.set(key, []);
-        }
-
-        const botArray = this.activeBots.get(key);
-
-        const exists = botArray.some(b => b._id.equals(bot._id));
-        if (!exists) {
-            botArray.push(bot);
-            this._log(logger, 'info', `Bot ${bot.name} successfully registered`, bot, {
-                totalBotsForKey: botArray.length,
-                key: key
+        // 1. Gather all unique timeframes this bot cares about
+        const timeframes = new Set([bot.timeframe ? bot.timeframe.toLowerCase() : '1m']);
+        if (bot.indicators && bot.indicators.length > 0) {
+            bot.indicators.forEach(ind => {
+                if (ind.timeframe) timeframes.add(ind.timeframe.toLowerCase());
             });
-
-            // ==============================================================
-            // NEW: EXCHANGE LISTENER FOR LIVE BOTS (TP/SL Fills)
-            // ==============================================================
-            if (bot.mode === 'live') {
-                this._log(logger, 'info', `📡 Attaching Exchange Fill listener for ${bot.symbol}`, bot);
-
-                ExchangeService.subscribeOrderFills(
-                    bot.userId.toString(),
-                    bot.symbol,
-                    async (tradeUpdate) => {
-                        try {
-                            // 1. Check if bot has an open trade
-                            const openTrade = await Trade.findOne({ bot: bot._id, exitPrice: null });
-                            if (!openTrade) return;
-
-                            // 2. Validate if the exchange action closes our direction
-                            const isClosingTrade = (openTrade.type === 'BUY' && tradeUpdate.side.toUpperCase() === 'SELL') ||
-                                (openTrade.type === 'SELL' && tradeUpdate.side.toUpperCase() === 'BUY');
-
-                            if (isClosingTrade) {
-                                await this._log(logger, 'info', `🔔 Exchange auto-closed trade for ${bot.name} via TP/SL!`, bot, { tradePrice: tradeUpdate.price });
-
-                                // 3. Update Trade
-                                openTrade.exitPrice = tradeUpdate.price;
-                                openTrade.timestamp = new Date(tradeUpdate.timestamp || Date.now());
-
-                                const multiplier = openTrade.type === 'BUY' ? 1 : -1;
-                                openTrade.profit = (tradeUpdate.price - openTrade.entryPrice) * openTrade.quantity * multiplier;
-
-                                await openTrade.save();
-
-                                // 4. Update Bot PnL
-                                bot.cumulativePnL = (bot.cumulativePnL || 0) + openTrade.profit;
-
-                                // 5. Check Bot Hard Limits
-                                if ((bot.botTP && bot.cumulativePnL >= bot.botTP) || (bot.botSL && bot.cumulativePnL <= bot.botSL)) {
-                                    await this._log(logger, 'warn', `🏁 Bot PnL Limit Reached via Exchange Fill. Stopping.`, bot);
-                                    bot.active = false;
-                                    this.deactivateBot(bot); // Remove from memory mapping
-                                }
-
-                                await bot.save();
-                                wsServer.broadcastBotUpdate(bot.toObject());
-                            }
-                        } catch (err) {
-                            await this._log(logger, 'error', `Failed handling exchange fill callback: ${err.message}`, bot);
-                        }
-                    }
-                );
-            }
-            // ==============================================================
-
-        } else {
-            this._log(logger, 'warn', `Bot ${bot.name} is already registered under key ${key}`, bot);
         }
+
+        // 2. Register the bot under every required timeframe key
+        timeframes.forEach(tf => {
+            const key = `${bot.symbol.toUpperCase().replaceAll('/USDT', '').replaceAll('/USDC', '')}-${tf}`;
+
+            if (!this.activeBots.has(key)) {
+                this.activeBots.set(key, []);
+            }
+
+            const botArray = this.activeBots.get(key);
+            const exists = botArray.some(b => b._id.equals(bot._id));
+
+            if (!exists) {
+                botArray.push(bot);
+                this._log(logger, 'info', `Bot ${bot.name} successfully registered to timeframe stream: ${tf}`, bot);
+            }
+        });
     }
 
     /** Update an existing bot in memory */
@@ -533,38 +480,28 @@ class BotService {
 
         // ——— Compute Indicators ———
         const signals = [];
-        const indicatorResults = {}; // For detailed logging
+        const indicatorResults = {};
 
-        const indicatorCount = bot.indicators?.length || 0;
-        await this._log(logger, 'info', `Starting indicator calculations for ${indicatorCount} indicators`, bot, {
-            indicatorNames: bot.indicators?.map(i => i.name) || []
-        });
+        // Ensure state cache exists for this bot
+        bot.marketInfo.indicatorSignals = bot.marketInfo.indicatorSignals || {};
 
         for (const [index, cfg] of (bot.indicators || []).entries()) {
-            await this._log(logger, 'debug', `Processing indicator ${index + 1}/${indicatorCount}: ${cfg.name || 'unnamed'}`, bot, {
-                indicatorConfig: cfg
-            });
+            // Create a unique ID for this specific indicator to cache its state
+            const indId = `${cfg.name}-${index}`;
 
-            if (!cfg.name) {
-                await this._log(logger, 'warn', 'Indicator has no name, skipping', bot);
-                signals.push('HOLD');
-                continue;
-            }
+            if (!cfg.name) continue;
 
+            // IF NOT THIS TIMEFRAME'S TURN: Use the cached signal!
             if (cfg.timeframe.toLowerCase() !== timeframe.toLowerCase()) {
-                await this._log(logger, 'debug', `Indicator timeframe (${cfg.timeframe}) doesn't match candle timeframe (${timeframe}), skipping`, bot);
-                signals.push('HOLD');
+                const cachedSignal = bot.marketInfo.indicatorSignals[indId] || 'HOLD';
+                signals.push(cachedSignal);
+                indicatorResults[cfg.name] = `${cachedSignal} (Cached from ${cfg.timeframe})`;
                 continue;
             }
 
-            await this._log(logger, 'debug', `Processing indicator: ${cfg.name}`, bot, {
-                params: cfg.params
-            });
-
+            // ... (Keep your existing switch statement here to determine 'needed' candles) ...
             const p = cfg.params||{};
             let needed = 50;
-
-            // Determine needed history based on config
             switch (cfg.name) {
                 case 'RSI':            needed = (p.period||14)+2; break;
                 case 'MACD':           needed = (p.longPeriod||26)+(p.signalPeriod||9)+1; break;
@@ -577,30 +514,16 @@ class BotService {
                 case 'Stochastic_RSI': needed = (p.period||14) + (p.kPeriod||3) + (p.dPeriod||3) + 1; break;
                 case 'N8NBotRunner':
                 case 'N8nStrategy':    needed = (p.windowSize || 100) + 20; break;
-
                 case 'SMA':            needed = (p.period||200)+1; break;
                 case 'ATR':            needed = (p.period||14)+1; break;
                 case 'SmoothedHeikinAshi': needed = (p.period||5)+5; break;
-                default:
-                    await this._log(logger, 'debug', `Using default needed candles (50) for ${cfg.name}`, bot);
+                default: needed = 50;
             }
 
-            await this._log(logger, 'debug', `Indicator ${cfg.name} requires ${needed} historical candles`, bot);
-
-            // Fetch Candles
             let recent = candleStore.getLatestCandles(symbol, timeframe, needed);
-            await this._log(logger, 'debug', `Retrieved ${recent.length} candles from candleStore`, bot, {
-                needed: needed,
-                available: recent.length
-            });
-
             if (recent.length < needed) {
-                await this._log(logger, 'debug', `Fetching historical data for ${cfg.name}. Needed: ${needed}, Available: ${recent.length}`, bot);
-                // Fetch historical only if absolutely needed (expensive op)
                 const more = await this._fetchHistorical(symbol, timeframe, needed - recent.length);
-                await this._log(logger, 'debug', `Fetched ${more.length} historical candles`, bot);
                 recent = more.concat(recent);
-                await this._log(logger, 'debug', `Total candles after historical fetch: ${recent.length}`, bot);
             }
 
             // Run Calculation
@@ -609,49 +532,30 @@ class BotService {
 
             const Cls = Indicators[key];
             if (!Cls) {
-                await this._log(logger, 'error', `Unknown indicator "${cfg.name}"`, bot);
                 signals.push('HOLD');
                 continue;
             }
 
-            await this._log(logger, 'debug', `Found indicator class: ${key}`, bot);
-
             try {
-                // N8N Code Injection
+                // (Keep your N8N injection logic here)
                 if (key === 'N8NBotRunner') {
                     const jobId = cfg.params.jobId;
                     if (jobId) {
-                        await this._log(logger, 'debug', `N8N indicator detected, fetching code for job ${jobId}`, bot);
                         const code = await this._getN8nCode(jobId);
-                        if (code) {
-                            cfg.params.generatedCode = code;
-                            await this._log(logger, 'debug', `N8N code loaded (${code.length} chars)`, bot);
-                        } else {
-                            await this._log(logger, 'warn', `N8N code not found for job ${jobId}`, bot);
-                        }
+                        if (code) cfg.params.generatedCode = code;
                     }
                 }
 
-                await this._log(logger, 'debug', `Instantiating ${key} indicator with params`, bot, {
-                    params: cfg.params
-                });
                 const inst = new Cls(cfg.params);
-
-                await this._log(logger, 'debug', `Calculating signal with ${recent.length} candles`, bot);
                 const signal = inst.calculateSignal(recent);
-                signals.push(signal);
 
+                // 👇 SAVE TO CACHE SO OTHER TIMEFRAMES CAN SEE IT LATER 👇
+                bot.marketInfo.indicatorSignals[indId] = signal;
+
+                signals.push(signal);
                 indicatorResults[cfg.name] = signal;
-                await this._log(logger, 'info', `Indicator ${cfg.name} result: ${signal}`, bot, {
-                    signal: signal,
-                    indicatorIndex: index
-                });
 
             } catch (err) {
-                await this._log(logger, 'error', `Calc Error [${cfg.name}]: ${err.message}`, bot, {
-                    error: err.message,
-                    stack: err.stack
-                });
                 signals.push('HOLD');
             }
         }
