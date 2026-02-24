@@ -10,11 +10,13 @@ adminRouter.use(...adminOnlyAccess);
 const dashboardRoutes = require('./dashboard')
 const botsRoutes = require('./bots')
 const usersRoutes = require('./users')
+const indicatorSettingsRoutes = require('./indicatorSettings')
 
 // ---- Mount them ----
 adminRouter.use('/dashboard', dashboardRoutes);
 adminRouter.use('/bots', botsRoutes);
 adminRouter.use('/users', usersRoutes);
 adminRouter.use('/users', usersRoutes);
+adminRouter.use('/indicator-settings', indicatorSettingsRoutes);
 
 module.exports = adminRouter;
