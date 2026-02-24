@@ -1,7 +1,7 @@
 // components/strategy/StrategyRegistry.tsx
 'use client'
 
-import { useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Card } from '@/components/common/Card'
 import {
     Cpu,
@@ -14,7 +14,12 @@ import {
     CheckSquare,
     RefreshCcw,
     Play,
+    Loader2,
 } from 'lucide-react'
+import { useToast } from "@/components/providers/ToastProvider"
+import { updateRequest } from "@/actions/put"
+import { getData } from "@/actions/get"
+import {IndicatorSettings, indicatorSettingsResponse} from "@/types/indicatorSettingsData"
 
 interface MarketSwitchProps {
     label: string
@@ -33,21 +38,40 @@ const MarketSwitch = ({ label }: MarketSwitchProps) => (
 
 interface ParamInputProps {
     label: string
-    val: string
+    val: string | number
+    onChange?: (val: string) => void // Made optional so GRID/DCA tabs don't break
 }
 
-const ParamInput = ({ label, val }: ParamInputProps) => (
-    <div className="flex justify-between items-center border-b border-zinc-900 pb-2 mb-2">
+const ParamInput = ({ label, val, onChange }: ParamInputProps) => (
+    <div className="flex justify-between items-center border-b border-zinc-900 pb-2 mb-2 hover:border-zinc-700 transition-colors">
         <span className="text-xs text-zinc-400">{label}</span>
         <input
-            className="bg-transparent text-right text-xs font-mono text-white w-24 focus:outline-none border-b border-transparent focus:border-zinc-700 transition-colors"
-            defaultValue={val}
+            className="bg-transparent text-right text-xs font-mono text-white w-24 focus:outline-none placeholder-zinc-700"
+            value={val ?? ''}
+            onChange={(e) => onChange && onChange(e.target.value)}
         />
     </div>
 )
 
 export function StrategyRegistry() {
+    const { addToast } = useToast()
     const [activeTab, setActiveTab] = useState('TECHNICAL')
+    const [isLoading, setIsLoading] = useState(true)
+    const [isSaving, setIsSaving] = useState(false)
+
+    // Form State for Indicator Settings
+    const [settings, setSettings] = useState<IndicatorSettings>({
+        RSI: { period: 14, overbought: 70, oversold: 30 },
+        MACD: { shortPeriod: 12, longPeriod: 26, signalPeriod: 9 },
+        Bollinger_Bands: { period: 20, stdDevMultiplier: 2 },
+        Donchian: { period: 20, offset: 0 },
+        SmoothedHeikinAshi: { emaPeriod1: 55, emaPeriod2: 100 },
+        SMA: { period: 14 },
+        ATR: { period: 14 },
+        Stochastic_RSI: { period: 14, kPeriod: 3, dPeriod: 3 },
+        MA_Crossover: { shortPeriod: 5, longPeriod: 20 }
+    })
+
     const [n8nUrl, setN8nUrl] = useState('https://n8n.unitedalgos.internal/webhook/ai-v4')
     const [n8nStatus, setN8nStatus] = useState<'CONNECTED' | 'DISCONNECTED'>('CONNECTED')
     const [smartTimeframes, setSmartTimeframes] = useState({
@@ -66,6 +90,58 @@ export function StrategyRegistry() {
         { id: 'GRID', label: 'GRID' },
         { id: 'DCA', label: 'DCA' },
     ]
+
+    // Fetch initial settings from DB
+    const fetchSettings = useCallback(async () => {
+        setIsLoading(true)
+        try {
+            const res = await getData('/admin/indicator-settings')
+            if (res.success && res.settings) {
+                setSettings(res.settings)
+            }
+        } catch {
+            addToast({ title: "Error", message: "Failed to load config", type: "error" })
+        } finally {
+            setIsLoading(false)
+        }
+    }, [addToast])
+
+    useEffect(() => {
+        fetchSettings()
+    }, [fetchSettings])
+
+    // Strict Generic Type Handler for param changes
+    const handleParamChange = <T extends keyof IndicatorSettings, K extends keyof IndicatorSettings[T]>(
+        indicator: T,
+        param: K,
+        value: number
+    ) => {
+        setSettings((prev) => ({
+            ...prev,
+            [indicator]: {
+                ...prev[indicator],
+                [param]: value
+            }
+        }))
+    }
+
+    // Save changes to DB
+    const handleSaveConfig = async () => {
+        setIsSaving(true)
+        try {
+            const res = await updateRequest(settings, '/admin/indicator-settings') as indicatorSettingsResponse;
+
+            if (res.success) {
+                addToast({ title: "Success", message: "Global defaults updated", type: "success" })
+            } else {
+                addToast({ title: "Error", message: res.message, type: "warning" })
+            }
+        } catch {
+            addToast({ title: "Error", message: "Failed to save config", type: "error" })
+        } finally {
+            setIsSaving(false)
+        }
+    }
 
     return (
         <div className="space-y-6 animate-enter">
@@ -99,51 +175,75 @@ export function StrategyRegistry() {
                             <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500 mb-6 flex items-center gap-2">
                                 <Layers size={14} /> Technical Indicator Defaults
                             </h3>
-                            <div className="space-y-6">
-                                <div className="grid grid-cols-2 gap-4">
-                                    <MarketSwitch label="Spot Market" />
-                                    <MarketSwitch label="Futures Market" />
+
+                            {isLoading ? (
+                                <div className="flex flex-col items-center justify-center py-12 text-zinc-500">
+                                    <Loader2 className="animate-spin mb-4" />
+                                    <span className="text-xs font-mono">Loading parameters...</span>
                                 </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div className="bg-zinc-950 p-4 border border-zinc-900">
-                                        <h4 className="text-zinc-300 text-xs font-bold mb-3 border-b border-zinc-800 pb-2">
-                                            RSI (Relative Strength Index)
-                                        </h4>
-                                        <ParamInput label="Length" val="14" />
-                                        <ParamInput label="Overbought" val="70" />
-                                        <ParamInput label="Oversold" val="30" />
+                            ) : (
+                                <div className="space-y-6">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <MarketSwitch label="Spot Market" />
+                                        <MarketSwitch label="Futures Market" />
                                     </div>
-                                    <div className="bg-zinc-950 p-4 border border-zinc-900">
-                                        <h4 className="text-zinc-300 text-xs font-bold mb-3 border-b border-zinc-800 pb-2">MACD</h4>
-                                        <ParamInput label="Fast Length" val="12" />
-                                        <ParamInput label="Slow Length" val="26" />
-                                        <ParamInput label="Signal Smooth" val="9" />
-                                    </div>
-                                    <div className="bg-zinc-950 p-4 border border-zinc-900">
-                                        <h4 className="text-zinc-300 text-xs font-bold mb-3 border-b border-zinc-800 pb-2">
-                                            Bollinger Bands
-                                        </h4>
-                                        <ParamInput label="Length" val="20" />
-                                        <ParamInput label="Mult" val="2.0" />
-                                    </div>
-                                    <div className="bg-zinc-950 p-4 border border-zinc-900">
-                                        <h4 className="text-zinc-300 text-xs font-bold mb-3 border-b border-zinc-800 pb-2">
-                                            Donchian Channels
-                                        </h4>
-                                        <ParamInput label="Length" val="20" />
-                                        <ParamInput label="Offset" val="0" />
-                                    </div>
-                                    <div className="bg-zinc-950 p-4 border border-zinc-900 col-span-1 md:col-span-2">
-                                        <h4 className="text-zinc-300 text-xs font-bold mb-3 border-b border-zinc-800 pb-2">
-                                            Smoothed Heikin Ashi
-                                        </h4>
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <ParamInput label="EMA Length 1" val="55" />
-                                            <ParamInput label="EMA Length 2" val="100" />
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+
+                                        <div className="bg-zinc-950 p-4 border border-zinc-900 rounded-sm">
+                                            <h4 className="text-zinc-300 text-xs font-bold mb-3 border-b border-zinc-800 pb-2">RSI</h4>
+                                            <ParamInput label="Length" val={settings.RSI.period} onChange={(v) => handleParamChange('RSI', 'period', parseFloat(v) || 0)} />
+                                            <ParamInput label="Overbought" val={settings.RSI.overbought} onChange={(v) => handleParamChange('RSI', 'overbought', parseFloat(v) || 0)} />
+                                            <ParamInput label="Oversold" val={settings.RSI.oversold} onChange={(v) => handleParamChange('RSI', 'oversold', parseFloat(v) || 0)} />
                                         </div>
+
+                                        <div className="bg-zinc-950 p-4 border border-zinc-900 rounded-sm">
+                                            <h4 className="text-zinc-300 text-xs font-bold mb-3 border-b border-zinc-800 pb-2">MACD</h4>
+                                            <ParamInput label="Fast Length" val={settings.MACD.shortPeriod} onChange={(v) => handleParamChange('MACD', 'shortPeriod', parseFloat(v) || 0)} />
+                                            <ParamInput label="Slow Length" val={settings.MACD.longPeriod} onChange={(v) => handleParamChange('MACD', 'longPeriod', parseFloat(v) || 0)} />
+                                            <ParamInput label="Signal Smooth" val={settings.MACD.signalPeriod} onChange={(v) => handleParamChange('MACD', 'signalPeriod', parseFloat(v) || 0)} />
+                                        </div>
+
+                                        <div className="bg-zinc-950 p-4 border border-zinc-900 rounded-sm">
+                                            <h4 className="text-zinc-300 text-xs font-bold mb-3 border-b border-zinc-800 pb-2">Bollinger Bands</h4>
+                                            <ParamInput label="Length" val={settings.Bollinger_Bands.period} onChange={(v) => handleParamChange('Bollinger_Bands', 'period', parseFloat(v) || 0)} />
+                                            <ParamInput label="Multiplier" val={settings.Bollinger_Bands.stdDevMultiplier} onChange={(v) => handleParamChange('Bollinger_Bands', 'stdDevMultiplier', parseFloat(v) || 0)} />
+                                        </div>
+
+                                        <div className="bg-zinc-950 p-4 border border-zinc-900 rounded-sm">
+                                            <h4 className="text-zinc-300 text-xs font-bold mb-3 border-b border-zinc-800 pb-2">Stochastic RSI</h4>
+                                            <ParamInput label="Period" val={settings.Stochastic_RSI.period} onChange={(v) => handleParamChange('Stochastic_RSI', 'period', parseFloat(v) || 0)} />
+                                            <ParamInput label="K %" val={settings.Stochastic_RSI.kPeriod} onChange={(v) => handleParamChange('Stochastic_RSI', 'kPeriod', parseFloat(v) || 0)} />
+                                            <ParamInput label="D %" val={settings.Stochastic_RSI.dPeriod} onChange={(v) => handleParamChange('Stochastic_RSI', 'dPeriod', parseFloat(v) || 0)} />
+                                        </div>
+
+                                        <div className="bg-zinc-950 p-4 border border-zinc-900 rounded-sm">
+                                            <h4 className="text-zinc-300 text-xs font-bold mb-3 border-b border-zinc-800 pb-2">MA Crossover</h4>
+                                            <ParamInput label="Short Length" val={settings.MA_Crossover.shortPeriod} onChange={(v) => handleParamChange('MA_Crossover', 'shortPeriod', parseFloat(v) || 0)} />
+                                            <ParamInput label="Long Length" val={settings.MA_Crossover.longPeriod} onChange={(v) => handleParamChange('MA_Crossover', 'longPeriod', parseFloat(v) || 0)} />
+                                        </div>
+
+                                        <div className="bg-zinc-950 p-4 border border-zinc-900 rounded-sm">
+                                            <h4 className="text-zinc-300 text-xs font-bold mb-3 border-b border-zinc-800 pb-2">Simple MAs</h4>
+                                            <ParamInput label="SMA Length" val={settings.SMA.period} onChange={(v) => handleParamChange('SMA', 'period', parseFloat(v) || 0)} />
+                                            <ParamInput label="ATR Length" val={settings.ATR.period} onChange={(v) => handleParamChange('ATR', 'period', parseFloat(v) || 0)} />
+                                        </div>
+
+                                        <div className="bg-zinc-950 p-4 border border-zinc-900 rounded-sm md:col-span-2 lg:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div>
+                                                <h4 className="text-zinc-300 text-xs font-bold mb-3 border-b border-zinc-800 pb-2">Smoothed Heikin Ashi</h4>
+                                                <ParamInput label="EMA Length 1" val={settings.SmoothedHeikinAshi.emaPeriod1} onChange={(v) => handleParamChange('SmoothedHeikinAshi', 'emaPeriod1', parseFloat(v) || 0)} />
+                                                <ParamInput label="EMA Length 2" val={settings.SmoothedHeikinAshi.emaPeriod2} onChange={(v) => handleParamChange('SmoothedHeikinAshi', 'emaPeriod2', parseFloat(v) || 0)} />
+                                            </div>
+                                            <div>
+                                                <h4 className="text-zinc-300 text-xs font-bold mb-3 border-b border-zinc-800 pb-2">Donchian Channels</h4>
+                                                <ParamInput label="Length" val={settings.Donchian.period} onChange={(v) => handleParamChange('Donchian', 'period', parseFloat(v) || 0)} />
+                                                <ParamInput label="Offset" val={settings.Donchian.offset} onChange={(v) => handleParamChange('Donchian', 'offset', parseFloat(v) || 0)} />
+                                            </div>
+                                        </div>
+
                                     </div>
                                 </div>
-                            </div>
+                            )}
                         </Card>
                     )}
 
@@ -268,7 +368,7 @@ export function StrategyRegistry() {
                 </div>
 
                 {/* RIGHT SIDEBAR: GLOBAL CONFIG */}
-                <div className="lg:col-span-1 space-y-6">
+                <div className="xl:col-span-1 space-y-6">
                     <Card>
                         <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500 mb-4">Deployment Status</h3>
                         <div className="space-y-4">
@@ -289,8 +389,13 @@ export function StrategyRegistry() {
                     <Card>
                         <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500 mb-4">Quick Actions</h3>
                         <div className="space-y-2">
-                            <button className="w-full py-3 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 text-xs font-bold flex items-center justify-center gap-2 border border-zinc-800 transition-colors">
-                                <Save size={14} /> Save Config
+                            <button
+                                onClick={handleSaveConfig}
+                                disabled={isLoading || isSaving}
+                                className="w-full py-3 bg-emerald-600/10 text-emerald-400 hover:bg-emerald-600/20 hover:text-emerald-300 text-xs font-bold flex items-center justify-center gap-2 border border-emerald-900/50 transition-colors disabled:opacity-50"
+                            >
+                                {isSaving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                                {isSaving ? 'Saving...' : 'Save Config'}
                             </button>
                             <button className="w-full py-3 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 text-xs font-bold flex items-center justify-center gap-2 border border-zinc-800 transition-colors">
                                 <Archive size={14} /> Backup Settings
