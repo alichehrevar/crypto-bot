@@ -17,6 +17,7 @@ const { scheduleAnomalyGeneration } = require('./anomalyGeneratorJob');
 const { economicEventCron } = require('./economicEvents');
 const netFlowJob = require('./netFlowJob');
 const { schedulePriceUpdate } = require('./listingUpdateJob');
+const { scheduleDailyAiModels, runDailyAiModels } = require('./aiModelJob');
 const delay = require('../utils/delay');
 const logger = require('../logs/logger');
 
@@ -61,6 +62,15 @@ const startScheduledJobs = async () => {
         logger.info('Starting: Initial market update job.')
         await runInitialMarketUpdate();
         scheduleMarketUpdate();
+
+        // 8. Run Daily AI Models Schedule
+        logger.info('Starting: Daily AI Model generator job.');
+
+        // Schedule it to run every day at midnight
+        scheduleDailyAiModels();
+
+        // UNCOMMENT the line below ONLY IF you want it to also fire immediately every time you restart the server
+        await runDailyAiModels();
 
         logger.info('✅ All scheduled jobs have been started successfully.');
     } catch (error) {

@@ -7,7 +7,7 @@ const logger = require("../../../../logs/logger");
 
 async function triggerAsync(req, res) {
     try {
-        const job = await n8nService.initiateAsyncWorkflow(req.user.id, req.body.payload, '/6ac4dc06-43b7-40a9-839c-fe2f9466579e', 'ai-model');
+        const job = await n8nService.initiateAsyncWorkflow(req.user.id, req.body.payload, 'ai-model');
 
         return res.status(202).json({
             success: true,
@@ -28,7 +28,7 @@ async function triggerAsync(req, res) {
 
 async function promptSubmission(req, res) {
     try {
-        const job = await n8nService.initiateAsyncWorkflow(req.user.id, req.body.payload, '/217b07f3-a235-46da-8e9e-9fe760b7ae0a', 'prompt');
+        const job = await n8nService.initiateAsyncWorkflow(req.user.id, req.body.payload, 'prompt');
 
         return res.status(202).json({
             success: true,

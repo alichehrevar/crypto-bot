@@ -2,10 +2,10 @@
 
 const mongoose = require('mongoose');
 const { CustomAIWorkflowJob_DefaultDB } = require('../models/N8nWorkflowJob');
-const BotBase = require('../models/BotBase');
 const TechnicalBotModel = require('../models/TechnicalBotModel');
 const BotService = require('./botService/BotService');
 const Account = require('../models/Account');
+const User = require('../models/User');
 const logger = require("../../logs/logger");
 
 // 🚀 FIX: Import the connection directly
@@ -83,7 +83,11 @@ function setupWatcher(Model, collectionName) {
 
 async function processNewRecord(sourceDoc, collectionName) {
     try {
-        const requestId = sourceDoc.response?.requestID || `auto-${Date.now()}`;
+        // Fetch the admin user from the database
+        const adminUser = await User.findOne({ role: 'admin' });
+
+        // Use the admin's ID as the requestId if sourceDoc.response.requestID is not available
+        const requestId = sourceDoc.response?.requestID || (adminUser ? adminUser._id.toString() : `auto-${Date.now()}`);
         const sourceId = sourceDoc._id.toString();
 
         // 1. Check for duplicates
@@ -100,7 +104,9 @@ async function processNewRecord(sourceDoc, collectionName) {
         // 2. Safely handle User ID
         let validUserId;
         try {
-            validUserId = new mongoose.Types.ObjectId(sourceDoc.userId);
+            validUserId = sourceDoc.userId
+                ? new mongoose.Types.ObjectId(sourceDoc.userId)
+                : (adminUser ? adminUser._id : new mongoose.Types.ObjectId("000000000000000000000000"));
         } catch (e) {
             validUserId = new mongoose.Types.ObjectId("000000000000000000000000");
         }

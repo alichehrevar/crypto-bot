@@ -14,6 +14,9 @@ require('dotenv').config();
 const N8N_BASE_URL = process.env.N8N_BASE_URL;
 const JWT_SECRET = process.env.JWT_SECRET;
 
+const PROMPT_WEBHOOK_PATH = '/217b07f3-a235-46da-8e9e-9fe760b7ae0a';
+const MODEL_WEBHOOK_PATH = '/78a86799-6996-4492-8be3-769ceba77b99';
+
 // Fail fast if configuration is missing
 if (!N8N_BASE_URL || !JWT_SECRET) {
     throw new Error('CRITICAL: N8N_BASE_URL or JWT_SECRET is not defined in environment variables.');
@@ -158,11 +161,10 @@ async function executeWorkflowAndUpdate(job) {
  * Creates a job entry and immediately kicks off the background process.
  * @param {string} userId
  * @param {object} payload
- * @param {string} webhookPath
  * @param {'ai-model' | 'prompt'} type
  * @returns {Promise<N8nWorkflowJob_CustomAiDB>} The newly created job (processing state).
  */
-async function initiateAsyncWorkflow(userId, payload, webhookPath, type) {
+async function initiateAsyncWorkflow(userId, payload, type) {
     if (!payload) {
         throw new ServiceError('Missing required fields: payload.', 'VALIDATION');
     }
@@ -170,6 +172,8 @@ async function initiateAsyncWorkflow(userId, payload, webhookPath, type) {
     if (type !== 'prompt' && type !== 'ai-model') {
         throw new ServiceError('Invalid workflow type.', 'VALIDATION');
     }
+
+    const webhookPath = type === 'prompt' ? PROMPT_WEBHOOK_PATH : MODEL_WEBHOOK_PATH;
 
     try {
         // 1. Create Job
