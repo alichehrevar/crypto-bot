@@ -2,7 +2,11 @@
  * Helper to calculate statistical metrics from a list of trades
  */
 exports.calculateBotMetrics = (bot, trades) => {
-    const baseFund = bot.marketInfo?.baseFund || 1000;
+    // 🚀 FIX: Dynamically use paperBalance for paper bots, baseFund for live bots
+    const baseFund = bot.mode === 'paper'
+        ? (bot.paperBalance || 10000)
+        : (bot.marketInfo?.baseFund || 1000);
+
     let equity = baseFund;
     let peakEquity = baseFund;
     let maxDrawdown = 0;
@@ -12,8 +16,10 @@ exports.calculateBotMetrics = (bot, trades) => {
 
     const returns = [];
 
-    for (const trade of trades) {
-        // Ensure profit is a number
+    // 🚀 FIX: Only calculate metrics on fully closed trades
+    const closedTrades = trades.filter(t => t.exitPrice !== undefined && t.exitPrice !== null);
+
+    for (const trade of closedTrades) {
         const profit = trade.profit || 0;
 
         if (profit > 0) {
@@ -35,7 +41,7 @@ exports.calculateBotMetrics = (bot, trades) => {
         if (prevEquity > 0) returns.push(profit / prevEquity);
     }
 
-    const totalTrades = trades.length;
+    const totalTrades = closedTrades.length;
     const winRate = totalTrades > 0 ? (wins / totalTrades) * 100 : 0;
     const profitFactor = grossLoss > 0 ? (grossProfit / grossLoss) : (grossProfit > 0 ? 999 : 0);
     const roi = ((equity - baseFund) / baseFund) * 100;

@@ -142,9 +142,12 @@ class BingXWS {
     async processMessage(msg) {
         if (!msg || typeof msg !== 'object') return;
         try {
-            if (msg.topic && msg.topic.includes('kline')) {
-                await this.processKlineMessage(msg);
-            } else if (msg.topic && msg.topic.includes('ticker')) {
+            // 🚀 FIX: BingX uses 'dataType' for event routing (e.g., "BTC-USDT@kline_1m")
+            const routingKey = msg.dataType || msg.topic;
+
+            if (routingKey && routingKey.includes('kline')) {
+                await this.processKlineMessage(msg, routingKey);
+            } else if (routingKey && routingKey.includes('ticker')) {
                 await this.processTickerMessage(msg);
             }
         } catch (error) {
@@ -160,53 +163,52 @@ class BingXWS {
         return map[interval] || 60000;
     }
 
-    async processKlineMessage(msg) {
-        const klineData = msg.data;
+    async processKlineMessage(msg, routingKey) {
+        // BingX sometimes wraps data in an array, sometimes an object
+        const klineDataList = Array.isArray(msg.data) ? msg.data : [msg.data];
+        if (!klineDataList || klineDataList.length === 0) return;
+
+        const klineData = klineDataList[0];
         if (!klineData) return;
 
-        const [rawSymbol, interval] = msg.topic.split('@');
+        const [rawSymbol, interval] = routingKey.split('@');
         const symbol = rawSymbol.toUpperCase().replace('-', '/');
         const timeframe = this.mapInterval(interval.replace('kline_', ''));
 
         // 1. Calculate the exact immutable Open Time boundary
         const tfMs = this.getIntervalMs(timeframe);
-        const updateTime = parseInt(klineData.t, 10) || Date.now();
-        const openTime = Math.floor(updateTime / tfMs) * tfMs; // Snaps down to the exact minute/hour
 
-        // Initialize local memory cache if it doesn't exist
+        // 🚀 FIX: Use uppercase 'T', and explicitly snap the time to the floor minute/hour
+        const rawTime = parseInt(klineData.T || klineData.t, 10) || Date.now();
+        const openTime = Math.floor(rawTime / tfMs) * tfMs; // Forces it to exactly :00.000Z
+
         if (!this.candleCache) this.candleCache = {};
         const cacheKey = `${symbol}-${timeframe}`;
 
         // 2. Determine if the PREVIOUS candle just closed
         if (this.candleCache[cacheKey] && this.candleCache[cacheKey].timestamp < openTime) {
-
-            // The timestamp moved forward a full block. The old candle is definitively closed.
             const closedCandle = { ...this.candleCache[cacheKey], isClosed: true };
-
             await candleStore.updateCandle(symbol, timeframe, closedCandle);
-            await BotService.processCandle(symbol, timeframe, closedCandle); // 🚀 THIS WILL TRIGGER THE BOT
+            await BotService.processCandle(symbol, timeframe, closedCandle); // 🚀 TRIGGERS TRADE EXECUTION
         }
 
         // 3. Build the CURRENT open candle
         const currentCandle = {
             symbol: symbol,
             timeframe: timeframe,
-            timestamp: openTime, // Use the immutable snapped time
+            timestamp: openTime, // ALWAYS use the snapped time
             open: parseFloat(klineData.o),
             high: parseFloat(klineData.h),
             low: parseFloat(klineData.l),
             close: parseFloat(klineData.c),
-            volume: parseFloat(klineData.v),
+            volume: parseFloat(klineData.v || 0),
             isClosed: false
         };
 
-        const isValid = ['open', 'high', 'low', 'close', 'volume'].every(key => Number.isFinite(currentCandle[key]));
+        const isValid = ['open', 'high', 'low', 'close'].every(key => Number.isFinite(currentCandle[key]));
 
         if (isValid) {
-            // Update the cache for the next cycle check
             this.candleCache[cacheKey] = currentCandle;
-
-            // Trigger bot engine for the open candle (Updates UI without trading)
             await candleStore.updateCandle(symbol, timeframe, currentCandle);
             await BotService.processCandle(symbol, timeframe, currentCandle);
         } else {

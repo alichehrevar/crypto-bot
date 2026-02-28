@@ -873,23 +873,33 @@ exports.userBotsList = async (req, res) => {
  */
 exports.getBotDetails = async (req, res) => {
     try {
-        // req.botBase is guaranteed to exist and be valid due to bindBot middleware
-        // bindBot uses .lean(), so we can pass it directly to the helper
-        const enriched = await calculateRelatedDataToBot(req.botBase);
+        const bot = await BotBase.findById(req.params.botId);
+        if (!bot) {
+            return res.status(404).json({ success: false, error: 'Bot not found' });
+        }
 
-        return res.status(200).json({
+        // Fetch trades strictly matching the schema
+        // Sorted by timestamp ascending for correct metric calculation logic
+        const trades = await Trade.find({ bot: bot._id })
+            .sort({ timestamp: 1 })
+            .lean();
+
+        const metrics = BotMetrics.calculateBotMetrics(bot, trades);
+
+        // Reverse for display (Newest first in the UI table)
+        const displayTrades = [...trades].reverse();
+
+        return res.json({
             success: true,
-            data: enriched
+            bot: bot,
+            metrics: metrics,
+            trades: displayTrades,
+            defaultStrategyParams
         });
 
-    } catch (error) {
-        logger.error(`getBotDetails error: ${error.message}`, { stack: error.stack });
-        // console.error is redundant if logger is working, but keeping per your style
-        console.error('getBotDetails error:', error);
-        return res.status(500).json({
-            success: false,
-            message: 'Internal server error while fetching bot details.'
-        });
+    } catch (err) {
+        // Log logic...
+        return res.status(500).json({ success: false, error: err.message });
     }
 };
 
