@@ -13,27 +13,30 @@ import { Pagination } from "@/components/common/Pagination";
 import { Badge } from "@/components/common/Badge";
 import { useToast } from "@/components/providers/ToastProvider";
 import { getData } from "@/actions/get";
-import LogsConsole from "@/components/users/LogsConsole";
+import LogsConsole from "@/components/users/LogsConsole"; // Assuming this exists
 
 // --- Types ---
 import {
     BotApiResponse,
     TradingBotUnion,
-    TradingBot as TechnicalBot,
+    TradingBot,
     GridBot,
     DcaBot,
-    Trade, BotViewModel, BotDetailsPageProps, TradeViewModel
+    Trade,
+    BotViewModel,
+    BotDetailsPageProps,
+    TradeViewModel,
+    BotIndicator,
+    RiskParams
 } from "@/types/bots/botDetails";
-import {StrategyConfig} from "@/types/bots/defaultStrategyParams";
 
-const BotDetailsPage = ({ botId }: BotDetailsPageProps) => {
+export default function BotDetailsPage({ botId }: BotDetailsPageProps) {
     const router = useRouter();
     const { addToast } = useToast();
 
     // State
     const [bot, setBot] = useState<BotViewModel | null>(null);
-    const [tradesList, setTradesList] = useState<TradeViewModel[]>([]); // Typed Ledger
-    const [, setStrategyParams] = useState<StrategyConfig>()
+    const [tradesList, setTradesList] = useState<TradeViewModel[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [refreshTrigger, setRefreshTrigger] = useState(0);
 
@@ -50,55 +53,60 @@ const BotDetailsPage = ({ botId }: BotDetailsPageProps) => {
     const fetchBotData = useCallback(async () => {
         setIsLoading(true);
         try {
-            // GENERIC TYPE ENFORCEMENT
             const res: BotApiResponse = await getData(`/bots/${botId}`);
 
             if (res.success && res.bot) {
                 const apiBot: TradingBotUnion = res.bot;
                 const metrics = res.metrics;
 
-                setStrategyParams(res.defaultStrategyParams)
-
                 // --- MAPPING LOGIC ---
                 let investment = "-";
                 let botTPSL = "-";
                 let posTPSL = "Dynamic";
-                let riskParams = "-";
+                let riskParamsStr = "-";
                 let direction = "-";
                 let activeIndicators: { name: string; tf: string; params: Record<string, string | number> }[] = [];
                 let botTypeLabel = "UNKNOWN";
                 let tradingMode = "SPOT";
+                let calculatedMaxLoss = "-";
 
                 // 1. Technical / Indicator Bot
-                if (apiBot.botType === 'indicator' || apiBot.botType === 'technical') {
-                    // Cast is safe due to discriminated union check
-                    const b = apiBot as TechnicalBot;
+                if (apiBot.botType === 'indicator' || apiBot.botType === 'technical' || apiBot.botType === 'strategy') {
+                    const b = apiBot as TradingBot;
                     botTypeLabel = "TECHNICAL";
 
-                    investment =
-                        b.mode === 'paper'
-                            ? `$${b.paperBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                            : `$${b.marketInfo?.tradeFund.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                    ;
+                    // 🚀 FIX: Correctly display baseFund for live, paperBalance for paper
+                    investment = b.mode === 'paper'
+                        ? `$${b.paperBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                        : `$${(b.marketInfo?.baseFund || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
                     botTPSL = `${b.tradeInfo?.takeProfit ?? '-'}% / ${b.tradeInfo?.stopLoss ?? '-'}%`;
                     posTPSL = `${b.tradeInfo?.positionTakeProfit ?? '-'}% / ${b.tradeInfo?.positionStopLoss ?? '-'}%`;
-                    riskParams = b.riskParams?.positionSizingMethod ? `Sizing: ${b.riskParams.positionSizingMethod}` : '-';
+                    riskParamsStr = b.riskParams?.positionSizingMethod ? `Sizing: ${b.riskParams.positionSizingMethod}` : '-';
                     direction = b.tradeInfo?.positionSide?.toUpperCase() || "NEUTRAL";
 
+                    // Safely extend RiskParams since maxDrawdown might not be in the base interface
+                    const extendedRiskParams = b.riskParams as RiskParams & { maxDrawdown?: number };
+                    const maxLossParam = extendedRiskParams?.maxDrawdown || b.botSL;
+                    calculatedMaxLoss = maxLossParam ? `${maxLossParam}%` : '-';
+
                     if (b.indicators && b.indicators.length > 0) {
-                        activeIndicators = b.indicators.map((ind) => {
-                            // 1. Define strict type for the strategy params lookup
+                        activeIndicators = b.indicators.map((baseInd) => {
+                            // Safely extend BotIndicator to include params
+                            const ind = baseInd as BotIndicator & { params?: Record<string, string | number> };
+
+                            // Treat defaultStrategyParams as a generic dictionary
                             const strategies = res.defaultStrategyParams as unknown as Record<string, Record<string, string | number>>;
 
-                            // 2. Look for params in the strategy defaults matching the indicator name
-                            // (Fallback to empty object if not found)
-                            const matchedParams = strategies[ind.name] || {};
+                            const defaultParams = strategies[ind.name] || {};
+
+                            // 🚀 FIX: Merge Custom Params over Default Params
+                            const mergedParams = { ...defaultParams, ...(ind.params || {}) };
 
                             return {
                                 name: ind.name,
-                                tf: ind.timeframe,
-                                // 3. Assign the object directly
-                                params: matchedParams
+                                tf: ind.timeframe || b.timeframe,
+                                params: mergedParams
                             };
                         });
                     }
@@ -120,9 +128,9 @@ const BotDetailsPage = ({ botId }: BotDetailsPageProps) => {
                     const grids = b.gridConfig?.gridCount ?? '-';
                     const lower = b.gridConfig?.lowerPrice ?? '-';
                     const upper = b.gridConfig?.upperPrice ?? '-';
-                    riskParams = `Grids: ${grids} | Range: ${lower} - ${upper}`;
-
+                    riskParamsStr = `Grids: ${grids} | Range: ${lower} - ${upper}`;
                     direction = "NEUTRAL";
+                    calculatedMaxLoss = b.botSL ? `${b.botSL}%` : '-';
                 }
                 // 3. DCA Bot
                 else if (apiBot.botType === 'dca') {
@@ -130,24 +138,21 @@ const BotDetailsPage = ({ botId }: BotDetailsPageProps) => {
                     botTypeLabel = "DCA";
                     tradingMode = b.marketType || '-';
 
-                    // Investment: Base + (Safety * MaxSafety)
                     const baseVol = b.baseOrderVolume || 0;
                     const safetyVol = b.safetyOrderVolume || 0;
                     const maxSafety = b.maxSafetyOrders || 0;
                     const totalInv = baseVol + (safetyVol * maxSafety);
                     investment = totalInv > 0 ? `$${totalInv.toLocaleString()}` : '-';
 
-                    // TP/SL
                     const tp = b.takeProfitPercent ?? b.takeProfit ?? '-';
                     const sl = b.stopLossPercent ?? '-';
                     botTPSL = `${tp}% / ${sl}%`;
 
-                    // Risk Params
                     const volScale = b.volumeScale ?? '-';
                     const stepScale = b.stepScale ?? '-';
-                    riskParams = `Max SO: ${maxSafety} | Vol: ${volScale} | Step: ${stepScale}`;
-
+                    riskParamsStr = `Max SO: ${maxSafety} | Vol: ${volScale} | Step: ${stepScale}`;
                     direction = b.direction || "LONG";
+                    calculatedMaxLoss = b.botSL ? `${b.botSL}%` : '-';
                 }
 
                 // 4. View Model Construction
@@ -167,10 +172,10 @@ const BotDetailsPage = ({ botId }: BotDetailsPageProps) => {
 
                     indicators: activeIndicators,
                     securityIndicator: "-",
-                    riskParams: riskParams,
+                    riskParams: riskParamsStr,
                     botTPSL: botTPSL,
                     posTPSL: posTPSL,
-                    maxLoss: "-",
+                    maxLoss: calculatedMaxLoss, // 🚀 FIX: Mapped dynamic value here
 
                     metrics: {
                         roi: metrics?.roi ? `${metrics.roi}%` : "0.00%",
@@ -184,21 +189,20 @@ const BotDetailsPage = ({ botId }: BotDetailsPageProps) => {
                 };
 
                 // --- TRADE LEDGER MAPPING ---
-                // Strictly typed mapping from res.trades (Trade[])
                 if (res.trades && Array.isArray(res.trades)) {
                     const mappedTrades: TradeViewModel[] = res.trades.map((t: Trade) => ({
                         time: new Date(t.timestamp).toLocaleString(),
-                        side: t.type, // 'BUY' | 'SELL'
+                        side: t.type,
                         price: t.entryPrice.toFixed(2),
                         status: t.exitPrice ? 'FILLED' : 'PENDING',
-                        pnl: t.profit !== undefined ? t.profit.toFixed(2) : '0.00'
+                        pnl: t.profit !== undefined && t.profit !== null ? t.profit.toFixed(2) : '0.00'
                     }));
                     setTradesList(mappedTrades);
                 }
 
                 setBot(mappedBot);
             } else {
-                addToast({ title: "Error", message: "Failed to load bot", type: "error" });
+                addToast({ title: "Error", message: "Failed to load bot details", type: "error" });
             }
         } catch (error) {
             console.error(error);
@@ -212,13 +216,21 @@ const BotDetailsPage = ({ botId }: BotDetailsPageProps) => {
         fetchBotData();
     }, [fetchBotData, refreshTrigger]);
 
-    const handleKill = () => addToast({ title: "Alert", message: "Signal sent.", type: "error" });
+    const handleKill = () => addToast({ title: "Alert", message: "Kill signal sent to backend.", type: "error" });
 
     // Client-side Pagination
-    const totalTradePages = Math.ceil(tradesList.length / ITEMS_PER_PAGE);
-    const paginatedTrades = tradesList.slice((tradePage - 1) * ITEMS_PER_PAGE, tradePage * ITEMS_PER_PAGE);
+    const filteredTrades = tradesList.filter((t) => {
+        if (t.side === 'BUY' && !ledgerFilter.buy) return false;
+        if (t.side === 'SELL' && !ledgerFilter.sell) return false;
+        if (t.status === 'FILLED' && !ledgerFilter.filled) return false;
+        return !(t.status === 'REJECTED' && !ledgerFilter.rejected);
 
-    if (isLoading) return <div className="h-[80vh] flex items-center justify-center"><Loader2 className="animate-spin" /></div>;
+    });
+
+    const totalTradePages = Math.ceil(filteredTrades.length / ITEMS_PER_PAGE) || 1;
+    const paginatedTrades = filteredTrades.slice((tradePage - 1) * ITEMS_PER_PAGE, tradePage * ITEMS_PER_PAGE);
+
+    if (isLoading) return <div className="h-[80vh] flex items-center justify-center"><Loader2 className="animate-spin text-zinc-500" /></div>;
     if (!bot) return null;
 
     return (
@@ -274,17 +286,15 @@ const BotDetailsPage = ({ botId }: BotDetailsPageProps) => {
                             <div className="space-y-2">
                                 {bot.indicators.length > 0 ? bot.indicators.map((ind, i) => (
                                     <div key={i} className="flex flex-col bg-zinc-900 p-1.5 rounded-sm border border-zinc-800 gap-2">
-                                        {/* Indicator Header */}
                                         <div className="flex justify-between items-center">
                                             <span className="font-bold text-white text-xs">
                                                 {ind.name} <span className="text-zinc-500 font-normal">({ind.tf})</span>
                                             </span>
-                                            <div className="flex items-center">
+                                            <div className="flex items-center gap-2">
                                                 {Object.entries(ind.params).length > 0 ? (
                                                     Object.entries(ind.params).map(([key, value], j) => (
                                                         <div key={j} className="flex items-center text-[10px] bg-black/40 border border-zinc-800 rounded px-1.5 py-0.5">
                                                             <span className="text-zinc-500 mr-1.5 capitalize">
-                                                                {/* Format camelCase to spaces (optional, looks cleaner) */}
                                                                 {key.replace(/([A-Z])/g, ' $1').trim()}:
                                                             </span>
                                                             <span className="font-mono text-emerald-400">
@@ -395,10 +405,9 @@ const BotDetailsPage = ({ botId }: BotDetailsPageProps) => {
                     </div>
                     <Pagination page={tradePage} setPage={setTradePage} total={totalTradePages} label="Trades" />
                 </div>
+                {/* Ensure LogsConsole is imported correctly based on your directory */}
                 <LogsConsole botId={botId} />
             </div>
         </div>
     );
-};
-
-export default BotDetailsPage;
+}

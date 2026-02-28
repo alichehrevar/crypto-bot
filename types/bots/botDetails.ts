@@ -10,6 +10,7 @@ type AccountType = 'bingx' | 'binance' | 'okx'; // Expand based on brokers you u
 
 export interface RiskParams {
     positionSizingMethod: string; // e.g., 'simple', 'kelly', 'fixed'
+    maxDrawdown?: number;
 }
 
 export interface CurrentCandle {
@@ -47,6 +48,7 @@ export interface TradeInfo {
 export interface BotIndicator {
     name: string;
     timeframe: Timeframe;
+    params?: Record<string, string | number>;
 }
 
 // 3. Main Entity Interface
